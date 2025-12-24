@@ -28,7 +28,7 @@ SELECT * FROM TRANSPORT_SET_VIOLATIONS;
 
 ### Verify Compatibility
 ```sql
-SELECT platform_name, endian_format FROM v\;
+SELECT platform_name, endian_format FROM v$database;
 ```
 
 ## Phase 2: Prepare Source (30 min)
@@ -103,7 +103,7 @@ SELECT * FROM TRANSPORT_SET_VIOLATIONS;
 
 ### Platform Incompatibility
 - Use RMAN CONVERT for different endian formats
-- Verify with: SELECT platform_name FROM v
+- Verify with: SELECT platform_name FROM v$database
 ### Insufficient Space
 ```bash
 df -h /u01/app/oracle/oradata/targetdb
