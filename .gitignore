@@ -1,0 +1,56 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+terraform.tfplan
+override.tf
+override.tf.json
+
+# AWS / Azure credentials
+*.credentials
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# Logs
+*.log
+*.out
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Sensitive data
+secrets/
+credentials/
+private/
+
+# Build artifacts
+dist/
+build/
+target/
+node_modules/
+
+# Database exports
+*.dmp
+*.dump
+
+# Temporary files
+/tmp/
+*.tmp
