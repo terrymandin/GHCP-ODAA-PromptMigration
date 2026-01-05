@@ -58,9 +58,8 @@ During each phase, read the summary carefully to understand what will be deliver
   - **`prompts/`**: Structured prompts for each phase of the migration process
 
 - **`Use-cases/`**: Example applications representing different migration scenarios
-  - **`01-SingleCluster/`**: Classic ASP application with e-commerce functionality
-  - **`02-MultiZoneSilver/`**: .NET Framework 3.0 ASP.NET Web Application
-  - **`03-MultiRegionGold/`**: WCF services using .NET Framework 3.5
+  - **`01-MultiZoneSilver/`**: Oracle Silver MAA Architecture
+  - **`02-MultiRegionGold/`**: Oracle Gold MAA Architecture
 
 ## Migration & Modernization Process
 
@@ -72,7 +71,9 @@ Plan your migration by gathering requirements (hosting platform, IaC preferences
 
 ### Phase 2: Sizing
 
-Use Oracle AWR reports to size the Oracle Database@Azure deployment.
+Use Oracle AWR or statspack reports to size the Oracle Database@Azure deployment.  
+>
+> QUESTION: Our [current guidance](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/oracle-on-azure/oracle-landing-zone-plan#plan-your-oracle-on-azure-estate) is to consult with Oracle for sizing of Oracle Database@Azure.  Could this be replaced or augmented with AI?
 
 ### Phase 3: Obtaining the Oracle Database@Azure Marketplace offering
 
