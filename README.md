@@ -69,6 +69,11 @@ The repository implements a structured 10-phase approach to application migratio
 
 Plan your migration by gathering requirements (hosting platform, IaC preferences, database needs) and generate a comprehensive assessment report analyzing the current application structure, dependencies, architecture, risk analysis, and effort estimation.
 
+>
+> VBD: [Architecture Design and Review Session for Migrating Oracle Workloads to Oracle Exadata Database@Azure](https://eng.ms/docs/microsoft-customer-partner-solutions-mcaps/customer-experience-and-support/asd-management/og-management/ppe-resource-center-repos/azure-engagement-resource-center/sp01/oracle/adr/deliveryguide_exadata_v2)
+
+>QUESTIONNAIRE: [Questionnaire Exadata Migration.xlsx](https://microsoft.sharepoint.com/:x:/r/teams/ASDIPRelease/IP%20Release/Secure%20Infrastructure/VBD/Migrating%20Oracle%20Workloads%20to%20Azure/Architecture%20Design%20and%20Review%20Session%20for%20Migrating%20Oracle%20Workloads%20to%20Azure/OracleDB@Azure/Questionnaire%20Exadata%20Migration.xlsx?d=wc882448f3dcc4217aa6d73298c267117&csf=1&web=1&e=msZa93)
+
 ### Phase 2: Sizing
 
 Use Oracle AWR or statspack reports to size the Oracle Database@Azure deployment.  
