@@ -36,6 +36,8 @@ Supporting Infrastructure AVMs:
 - Log Analytics Workspace AVM: https://registry.terraform.io/modules/Azure/avm-res-operationalinsights-workspace/azurerm/latest
 
 Iterate with "terraform init", "terraform validate" and "terraform plan" until there are no errors.
+
+Place Terraform in the IaC directory
 ```
 
 ---
