@@ -92,9 +92,6 @@ Determine the CIDR Ranges to be used by the Oracle Database@Azure deployments
 
 Create infrastructure as code (IaC) files (Bicep or Terraform) using [Azure Verified Modules](https://aka.ms/avm) for deploying to Azure, incorporating best practices and security configurations.
 
->
-> STATUS: Incompatible Oracle AVM Azure AVM AzureRM versions
-
 ### Phase 6: Deployment to Azure
 
 Deploy the validated Oracle Database@Azure architecture to Azure with comprehensive deployment monitoring and validation.
