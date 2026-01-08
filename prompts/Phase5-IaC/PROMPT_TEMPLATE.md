@@ -27,13 +27,13 @@ Create an Oracle Database@Azure (ODAA) Infrastructure and Cluster instance using
 Use ONLY Azure Verified Modules for ALL resources - do not use raw azurerm resources:
 
 ODAA Resources:
-- ODAA Infrastructure AVM: https://registry.terraform.io/modules/Azure/avm-res-oracledatabase-cloudexadatainfrastructure/azurerm/latest
-- ODAA Cluster AVM: https://registry.terraform.io/modules/Azure/avm-res-oracledatabase-cloudvmcluster/azurerm/latest
+- ODAA Infrastructure AVM: https://registry.terraform.io/modules/Azure/avm-res-oracledatabase-cloudexadatainfrastructure/azurerm/0.3.0
+- ODAA Cluster AVM: https://registry.terraform.io/modules/Azure/avm-res-oracledatabase-cloudvmcluster/azurerm/0.3.2
 
 Supporting Infrastructure AVMs:
-- Resource Group AVM: https://registry.terraform.io/modules/Azure/avm-res-resources-resourcegroup/azurerm/latest
-- Virtual Network AVM: https://registry.terraform.io/modules/Azure/avm-res-network-virtualnetwork/azurerm/latest
-- Log Analytics Workspace AVM: https://registry.terraform.io/modules/Azure/avm-res-operationalinsights-workspace/azurerm/latest
+- Resource Group AVM: https://registry.terraform.io/modules/Azure/avm-res-resources-resourcegroup/azurerm/0.2.1
+- Virtual Network AVM: https://registry.terraform.io/modules/Azure/avm-res-network-virtualnetwork/azurerm/0.17.0
+- Log Analytics Workspace AVM: https://registry.terraform.io/modules/Azure/avm-res-operationalinsights-workspace/azurerm/0.5.1
 
 Iterate with "terraform init", "terraform validate" and "terraform plan" until there are no errors.
 
