@@ -36,8 +36,6 @@ Plan CIDR ranges for Oracle Database@Azure deployment:
 - Avoid reserved ranges for X9M (100.106.0.0/16, 100.107.0.0/16)
 - Allocate /25 or larger for client subnet (not minimum /27)
 - Document all calculations and assumptions
-
-Generate the CIDR Definition document in Artifacts/Phase5-CIDR/CIDR Definition.md with complete details.
 ```
 
 ---
