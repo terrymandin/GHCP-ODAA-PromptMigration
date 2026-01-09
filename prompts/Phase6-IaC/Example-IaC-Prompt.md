@@ -2,12 +2,16 @@
 
 This example demonstrates how to request infrastructure using Azure Verified Modules (AVM) for **all** resources.
 
+## Prerequisites
+
+**IMPORTANT**: Before using this example, ensure you have completed Phase 5 CIDR Planning. The `Artifacts/Phase5-CIDR/CIDR-Definition.md` file must exist with approved network configuration. This example shows how to reference that file so the AI pulls the correct CIDR ranges.
+
 ## Full AVM-Based Prompt Example
 
 Copy and use this prompt to generate ODAA infrastructure with AVM modules for everything:
 
 ```
-@IaC-Prompt.md
+@IaC-Prompt.md #file:Artifacts/Phase5-CIDR/CIDR-Definition.md
 
 Create Oracle Database@Azure (ODAA) infrastructure using Azure Verified Modules (AVM) for ALL resources:
 
@@ -27,9 +31,10 @@ Create Oracle Database@Azure (ODAA) infrastructure using Azure Verified Modules 
 - GI version: 19.0.0.0
 
 ### Network Resources (Use VNet AVM Module)
-- Virtual Network: 172.16.0.0/24 address space
-- Oracle Subnet: 172.16.0.0/25 with delegation to Oracle.Database/networkAttachments
-- Backup Subnet CIDR: 172.16.1.0/24
+- Read network configuration from the CIDR-Definition.md file:
+  - Use the approved VNet CIDR range
+  - Use the approved Client Subnet CIDR range with delegation to Oracle.Database/networkAttachments
+  - Use the approved Backup Subnet CIDR range
 - Include Network Security Group via AVM module
 - Configure subnet delegation properly for Oracle
 

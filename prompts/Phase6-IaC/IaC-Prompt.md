@@ -17,11 +17,19 @@ The `@` symbol lets Copilot read the file content automatically. You can:
 
 ---
 
+## Prerequisites
+
+**Before using this prompt**, ensure you have completed Phase 5 CIDR Planning and have the `Artifacts/CIDR-Definition.md` file available. This file contains the approved network configuration that should be used for infrastructure generation.
+
+---
+
 ## Prompt Template
 
 ### Core Prompt
 
 ```
+Read the network configuration from #file:Artifacts/CIDR-Definition.md
+
 Create an Oracle Database@Azure (ODAA) Infrastructure and Cluster instance using Terraform Azure Verified Modules (AVM).
 
 Use ONLY Azure Verified Modules for ALL resources - do not use raw azurerm resources:
@@ -35,9 +43,17 @@ Supporting Infrastructure AVMs:
 - Virtual Network AVM: https://registry.terraform.io/modules/Azure/avm-res-network-virtualnetwork/azurerm/0.17.0
 - Log Analytics Workspace AVM: https://registry.terraform.io/modules/Azure/avm-res-operationalinsights-workspace/azurerm/0.5.1
 
+Network Configuration:
+- Use the VNet CIDR range from the CIDR-Definition.md file
+- Use the Client Subnet CIDR range from the CIDR-Definition.md file  
+- Use the Backup Subnet CIDR range from the CIDR-Definition.md file
+- Configure subnet delegation for Oracle.Database/networkAttachments on the client subnet
+
 Iterate with "terraform init", "terraform validate" and "terraform plan" until there are no errors.
 
-Place Terraform in the IaC directory
+Place Terraform in the Artifacts/Phase6-IaC/Terraform directory
+
+Create a Artifacts/Phase6-IaC/Azure-IaC-Services.md file that provides a summary of the Azure Services that will be created by IaC.
 ```
 
 ---
@@ -113,28 +129,27 @@ Using AVM modules for all infrastructure components provides several benefits:
 
 ### Basic ODAA Deployment
 ```
-@PROMPT_TEMPLATE.md
+@PROMPT_TEMPLATE.md #file:Artifacts/CIDR-Definition.md
 
 Create ODAA infrastructure using Azure Verified Modules for ALL resources:
 - Deploy to eastus region in availability zone 1
 - Use Exadata.X11M shape with 4 compute nodes and 6 storage nodes
 - Configure cluster with 32 CPU cores, 120 GB memory, and 4 TB storage
-- VNet address space: 172.16.0.0/24
-- Backup subnet CIDR: 172.16.1.0/24
+- Use network configuration from the CIDR-Definition.md file (VNet, Client Subnet, Backup Subnet)
 - License model: BringYourOwnLicense
 - Time zone: America/Los_Angeles
 ```
 
 ### Production-Ready Deployment with Advanced Features
 ```
-@PROMPT_TEMPLATE.md
+@PROMPT_TEMPLATE.md #file:Artifacts/CIDR-Definition.md
 
 Create production-grade ODAA infrastructure using Azure Verified Modules for ALL resources:
 - Deploy to westus2 region with availability zone redundancy
 - Exadata.X11M: 8 compute nodes, 12 storage nodes
 - VM Cluster: 64 CPU cores, 240 GB memory, 8 TB storage
 - Use Resource Group AVM with CanNotDelete lock
-- Use VNet AVM with 10.0.0.0/16 address space
+- Use network configuration from the CIDR-Definition.md file (VNet, Client Subnet, Backup Subnet)
 - Configure NSG via AVM module
 - Use Log Analytics AVM with 90-day retention
 - Enable diagnostic settings on all resources

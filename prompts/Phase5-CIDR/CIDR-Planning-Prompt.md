@@ -90,7 +90,7 @@ Ensure the calculated ranges:
 - ✓ Account for cross-region routing requirements
 
 ### Step 5: Generate CIDR Definition Document
-Create or update the file `Artifacts/CIDR Definition.md` with the following structure:
+Create or update the file `Artifacts/Phase5-CIDR/CIDR-Definition.md` with the following structure:
 
 ```markdown
 # CIDR Range Definition for Oracle Database@Azure
@@ -209,7 +209,7 @@ Please provide the following information for CIDR planning:
 ✓ No overlap with existing network ranges
 ✓ Reserved IP ranges properly documented
 ✓ Meets minimum CIDR size requirements from Microsoft documentation
-✓ `Artifacts/CIDR Definition.md` file created with complete specifications
+✓ `Artifacts/Phase5-CIDR/CIDR Definition.md` file created with complete specifications
 ✓ Validation checklist included for team review
 ✓ References to official Microsoft documentation included
 
