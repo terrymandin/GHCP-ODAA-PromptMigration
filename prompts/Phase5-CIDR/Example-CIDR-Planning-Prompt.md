@@ -37,7 +37,7 @@ Plan CIDR ranges for Oracle Database@Azure deployment:
 - Allocate /25 or larger for client subnet (not minimum /27)
 - Document all calculations and assumptions
 
-Generate the CIDR Definition document in Artifacts/CIDR Definition.md with complete details.
+Generate the CIDR Definition document in Artifacts/Phase5-CIDR/CIDR Definition.md with complete details.
 ```
 
 ---
