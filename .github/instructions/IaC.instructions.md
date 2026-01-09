@@ -17,7 +17,7 @@ When creating infrastructure on Azure using Terraform or Bicep, leverage Azure V
    - Terraform: `source = "Azure/avm-<resource-type>/azurerm"`
    - Include version constraints for production deployments
 
-3. **Complete Configuration Files**: Create comprehensive Terraform/Bicep configurations including:
+3. **Complete Configuration Files**: Create comprehensive Terraform configurations including:
    - Provider configuration with required versions
    - Main resource definitions using AVM modules
    - Variable definitions with validation and descriptions
@@ -27,7 +27,6 @@ When creating infrastructure on Azure using Terraform or Bicep, leverage Azure V
 
 4. **Validate Iteratively**: Always run validation commands until successful:
    - Terraform: `terraform init`, `terraform validate`, `terraform plan`
-   - Bicep: `az bicep build`, `az deployment group validate`
    - Fix any errors and re-run until all validations pass
 
 5. **Follow Module Requirements**: Pay attention to:

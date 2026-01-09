@@ -84,19 +84,23 @@ Use Oracle AWR or statspack reports to size the Oracle Database@Azure deployment
 
 Work with Oracle to obtain an Oracle Database@Azure marketplace offering.
 
-### Phase 4: CIDR Range Evaluation
+### Phase 4: Architecture Validation
+
+Before generating IaC, the architecture is validated against [Cloud Adoption Framework](https://aka.ms/caf) best practices, Oracle Database@Azure networking requirements, security and compliance requirements, high availability and disaster recovery configurations, and Azure Policy compliance and governance standards.
+
+### Phase 5: CIDR Range Evaluation
 
 Determine the CIDR Ranges to be used by the Oracle Database@Azure deployments
 
-### Phase 5: Infrastructure Generation
+### Phase 6: Infrastructure Generation
 
 Create infrastructure as code (IaC) files (Bicep or Terraform) using [Azure Verified Modules](https://aka.ms/avm) for deploying to Azure, incorporating best practices and security configurations.
 
-### Phase 6: Deployment to Azure
+### Phase 7: Deployment to Azure
 
 Deploy the validated Oracle Database@Azure architecture to Azure with comprehensive deployment monitoring and validation.
 
-### Phase 7: CI/CD Pipeline Setup
+### Phase 8: CI/CD Pipeline Setup
 
 Configure automated deployment pipelines for continuous integration and delivery, with environment-specific configurations and security gates.
 
