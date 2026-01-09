@@ -7,7 +7,7 @@ This example demonstrates how to request infrastructure using Azure Verified Mod
 Copy and use this prompt to generate ODAA infrastructure with AVM modules for everything:
 
 ```
-@PROMPT_TEMPLATE.md
+@IaC-Prompt.md
 
 Create Oracle Database@Azure (ODAA) infrastructure using Azure Verified Modules (AVM) for ALL resources:
 

@@ -7,7 +7,7 @@ This example demonstrates how to use the Phase 5 CIDR Planning prompt to calcula
 Copy and use this prompt to generate CIDR allocations based on Microsoft best practices:
 
 ```
-@Phase5-CIDR-Planning-Prompt.md
+@CIDR-Planning-Prompt.md
 
 Plan CIDR ranges for Oracle Database@Azure deployment:
 
@@ -428,7 +428,7 @@ Artifacts/
 
 1. ✅ Copy the prompt example at the top
 2. ✅ Customize with your specific VM cluster configuration
-3. ✅ Paste into GitHub Copilot or AI chat with @Phase5-CIDR-Planning-Prompt.md
+3. ✅ Paste into GitHub Copilot or AI chat with @CIDR-Planning-Prompt.md
 4. ✅ Review the generated CIDR Definition.md file
 5. ✅ Validate with network team
 6. ✅ Obtain necessary approvals
