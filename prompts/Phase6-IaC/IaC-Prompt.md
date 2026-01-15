@@ -32,7 +32,7 @@ Read the network configuration from #file:Artifacts/CIDR-Definition.md
 
 Create an Oracle Database@Azure (ODAA) Infrastructure and Cluster instance using Terraform Azure Verified Modules (AVM).
 
-Use ONLY Azure Verified Modules for ALL resources - do not use raw azurerm resources:
+Use ONLY Azure Verified Modules for ALL resources - do not use raw azurerm resources. For the AVMs mentioned below ensure that only the AVM versions mentioned are used in the Terraform:
 
 ODAA Resources:
 - ODAA Infrastructure AVM: https://registry.terraform.io/modules/Azure/avm-res-oracledatabase-cloudexadatainfrastructure/azurerm/0.3.0
