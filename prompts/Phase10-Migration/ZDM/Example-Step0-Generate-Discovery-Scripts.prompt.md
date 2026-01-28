@@ -28,7 +28,7 @@ Generate discovery scripts for our PRODDB migration project.
 - ZDM Server: zdm-jumpbox.corp.example.com
 
 ## Script Output Location
-Save all generated scripts to: C:\Migrations\PRODDB\Scripts\
+Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/
 
 ## Additional Discovery Requirements
 
@@ -56,7 +56,7 @@ In addition to the standard discovery, also verify:
 
 ## Expected Output
 
-The prompt will generate four bash scripts in `C:\Migrations\PRODDB\Scripts\`:
+The prompt will generate four bash scripts in `Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/`:
 
 ### 1. zdm_source_discovery.sh
 ```bash
@@ -153,7 +153,7 @@ After generating the scripts:
 ```bash
 # From any machine with SSH access to all servers
 export SSH_KEY=~/.ssh/zdm_migration_key
-cd C:\Migrations\PRODDB\Scripts
+cd Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts
 ./zdm_orchestrate_discovery.sh
 ```
 
@@ -172,9 +172,9 @@ scp zdm_server_discovery.sh zdmuser@zdm-jumpbox.corp.example.com:/tmp/
 ssh zdmuser@zdm-jumpbox.corp.example.com "chmod +x /tmp/zdm_server_discovery.sh && /tmp/zdm_server_discovery.sh"
 
 # 4. Collect results
-scp oracle@proddb01.corp.example.com:/tmp/zdm_source_discovery_*.txt C:\Migrations\PRODDB\Discovery\
-scp opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_target_discovery_*.txt C:\Migrations\PRODDB\Discovery\
-scp zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt C:\Migrations\PRODDB\Discovery\
+scp oracle@proddb01.corp.example.com:/tmp/zdm_source_discovery_*.txt Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/
+scp opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_target_discovery_*.txt Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/
+scp zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/
 ```
 
 ---

@@ -207,7 +207,16 @@ All scripts should include:
 
 ## Output Location
 
-Save the generated scripts to the migration working directory specified by the user. If no directory is specified, output the scripts to the terminal for the user to save.
+Save the generated scripts to: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
+
+The directory structure for each migration should be:
+```
+Artifacts/Phase10-Migration/ZDM/<DB_NAME>/
+├── Scripts/           # Discovery scripts
+├── Discovery/         # Discovery output files
+├── Questionnaire/     # Completed questionnaires
+└── (generated artifacts: RSP, CLI, Runbook)
+```
 
 ---
 
@@ -216,5 +225,5 @@ Save the generated scripts to the migration working directory specified by the u
 After generating scripts:
 1. Copy scripts to respective servers
 2. Execute scripts to gather discovery information
-3. Collect output files
+3. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Discovery/`
 4. Proceed to Step 1: Discovery Questionnaire

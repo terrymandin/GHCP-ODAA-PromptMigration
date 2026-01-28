@@ -21,15 +21,15 @@ Copy and use this prompt to generate migration artifacts:
 Generate all migration artifacts for the PRODDB migration to Oracle Database@Azure.
 
 ## Completed Questionnaire
-#file:C:\Migrations\PRODDB\Questionnaire\Step1-Completed-PRODDB.md
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Questionnaire/Step1-Completed-PRODDB.md
 
 ## Discovery Files
-#file:C:\Migrations\PRODDB\Discovery\zdm_source_discovery_proddb01_20260128_140532.json
-#file:C:\Migrations\PRODDB\Discovery\zdm_target_discovery_proddb-oda_20260128_141022.json
-#file:C:\Migrations\PRODDB\Discovery\zdm_server_discovery_zdm-jumpbox_20260128_141545.json
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.json
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.json
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.json
 
 ## Output Directory
-Save all generated artifacts to: C:\Migrations\PRODDB\Artifacts\
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/
 
 ## Key Parameters from Questionnaire
 
@@ -486,7 +486,7 @@ chmod 600 /home/zdmuser/creds/*.txt
 
 ### 2. Copy Artifacts to ZDM Server
 ```bash
-scp C:\Migrations\PRODDB\Artifacts\* zdmuser@zdm-jumpbox.corp.example.com:/home/zdmuser/migrations/PRODDB/
+scp Artifacts/Phase10-Migration/ZDM/PRODDB/* zdmuser@zdm-jumpbox.corp.example.com:/home/zdmuser/migrations/PRODDB/
 ```
 
 ### 3. Quick Start Commands

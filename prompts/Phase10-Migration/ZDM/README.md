@@ -40,7 +40,7 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 **Purpose**: Create fresh discovery scripts that gather configuration from all servers involved in the migration.
 
-**Output**: Four bash scripts
+**Output**: Four bash scripts saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
 - `zdm_source_discovery.sh` - Run on source database server
 - `zdm_target_discovery.sh` - Run on target Oracle Database@Azure server
 - `zdm_server_discovery.sh` - Run on ZDM jumpbox server
@@ -48,9 +48,9 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 **Usage**:
 1. Run the Step 0 prompt
-2. Save generated scripts to your migration working directory
+2. Scripts are saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
 3. Copy scripts to respective servers and execute
-4. Collect output files
+4. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Discovery/`
 
 ### Step 1: Discovery and Questionnaire
 
@@ -63,7 +63,7 @@ Each step has a corresponding example file showing a completed prompt for a fict
 **Output**: Completed questionnaire document
 
 **Usage**:
-1. Attach discovery output files
+1. Attach discovery output files from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Discovery/`
 2. Fill in auto-populated fields (🔍) from discovery outputs
 3. Complete manual fields (🔐) with credentials and OCIDs
 4. Verify all information is correct
@@ -76,17 +76,43 @@ Each step has a corresponding example file showing a completed prompt for a fict
 - Completed questionnaire (from Step 1)
 - Discovery output files
 
-**Outputs**:
+**Outputs** (saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`):
 - `zdm_migrate_<DB_NAME>.rsp` - ZDM response file
 - `zdm_commands_<DB_NAME>.sh` - CLI commands script
 - `ZDM-Migration-Runbook-<DB_NAME>.md` - Step-by-step runbook
 
 **Usage**:
 1. Provide completed questionnaire
-2. Specify output directory
+2. Artifacts are saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`
 3. Review generated artifacts
 4. Create password files as instructed
 5. Follow the runbook to execute migration
+
+## Artifacts Directory Structure
+
+Each migration creates a dedicated folder under `Artifacts/Phase10-Migration/ZDM/`:
+
+```
+Artifacts/Phase10-Migration/ZDM/
+└── <DB_NAME>/                          # e.g., PRODDB
+    ├── Scripts/                        # Discovery scripts (Step 0)
+    │   ├── zdm_source_discovery.sh
+    │   ├── zdm_target_discovery.sh
+    │   ├── zdm_server_discovery.sh
+    │   └── zdm_orchestrate_discovery.sh
+    ├── Discovery/                      # Discovery outputs
+    │   ├── zdm_source_discovery_*.txt
+    │   ├── zdm_source_discovery_*.json
+    │   ├── zdm_target_discovery_*.txt
+    │   ├── zdm_target_discovery_*.json
+    │   ├── zdm_server_discovery_*.txt
+    │   └── zdm_server_discovery_*.json
+    ├── Questionnaire/                  # Completed questionnaires
+    │   └── Step1-Completed-<DB_NAME>.md
+    ├── zdm_migrate_<DB_NAME>.rsp       # Generated RSP file (Step 2)
+    ├── zdm_commands_<DB_NAME>.sh       # Generated CLI script (Step 2)
+    └── ZDM-Migration-Runbook-<DB_NAME>.md  # Generated runbook (Step 2)
+```
 
 ## Migration Types
 

@@ -21,12 +21,12 @@ Copy and use this prompt with your completed questionnaire:
 I have completed the discovery questionnaire for our PRODDB migration.
 
 ## Attached Discovery Files
-#file:C:\Migrations\PRODDB\Discovery\zdm_source_discovery_proddb01_20260128_140532.txt
-#file:C:\Migrations\PRODDB\Discovery\zdm_source_discovery_proddb01_20260128_140532.json
-#file:C:\Migrations\PRODDB\Discovery\zdm_target_discovery_proddb-oda_20260128_141022.txt
-#file:C:\Migrations\PRODDB\Discovery\zdm_target_discovery_proddb-oda_20260128_141022.json
-#file:C:\Migrations\PRODDB\Discovery\zdm_server_discovery_zdm-jumpbox_20260128_141545.txt
-#file:C:\Migrations\PRODDB\Discovery\zdm_server_discovery_zdm-jumpbox_20260128_141545.json
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.txt
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.json
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.txt
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.json
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.txt
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.json
 
 ## Completed Questionnaire
 
@@ -351,7 +351,7 @@ With this completed questionnaire:
    
    Generate migration artifacts for PRODDB using the completed questionnaire above.
    
-   Output Directory: C:\Migrations\PRODDB\
+   Output Directory: Artifacts/Phase10-Migration/ZDM/PRODDB/
    ```
 3. **Review generated artifacts** before execution
 4. **Create password files** in `/home/zdmuser/creds/` as referenced

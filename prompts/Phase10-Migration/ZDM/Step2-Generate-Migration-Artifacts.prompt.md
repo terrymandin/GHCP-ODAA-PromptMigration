@@ -27,7 +27,7 @@ Provide the completed questionnaire by either:
 Based on the attached/provided questionnaire responses, generate the following artifacts:
 
 ### Artifact 1: Installation Runbook
-**Output Location:** User-specified migration working directory (e.g., `C:\Migrations\<DB_NAME>\`)
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`
 **Filename:** `ZDM-Migration-Runbook-<DB_NAME>.md`
 
 Generate a comprehensive runbook that includes:
