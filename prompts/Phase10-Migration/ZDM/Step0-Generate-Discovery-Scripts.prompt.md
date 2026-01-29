@@ -200,14 +200,21 @@ Generate a bash script that can be run from any machine with SSH access to orche
 - **Login shell for remote execution** - SSH commands run non-interactively, which means `.bashrc` is typically NOT sourced (it often has guards like `[ -z "$PS1" ] && return` at the top). To ensure environment variables like ZDM_HOME, ORACLE_HOME, JAVA_HOME are available:
   - Use `bash -l -c 'command'` to force a login shell when executing remote scripts
   - This ensures `.bash_profile` and `.bashrc` are properly sourced
-- **Explicit environment variable overrides** - Allow explicit configuration of common environment variables as fallback:
-  - ZDM_REMOTE_ZDM_HOME: Explicit path to ZDM home directory on ZDM server
-  - ZDM_REMOTE_JAVA_HOME: Explicit path to Java home on ZDM server
-  - SOURCE_REMOTE_ORACLE_HOME: Explicit path to Oracle home on source server
-  - SOURCE_REMOTE_ORACLE_SID: Explicit Oracle SID on source server
-  - TARGET_REMOTE_ORACLE_HOME: Explicit path to Oracle home on target server
-  - TARGET_REMOTE_ORACLE_SID: Explicit Oracle SID on target server
-  - These override environment variables if set, providing a fallback when profile sourcing fails
+- **Auto-detection as primary method** - The remote discovery scripts should auto-detect Oracle and ZDM environments by:
+  - Parsing /etc/oratab for Oracle homes and SIDs
+  - Checking running pmon processes
+  - Searching common installation paths
+  - Using Java alternatives or common Java paths
+- **Optional explicit overrides** - Allow explicit configuration of environment variables as fallback when auto-detection fails. These can be:
+  - Set as environment variables before running the orchestration script
+  - Or specified in `zdm-env.md` and referenced in the prompt with `@zdm-env.md`
+  - Available overrides:
+    - ZDM_REMOTE_ZDM_HOME: Path to ZDM home directory on ZDM server
+    - ZDM_REMOTE_JAVA_HOME: Path to Java home on ZDM server
+    - SOURCE_REMOTE_ORACLE_HOME: Path to Oracle home on source server
+    - SOURCE_REMOTE_ORACLE_SID: Oracle SID on source server
+    - TARGET_REMOTE_ORACLE_HOME: Path to Oracle home on target server
+    - TARGET_REMOTE_ORACLE_SID: Oracle SID on target server
 - **Error tracking** - Track which servers succeeded/failed and report at the end
 - **Partial success** - A discovery run with 2 out of 3 servers successful should still save and report the successful results
 
@@ -225,23 +232,107 @@ Generate a bash script that can be run from any machine with SSH access to orche
 All scripts should include:
 - Shebang (`#!/bin/bash`)
 - **Resilient error handling** - Do NOT use `set -e` globally; instead use individual error trapping so scripts continue running even when some checks fail
-- **Environment variable sourcing with fallback** - Try multiple approaches to source environment variables:
-  1. Accept explicit environment variable overrides passed from the orchestration script (highest priority)
-  2. Try sourcing profile files using `bash -l` compatible approach
-  3. Use `BASH_ENV` to point to a profile file before execution
-  4. Search common installation locations as fallback
-- **Profile sourcing approach** - Use the following pattern that works in both interactive and non-interactive shells:
+- **Environment variable discovery with auto-detection** - Use a priority-based approach:
+  1. **Environment variable** - If already set in the environment (e.g., `export ORACLE_HOME=...`), use it
+  2. **Auto-detection** - If not set, attempt to discover automatically using the methods below
+  3. **Fallback override** - Accept explicit overrides passed from orchestration script as last resort
+
+- **Auto-detection methods** - Scripts should include functions to auto-detect Oracle and ZDM environments:
   ```bash
-  # Method 1: Use explicit overrides if provided (passed via environment)
-  [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
-  
-  # Method 2: Source profiles - use bash -c to handle non-interactive guards
-  for profile in /etc/profile ~/.bash_profile ~/.bashrc; do
-      if [ -f "$profile" ]; then
-          # Extract export statements without running interactive checks
-          eval "$(grep -E '^export\s+' "$profile" 2>/dev/null)" || true
+  # Auto-detect ORACLE_HOME and ORACLE_SID
+  detect_oracle_env() {
+      # If already set, use existing values
+      if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
+          return 0
       fi
-  done
+      
+      # Method 1: Parse /etc/oratab (most reliable)
+      if [ -f /etc/oratab ]; then
+          # Get first non-comment entry, or match specific SID if provided
+          local oratab_entry
+          if [ -n "${ORACLE_SID:-}" ]; then
+              oratab_entry=$(grep "^${ORACLE_SID}:" /etc/oratab 2>/dev/null | head -1)
+          else
+              oratab_entry=$(grep -v '^#' /etc/oratab | grep -v '^$' | head -1)
+          fi
+          if [ -n "$oratab_entry" ]; then
+              export ORACLE_SID="${ORACLE_SID:-$(echo "$oratab_entry" | cut -d: -f1)}"
+              export ORACLE_HOME="${ORACLE_HOME:-$(echo "$oratab_entry" | cut -d: -f2)}"
+          fi
+      fi
+      
+      # Method 2: Check running pmon process
+      if [ -z "${ORACLE_SID:-}" ]; then
+          local pmon_sid
+          pmon_sid=$(ps -ef | grep 'ora_pmon_' | grep -v grep | head -1 | sed 's/.*ora_pmon_//')
+          [ -n "$pmon_sid" ] && export ORACLE_SID="$pmon_sid"
+      fi
+      
+      # Method 3: Search common Oracle installation paths
+      if [ -z "${ORACLE_HOME:-}" ]; then
+          for path in /u01/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1 /oracle/product/*/dbhome_1; do
+              if [ -d "$path" ] && [ -f "$path/bin/sqlplus" ]; then
+                  export ORACLE_HOME="$path"
+                  break
+              fi
+          done
+      fi
+      
+      # Method 4: Check oraenv/coraenv
+      if [ -z "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
+          [ -f /usr/local/bin/oraenv ] && . /usr/local/bin/oraenv <<< "$ORACLE_SID" 2>/dev/null
+      fi
+  }
+  
+  # Auto-detect ZDM_HOME and JAVA_HOME (for ZDM server script)
+  detect_zdm_env() {
+      # If already set, use existing values
+      if [ -n "${ZDM_HOME:-}" ] && [ -n "${JAVA_HOME:-}" ]; then
+          return 0
+      fi
+      
+      # Detect ZDM_HOME
+      if [ -z "${ZDM_HOME:-}" ]; then
+          # Check common ZDM installation locations
+          for path in ~/zdmhome ~/zdm /opt/zdm /u01/zdm "$HOME/zdmhome"; do
+              if [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
+                  export ZDM_HOME="$path"
+                  break
+              fi
+          done
+      fi
+      
+      # Detect JAVA_HOME
+      if [ -z "${JAVA_HOME:-}" ]; then
+          # Method 1: Check alternatives
+          if command -v java >/dev/null 2>&1; then
+              local java_path
+              java_path=$(readlink -f "$(command -v java)" 2>/dev/null)
+              if [ -n "$java_path" ]; then
+                  export JAVA_HOME="${java_path%/bin/java}"
+              fi
+          fi
+          
+          # Method 2: Search common Java paths
+          if [ -z "${JAVA_HOME:-}" ]; then
+              for path in /usr/java/latest /usr/java/jdk* /usr/lib/jvm/java-* /opt/java/jdk*; do
+                  if [ -d "$path" ] && [ -f "$path/bin/java" ]; then
+                      export JAVA_HOME="$path"
+                      break
+                  fi
+              done
+          fi
+      fi
+  }
+  ```
+
+- **Apply overrides after auto-detection** - If orchestration script passes explicit overrides, apply them last:
+  ```bash
+  # Apply explicit overrides if provided (highest priority)
+  [ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
+  [ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
+  [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
+  [ -n "${JAVA_HOME_OVERRIDE:-}" ] && export JAVA_HOME="$JAVA_HOME_OVERRIDE"
   ```
 - Color-coded terminal output
 - Clear section headers in output

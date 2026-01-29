@@ -32,15 +32,6 @@ Generate discovery scripts for our PRODDB migration project.
 - Target SSH Key: ~/.ssh/oda_azure_key
 - ZDM SSH Key: ~/.ssh/zdm_jumpbox_key
 
-## Explicit Environment Variables (Optional - use if profile sourcing fails)
-# These are passed to remote scripts when .bashrc has non-interactive guards
-- ZDM_REMOTE_ZDM_HOME: /home/zdmuser/zdmhome
-- ZDM_REMOTE_JAVA_HOME: /usr/java/jdk1.8.0_391
-- SOURCE_REMOTE_ORACLE_HOME: /u01/app/oracle/product/19.0.0.0/dbhome_1
-- SOURCE_REMOTE_ORACLE_SID: PRODDB
-- TARGET_REMOTE_ORACLE_HOME: /u01/app/oracle/product/19.0.0.0/dbhome_1
-- TARGET_REMOTE_ORACLE_SID: PRODDB
-
 ## Script Output Location
 Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/
 
@@ -64,6 +55,28 @@ In addition to the standard discovery, also gather:
 In addition to the standard discovery, also verify:
 - Available disk space for ZDM operations (minimum 50GB recommended)
 - Network latency to source and target (ping tests)
+```
+
+---
+
+## Example with Environment Overrides
+
+If auto-detection fails (e.g., non-standard installation paths), include `@zdm-env.md` or set environment variables before running:
+
+**Option A: Reference zdm-env.md in the prompt**
+```
+@Step0-Generate-Discovery-Scripts.prompt.md
+@zdm-env.md
+
+Generate discovery scripts for our PRODDB migration project.
+...
+```
+
+**Option B: Set environment variables before running orchestration script**
+```bash
+export SOURCE_REMOTE_ORACLE_HOME=/custom/path/oracle/product/19.0.0.0/dbhome_1
+export SOURCE_REMOTE_ORACLE_SID=PRODDB
+./zdm_orchestrate_discovery.sh
 ```
 
 ---
