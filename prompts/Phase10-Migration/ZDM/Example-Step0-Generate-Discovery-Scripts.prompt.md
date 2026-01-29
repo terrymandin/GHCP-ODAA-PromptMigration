@@ -32,6 +32,15 @@ Generate discovery scripts for our PRODDB migration project.
 - Target SSH Key: ~/.ssh/oda_azure_key
 - ZDM SSH Key: ~/.ssh/zdm_jumpbox_key
 
+## Explicit Environment Variables (Optional - use if profile sourcing fails)
+# These are passed to remote scripts when .bashrc has non-interactive guards
+- ZDM_REMOTE_ZDM_HOME: /home/zdmuser/zdmhome
+- ZDM_REMOTE_JAVA_HOME: /usr/java/jdk1.8.0_391
+- SOURCE_REMOTE_ORACLE_HOME: /u01/app/oracle/product/19.0.0.0/dbhome_1
+- SOURCE_REMOTE_ORACLE_SID: PRODDB
+- TARGET_REMOTE_ORACLE_HOME: /u01/app/oracle/product/19.0.0.0/dbhome_1
+- TARGET_REMOTE_ORACLE_SID: PRODDB
+
 ## Script Output Location
 Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/
 
@@ -91,12 +100,25 @@ Artifacts/Phase10-Migration/ZDM/PRODDB/
 
 All generated scripts include:
 
-1. **Environment Variable Sourcing** - Scripts source common profile files to ensure ZDM_HOME, ORACLE_HOME, JAVA_HOME, etc. are available:
+1. **Environment Variable Sourcing with Fallbacks** - Scripts use multiple approaches to ensure ZDM_HOME, ORACLE_HOME, JAVA_HOME, etc. are available even in non-interactive SSH sessions:
    ```bash
-   # Source common profile files for environment variables
-   for profile in ~/.bash_profile ~/.bashrc /etc/profile; do
-       [ -f "$profile" ] && source "$profile" 2>/dev/null || true
+   # Method 1: Accept explicit overrides (highest priority)
+   [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
+   
+   # Method 2: Extract export statements from profiles (works in non-interactive shells)
+   for profile in /etc/profile ~/.bash_profile ~/.bashrc; do
+       if [ -f "$profile" ]; then
+           # Extract exports without running interactive guards
+           eval "$(grep -E '^export\s+' "$profile" 2>/dev/null)" || true
+       fi
    done
+   
+   # Method 3: Search common installation paths as fallback
+   if [ -z "$ZDM_HOME" ]; then
+       for zdm_path in /home/*/zdmhome /opt/zdm* /u01/app/zdm*; do
+           [ -d "$zdm_path" ] && export ZDM_HOME="$zdm_path" && break
+       done
+   fi
    ```
 
 2. **Continue on Failure** - Each discovery section is wrapped in error handling:
@@ -122,10 +144,29 @@ All generated scripts include:
 # NO set -e - We want to continue even if some checks fail
 SECTION_ERRORS=0
 
-# Source environment for ORACLE_HOME, ORACLE_SID, etc.
-for profile in ~/.bash_profile ~/.bashrc /etc/profile ~/.profile; do
-    [ -f "$profile" ] && source "$profile" 2>/dev/null || true
+# CRITICAL: Handle environment variables in non-interactive SSH sessions
+# .bashrc often has guards like '[ -z "$PS1" ] && return' that skip non-interactive shells
+
+# Method 1: Accept explicit overrides (passed from orchestration script)
+[ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
+[ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
+[ -n "${ORACLE_BASE_OVERRIDE:-}" ] && export ORACLE_BASE="$ORACLE_BASE_OVERRIDE"
+
+# Method 2: Extract export statements from profiles (bypasses interactive guards)
+for profile in /etc/profile ~/.bash_profile ~/.bashrc; do
+    if [ -f "$profile" ]; then
+        eval "$(grep -E '^export\s+(ORACLE_HOME|ORACLE_SID|ORACLE_BASE|TNS_ADMIN|PATH)=' "$profile" 2>/dev/null)" || true
+    fi
 done
+
+# Method 3: Try to find Oracle from oratab or common paths
+if [ -z "$ORACLE_HOME" ]; then
+    # Try oratab
+    if [ -f /etc/oratab ]; then
+        ORACLE_HOME=$(grep -v '^#' /etc/oratab | grep ':' | head -1 | cut -d: -f2)
+        [ -n "$ORACLE_HOME" ] && export ORACLE_HOME
+    fi
+fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 HOSTNAME=$(hostname)
@@ -168,10 +209,27 @@ exit 0  # Always exit 0 so orchestrator knows script completed
 # NO set -e - We want to continue even if some checks fail
 SECTION_ERRORS=0
 
-# Source environment for ORACLE_HOME, etc.
-for profile in ~/.bash_profile ~/.bashrc /etc/profile ~/.profile; do
-    [ -f "$profile" ] && source "$profile" 2>/dev/null || true
+# CRITICAL: Handle environment variables in non-interactive SSH sessions
+# .bashrc often has guards like '[ -z "$PS1" ] && return' that skip non-interactive shells
+
+# Method 1: Accept explicit overrides (passed from orchestration script)
+[ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
+[ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
+[ -n "${GRID_HOME_OVERRIDE:-}" ] && export GRID_HOME="$GRID_HOME_OVERRIDE"
+
+# Method 2: Extract export statements from profiles (bypasses interactive guards)
+for profile in /etc/profile ~/.bash_profile ~/.bashrc; do
+    if [ -f "$profile" ]; then
+        eval "$(grep -E '^export\s+(ORACLE_HOME|ORACLE_SID|ORACLE_BASE|GRID_HOME|TNS_ADMIN|PATH)=' "$profile" 2>/dev/null)" || true
+    fi
 done
+
+# Method 3: For ODA@Azure, check common Grid/Oracle home locations
+if [ -z "$ORACLE_HOME" ]; then
+    for ora_path in /u01/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1; do
+        [ -d "$ora_path" ] && export ORACLE_HOME="$ora_path" && break
+    done
+fi
 
 # Output to current directory (not /tmp)
 OUTPUT_FILE="./zdm_target_discovery_$(hostname)_$(date +%Y%m%d_%H%M%S).txt"
@@ -190,11 +248,30 @@ JSON_FILE="./zdm_target_discovery_$(hostname)_$(date +%Y%m%d_%H%M%S).json"
 # NO set -e - We want to continue even if some checks fail
 SECTION_ERRORS=0
 
-# Source environment for ZDM_HOME, JAVA_HOME, etc.
-# This is critical - ZDM_HOME may be set in .bashrc
-for profile in ~/.bash_profile ~/.bashrc /etc/profile ~/.profile; do
-    [ -f "$profile" ] && source "$profile" 2>/dev/null || true
+# CRITICAL: Handle environment variables in non-interactive SSH sessions
+# .bashrc often has guards like '[ -z "$PS1" ] && return' that skip non-interactive shells
+
+# Method 1: Accept explicit overrides (passed from orchestration script)
+[ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
+[ -n "${JAVA_HOME_OVERRIDE:-}" ] && export JAVA_HOME="$JAVA_HOME_OVERRIDE"
+
+# Method 2: Extract export statements from profiles (bypasses interactive guards)
+for profile in /etc/profile ~/.bash_profile ~/.bashrc; do
+    if [ -f "$profile" ]; then
+        # Extract export statements without running interactive checks
+        eval "$(grep -E '^export\s+(ZDM_HOME|JAVA_HOME|PATH)=' "$profile" 2>/dev/null)" || true
+    fi
 done
+
+# Method 3: Search common ZDM installation paths as fallback
+if [ -z "$ZDM_HOME" ]; then
+    for zdm_path in /home/*/zdmhome /home/*/zdm /opt/zdm* /u01/app/zdm*; do
+        if [ -d "$zdm_path" ] && [ -f "$zdm_path/bin/zdmcli" ]; then
+            export ZDM_HOME="$zdm_path"
+            break
+        fi
+    done
+fi
 
 # Output to current directory (not /tmp)
 OUTPUT_FILE="./zdm_server_discovery_$(hostname)_$(date +%Y%m%d_%H%M%S).txt"
@@ -245,6 +322,15 @@ SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-~/.ssh/source_db_key}"
 TARGET_SSH_KEY="${TARGET_SSH_KEY:-~/.ssh/oda_azure_key}"
 ZDM_SSH_KEY="${ZDM_SSH_KEY:-~/.ssh/zdm_jumpbox_key}"
 
+# Explicit environment variable overrides (optional - use when profile sourcing fails)
+# These are passed to remote scripts via environment
+ZDM_REMOTE_ZDM_HOME="${ZDM_REMOTE_ZDM_HOME:-}"      # e.g., /home/zdmuser/zdmhome
+ZDM_REMOTE_JAVA_HOME="${ZDM_REMOTE_JAVA_HOME:-}"    # e.g., /usr/java/jdk1.8.0
+SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-}"  # e.g., /u01/app/oracle/product/19c
+SOURCE_REMOTE_ORACLE_SID="${SOURCE_REMOTE_ORACLE_SID:-}"    # e.g., PRODDB
+TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-}"  # e.g., /u01/app/oracle/product/19c
+TARGET_REMOTE_ORACLE_SID="${TARGET_REMOTE_ORACLE_SID:-}"    # e.g., PRODDB
+
 # Output directory - default to Artifacts directory
 OUTPUT_DIR="${OUTPUT_DIR:-../../../Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery}"
 
@@ -261,27 +347,32 @@ run_discovery() {
     local ssh_key=$3
     local script=$4
     local target_type=$5
+    local env_overrides=$6  # Additional environment variable exports
     
-    # Source environment on remote host before running script
-    # This ensures ZDM_HOME, ORACLE_HOME, etc. are available
-    ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "
-        # Source common profile files
-        for profile in ~/.bash_profile ~/.bashrc /etc/profile ~/.profile; do
-            [ -f \"\$profile\" ] && source \"\$profile\" 2>/dev/null || true
-        done
+    # Use bash -l -c to simulate login shell (ensures profile files are sourced)
+    # This is critical because non-interactive SSH does NOT source .bashrc by default
+    ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "bash -l -c '
+        # Pass explicit environment overrides if provided
+        $env_overrides
         
         # Now run the discovery script
         cd /tmp/zdm_discovery && chmod +x $script && ./$script
-    " 2>&1
+    '" 2>&1
     
     # Continue even if this fails
     return 0
 }
 
 # Run all discoveries - continue even if one fails
-run_discovery "$SOURCE_HOST" "$SOURCE_USER" "$SOURCE_SSH_KEY" "zdm_source_discovery.sh" "source" && SOURCE_SUCCESS=true
-run_discovery "$TARGET_HOST" "$TARGET_USER" "$TARGET_SSH_KEY" "zdm_target_discovery.sh" "target" && TARGET_SUCCESS=true  
-run_discovery "$ZDM_HOST" "$ZDM_USER" "$ZDM_SSH_KEY" "zdm_server_discovery.sh" "server" && ZDM_SUCCESS=true
+# Pass explicit environment variable overrides for each server type
+run_discovery "$SOURCE_HOST" "$SOURCE_USER" "$SOURCE_SSH_KEY" "zdm_source_discovery.sh" "source" \
+    "export ORACLE_HOME_OVERRIDE='$SOURCE_REMOTE_ORACLE_HOME'; export ORACLE_SID_OVERRIDE='$SOURCE_REMOTE_ORACLE_SID'" && SOURCE_SUCCESS=true
+    
+run_discovery "$TARGET_HOST" "$TARGET_USER" "$TARGET_SSH_KEY" "zdm_target_discovery.sh" "target" \
+    "export ORACLE_HOME_OVERRIDE='$TARGET_REMOTE_ORACLE_HOME'; export ORACLE_SID_OVERRIDE='$TARGET_REMOTE_ORACLE_SID'" && TARGET_SUCCESS=true
+    
+run_discovery "$ZDM_HOST" "$ZDM_USER" "$ZDM_SSH_KEY" "zdm_server_discovery.sh" "server" \
+    "export ZDM_HOME_OVERRIDE='$ZDM_REMOTE_ZDM_HOME'; export JAVA_HOME_OVERRIDE='$ZDM_REMOTE_JAVA_HOME'" && ZDM_SUCCESS=true
 
 # Report results even if some failed
 echo "Results: Source=$SOURCE_SUCCESS, Target=$TARGET_SUCCESS, ZDM=$ZDM_SUCCESS"
@@ -373,4 +464,9 @@ After generating and executing discovery scripts:
 - **Review outputs carefully** - discovery data drives all subsequent artifacts
 - **Business decisions are captured in Step 1** - the questionnaire combines technical discovery with business/architectural decisions
 - **Scripts are resilient** - they continue running even when some checks fail, ensuring you get as much discovery data as possible
-- **Environment variables are sourced automatically** - scripts source `.bashrc`, `.bash_profile`, etc. to ensure ZDM_HOME, ORACLE_HOME, and other environment variables are available
+- **Non-interactive SSH issue** - `.bashrc` often has guards that skip sourcing for non-interactive shells. The scripts use three approaches to handle this:
+  1. Explicit environment variable overrides (highest priority) - set `ZDM_REMOTE_ZDM_HOME`, `SOURCE_REMOTE_ORACLE_HOME`, etc.
+  2. Login shell execution with `bash -l -c` - forces profile sourcing
+  3. Extract exports from profiles - parses export statements without running interactive guards
+  4. Fallback path searches - searches common installation directories
+- **If ZDM/ORACLE_HOME not detected** - use the explicit override environment variables when running the orchestration script

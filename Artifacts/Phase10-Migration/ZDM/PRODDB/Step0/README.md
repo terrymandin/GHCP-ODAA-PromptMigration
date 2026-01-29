@@ -1,117 +1,162 @@
-# ZDM Migration Step 0: Discovery Scripts
+# PRODDB Migration - Step 0: Discovery
 
-**Project:** PRODDB Migration to Oracle Database@Azure  
-**Generated:** 2026-01-29
+## Project Overview
 
-## Overview
+| Field | Value |
+|-------|-------|
+| **Project Name** | PRODDB Migration to Oracle Database@Azure |
+| **Source Database** | proddb01.corp.example.com |
+| **Target Database** | proddb-oda.eastus.azure.example.com |
+| **ZDM Server** | zdm-jumpbox.corp.example.com |
+| **Generated** | 2026-01-29 |
 
-This directory contains Step 0 artifacts for the PRODDB migration - the discovery scripts and collected discovery data.
+## Purpose
+
+Step 0 generates and executes discovery scripts to gather comprehensive information about:
+- Source database configuration and environment
+- Target Oracle Database@Azure configuration
+- ZDM jumpbox server setup and readiness
 
 ## Directory Structure
 
 ```
 Step0/
-├── Scripts/                              # Discovery scripts
-│   ├── zdm_source_discovery.sh          # Source database discovery
-│   ├── zdm_target_discovery.sh          # Target ODA@Azure discovery
-│   ├── zdm_server_discovery.sh          # ZDM jumpbox discovery
-│   ├── zdm_orchestrate_discovery.sh     # Orchestration script
-│   └── README.md                         # Scripts documentation
-├── Discovery/                            # Discovery output (after execution)
-│   ├── source/                          # Source server results
-│   ├── target/                          # Target server results
-│   └── server/                          # ZDM server results
-└── README.md                            # This file
+├── README.md                    # This file
+├── Scripts/                     # Discovery scripts
+│   ├── README.md               # Script usage documentation
+│   ├── zdm_source_discovery.sh # Source database discovery
+│   ├── zdm_target_discovery.sh # Target database discovery
+│   ├── zdm_server_discovery.sh # ZDM server discovery
+│   └── zdm_orchestrate_discovery.sh # Orchestration script
+└── Discovery/                   # Discovery output (after execution)
+    ├── source/                  # Source discovery results
+    ├── target/                  # Target discovery results
+    └── server/                  # ZDM server discovery results
 ```
 
-## Migration Project Details
+## Quick Start
 
-| Item | Value |
-|------|-------|
-| Project Name | PRODDB Migration to Oracle Database@Azure |
-| Source Database | proddb01.corp.example.com |
-| Target Database | proddb-oda.eastus.azure.example.com |
-| ZDM Server | zdm-jumpbox.corp.example.com |
+### Prerequisites
 
-## SSH Keys Configuration
+1. SSH access to all three servers with appropriate keys:
+   - Source: `~/.ssh/source_db_key`
+   - Target: `~/.ssh/oda_azure_key`
+   - ZDM: `~/.ssh/zdm_jumpbox_key`
 
-| Environment | SSH Key |
-|-------------|---------|
-| Source Database | ~/.ssh/source_db_key |
-| Target ODA@Azure | ~/.ssh/oda_azure_key |
-| ZDM Server | ~/.ssh/zdm_jumpbox_key |
+2. Appropriate user accounts:
+   - Source: `oracle` user
+   - Target: `opc` or `oracle` user
+   - ZDM: `zdmuser`
 
-## How to Execute Discovery
-
-### Quick Start (Orchestrated)
+### Running Discovery
 
 ```bash
-# Set SSH keys
-export SOURCE_SSH_KEY=~/.ssh/source_db_key
-export TARGET_SSH_KEY=~/.ssh/oda_azure_key
-export ZDM_SSH_KEY=~/.ssh/zdm_jumpbox_key
+cd Scripts/
 
-# Run orchestration
-cd Scripts
+# Option 1: Test connectivity first
+./zdm_orchestrate_discovery.sh --test
+
+# Option 2: Run full discovery
 ./zdm_orchestrate_discovery.sh
 
-# Results collected to Discovery/ subdirectories
+# Option 3: Run for specific server only
+./zdm_orchestrate_discovery.sh --source-only
+./zdm_orchestrate_discovery.sh --target-only
+./zdm_orchestrate_discovery.sh --zdm-only
 ```
 
-### Manual Execution
+## Discovery Scope
 
-See `Scripts/README.md` for detailed manual execution instructions.
+### Standard Discovery (All Migrations)
 
-## Additional Discovery Requirements
+| Category | Source | Target | ZDM |
+|----------|--------|--------|-----|
+| OS Information | ✓ | ✓ | ✓ |
+| Oracle Environment | ✓ | ✓ | - |
+| Database Configuration | ✓ | ✓ | - |
+| CDB/PDB Status | ✓ | ✓ | - |
+| TDE Configuration | ✓ | ✓ | - |
+| Network Configuration | ✓ | ✓ | ✓ |
+| ZDM Installation | - | - | ✓ |
+| OCI/Azure Integration | - | ✓ | ✓ |
 
-The scripts include custom discovery for this project:
+### PRODDB-Specific Additional Discovery
 
-### Source Database
+#### Source Database
 - Tablespace autoextend settings
-- Current backup schedule and retention
-- Database links configured
+- Backup schedule and retention
+- Database links
 - Materialized view refresh schedules
-- Scheduler jobs that may need reconfiguration
+- Scheduler jobs requiring reconfiguration
 
-### Target Database (Oracle Database@Azure)
+#### Target Database (Oracle Database@Azure)
 - Available Exadata storage capacity
 - Pre-configured PDBs
 - Network security group rules
 
-### ZDM Server
-- Available disk space for ZDM operations (minimum 50GB)
-- Network latency to source and target (ping tests)
+#### ZDM Server
+- Available disk space (50GB minimum recommended)
+- Network latency to source and target
+
+## Environment Variable Overrides
+
+For servers with non-interactive shell guards, the following explicit overrides are configured:
+
+```bash
+# Source
+SOURCE_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19.0.0.0/dbhome_1
+SOURCE_REMOTE_ORACLE_SID=PRODDB
+
+# Target
+TARGET_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19.0.0.0/dbhome_1
+TARGET_REMOTE_ORACLE_SID=PRODDB
+
+# ZDM
+ZDM_REMOTE_ZDM_HOME=/home/zdmuser/zdmhome
+ZDM_REMOTE_JAVA_HOME=/usr/java/jdk1.8.0_391
+```
+
+## Output Files
+
+After discovery execution, the following files will be generated:
+
+| Server | Text Report | JSON Summary |
+|--------|-------------|--------------|
+| Source | `zdm_source_discovery_<hostname>_<timestamp>.txt` | `zdm_source_discovery_<hostname>_<timestamp>.json` |
+| Target | `zdm_target_discovery_<hostname>_<timestamp>.txt` | `zdm_target_discovery_<hostname>_<timestamp>.json` |
+| ZDM | `zdm_server_discovery_<hostname>_<timestamp>.txt` | `zdm_server_discovery_<hostname>_<timestamp>.json` |
 
 ## Next Steps
 
-After completing Step 0:
+After completing Step 0 discovery:
 
-1. **Execute Discovery Scripts**
-   - Run the orchestration script or execute scripts manually
-   - Verify output files are collected to `Discovery/` subdirectories
+1. **Review Discovery Output**
+   - Verify all sections completed successfully
+   - Note any warnings or errors
+   - Identify any prerequisites that need to be addressed
 
 2. **Proceed to Step 1: Discovery Questionnaire**
-   - Use `Step1-Discovery-Questionnaire.prompt.md`
-   - Attach discovery output files
-   - Complete all sections including business decisions
-   - Save to `Step1/Completed-Questionnaire-PRODDB.md`
+   - Use the discovery data to populate the migration questionnaire
+   - Make business decisions about migration approach
+   - Path: `../Step1/`
 
-3. **Proceed to Step 2: Generate Migration Artifacts**
-   - Generate RSP file, CLI commands, and runbook
-   - Save to `Step2/` directory
+3. **Generate Migration Artifacts (Step 2)**
+   - After completing the questionnaire, generate:
+     - ZDM response file
+     - Migration commands
+     - Runbook documentation
+   - Path: `../Step2/`
 
-## Migration Workflow
+## Troubleshooting
 
-```
-Step 0: Discovery Scripts (YOU ARE HERE)
-    ↓
-Step 1: Discovery Questionnaire
-    ↓
-Step 2: Migration Artifacts
-    ↓
-Migration Execution
-```
+See `Scripts/README.md` for detailed troubleshooting information.
 
----
+Common issues:
+- SSH connectivity failures
+- Environment variable sourcing issues
+- Insufficient disk space
+- Database not running
 
-*Part of the PRODDB Migration to Oracle Database@Azure project*
+## Contact
+
+For migration support, contact the Oracle Database@Azure migration team.

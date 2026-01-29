@@ -197,10 +197,17 @@ Generate a bash script that can be run from any machine with SSH access to orche
 
 **Resilience Requirements:**
 - **Continue on failure** - If one server discovery fails, continue with the remaining servers
-- **Source environment on remote hosts** - Before running discovery scripts, source common shell profile files to load environment variables:
-  - For interactive bash: `source ~/.bashrc` (must handle non-interactive sourcing)
-  - For login shells: `source ~/.bash_profile` or `source ~/.profile`
-  - For system-wide settings: `source /etc/profile`
+- **Login shell for remote execution** - SSH commands run non-interactively, which means `.bashrc` is typically NOT sourced (it often has guards like `[ -z "$PS1" ] && return` at the top). To ensure environment variables like ZDM_HOME, ORACLE_HOME, JAVA_HOME are available:
+  - Use `bash -l -c 'command'` to force a login shell when executing remote scripts
+  - This ensures `.bash_profile` and `.bashrc` are properly sourced
+- **Explicit environment variable overrides** - Allow explicit configuration of common environment variables as fallback:
+  - ZDM_REMOTE_ZDM_HOME: Explicit path to ZDM home directory on ZDM server
+  - ZDM_REMOTE_JAVA_HOME: Explicit path to Java home on ZDM server
+  - SOURCE_REMOTE_ORACLE_HOME: Explicit path to Oracle home on source server
+  - SOURCE_REMOTE_ORACLE_SID: Explicit Oracle SID on source server
+  - TARGET_REMOTE_ORACLE_HOME: Explicit path to Oracle home on target server
+  - TARGET_REMOTE_ORACLE_SID: Explicit Oracle SID on target server
+  - These override environment variables if set, providing a fallback when profile sourcing fails
 - **Error tracking** - Track which servers succeeded/failed and report at the end
 - **Partial success** - A discovery run with 2 out of 3 servers successful should still save and report the successful results
 
@@ -218,7 +225,24 @@ Generate a bash script that can be run from any machine with SSH access to orche
 All scripts should include:
 - Shebang (`#!/bin/bash`)
 - **Resilient error handling** - Do NOT use `set -e` globally; instead use individual error trapping so scripts continue running even when some checks fail
-- **Environment variable sourcing** - Source common profile files (`~/.bashrc`, `~/.bash_profile`, `/etc/profile.d/*.sh`) to ensure environment variables like `ZDM_HOME`, `ORACLE_HOME`, `JAVA_HOME` are available
+- **Environment variable sourcing with fallback** - Try multiple approaches to source environment variables:
+  1. Accept explicit environment variable overrides passed from the orchestration script (highest priority)
+  2. Try sourcing profile files using `bash -l` compatible approach
+  3. Use `BASH_ENV` to point to a profile file before execution
+  4. Search common installation locations as fallback
+- **Profile sourcing approach** - Use the following pattern that works in both interactive and non-interactive shells:
+  ```bash
+  # Method 1: Use explicit overrides if provided (passed via environment)
+  [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
+  
+  # Method 2: Source profiles - use bash -c to handle non-interactive guards
+  for profile in /etc/profile ~/.bash_profile ~/.bashrc; do
+      if [ -f "$profile" ]; then
+          # Extract export statements without running interactive checks
+          eval "$(grep -E '^export\s+' "$profile" 2>/dev/null)" || true
+      fi
+  done
+  ```
 - Color-coded terminal output
 - Clear section headers in output
 - Both human-readable text and machine-parseable JSON output
