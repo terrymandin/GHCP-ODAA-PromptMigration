@@ -31,7 +31,7 @@ ZDM_HOST="10.1.0.8"
 # SSH users
 SOURCE_USER="oracle"
 TARGET_USER="opc"
-ZDM_USER="zdmuser"
+ZDM_USER="azureuser"
 
 # SSH key paths (separate keys for each security domain)
 SOURCE_SSH_KEY="~/.ssh/iaas.pem"
