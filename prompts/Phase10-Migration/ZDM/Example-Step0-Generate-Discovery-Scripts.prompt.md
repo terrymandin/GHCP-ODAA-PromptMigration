@@ -67,7 +67,6 @@ Artifacts/Phase10-Migration/ZDM/PRODDB/
 │   │   ├── zdm_server_discovery.sh
 │   │   ├── zdm_orchestrate_discovery.sh
 │   │   └── README.md
-│   ├── Planning-Questionnaire-PRODDB.md
 │   ├── Discovery/           # Outputs collected after execution
 │   └── README.md
 ├── Step1/                   # Completed questionnaire (after Step 1)
@@ -197,65 +196,21 @@ scp zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt ../Disc
 
 ---
 
-## 5. Planning Questionnaire (Step0/Planning-Questionnaire-PRODDB.md)
-
-The prompt also generates a Planning Questionnaire for business/architectural decisions. Key sections include:
-
-```markdown
-## Section A: Migration Strategy ⚠️
-
-### A.1 Migration Type
-| Option | Select | Description |
-|--------|--------|-------------|
-| **ONLINE_PHYSICAL** | [X] | Minimal downtime using Data Guard |
-| **OFFLINE_PHYSICAL** | [ ] | Extended downtime; backup/restore approach |
-
-### A.2 Decision Justification
-Production database requiring minimal downtime. 24/7 operations cannot tolerate
-extended maintenance window. Data Guard provides real-time sync and fast switchover.
-
-## Section B: Migration Timeline ⚠️
-| Field | Value |
-|-------|-------|
-| **Planned Migration Date** | 2026-02-15 |
-| **Maintenance Window Start** | 2026-02-15 02:00 UTC |
-| **Maintenance Window End** | 2026-02-15 04:00 UTC |
-| **Maximum Acceptable Downtime** | 30 minutes |
-
-## Section G: Data Guard Configuration (Online Migration Only)
-| Mode | Select |
-|------|--------|
-| **MAXIMUM_PERFORMANCE** | [X] |
-| **Transport Type: ASYNC** | [X] |
-
-## Section H: Migration Execution Options
-| Option | Value |
-|--------|-------|
-| **Auto Switchover** | [ ] NO - Manual verification required |
-| **Pause Point** | ZDM_SWITCHOVER_SRC |
-```
-
----
-
 ## Next Steps
 
-After generating scripts and questionnaire:
+After generating and executing discovery scripts:
 
-1. **Complete the Planning Questionnaire** (`Step0/Planning-Questionnaire-PRODDB.md`)
-   - Make key decisions (online/offline, timeline, pause points)
-   - Gather OCI/Azure identifiers
-
-2. **Run Discovery Scripts** (`Step0/Scripts/`)
+1. **Run Discovery Scripts** (`Step0/Scripts/`)
    - Execute scripts on all servers
    - Collect output files to `Step0/Discovery/`
 
-3. **Proceed to Step 1**
+2. **Proceed to Step 1**
    - Use `Step1-Discovery-Questionnaire.prompt.md`
-   - Attach completed Planning Questionnaire from `Step0/`
    - Attach discovery output files from `Step0/Discovery/`
+   - Complete all sections including business decisions (migration type, timeline, OCI identifiers, etc.)
    - Save output to `Step1/Completed-Questionnaire-PRODDB.md`
 
-4. **Proceed to Step 2**
+3. **Proceed to Step 2**
    - Generate RSP file, CLI commands, and runbook
    - Save outputs to `Step2/`
 
@@ -264,7 +219,7 @@ After generating scripts and questionnaire:
 ## Tips
 
 - **Always regenerate scripts** for each new migration project to ensure they're current
-- **Complete the Planning Questionnaire early** - business decisions should be made before technical discovery
 - **Customize additional discovery** based on your specific database features
 - **Test SSH connectivity** before running the orchestration script
 - **Review outputs carefully** - discovery data drives all subsequent artifacts
+- **Business decisions are captured in Step 1** - the questionnaire combines technical discovery with business/architectural decisions
