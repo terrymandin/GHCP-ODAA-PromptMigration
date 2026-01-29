@@ -27,7 +27,7 @@ Provide the completed questionnaire by either:
 Based on the attached/provided questionnaire responses, generate the following artifacts:
 
 ### Artifact 1: Installation Runbook
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
 **Filename:** `ZDM-Migration-Runbook-<DB_NAME>.md`
 
 Generate a comprehensive runbook that includes:
@@ -85,10 +85,13 @@ Generate a complete RSP file with:
 - Data Guard settings (for online migration)
 - Backup and RMAN settings
 
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
+**Filename:** `zdm_migrate_<DB_NAME>.rsp`
+
 ---
 
 ### Artifact 3: ZDM CLI Commands
-**Output Location:** User-specified migration working directory
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
 **Filename:** `zdm_commands_<DB_NAME>.sh`
 
 Generate a shell script containing:

@@ -7,14 +7,26 @@ This directory contains prompts for Zero Downtime Migration (ZDM) from on-premis
 The ZDM migration process is divided into three steps, each with its own prompt:
 
 ```
-Step 0: Generate Discovery Scripts
+Step 0: Generate Discovery Scripts + Planning Questionnaire
          ↓
-Step 1: Discovery and Questionnaire
+         ├── Run discovery scripts on servers
+         └── Complete Planning Questionnaire (business decisions)
+         ↓
+Step 1: Discovery and Questionnaire (combine & validate)
          ↓
 Step 2: Generate Migration Artifacts
          ↓
      Execute Migration
 ```
+
+### What Gets Captured Where?
+
+| Information Type | Captured By | Examples |
+|-----------------|-------------|----------|
+| **Technical Configuration** | Discovery Scripts (auto) | DB version, character set, TDE status, storage |
+| **Business Decisions** | Planning Questionnaire (manual) | Online vs Offline, timeline, downtime tolerance |
+| **OCI/Azure IDs** | Planning Questionnaire (manual) | OCIDs, subscription IDs |
+| **Credentials** | Planning Questionnaire (reference only) | Password vault locations |
 
 ## Prompt Files
 
@@ -36,20 +48,33 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 ## Detailed Workflow
 
-### Step 0: Generate Discovery Scripts
+### Step 0: Generate Discovery Scripts + Planning Questionnaire
 
-**Purpose**: Create fresh discovery scripts that gather configuration from all servers involved in the migration.
+**Purpose**: Create fresh discovery scripts AND a project-specific Planning Questionnaire for business/architectural decisions.
 
-**Output**: Four bash scripts saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
-- `zdm_source_discovery.sh` - Run on source database server
-- `zdm_target_discovery.sh` - Run on target Oracle Database@Azure server
-- `zdm_server_discovery.sh` - Run on ZDM jumpbox server
-- `zdm_orchestrate_discovery.sh` - Master script to run all discoveries remotely
+**Output**: 
+- Four bash scripts saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
+  - `zdm_source_discovery.sh` - Run on source database server
+  - `zdm_target_discovery.sh` - Run on target Oracle Database@Azure server
+  - `zdm_server_discovery.sh` - Run on ZDM jumpbox server
+  - `zdm_orchestrate_discovery.sh` - Master script to run all discoveries remotely
+- Planning Questionnaire saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`
+  - `Planning-Questionnaire-<DB_NAME>.md` - Manual decisions that cannot be discovered
+
+**The Planning Questionnaire captures:**
+- Migration type (Online Physical vs Offline Physical)
+- Migration timeline and downtime tolerance
+- OCI/Azure identifiers (OCIDs, subscription IDs)
+- Credential storage references (NOT actual passwords)
+- Network and backup configuration choices
+- Data Guard settings (for online migration)
+- Execution options (auto-switchover, pause points)
+- Rollback plans and risk mitigation
 
 **Usage**:
 1. Run the Step 0 prompt
-2. Scripts are saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
-3. Copy scripts to respective servers and execute
+2. **Complete the Planning Questionnaire** with business decisions
+3. Copy discovery scripts to respective servers and execute
 4. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Discovery/`
 
 ### Step 1: Discovery and Questionnaire
@@ -57,16 +82,18 @@ Each step has a corresponding example file showing a completed prompt for a fict
 **Purpose**: Complete a comprehensive questionnaire with all information needed for migration.
 
 **Inputs**:
+- Planning Questionnaire (from Step 0)
 - Discovery output files (from Step 0 scripts)
-- Manual information (credentials, OCIDs, etc.)
 
-**Output**: Completed questionnaire document
+**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/`
+- `Completed-Questionnaire-<DB_NAME>.md` - Combined planning + discovery data
 
 **Usage**:
-1. Attach discovery output files from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Discovery/`
-2. Fill in auto-populated fields (🔍) from discovery outputs
-3. Complete manual fields (🔐) with credentials and OCIDs
+1. Attach Planning Questionnaire from `Step0/`
+2. Attach discovery output files from `Step0/Discovery/`
+3. Fill in auto-populated fields (🔍) from discovery outputs
 4. Verify all information is correct
+5. Save completed questionnaire to `Step1/`
 
 ### Step 2: Generate Migration Artifacts
 
@@ -74,16 +101,16 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 **Inputs**:
 - Completed questionnaire (from Step 1)
-- Discovery output files
+- Discovery output files (from Step 0)
 
-**Outputs** (saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`):
+**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
 - `zdm_migrate_<DB_NAME>.rsp` - ZDM response file
 - `zdm_commands_<DB_NAME>.sh` - CLI commands script
 - `ZDM-Migration-Runbook-<DB_NAME>.md` - Step-by-step runbook
 
 **Usage**:
-1. Provide completed questionnaire
-2. Artifacts are saved to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/`
+1. Provide completed questionnaire from `Step1/`
+2. Artifacts are saved to `Step2/`
 3. Review generated artifacts
 4. Create password files as instructed
 5. Follow the runbook to execute migration
@@ -94,24 +121,28 @@ Each migration creates a dedicated folder under `Artifacts/Phase10-Migration/ZDM
 
 ```
 Artifacts/Phase10-Migration/ZDM/
-└── <DB_NAME>/                          # e.g., PRODDB
-    ├── Scripts/                        # Discovery scripts (Step 0)
-    │   ├── zdm_source_discovery.sh
-    │   ├── zdm_target_discovery.sh
-    │   ├── zdm_server_discovery.sh
-    │   └── zdm_orchestrate_discovery.sh
-    ├── Discovery/                      # Discovery outputs
-    │   ├── zdm_source_discovery_*.txt
-    │   ├── zdm_source_discovery_*.json
-    │   ├── zdm_target_discovery_*.txt
-    │   ├── zdm_target_discovery_*.json
-    │   ├── zdm_server_discovery_*.txt
-    │   └── zdm_server_discovery_*.json
-    ├── Questionnaire/                  # Completed questionnaires
-    │   └── Step1-Completed-<DB_NAME>.md
-    ├── zdm_migrate_<DB_NAME>.rsp       # Generated RSP file (Step 2)
-    ├── zdm_commands_<DB_NAME>.sh       # Generated CLI script (Step 2)
-    └── ZDM-Migration-Runbook-<DB_NAME>.md  # Generated runbook (Step 2)
+└── <DB_NAME>/                              # e.g., PRODDB
+    ├── Step0/                              # Step 0: Discovery Scripts & Planning
+    │   ├── Scripts/                        # Discovery scripts
+    │   │   ├── zdm_source_discovery.sh
+    │   │   ├── zdm_target_discovery.sh
+    │   │   ├── zdm_server_discovery.sh
+    │   │   ├── zdm_orchestrate_discovery.sh
+    │   │   └── README.md
+    │   ├── Planning-Questionnaire-<DB_NAME>.md   # Business decisions
+    │   └── Discovery/                      # Discovery outputs (after execution)
+    │       ├── zdm_source_discovery_*.txt
+    │       ├── zdm_source_discovery_*.json
+    │       ├── zdm_target_discovery_*.txt
+    │       ├── zdm_target_discovery_*.json
+    │       ├── zdm_server_discovery_*.txt
+    │       └── zdm_server_discovery_*.json
+    ├── Step1/                              # Step 1: Completed Questionnaire
+    │   └── Completed-Questionnaire-<DB_NAME>.md
+    └── Step2/                              # Step 2: Migration Artifacts
+        ├── zdm_migrate_<DB_NAME>.rsp
+        ├── zdm_commands_<DB_NAME>.sh
+        └── ZDM-Migration-Runbook-<DB_NAME>.md
 ```
 
 ## Migration Types

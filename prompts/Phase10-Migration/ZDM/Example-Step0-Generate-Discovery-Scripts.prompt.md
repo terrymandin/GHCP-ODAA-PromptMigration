@@ -56,7 +56,25 @@ In addition to the standard discovery, also verify:
 
 ## Expected Output
 
-The prompt will generate four bash scripts in `Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/`:
+The prompt will generate all Step 0 artifacts in `Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/`:
+
+```
+Artifacts/Phase10-Migration/ZDM/PRODDB/
+├── Step0/
+│   ├── Scripts/
+│   │   ├── zdm_source_discovery.sh
+│   │   ├── zdm_target_discovery.sh
+│   │   ├── zdm_server_discovery.sh
+│   │   ├── zdm_orchestrate_discovery.sh
+│   │   └── README.md
+│   ├── Planning-Questionnaire-PRODDB.md
+│   ├── Discovery/           # Outputs collected after execution
+│   └── README.md
+├── Step1/                   # Completed questionnaire (after Step 1)
+└── Step2/                   # Migration artifacts (after Step 2)
+```
+
+---
 
 ### 1. zdm_source_discovery.sh
 ```bash
@@ -153,7 +171,7 @@ After generating the scripts:
 ```bash
 # From any machine with SSH access to all servers
 export SSH_KEY=~/.ssh/zdm_migration_key
-cd Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts
+cd Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts
 ./zdm_orchestrate_discovery.sh
 ```
 
@@ -171,33 +189,82 @@ ssh opc@proddb-oda.eastus.azure.example.com "chmod +x /tmp/zdm_target_discovery.
 scp zdm_server_discovery.sh zdmuser@zdm-jumpbox.corp.example.com:/tmp/
 ssh zdmuser@zdm-jumpbox.corp.example.com "chmod +x /tmp/zdm_server_discovery.sh && /tmp/zdm_server_discovery.sh"
 
-# 4. Collect results
-scp oracle@proddb01.corp.example.com:/tmp/zdm_source_discovery_*.txt Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/
-scp opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_target_discovery_*.txt Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/
-scp zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/
+# 4. Collect results to Step0/Discovery/
+scp oracle@proddb01.corp.example.com:/tmp/zdm_source_discovery_*.txt ../Discovery/
+scp opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_target_discovery_*.txt ../Discovery/
+scp zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt ../Discovery/
+```
+
+---
+
+## 5. Planning Questionnaire (Step0/Planning-Questionnaire-PRODDB.md)
+
+The prompt also generates a Planning Questionnaire for business/architectural decisions. Key sections include:
+
+```markdown
+## Section A: Migration Strategy ⚠️
+
+### A.1 Migration Type
+| Option | Select | Description |
+|--------|--------|-------------|
+| **ONLINE_PHYSICAL** | [X] | Minimal downtime using Data Guard |
+| **OFFLINE_PHYSICAL** | [ ] | Extended downtime; backup/restore approach |
+
+### A.2 Decision Justification
+Production database requiring minimal downtime. 24/7 operations cannot tolerate
+extended maintenance window. Data Guard provides real-time sync and fast switchover.
+
+## Section B: Migration Timeline ⚠️
+| Field | Value |
+|-------|-------|
+| **Planned Migration Date** | 2026-02-15 |
+| **Maintenance Window Start** | 2026-02-15 02:00 UTC |
+| **Maintenance Window End** | 2026-02-15 04:00 UTC |
+| **Maximum Acceptable Downtime** | 30 minutes |
+
+## Section G: Data Guard Configuration (Online Migration Only)
+| Mode | Select |
+|------|--------|
+| **MAXIMUM_PERFORMANCE** | [X] |
+| **Transport Type: ASYNC** | [X] |
+
+## Section H: Migration Execution Options
+| Option | Value |
+|--------|-------|
+| **Auto Switchover** | [ ] NO - Manual verification required |
+| **Pause Point** | ZDM_SWITCHOVER_SRC |
 ```
 
 ---
 
 ## Next Steps
 
-After running discovery scripts:
+After generating scripts and questionnaire:
 
-1. **Review Discovery Outputs**
-   - Check for any errors or warnings
-   - Verify database is in ARCHIVELOG mode
-   - Confirm supplemental logging status
+1. **Complete the Planning Questionnaire** (`Step0/Planning-Questionnaire-PRODDB.md`)
+   - Make key decisions (online/offline, timeline, pause points)
+   - Gather OCI/Azure identifiers
 
-2. **Proceed to Step 1**
+2. **Run Discovery Scripts** (`Step0/Scripts/`)
+   - Execute scripts on all servers
+   - Collect output files to `Step0/Discovery/`
+
+3. **Proceed to Step 1**
    - Use `Step1-Discovery-Questionnaire.prompt.md`
-   - Attach discovery output files
-   - Complete the questionnaire
+   - Attach completed Planning Questionnaire from `Step0/`
+   - Attach discovery output files from `Step0/Discovery/`
+   - Save output to `Step1/Completed-Questionnaire-PRODDB.md`
+
+4. **Proceed to Step 2**
+   - Generate RSP file, CLI commands, and runbook
+   - Save outputs to `Step2/`
 
 ---
 
 ## Tips
 
 - **Always regenerate scripts** for each new migration project to ensure they're current
+- **Complete the Planning Questionnaire early** - business decisions should be made before technical discovery
 - **Customize additional discovery** based on your specific database features
 - **Test SSH connectivity** before running the orchestration script
 - **Review outputs carefully** - discovery data drives all subsequent artifacts

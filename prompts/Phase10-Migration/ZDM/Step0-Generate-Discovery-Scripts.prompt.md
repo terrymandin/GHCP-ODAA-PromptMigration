@@ -205,25 +205,114 @@ All scripts should include:
 
 ---
 
+### 5. Planning Questionnaire (`Planning-Questionnaire-<DB_NAME>.md`)
+
+Generate a markdown questionnaire to capture **business and architectural decisions** that cannot be discovered by scripts. This questionnaire should be pre-populated with project details provided by the user.
+
+**Pre-populate from user input:**
+- Project Name
+- Source/Target/ZDM hostnames
+- Generated date
+
+**Sections to include:**
+
+#### Section A: Migration Strategy (Required)
+- Migration Type: `ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`
+- Decision justification
+- Decision factors table (downtime tolerance, complexity, network requirements)
+
+#### Section B: Migration Timeline (Required)
+- Planned Migration Date
+- Maintenance Window (Start/End)
+- Maximum Acceptable Downtime
+- Rollback Decision Point
+
+#### Section C: OCI/Azure Identifiers (Required for Target)
+- OCI Tenancy OCID
+- OCI User OCID
+- OCI Compartment OCID
+- OCI Region
+- Target DB System OCID
+- Target Database OCID
+
+#### Section D: Credentials (Required - Store Securely)
+- Source SYS Password location/reference
+- Target SYS Password location/reference
+- TDE Wallet Password location/reference (if TDE enabled)
+
+#### Section E: Network and Connectivity
+- ExpressRoute/VPN configuration status
+- Network path description
+- Estimated bandwidth (Mbps)
+- Firewall rules confirmed
+
+#### Section F: Backup and Storage Configuration
+- Object Storage Namespace
+- Bucket Name and Region
+- Backup Method: Object Storage / NFS / Local
+- RMAN Parallel Channels (default: 4)
+- Compression Level: LOW / MEDIUM / HIGH
+
+#### Section G: Data Guard Configuration (Online Migration Only)
+- Protection Mode: MAXIMUM_PERFORMANCE / MAXIMUM_AVAILABILITY
+- Transport Type: ASYNC / SYNC
+
+#### Section H: Migration Execution Options
+- Auto Switchover after migration: YES / NO
+- Delete backup after successful migration: YES / NO
+- Include performance statistics: YES / NO
+- Pause Point: None / ZDM_CONFIGURE_DG_SRC / ZDM_SWITCHOVER_SRC
+
+#### Section I: Rollback and Risk
+- Rollback plan description
+- Maximum time before rollback decision
+- Known risks or constraints
+- Special considerations
+
+#### Section J: Approvals
+- Completed By / Date
+- Technical Review By / Date
+- Business Approval By / Date
+
+---
+
 ## Output Location
 
-Save the generated scripts to: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Scripts/`
+Save all Step 0 outputs to: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/`
 
 The directory structure for each migration should be:
 ```
 Artifacts/Phase10-Migration/ZDM/<DB_NAME>/
-├── Scripts/           # Discovery scripts
-├── Discovery/         # Discovery output files
-├── Questionnaire/     # Completed questionnaires
-└── (generated artifacts: RSP, CLI, Runbook)
+├── Step0/                                    # Step 0: Discovery Scripts & Planning
+│   ├── Scripts/                              # Discovery scripts
+│   │   ├── zdm_source_discovery.sh
+│   │   ├── zdm_target_discovery.sh
+│   │   ├── zdm_server_discovery.sh
+│   │   ├── zdm_orchestrate_discovery.sh
+│   │   └── README.md
+│   ├── Planning-Questionnaire-<DB_NAME>.md   # Business decisions questionnaire
+│   └── Discovery/                            # Discovery output files (after execution)
+│       ├── zdm_source_discovery_*.txt
+│       ├── zdm_source_discovery_*.json
+│       ├── zdm_target_discovery_*.txt
+│       ├── zdm_target_discovery_*.json
+│       ├── zdm_server_discovery_*.txt
+│       └── zdm_server_discovery_*.json
+├── Step1/                                    # Step 1: Completed Questionnaire
+│   └── Completed-Questionnaire-<DB_NAME>.md
+└── Step2/                                    # Step 2: Migration Artifacts
+    ├── zdm_migrate_<DB_NAME>.rsp
+    ├── zdm_commands_<DB_NAME>.sh
+    └── ZDM-Migration-Runbook-<DB_NAME>.md
 ```
 
 ---
 
 ## Next Steps
 
-After generating scripts:
-1. Copy scripts to respective servers
-2. Execute scripts to gather discovery information
-3. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Discovery/`
-4. Proceed to Step 1: Discovery Questionnaire
+After generating scripts and questionnaire:
+1. **Complete the Planning Questionnaire** (`Step0/Planning-Questionnaire-<DB_NAME>.md`)
+2. Copy discovery scripts to respective servers
+3. Execute scripts to gather discovery information
+4. Collect output files to `Step0/Discovery/`
+5. Proceed to Step 1: Discovery Questionnaire (combine planning + discovery)

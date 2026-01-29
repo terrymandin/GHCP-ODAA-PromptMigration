@@ -334,14 +334,22 @@ ________________________________________________________________
 
 ---
 
+## Output Location
+
+Save the completed questionnaire to: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/`
+
+**Filename:** `Completed-Questionnaire-<DB_NAME>.md`
+
+---
+
 ## Next Steps
 
 After completing this questionnaire:
 
-1. **Save this file** with responses filled in
-2. **Attach discovery script outputs**
+1. **Save this file** to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/Completed-Questionnaire-<DB_NAME>.md`
+2. **Attach discovery script outputs** from `Step0/Discovery/`
 3. **Run Step 2 prompt**: `Step2-Generate-Migration-Artifacts.prompt.md`
-   - This will generate the RSP file, ZDM CLI commands, and installation runbook
+   - This will generate the RSP file, ZDM CLI commands, and installation runbook to `Step2/`
 
 ---
 
