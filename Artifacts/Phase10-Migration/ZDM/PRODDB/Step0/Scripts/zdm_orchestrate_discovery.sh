@@ -29,7 +29,7 @@ TARGET_HOST="10.0.1.160"
 ZDM_HOST="10.1.0.8"
 
 # SSH users
-SOURCE_USER="oracle"
+SOURCE_USER="temandin"
 TARGET_USER="opc"
 ZDM_USER="azureuser"
 
