@@ -1,0 +1,244 @@
+
+================================================================================
+= ZDM Server Discovery Report
+= Project: PRODDB Migration to Oracle Database@Azure
+= Server: zdm-jumpbox.corp.example.com
+= Hostname: tm-vm-odaa-oracle-jumpbox
+= User: azureuser
+= Timestamp: Thu Jan 29 05:48:58 PM EST 2026
+= Script Version: 1.0.0
+================================================================================
+================================================================================
+= OPERATING SYSTEM INFORMATION
+================================================================================
+
+--- Hostname and User ---
+Hostname: tm-vm-odaa-oracle-jumpbox
+FQDN: tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+Current User: azureuser
+User ID: uid=1000(azureuser) gid=1000(azureuser) groups=1000(azureuser),4(adm),190(systemd-journal) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+
+--- IP Addresses ---
+    inet 127.0.0.1/8 scope host lo
+    inet6 ::1/128 scope host 
+    inet 10.1.0.8/24 brd 10.1.0.255 scope global noprefixroute eth0
+    inet6 fe80::6245:bdff:fed2:961c/64 scope link 
+
+--- Operating System Version ---
+NAME="Oracle Linux Server"
+VERSION="9.5"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="9.5"
+PLATFORM_ID="platform:el9"
+PRETTY_NAME="Oracle Linux Server 9.5"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:9:5:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 9"
+ORACLE_BUGZILLA_PRODUCT_VERSION=9.5
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=9.5
+
+--- Kernel Version ---
+5.15.0-307.178.5.el9uek.x86_64
+
+--- Memory ---
+               total        used        free      shared  buff/cache   available
+Mem:           7.4Gi       2.7Gi       2.9Gi        62Mi       2.2Gi       4.8Gi
+Swap:          2.0Gi       0.0Ki       2.0Gi
+================================================================================
+= ZDM INSTALLATION
+================================================================================
+
+--- ZDM_HOME ---
+[1;33m[WARNING][0m ZDM_HOME is not set
+Searching for ZDM installation...
+/home/azureuser/zdmhome
+
+--- ZDM Version ---
+[1;33m[WARNING][0m zdmcli not found
+
+--- ZDM Service Status ---
+[1;33m[WARNING][0m zdmservice not found
+
+--- Active Migration Jobs ---
+
+--- Completed Migration Jobs (Recent) ---
+================================================================================
+= JAVA CONFIGURATION
+================================================================================
+
+--- JAVA_HOME ---
+[1;33m[WARNING][0m JAVA_HOME is not set
+
+--- Java Version ---
+[1;33m[WARNING][0m Java not found in PATH
+
+--- Java Location ---
+================================================================================
+= OCI CLI CONFIGURATION
+================================================================================
+
+--- OCI CLI Version ---
+./zdm_server_discovery.sh: line 185: oci: command not found
+
+--- OCI Config File ---
+[1;33m[WARNING][0m OCI config not found at ~/.oci/config
+
+--- OCI API Key Files ---
+[1;33m[WARNING][0m ~/.oci directory not found
+
+--- OCI Connectivity Test ---
+./zdm_server_discovery.sh: line 237: oci: command not found
+================================================================================
+= SSH CONFIGURATION
+================================================================================
+
+--- SSH Directory Contents ---
+total 16
+drwx------.  2 azureuser azureuser   71 Dec 18 18:00 .
+drwx------. 10 azureuser azureuser 4096 Jan 29 15:08 ..
+-rw-------.  1 azureuser azureuser  572 Dec 18 11:48 authorized_keys
+-rw-------.  1 azureuser azureuser  736 Dec 18 18:00 known_hosts
+-rw-r--r--.  1 azureuser azureuser  172 Dec 18 18:00 known_hosts.old
+
+--- Available SSH Keys ---
+Private keys:
+
+Public keys:
+
+--- SSH Config ---
+No SSH config file found
+================================================================================
+= CREDENTIAL FILES
+================================================================================
+
+--- Search for Password/Credential Files ---
+Searching in home directory for credential files...
+
+--- ZDM Credential Store ---
+ZDM credentials directory not found at standard location
+================================================================================
+= NETWORK CONFIGURATION
+================================================================================
+
+--- IP Addresses ---
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 60:45:bd:d2:96:1c brd ff:ff:ff:ff:ff:ff
+    inet 10.1.0.8/24 brd 10.1.0.255 scope global noprefixroute eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6245:bdff:fed2:961c/64 scope link 
+       valid_lft forever preferred_lft forever
+
+--- Routing Table ---
+default via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+10.1.0.0/24 dev eth0 proto kernel scope link src 10.1.0.8 metric 100 
+168.63.129.16 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+169.254.169.254 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+
+--- DNS Configuration ---
+# Generated by NetworkManager
+search s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+nameserver 168.63.129.16
+
+--- Hosts File ---
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+10.0.1.160  dbServer-1
+10.0.1.114  dbServer-2
+10.0.1.160 tmodaauks-rqahk1
+10.0.1.114 tmodaauks-rqahk2
+10.0.1.155 tmodaauks-rqahk1-vip
+10.0.1.142 tmodaauks-rqahk2-vip
+================================================================================
+= ZDM LOGS
+================================================================================
+
+--- Log Directory Location ---
+[1;33m[WARNING][0m ZDM_HOME not set, cannot locate logs
+
+--- ZDM Service Logs ---
+================================================================================
+= DISK SPACE FOR ZDM OPERATIONS
+================================================================================
+
+--- Disk Space Summary ---
+Filesystem                  Size  Used Avail Use% Mounted on
+devtmpfs                    4.0M     0  4.0M   0% /dev
+tmpfs                       3.8G     0  3.8G   0% /dev/shm
+tmpfs                       1.5G   63M  1.5G   5% /run
+/dev/mapper/rootvg-rootlv    39G   14G   25G  36% /
+/dev/mapper/rootvg-crashlv   10G  104M  9.9G   2% /var/crash
+/dev/sda2                   736M  387M  350M  53% /boot
+/dev/sda5                    99M  6.3M   93M   7% /boot/efi
+/dev/sdb1                    16G   28K   15G   1% /mnt
+tmpfs                       760M     0  760M   0% /run/user/1000
+
+--- ZDM Operations Space Check (50GB Recommended) ---
+
+[0;31m[ERROR][0m ✗ /home/azureuser (/): 24GB available - INSUFFICIENT
+[0;31m[ERROR][0m ✗ /tmp (/): 24GB available - INSUFFICIENT
+[0;31m[ERROR][0m ✗ /var/tmp (/): 24GB available - INSUFFICIENT
+
+--- Large Files/Directories in ZDM_HOME ---
+================================================================================
+= NETWORK LATENCY TESTS
+================================================================================
+
+--- Ping to Source Database Server ---
+Target: proddb01.corp.example.com
+ping: proddb01.corp.example.com: Name or service not known
+
+Ping statistics:
+
+
+--- Ping to Target Database Server ---
+Target: proddb-oda.eastus.azure.example.com
+ping: proddb-oda.eastus.azure.example.com: Name or service not known
+
+Ping statistics:
+
+--- Port Connectivity Tests ---
+
+Testing SSH port (22) connectivity...
+[1;33m[WARNING][0m ✗ Cannot connect to SSH port on proddb01.corp.example.com
+[1;33m[WARNING][0m ✗ Cannot connect to SSH port on proddb-oda.eastus.azure.example.com
+
+Testing Oracle listener port (1521) connectivity...
+[1;33m[WARNING][0m ✗ Cannot connect to listener port on proddb01.corp.example.com
+[1;33m[WARNING][0m ✗ Cannot connect to listener port on proddb-oda.eastus.azure.example.com
+
+--- Traceroute to Source ---
+
+--- Traceroute to Target ---
+================================================================================
+= SSH CONNECTIVITY VERIFICATION
+================================================================================
+
+--- SSH Keys for This Migration ---
+Expected SSH keys:
+  Source: ~/.ssh/source_db_key
+  Target: ~/.ssh/oda_azure_key
+  ZDM:    ~/.ssh/zdm_jumpbox_key
+
+[1;33m[WARNING][0m ✗ Not found: /home/azureuser/.ssh/source_db_key
+[1;33m[WARNING][0m ✗ Not found: /home/azureuser/.ssh/oda_azure_key
+[1;33m[WARNING][0m ✗ Not found: /home/azureuser/.ssh/zdm_jumpbox_key
+================================================================================
+= DISCOVERY SUMMARY
+================================================================================
+Discovery completed at: Thu Jan 29 05:48:58 PM EST 2026
+Section errors encountered: 0
+Text report: ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260129_174858.txt
+JSON summary: ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260129_174858.json

@@ -1,0 +1,15 @@
+{
+  "discovery_type": "source_database",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "target_server": "proddb01.corp.example.com",
+  "hostname": "temandin-oravm-vm01",
+  "timestamp": "2026-01-29T22:48:54+0000",
+  "script_version": "1.0.0",
+  "oracle_home": "null",
+  "oracle_sid": "null",
+  "section_errors": 1,
+  "output_files": {
+    "text_report": "./zdm_source_discovery_temandin-oravm-vm01_20260129_224854.txt",
+    "json_summary": "./zdm_source_discovery_temandin-oravm-vm01_20260129_224854.json"
+  }
+}

@@ -1,0 +1,251 @@
+
+================================================================================
+= ZDM Source Database Discovery Report
+= Project: PRODDB Migration to Oracle Database@Azure
+= Server: proddb01.corp.example.com
+= Hostname: temandin-oravm-vm01
+= Timestamp: Thu Jan 29 22:48:54 UTC 2026
+= Script Version: 1.0.0
+================================================================================
+================================================================================
+= OPERATING SYSTEM INFORMATION
+================================================================================
+
+--- Hostname and IP Addresses ---
+Hostname: temandin-oravm-vm01
+FQDN: temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+
+IP Addresses:
+    inet 127.0.0.1/8 scope host lo
+    inet6 ::1/128 scope host 
+    inet 10.1.0.10/24 brd 10.1.0.255 scope global eth0
+    inet6 fe80::7eed:8dff:fe3a:ba21/64 scope link 
+
+--- Operating System Version ---
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+
+--- Kernel Version ---
+4.14.35-1902.10.7.el7uek.x86_64
+
+--- Disk Space ---
+Filesystem                     Size  Used Avail Use% Mounted on
+devtmpfs                       7.7G     0  7.7G   0% /dev
+tmpfs                          7.8G     0  7.8G   0% /dev/shm
+tmpfs                          7.8G   49M  7.7G   1% /run
+tmpfs                          7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda2                       30G   20G  8.3G  70% /
+/dev/sda1                      497M  304M  194M  62% /boot
+/dev/sda15                     495M  7.4M  488M   2% /boot/efi
+/dev/sdb1                      148G  2.1G  138G   2% /mnt/resource
+/dev/mapper/vg_ora01-lv_ora01  4.0T   33M  4.0T   1% /u02
+tmpfs                          1.6G     0  1.6G   0% /run/user/54322
+
+--- Memory ---
+              total        used        free      shared  buff/cache   available
+Mem:            15G        964M        258M        5.0G         14G        9.3G
+Swap:          2.0G        1.0M        2.0G
+================================================================================
+= ORACLE ENVIRONMENT
+================================================================================
+
+--- Environment Variables ---
+ORACLE_HOME: NOT SET
+ORACLE_SID: NOT SET
+ORACLE_BASE: NOT SET
+TNS_ADMIN: NOT SET
+PATH: /usr/local/bin:/usr/bin:/home/temandin/.local/bin:/home/temandin/bin:/usr/local/sbin:/usr/sbin:/home/temandin/.local/bin:/home/temandin/bin
+[0;31m[ERROR][0m ORACLE_HOME is not set. Database discovery may be incomplete.
+================================================================================
+= DATABASE CONFIGURATION
+================================================================================
+
+--- Database Identification ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Instance Information ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Database Role and Open Mode ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Database Size ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Character Set ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= CONTAINER DATABASE CONFIGURATION
+================================================================================
+
+--- CDB Status ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- PDB Information ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- PDB Size ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= TDE CONFIGURATION
+================================================================================
+
+--- TDE Status ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Encrypted Tablespaces ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Encryption Keys ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Wallet File Location ---
+total 0
+drwxr-xr-x. 1 root root  6 Jan 28 17:44 .
+drwxr-xr-x. 1 root root 12 Jan 28 17:43 ..
+drwxr-xr-x. 1 root root  0 Jan 28 17:44 tde
+ERROR: ORACLE_HOME or ORACLE_SID not set
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= SUPPLEMENTAL LOGGING
+================================================================================
+
+--- Database Level Supplemental Logging ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= REDO AND ARCHIVE CONFIGURATION
+================================================================================
+
+--- Redo Log Groups ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Redo Log Members ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Archive Log Mode ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Archive Log Destinations ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= NETWORK CONFIGURATION
+================================================================================
+
+--- Listener Status ---
+
+--- tnsnames.ora ---
+[1;33m[WARNING][0m tnsnames.ora not found at /network/admin/tnsnames.ora
+
+--- sqlnet.ora ---
+[1;33m[WARNING][0m sqlnet.ora not found at /network/admin/sqlnet.ora
+
+--- listener.ora ---
+[1;33m[WARNING][0m listener.ora not found at /network/admin/listener.ora
+================================================================================
+= AUTHENTICATION CONFIGURATION
+================================================================================
+
+--- Password File ---
+[1;33m[WARNING][0m Password file not found at /dbs/orapw
+Checking for password file in ASM or alternative locations...
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- SSH Directory ---
+total 4
+drwx------. 1 temandin temandin  30 Jan 26 23:30 .
+drwx------. 1 temandin temandin 110 Jan 27 20:26 ..
+-rw-r--r--. 1 temandin temandin 959 Jan 26 23:38 authorized_keys
+================================================================================
+= DATA GUARD CONFIGURATION
+================================================================================
+
+--- Data Guard Parameters ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Data Guard Status ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= SCHEMA INFORMATION
+================================================================================
+
+--- Schema Sizes (Non-System Schemas > 100MB) ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Invalid Objects Count by Owner/Type ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= TABLESPACE AUTOEXTEND SETTINGS
+================================================================================
+
+--- Data File Autoextend Configuration ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Temp File Autoextend Configuration ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= BACKUP SCHEDULE AND RETENTION
+================================================================================
+
+--- RMAN Configuration ---
+[1;33m[WARNING][0m Cannot query RMAN - ORACLE_HOME or ORACLE_SID not set
+
+--- Backup History (Last 7 Days) ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Recovery Window/Retention Policy ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= DATABASE LINKS
+================================================================================
+
+--- All Database Links ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Public Database Links ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= MATERIALIZED VIEW REFRESH SCHEDULES
+================================================================================
+
+--- Materialized View Details ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Refresh Groups ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Refresh Group Children (MView Schedules) ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= SCHEDULER JOBS
+================================================================================
+
+--- All Scheduler Jobs ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- Scheduler Job Details ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+
+--- DBMS_JOB Legacy Jobs ---
+ERROR: ORACLE_HOME or ORACLE_SID not set
+================================================================================
+= DISCOVERY SUMMARY
+================================================================================
+Discovery completed at: Thu Jan 29 22:48:54 UTC 2026
+Section errors encountered: 1
+Text report: ./zdm_source_discovery_temandin-oravm-vm01_20260129_224854.txt
+JSON summary: ./zdm_source_discovery_temandin-oravm-vm01_20260129_224854.json

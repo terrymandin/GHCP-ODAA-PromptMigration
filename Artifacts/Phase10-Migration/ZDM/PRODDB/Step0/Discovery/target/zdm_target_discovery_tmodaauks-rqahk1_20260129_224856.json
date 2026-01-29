@@ -1,0 +1,16 @@
+{
+  "discovery_type": "target_database",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "target_server": "proddb-oda.eastus.azure.example.com",
+  "hostname": "tmodaauks-rqahk1",
+  "timestamp": "2026-01-29T22:48:56+00:00",
+  "script_version": "1.0.0",
+  "oracle_home": "null",
+  "oracle_sid": "null",
+  "grid_home": "null",
+  "section_errors": 1,
+  "output_files": {
+    "text_report": "./zdm_target_discovery_tmodaauks-rqahk1_20260129_224856.txt",
+    "json_summary": "./zdm_target_discovery_tmodaauks-rqahk1_20260129_224856.json"
+  }
+}
