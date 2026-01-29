@@ -27,6 +27,11 @@ Generate discovery scripts for our PRODDB migration project.
 - Target Database: proddb-oda.eastus.azure.example.com  
 - ZDM Server: zdm-jumpbox.corp.example.com
 
+## SSH Key Configuration
+- Source SSH Key: ~/.ssh/source_db_key
+- Target SSH Key: ~/.ssh/oda_azure_key
+- ZDM SSH Key: ~/.ssh/zdm_jumpbox_key
+
 ## Script Output Location
 Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/
 
@@ -155,7 +160,11 @@ TARGET_HOST="proddb-oda.eastus.azure.example.com"
 TARGET_USER="opc"
 ZDM_HOST="zdm-jumpbox.corp.example.com"
 ZDM_USER="zdmuser"
-SSH_KEY="${SSH_KEY:-~/.ssh/zdm_migration_key}"
+
+# SSH Keys - typically different for each server environment
+SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-~/.ssh/source_db_key}"
+TARGET_SSH_KEY="${TARGET_SSH_KEY:-~/.ssh/oda_azure_key}"
+ZDM_SSH_KEY="${ZDM_SSH_KEY:-~/.ssh/zdm_jumpbox_key}"
 
 # ... orchestration logic ...
 ```
@@ -169,29 +178,38 @@ After generating the scripts:
 ### Option 1: Run Orchestration Script (Recommended)
 ```bash
 # From any machine with SSH access to all servers
-export SSH_KEY=~/.ssh/zdm_migration_key
+# Set SSH keys for each environment (typically different keys for security)
+export SOURCE_SSH_KEY=~/.ssh/source_db_key
+export TARGET_SSH_KEY=~/.ssh/oda_azure_key
+export ZDM_SSH_KEY=~/.ssh/zdm_jumpbox_key
+
 cd Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts
 ./zdm_orchestrate_discovery.sh
 ```
 
 ### Option 2: Run Scripts Individually
 ```bash
+# Define SSH keys for each environment
+SOURCE_SSH_KEY=~/.ssh/source_db_key
+TARGET_SSH_KEY=~/.ssh/oda_azure_key
+ZDM_SSH_KEY=~/.ssh/zdm_jumpbox_key
+
 # 1. Copy and run on source database server
-scp zdm_source_discovery.sh oracle@proddb01.corp.example.com:/tmp/
-ssh oracle@proddb01.corp.example.com "chmod +x /tmp/zdm_source_discovery.sh && /tmp/zdm_source_discovery.sh"
+scp -i $SOURCE_SSH_KEY zdm_source_discovery.sh oracle@proddb01.corp.example.com:/tmp/
+ssh -i $SOURCE_SSH_KEY oracle@proddb01.corp.example.com "chmod +x /tmp/zdm_source_discovery.sh && /tmp/zdm_source_discovery.sh"
 
 # 2. Copy and run on target server
-scp zdm_target_discovery.sh opc@proddb-oda.eastus.azure.example.com:/tmp/
-ssh opc@proddb-oda.eastus.azure.example.com "chmod +x /tmp/zdm_target_discovery.sh && /tmp/zdm_target_discovery.sh"
+scp -i $TARGET_SSH_KEY zdm_target_discovery.sh opc@proddb-oda.eastus.azure.example.com:/tmp/
+ssh -i $TARGET_SSH_KEY opc@proddb-oda.eastus.azure.example.com "chmod +x /tmp/zdm_target_discovery.sh && /tmp/zdm_target_discovery.sh"
 
 # 3. Copy and run on ZDM server
-scp zdm_server_discovery.sh zdmuser@zdm-jumpbox.corp.example.com:/tmp/
-ssh zdmuser@zdm-jumpbox.corp.example.com "chmod +x /tmp/zdm_server_discovery.sh && /tmp/zdm_server_discovery.sh"
+scp -i $ZDM_SSH_KEY zdm_server_discovery.sh zdmuser@zdm-jumpbox.corp.example.com:/tmp/
+ssh -i $ZDM_SSH_KEY zdmuser@zdm-jumpbox.corp.example.com "chmod +x /tmp/zdm_server_discovery.sh && /tmp/zdm_server_discovery.sh"
 
 # 4. Collect results to Step0/Discovery/
-scp oracle@proddb01.corp.example.com:/tmp/zdm_source_discovery_*.txt ../Discovery/
-scp opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_target_discovery_*.txt ../Discovery/
-scp zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt ../Discovery/
+scp -i $SOURCE_SSH_KEY oracle@proddb01.corp.example.com:/tmp/zdm_source_discovery_*.txt ../Discovery/
+scp -i $TARGET_SSH_KEY opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_target_discovery_*.txt ../Discovery/
+scp -i $ZDM_SSH_KEY zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_server_discovery_*.txt ../Discovery/
 ```
 
 ---

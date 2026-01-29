@@ -175,7 +175,11 @@ Generate a bash script that can be run from any machine with SSH access to orche
 **Configuration:**
 - Environment variables for SOURCE_HOST, TARGET_HOST, ZDM_HOST
 - Environment variables for users (SOURCE_USER, TARGET_USER, ZDM_USER)
-- SSH key path
+- Separate SSH key paths for each environment:
+  - SOURCE_SSH_KEY: SSH key for source database server
+  - TARGET_SSH_KEY: SSH key for target Oracle Database@Azure server
+  - ZDM_SSH_KEY: SSH key for ZDM jumpbox server
+  (Note: These are typically different keys due to separate security domains)
 
 **Functions:**
 - Configuration validation
