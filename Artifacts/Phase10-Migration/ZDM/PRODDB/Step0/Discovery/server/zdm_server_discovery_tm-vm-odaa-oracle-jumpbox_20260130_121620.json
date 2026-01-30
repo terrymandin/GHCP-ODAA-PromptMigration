@@ -1,0 +1,11 @@
+{
+  "discovery_type": "zdm_server",
+  "timestamp": "2026-01-30T12:16:20-05:00",
+  "hostname": "tm-vm-odaa-oracle-jumpbox",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "zdm_server": "zdm-jumpbox.corp.example.com",
+  "hostname": "tm-vm-odaa-oracle-jumpbox",
+  "os_version": "9.5",
+  "zdm_home": "/u01/app/zdmhome",
+  "discovery_complete": true
+}

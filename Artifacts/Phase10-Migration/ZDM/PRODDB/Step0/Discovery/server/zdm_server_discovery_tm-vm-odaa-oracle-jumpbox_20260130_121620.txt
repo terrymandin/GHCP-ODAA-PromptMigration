@@ -1,0 +1,246 @@
+ZDM Server Discovery Report
+Generated: Fri Jan 30 12:16:20 PM EST 2026
+Hostname: tm-vm-odaa-oracle-jumpbox
+Project: PRODDB Migration to Oracle Database@Azure
+
+=============================================================================
+ OPERATING SYSTEM INFORMATION
+=============================================================================
+Hostname: tm-vm-odaa-oracle-jumpbox
+Current User: azureuser
+
+Operating System:
+NAME="Oracle Linux Server"
+VERSION="9.5"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+
+Kernel Version: 5.15.0-307.178.5.el9uek.x86_64
+
+Memory:
+               total        used        free      shared  buff/cache   available
+Mem:           7.4Gi       2.6Gi       2.8Gi        73Mi       2.4Gi       4.8Gi
+Swap:          2.0Gi       0.0Ki       2.0Gi
+
+=============================================================================
+ ZDM INSTALLATION
+=============================================================================
+ZDM_HOME: /u01/app/zdmhome
+
+ZDM Version:
+PRCG-1027 : Invalid command specified: -version
+
+ZDM Service Status:
+
+---------------------------------------
+	Service Status
+---------------------------------------
+
+ Running: 	true
+ Tranferport: 	
+ Conn String: 	jdbc:mysql://localhost:8899/
+ RMI port: 	8897
+ HTTP port: 	8898
+ Wallet path: 	/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/security
+
+
+Active Migration Jobs:
+PRCG-1033 : Invalid command-line option: -all
+
+=============================================================================
+ JAVA CONFIGURATION
+=============================================================================
+JAVA_HOME: NOT SET
+
+Java Version:
+[WARNING] Java not found
+
+Java Alternatives (if available):
+
+=============================================================================
+ OCI CLI CONFIGURATION
+=============================================================================
+OCI CLI Version:
+./zdm_server_discovery.sh: line 281: oci: command not found
+
+OCI Config Location:
+
+API Key Files:
+
+OCI Connectivity Test:
+timeout: failed to run command ‘oci’: No such file or directory
+
+=============================================================================
+ SSH CONFIGURATION
+=============================================================================
+SSH Directory (~/.ssh):
+total 16
+drwx------.  2 azureuser azureuser   71 Dec 18 18:00 .
+drwx------. 10 azureuser azureuser 4096 Jan 29 15:08 ..
+-rw-------.  1 azureuser azureuser  572 Dec 18 11:48 authorized_keys
+-rw-------.  1 azureuser azureuser  736 Dec 18 18:00 known_hosts
+-rw-r--r--.  1 azureuser azureuser  172 Dec 18 18:00 known_hosts.old
+
+Available SSH Keys (private):
+
+Available SSH Keys (public):
+
+SSH Config File:
+No SSH config file found
+
+ZDM User SSH Keys (/home/zdmuser/.ssh):
+total 32
+drwx------. 2 zdmuser zdm  127 Jan 29 16:21 .
+drwx------. 5 zdmuser zdm 4096 Jan 30 12:14 ..
+-rw-------. 1 zdmuser zdm 1679 Jan 28 12:22 iaas.pem
+-rw-------. 1 zdmuser zdm 2459 Jan 21 17:23 id_rsa
+-rw-r--r--. 1 zdmuser zdm  587 Jan 21 17:23 id_rsa.pub
+-rw-------. 1 zdmuser zdm 3189 Jan 29 16:21 known_hosts
+-rw-------. 1 zdmuser zdm 2457 Jan 29 16:07 known_hosts.old
+-rw-------. 1 zdmuser zdm 2455 Jan 28 12:22 odaa.pem
+-rw-------. 1 zdmuser zdm 2455 Jan 29 16:06 zdm.pem
+
+=============================================================================
+ CREDENTIAL FILES
+=============================================================================
+Searching for password/credential files...
+
+ZDM Response Files:
+/home/azureuser/oracle_client/client/response/client_install.rsp
+/home/azureuser/oracle_client/client/response/netca.rsp
+
+Wallet Directories:
+
+Potential Credential Files (names only):
+/home/azureuser/oracle_client/client/stage/Components/oracle.jdk/1.8.0.201.0/1/DataFiles/Expanded/filegroup2/jre/lib/management/jmxremote.password.template
+/opt/microsoft/mdatp/conf/scripts/tvm/nix_bootloader_password_chk.sh
+/opt/microsoft/mdatp/conf/scripts/tvm/nix_inactive_password.sh
+/opt/microsoft/mdatp/conf/scripts/tvm/nix_password_change_past.sh
+/opt/microsoft/mdatp/conf/scripts/tvm/nix_password_expiration.sh
+/opt/microsoft/mdatp/conf/scripts/tvm/nix_password_warning.sh
+
+=============================================================================
+ NETWORK CONFIGURATION
+=============================================================================
+IP Addresses:
+127.0.0.1/8
+10.1.0.8/24
+
+Default Gateway:
+default via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+
+DNS Configuration:
+search s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+nameserver 168.63.129.16
+
+Hosts File Entries (non-default):
+10.0.1.160  dbServer-1
+10.0.1.114  dbServer-2
+10.0.1.160 tmodaauks-rqahk1
+10.0.1.114 tmodaauks-rqahk2
+10.0.1.155 tmodaauks-rqahk1-vip
+10.0.1.142 tmodaauks-rqahk2-vip
+
+=============================================================================
+ ZDM LOGS
+=============================================================================
+ZDM Log Directory:
+ZDM log directory not found at /u01/app/zdmhome/logs
+
+ZDM Job Logs Directory:
+/u01/app/zdmhome/rhp
+
+Recent Job Directories:
+total 40
+-rw-------. 1 zdmuser zdm   57 Jul 24  2025 zdm.release
+-rw-------. 1 zdmuser zdm  543 Jul 24  2025 zdm.release.info
+-rw-------. 1 zdmuser zdm   25 Jul 24  2025 zdm.build
+drwxrwsr-x. 2 zdmuser zdm  183 Jul 24  2025 auth
+drwx--S---. 2 zdmuser zdm  186 Jul 24  2025 mesg
+-rw-------. 1 zdmuser zdm 9273 Jul 22  2025 CredentialsDriver.class
+drwxrwsr-x. 3 zdmuser zdm 4096 Jul 22  2025 conf
+drwxrwsr-x. 2 zdmuser zdm   28 Jul 22  2025 ggutl
+drwxrwsr-x. 2 zdmuser zdm   56 Jul 22  2025 patch
+
+=============================================================================
+ DISK SPACE FOR ZDM OPERATIONS
+=============================================================================
+Disk Space Overview:
+Filesystem                  Size  Used Avail Use% Mounted on
+devtmpfs                    4.0M     0  4.0M   0% /dev
+tmpfs                       3.8G     0  3.8G   0% /dev/shm
+tmpfs                       1.5G   74M  1.5G   5% /run
+/dev/mapper/rootvg-rootlv    39G   14G   25G  36% /
+/dev/mapper/rootvg-crashlv   10G  104M  9.9G   2% /var/crash
+/dev/sda2                   736M  387M  350M  53% /boot
+/dev/sda5                    99M  6.3M   93M   7% /boot/efi
+/dev/sdb1                    16G   28K   15G   1% /mnt
+tmpfs                       760M     0  760M   0% /run/user/1000
+
+ZDM Minimum Requirement: 50GB recommended
+
+[WARNING] / has 25GB available (below 50GB recommended)
+[WARNING] /home has 25GB available (below 50GB recommended)
+[WARNING] /opt has 25GB available (below 50GB recommended)
+[WARNING] /tmp has 25GB available (below 50GB recommended)
+[WARNING] /u01/app/zdmhome has 25GB available (below 50GB recommended)
+
+Largest Directories in ZDM_HOME (if set):
+326M	/u01/app/zdmhome/jdk
+263M	/u01/app/zdmhome/jlib
+235M	/u01/app/zdmhome/lib
+147M	/u01/app/zdmhome/instantclient
+112M	/u01/app/zdmhome/rhp
+112M	/u01/app/zdmhome/oracore
+85M	/u01/app/zdmhome/perl
+73M	/u01/app/zdmhome/rdbms
+64M	/u01/app/zdmhome/nls
+56M	/u01/app/zdmhome/jdbc
+
+Inode Usage:
+Filesystem                   Inodes IUsed    IFree IUse% Mounted on
+devtmpfs                     960965   409   960556    1% /dev
+tmpfs                        972654     1   972653    1% /dev/shm
+tmpfs                        819200   739   818461    1% /run
+/dev/mapper/rootvg-rootlv  19984384 76121 19908263    1% /
+/dev/mapper/rootvg-crashlv  5242880     3  5242877    1% /var/crash
+/dev/sda2                    409600   363   409237    1% /boot
+/dev/sda5                         0     0        0     - /boot/efi
+/dev/sdb1                   1048576    12  1048564    1% /mnt
+tmpfs                        194530    14   194516    1% /run/user/1000
+
+=============================================================================
+ NETWORK LATENCY TESTS
+=============================================================================
+Testing connectivity and latency to source and target databases...
+
+Ping to Source Database (10.1.0.10):
+64 bytes from 10.1.0.10: icmp_seq=4 ttl=64 time=1.48 ms
+64 bytes from 10.1.0.10: icmp_seq=5 ttl=64 time=1.37 ms
+
+--- 10.1.0.10 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4004ms
+rtt min/avg/max/mdev = 1.019/1.258/1.477/0.184 ms
+[SUCCESS] Source host is reachable
+
+Ping to Target Database (10.0.1.160):
+[WARNING] Target host (10.0.1.160) is not reachable via ping
+Attempting DNS resolution...
+Host 160.1.0.10.in-addr.arpa. not found: 3(NXDOMAIN)
+
+Port Connectivity Tests:
+Testing SSH port (22) to source...
+[SUCCESS] SSH port 22 on 10.1.0.10 is open
+Testing SSH port (22) to target...
+[SUCCESS] SSH port 22 on 10.0.1.160 is open
+
+Testing Oracle listener port (1521)...
+[SUCCESS] Oracle port 1521 on 10.1.0.10 is open
+[SUCCESS] Oracle port 1521 on 10.0.1.160 is open
+
+Traceroute to Source (first 10 hops):
+./zdm_server_discovery.sh: line 518: traceroute: command not found
+
+Traceroute to Target (first 10 hops):
+./zdm_server_discovery.sh: line 523: traceroute: command not found
