@@ -1,0 +1,52 @@
+{
+  "discovery_type": "source",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "timestamp": "2026-01-30T21:47:54+0000",
+  "hostname": "temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net",
+  "ip_addresses": "10.1.0.10 ",
+  "os": {
+    "version": "Oracle Linux Server 7.9",
+    "kernel": "4.14.35-1902.10.7.el7uek.x86_64"
+  },
+  "oracle": {
+    "version": "19.0.0.0.0",
+    "oracle_home": "/u01/app/oracle/product/19.0.0/dbhome_1",
+    "oracle_sid": "oradb01",
+    "oracle_base": "NOT SET"
+  },
+  "database": {
+    "name": "ORADB01",
+    "unique_name": "oradb01",
+    "dbid": "1593802201",
+    "role": "PRIMARY",
+    "open_mode": "READWRITE",
+    "log_mode": "ARCHIVELOG",
+    "force_logging": "YES",
+    "platform": "Linuxx8664-bit",
+    "characterset": "AL32UTF8",
+    "nchar_characterset": "AL16UTF16",
+    "datafile_size_gb": "1.88",
+    "tempfile_size_gb": ".03"
+  },
+  "cdb": {
+    "is_cdb": "NO"
+  },
+  "tde": {
+    "status": "OPEN",
+    "wallet_type": "AUTOLOGIN",
+    "wallet_location": "NOT FOUND"
+  },
+  "supplemental_logging": {
+    "min": "NO",
+    "pk": "NO",
+    "ui": "NO",
+    "fk": "NO",
+    "all": "NO"
+  },
+  "migration_readiness": {
+    "archivelog_enabled": true,
+    "force_logging_enabled": true,
+    "tde_enabled": true,
+    "supplemental_logging_enabled": false
+  }
+}
