@@ -132,13 +132,21 @@ Generate a bash script to run on the **ZDM jumpbox server** (executed via SSH as
 - Operating system version
 
 **ZDM Installation:**
-- ZDM_HOME location
+- ZDM_HOME location (must detect even when running as different user than zdmuser)
 - ZDM version
 - ZDM service status
 - Active migration jobs
 
+**IMPORTANT: ZDM Detection Requirements:**
+The script may be executed as a different user (e.g., azureuser) than the ZDM software owner (zdmuser). The script MUST detect ZDM using these methods in priority order:
+1. **Get ZDM_HOME from zdmuser's environment** - Use `sudo -u zdmuser -i bash -c 'echo $ZDM_HOME'` to get the environment variable from the zdmuser's login shell
+2. **Check zdmuser's home directory** - Look for common paths like `~zdmuser/zdmhome`, `~zdmuser/app/zdmhome`
+3. **Search common system paths** - Check `/u01/app/zdmhome`, `/u01/zdm`, `/opt/zdm`, etc.
+4. **Find zdmcli binary** - Use `sudo find` to locate the zdmcli binary and derive ZDM_HOME from it
+5. **Check for ZDM's bundled JDK** - ZDM often includes its own JDK at `$ZDM_HOME/jdk`
+
 **Java Configuration:**
-- Java version
+- Java version (check ZDM's bundled JDK at `$ZDM_HOME/jdk` first)
 - JAVA_HOME
 
 **OCI CLI Configuration:**
@@ -321,7 +329,7 @@ check_required_passwords() {
 
 **Output Directory:**
 - Default output should be the Discovery directory **relative to the repository root**: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/Discovery/`
-- The script must calculate the repository root by navigating up from `SCRIPT_DIR` (e.g., `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"`)
+- The script must calculate the repository root by navigating up from `SCRIPT_DIR`. Since the script is located at `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/Scripts/`, use: `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"` (6 levels up: Scripts → Step0 → PRODDB → ZDM → Phase10-Migration → Artifacts → RepoRoot)
 - Use an absolute path for `OUTPUT_DIR` by combining `REPO_ROOT` with the relative path: `OUTPUT_DIR="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/Discovery"`
 - Configurable via command-line option or environment variable (when set externally, use as-is)
 - Create subdirectories for each server type (source/, target/, server/)
@@ -422,21 +430,69 @@ All scripts should include:
           return 0
       fi
       
-      # Detect ZDM_HOME
+      # Detect ZDM_HOME using multiple methods
       if [ -z "${ZDM_HOME:-}" ]; then
-          # Check common ZDM installation locations
-          for path in ~/zdmhome ~/zdm /opt/zdm /u01/zdm "$HOME/zdmhome"; do
-              if [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
-                  export ZDM_HOME="$path"
-                  break
+          # Method 1: Get ZDM_HOME from zdmuser's environment
+          # This is the most reliable method as ZDM is typically installed under zdmuser
+          local zdm_user="${ZDM_USER:-zdmuser}"
+          if id "$zdm_user" &>/dev/null; then
+              # Try to get ZDM_HOME from zdmuser's login shell environment
+              local zdm_home_from_user
+              zdm_home_from_user=$(sudo -u "$zdm_user" -i bash -c 'echo $ZDM_HOME' 2>/dev/null)
+              if [ -n "$zdm_home_from_user" ] && [ -d "$zdm_home_from_user" ] && [ -f "$zdm_home_from_user/bin/zdmcli" ]; then
+                  export ZDM_HOME="$zdm_home_from_user"
               fi
-          done
+          fi
+          
+          # Method 2: Check zdmuser's home directory for common ZDM paths
+          if [ -z "${ZDM_HOME:-}" ]; then
+              local zdm_user_home
+              zdm_user_home=$(eval echo ~$zdm_user 2>/dev/null)
+              if [ -n "$zdm_user_home" ]; then
+                  for subdir in zdmhome zdm app/zdmhome; do
+                      local candidate="$zdm_user_home/$subdir"
+                      if [ -d "$candidate" ] && [ -f "$candidate/bin/zdmcli" ]; then
+                          export ZDM_HOME="$candidate"
+                          break
+                      fi
+                  done
+              fi
+          fi
+          
+          # Method 3: Check common ZDM installation locations system-wide
+          if [ -z "${ZDM_HOME:-}" ]; then
+              for path in /u01/app/zdmhome /u01/zdm /u01/app/zdm /opt/zdm /home/zdmuser/zdmhome /home/*/zdmhome ~/zdmhome ~/zdm "$HOME/zdmhome"; do
+                  # Use sudo to check paths that may not be readable by current user
+                  if sudo test -d "$path" 2>/dev/null && sudo test -f "$path/bin/zdmcli" 2>/dev/null; then
+                      export ZDM_HOME="$path"
+                      break
+                  elif [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
+                      export ZDM_HOME="$path"
+                      break
+                  fi
+              done
+          fi
+          
+          # Method 4: Search for zdmcli binary and derive ZDM_HOME
+          if [ -z "${ZDM_HOME:-}" ]; then
+              local zdmcli_path
+              zdmcli_path=$(sudo find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
+              if [ -n "$zdmcli_path" ]; then
+                  # zdmcli is in $ZDM_HOME/bin/zdmcli, so go up two levels
+                  export ZDM_HOME="$(dirname "$(dirname "$zdmcli_path")")"
+              fi
+          fi
       fi
       
-      # Detect JAVA_HOME
+      # Detect JAVA_HOME - check ZDM's bundled JDK first
       if [ -z "${JAVA_HOME:-}" ]; then
-          # Method 1: Check alternatives
-          if command -v java >/dev/null 2>&1; then
+          # Method 1: Check ZDM's bundled JDK (ZDM often includes its own JDK)
+          if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}/jdk" ]; then
+              export JAVA_HOME="${ZDM_HOME}/jdk"
+          fi
+          
+          # Method 2: Check alternatives
+          if [ -z "${JAVA_HOME:-}" ] && command -v java >/dev/null 2>&1; then
               local java_path
               java_path=$(readlink -f "$(command -v java)" 2>/dev/null)
               if [ -n "$java_path" ]; then
@@ -444,7 +500,7 @@ All scripts should include:
               fi
           fi
           
-          # Method 2: Search common Java paths
+          # Method 3: Search common Java paths
           if [ -z "${JAVA_HOME:-}" ]; then
               for path in /usr/java/latest /usr/java/jdk* /usr/lib/jvm/java-* /opt/java/jdk*; do
                   if [ -d "$path" ] && [ -f "$path/bin/java" ]; then
@@ -533,36 +589,30 @@ All scripts should include:
 
 Save all Step 0 outputs to: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/`
 
-The directory structure for each migration should be:
+**IMPORTANT:** Step 0 should ONLY create files in the `Step0/` directory. Do NOT create Step1/ or Step2/ folders - those will be created by their respective prompts.
+
+The Step 0 directory structure should be:
 ```
 Artifacts/Phase10-Migration/ZDM/<DB_NAME>/
-├── Step0/                                    # Step 0: Discovery Scripts
-│   ├── Scripts/                              # Discovery scripts
-│   │   ├── zdm_source_discovery.sh
-│   │   ├── zdm_target_discovery.sh
-│   │   ├── zdm_server_discovery.sh
-│   │   ├── zdm_orchestrate_discovery.sh
-│   │   └── README.md
-│   ├── README.md                             # Step 0 instructions
-│   └── Discovery/                            # Discovery output files (after execution)
-│       ├── zdm_source_discovery_*.txt
-│       ├── zdm_source_discovery_*.json
-│       ├── zdm_target_discovery_*.txt
-│       ├── zdm_target_discovery_*.json
-│       ├── zdm_server_discovery_*.txt
-│       └── zdm_server_discovery_*.json
-├── Step1/                                    # Step 1: Completed Questionnaire
-│   └── Completed-Questionnaire-<DB_NAME>.md
-└── Step2/                                    # Step 2: Migration Artifacts
-    ├── zdm_migrate_<DB_NAME>.rsp
-    ├── zdm_commands_<DB_NAME>.sh
-    └── ZDM-Migration-Runbook-<DB_NAME>.md
+└── Step0/                                    # Step 0: Discovery Scripts (CREATE THIS ONLY)
+    ├── Scripts/                              # Discovery scripts
+    │   ├── zdm_source_discovery.sh
+    │   ├── zdm_target_discovery.sh
+    │   ├── zdm_server_discovery.sh
+    │   ├── zdm_orchestrate_discovery.sh
+    │   └── README.md
+    └── Discovery/                            # Discovery output files (created after script execution)
+        ├── source/
+        ├── target/
+        └── server/
 ```
 
----
-
-## Next Steps
-
+For reference, the complete migration folder structure (created across all steps) is:
+```
+Artifacts/Phase10-Migration/ZDM/<DB_NAME>/
+├── Step0/    # Created by Step0 prompt (this prompt)
+├── Step1/    # Created by Step1 prompt (Discovery Questionnaire)
+└── Step2/    # Created by Step2 prompt (Migration Artifacts)
 After generating discovery scripts:
 1. Copy discovery scripts to respective servers
 2. Execute scripts to gather discovery information

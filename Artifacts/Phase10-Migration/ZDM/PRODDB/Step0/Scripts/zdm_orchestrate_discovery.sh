@@ -29,8 +29,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Calculate repository root from script location
 # Script is at: Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts/
-# Repository root is 6 levels up
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+# Repository root is 6 levels up: Scripts -> Step0 -> PRODDB -> ZDM -> Phase10-Migration -> Artifacts -> RepoRoot
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"
 
 #===============================================================================
 # SERVER CONFIGURATION

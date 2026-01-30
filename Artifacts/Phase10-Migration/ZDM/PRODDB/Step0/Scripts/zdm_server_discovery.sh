@@ -42,29 +42,69 @@ detect_zdm_env() {
         return 0
     fi
     
-    # Detect ZDM_HOME
+    # Detect ZDM_HOME using multiple methods
     if [ -z "${ZDM_HOME:-}" ]; then
-        # Check common ZDM installation locations
-        for path in ~/zdmhome ~/zdm /opt/zdm /u01/zdm "$HOME/zdmhome" /home/zdmuser/zdmhome /home/*/zdmhome; do
-            if [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
-                export ZDM_HOME="$path"
-                break
-            fi
-        done
+        local zdm_user="${ZDM_USER:-zdmuser}"
         
-        # Check if zdmuser has ZDM_HOME set
+        # Method 1: Get ZDM_HOME from zdmuser's environment (most reliable)
+        # This is critical when running as a different user (e.g., azureuser)
+        if id "$zdm_user" &>/dev/null; then
+            local zdm_home_from_user
+            zdm_home_from_user=$(sudo -u "$zdm_user" -i bash -c 'echo $ZDM_HOME' 2>/dev/null)
+            if [ -n "$zdm_home_from_user" ] && [ -d "$zdm_home_from_user" ] && [ -f "$zdm_home_from_user/bin/zdmcli" ]; then
+                export ZDM_HOME="$zdm_home_from_user"
+            fi
+        fi
+        
+        # Method 2: Check zdmuser's home directory for common ZDM paths
         if [ -z "${ZDM_HOME:-}" ]; then
-            local zdm_user_home=$(eval echo ~$ZDM_USER 2>/dev/null)
-            if [ -d "$zdm_user_home/zdmhome" ]; then
-                export ZDM_HOME="$zdm_user_home/zdmhome"
+            local zdm_user_home
+            zdm_user_home=$(eval echo ~$zdm_user 2>/dev/null)
+            if [ -n "$zdm_user_home" ]; then
+                for subdir in zdmhome zdm app/zdmhome; do
+                    local candidate="$zdm_user_home/$subdir"
+                    if [ -d "$candidate" ] && [ -f "$candidate/bin/zdmcli" ]; then
+                        export ZDM_HOME="$candidate"
+                        break
+                    fi
+                done
+            fi
+        fi
+        
+        # Method 3: Check common system paths
+        if [ -z "${ZDM_HOME:-}" ]; then
+            for path in /u01/app/zdmhome /u01/zdm /u01/app/zdm /opt/zdm /home/zdmuser/zdmhome /home/*/zdmhome ~/zdmhome ~/zdm "$HOME/zdmhome"; do
+                # Use sudo to check paths that may not be readable by current user
+                if sudo test -d "$path" 2>/dev/null && sudo test -f "$path/bin/zdmcli" 2>/dev/null; then
+                    export ZDM_HOME="$path"
+                    break
+                elif [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
+                    export ZDM_HOME="$path"
+                    break
+                fi
+            done
+        fi
+        
+        # Method 4: Search for zdmcli binary and derive ZDM_HOME
+        if [ -z "${ZDM_HOME:-}" ]; then
+            local zdmcli_path
+            zdmcli_path=$(sudo find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
+            if [ -n "$zdmcli_path" ]; then
+                # zdmcli is in $ZDM_HOME/bin/zdmcli, so go up two levels
+                export ZDM_HOME="$(dirname "$(dirname "$zdmcli_path")")"
             fi
         fi
     fi
     
-    # Detect JAVA_HOME
+    # Detect JAVA_HOME - check ZDM's bundled JDK first
     if [ -z "${JAVA_HOME:-}" ]; then
-        # Method 1: Check alternatives
-        if command -v java >/dev/null 2>&1; then
+        # Method 1: Check ZDM's bundled JDK (ZDM often includes its own JDK)
+        if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}/jdk" ]; then
+            export JAVA_HOME="${ZDM_HOME}/jdk"
+        fi
+        
+        # Method 2: Check alternatives
+        if [ -z "${JAVA_HOME:-}" ] && command -v java >/dev/null 2>&1; then
             local java_path
             java_path=$(readlink -f "$(command -v java)" 2>/dev/null)
             if [ -n "$java_path" ]; then
@@ -72,7 +112,7 @@ detect_zdm_env() {
             fi
         fi
         
-        # Method 2: Search common Java paths
+        # Method 3: Search common Java paths
         if [ -z "${JAVA_HOME:-}" ]; then
             for path in /usr/java/latest /usr/java/jdk* /usr/lib/jvm/java-* /opt/java/jdk* /usr/lib/jvm/jre-*; do
                 if [ -d "$path" ] && [ -f "$path/bin/java" ]; then

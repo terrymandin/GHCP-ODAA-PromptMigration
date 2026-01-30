@@ -161,28 +161,21 @@ All scripts generated in Step 2 will check that required password environment va
 
 The prompt will generate all Step 0 artifacts in `Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/`:
 
+**IMPORTANT:** Step 0 ONLY creates files in the `Step0/` directory. Step1/ and Step2/ folders are NOT created by this prompt.
+
 ```
 Artifacts/Phase10-Migration/ZDM/PRODDB/
-├── Step0/
-│   ├── Scripts/
-│   │   ├── zdm_source_discovery.sh
-│   │   ├── zdm_target_discovery.sh
-│   │   ├── zdm_server_discovery.sh
-│   │   ├── zdm_orchestrate_discovery.sh
-│   │   └── README.md
-│   ├── Discovery/           # Outputs collected after execution (default output location)
-│   │   ├── source/          # Source server discovery results
-│   │   │   ├── zdm_source_discovery_*.txt
-│   │   │   └── zdm_source_discovery_*.json
-│   │   ├── target/          # Target server discovery results  
-│   │   │   ├── zdm_target_discovery_*.txt
-│   │   │   └── zdm_target_discovery_*.json
-│   │   └── server/          # ZDM server discovery results
-│   │       ├── zdm_server_discovery_*.txt
-│   │       └── zdm_server_discovery_*.json
-│   └── README.md
-├── Step1/                   # Completed questionnaire (after Step 1)
-└── Step2/                   # Migration artifacts (after Step 2)
+└── Step0/                   # ONLY this folder is created by Step 0
+    ├── Scripts/
+    │   ├── zdm_source_discovery.sh
+    │   ├── zdm_target_discovery.sh
+    │   ├── zdm_server_discovery.sh
+    │   ├── zdm_orchestrate_discovery.sh
+    │   └── README.md
+    └── Discovery/           # Outputs collected after script execution
+        ├── source/          # Source server discovery results
+        ├── target/          # Target server discovery results  
+        └── server/          # ZDM server discovery results
 ```
 
 ### Key Resilience Features
@@ -446,8 +439,16 @@ SOURCE_REMOTE_ORACLE_SID="${SOURCE_REMOTE_ORACLE_SID:-}"    # e.g., PRODDB
 TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-}"  # e.g., /u01/app/oracle/product/19c
 TARGET_REMOTE_ORACLE_SID="${TARGET_REMOTE_ORACLE_SID:-}"    # e.g., PRODDB
 
-# Output directory - default to Artifacts directory
-OUTPUT_DIR="${OUTPUT_DIR:-../../../Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery}"
+# Script directory (where this script is located)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Calculate repository root from script location
+# Script is at: Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts/ (6 levels deep)
+# Navigate up 6 levels: Scripts -> Step0 -> PRODDB -> ZDM -> Phase10-Migration -> Artifacts -> RepoRoot
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"
+
+# Output directory - absolute path based on repository root
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery}"
 
 # Error tracking for resilience
 SOURCE_SUCCESS=false
