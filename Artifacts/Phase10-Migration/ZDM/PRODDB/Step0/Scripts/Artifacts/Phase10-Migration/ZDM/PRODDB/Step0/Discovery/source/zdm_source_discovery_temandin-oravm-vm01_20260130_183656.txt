@@ -1,0 +1,448 @@
+===============================================================================
+ZDM SOURCE DATABASE DISCOVERY REPORT
+===============================================================================
+Project: PRODDB Migration to Oracle Database@Azure
+Hostname: temandin-oravm-vm01
+Timestamp: Fri Jan 30 18:36:56 UTC 2026
+ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+ORACLE_SID: oradb01
+===============================================================================
+
+
+[0;32m--- OS Information ---[0m
+=== OS INFORMATION ===
+Hostname: temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+Short Hostname: temandin-oravm-vm01
+IP Addresses:
+  127.0.0.1/8
+  10.1.0.10/24
+
+Operating System:
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+
+Kernel Version: 4.14.35-1902.10.7.el7uek.x86_64
+Architecture: x86_64
+
+=== DISK SPACE ===
+Filesystem                     Size  Used Avail Use% Mounted on
+devtmpfs                       7.7G     0  7.7G   0% /dev
+tmpfs                          7.8G     0  7.8G   0% /dev/shm
+tmpfs                          7.8G   57M  7.7G   1% /run
+tmpfs                          7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda2                       30G   20G  8.3G  70% /
+/dev/sda1                      497M  304M  194M  62% /boot
+/dev/sda15                     495M  7.4M  488M   2% /boot/efi
+/dev/sdb1                      148G  2.1G  138G   2% /mnt/resource
+/dev/mapper/vg_ora01-lv_ora01  4.0T   33M  4.0T   1% /u02
+tmpfs                          1.6G     0  1.6G   0% /run/user/54322
+
+=== MEMORY ===
+              total        used        free      shared  buff/cache   available
+Mem:            15G        935M        237M        5.0G         14G        9.3G
+Swap:          2.0G        1.0M        2.0G
+
+
+[0;32m--- Oracle Environment ---[0m
+=== ORACLE ENVIRONMENT ===
+ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+ORACLE_SID: oradb01
+ORACLE_BASE: /u01/app/oracle/product
+
+Oracle Version:
+
+SQL*Plus: Release 19.0.0.0.0 - Production
+Version 19.3.0.0.0
+
+/etc/oratab contents:
+oradb01:/u01/app/oracle/product/19.0.0/dbhome_1:N
+
+
+[0;32m--- Database Configuration ---[0m
+=== DATABASE CONFIGURATION ===
+
+'DATABASENAME:'||NAME
+------------------------
+Database Name: ORADB01
+
+'DBUNIQUENAME:'||DB_UNIQUE_NAME
+----------------------------------------------
+DB Unique Name: oradb01
+
+'DBID:'||DBID
+----------------------------------------------
+DBID: 1593802201
+
+'DATABASEROLE:'||DATABASE_ROLE
+-------------------------------
+Database Role: PRIMARY
+
+'OPENMODE:'||OPEN_MODE
+-------------------------------
+Open Mode: READ WRITE
+
+'LOGMODE:'||LOG_MODE
+----------------------
+Log Mode: ARCHIVELOG
+
+'FORCELOGGING:'||FORCE_LOGGING
+------------------------------------------------------
+Force Logging: YES
+
+'FLASHBACKON:'||FLASHBACK_ON
+--------------------------------
+Flashback On: NO
+
+'PLATFORMNAME:'||PLATFORM_NAME
+--------------------------------------------------------------------------------------------------------------------
+Platform Name: Linux x86 64-bit
+
+'CREATED:'||TO_CHAR(CREATED,
+----------------------------
+Created: 2026-01-27 21:20:25
+
+=== DATABASE SIZE ===
+
+'DATAFILESSIZE(GB):'||ROUND(SUM(BYTES)/1024/1024/1024,2)
+--------------------------------------------------------------
+Data Files Size (GB): 1.88
+
+'TEMPFILESSIZE(GB):'||ROUND(SUM(BYTES)/1024/1024/1024,2)
+--------------------------------------------------------------
+Temp Files Size (GB): .03
+
+'TOTALUSEDSPACE(GB):'||ROUND(SUM(BYTES)/1024/1024/1024,2)
+---------------------------------------------------------------
+Total Used Space (GB): 1.51
+
+=== CHARACTER SET ===
+
+'DATABASECHARACTERSET:'||VALUE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Database Character Set: AL32UTF8
+
+'NATIONALCHARACTERSET:'||VALUE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+National Character Set: AL16UTF16
+
+
+[0;32m--- Container Database / PDBs ---[0m
+=== CDB STATUS ===
+CDB Enabled: NO
+
+
+
+[0;32m--- TDE Configuration ---[0m
+=== TDE STATUS ===
+
+WRL_TYPE   WRL_PARAMETER						STATUS		WALLET_TYPE
+---------- ------------------------------------------------------------ --------------- ---------------
+FILE	   /u01/app/oracle/admin/oradb01/wallet/tde/			OPEN		AUTOLOGIN
+
+=== ENCRYPTED TABLESPACES ===
+Encrypted Tablespace Count: 0
+
+=== TDE WALLET LOCATION ===
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+wallet_root			     string	 /u01/app/oracle/admin/oradb01/
+						 wallet
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+tde_configuration		     string	 KEYSTORE_CONFIGURATION=FILE
+
+
+[0;32m--- Supplemental Logging ---[0m
+=== SUPPLEMENTAL LOGGING ===
+
+'MINIMAL:'||SUPPL
+-----------------
+Minimal: NO
+
+'PRIMARYKEY:'||S
+----------------
+Primary Key: NO
+
+'UNIQUEINDEX:'||S
+-----------------
+Unique Index: NO
+
+'FOREIGNKEY:'||S
+----------------
+Foreign Key: NO
+
+'ALLCOLUMNS:'||S
+----------------
+All Columns: NO
+
+
+[0;32m--- Redo/Archive Configuration ---[0m
+=== REDO LOG CONFIGURATION ===
+
+GROUP# MEMBER							    SIZE_MB STATUS
+------ ------------------------------------------------------------ ------- ----------
+     1 /u01/app/oracle/oradata/ORADB01/redo01.log			200 INACTIVE
+     2 /u01/app/oracle/oradata/ORADB01/redo02.log			200 CURRENT
+     3 /u01/app/oracle/oradata/ORADB01/redo03.log			200 INACTIVE
+
+=== ARCHIVE LOG DESTINATIONS ===
+
+DEST_NAME		  STATUS     DESTINATION
+------------------------- ---------- --------------------------------------------------
+LOG_ARCHIVE_DEST_1	  VALID      /u01/app/oracle/product/19.0.0/dbhome_1/dbs/arch
+
+=== ARCHIVE LOG PARAMETERS ===
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+log_archive_dest		     string
+log_archive_dest_1		     string
+log_archive_dest_10		     string
+log_archive_dest_11		     string
+log_archive_dest_12		     string
+log_archive_dest_13		     string
+log_archive_dest_14		     string
+log_archive_dest_15		     string
+log_archive_dest_16		     string
+log_archive_dest_17		     string
+log_archive_dest_18		     string
+log_archive_dest_19		     string
+log_archive_dest_2		     string
+log_archive_dest_20		     string
+log_archive_dest_21		     string
+log_archive_dest_22		     string
+log_archive_dest_23		     string
+log_archive_dest_24		     string
+log_archive_dest_25		     string
+log_archive_dest_26		     string
+log_archive_dest_27		     string
+log_archive_dest_28		     string
+log_archive_dest_29		     string
+log_archive_dest_3		     string
+log_archive_dest_30		     string
+log_archive_dest_31		     string
+log_archive_dest_4		     string
+log_archive_dest_5		     string
+log_archive_dest_6		     string
+log_archive_dest_7		     string
+log_archive_dest_8		     string
+log_archive_dest_9		     string
+log_archive_dest_state_1	     string	 enable
+log_archive_dest_state_10	     string	 enable
+log_archive_dest_state_11	     string	 enable
+log_archive_dest_state_12	     string	 enable
+log_archive_dest_state_13	     string	 enable
+log_archive_dest_state_14	     string	 enable
+log_archive_dest_state_15	     string	 enable
+log_archive_dest_state_16	     string	 enable
+log_archive_dest_state_17	     string	 enable
+log_archive_dest_state_18	     string	 enable
+log_archive_dest_state_19	     string	 enable
+log_archive_dest_state_2	     string	 enable
+log_archive_dest_state_20	     string	 enable
+log_archive_dest_state_21	     string	 enable
+log_archive_dest_state_22	     string	 enable
+log_archive_dest_state_23	     string	 enable
+log_archive_dest_state_24	     string	 enable
+log_archive_dest_state_25	     string	 enable
+log_archive_dest_state_26	     string	 enable
+log_archive_dest_state_27	     string	 enable
+log_archive_dest_state_28	     string	 enable
+log_archive_dest_state_29	     string	 enable
+log_archive_dest_state_3	     string	 enable
+log_archive_dest_state_30	     string	 enable
+log_archive_dest_state_31	     string	 enable
+log_archive_dest_state_4	     string	 enable
+log_archive_dest_state_5	     string	 enable
+log_archive_dest_state_6	     string	 enable
+log_archive_dest_state_7	     string	 enable
+log_archive_dest_state_8	     string	 enable
+log_archive_dest_state_9	     string	 enable
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+log_archive_format		     string	 %t_%s_%r.dbf
+
+
+[0;32m--- Network Configuration ---[0m
+=== LISTENER STATUS ===
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 30-JAN-2026 18:37:11
+
+Copyright (c) 1991, 2019, Oracle.  All rights reserved.
+
+Connecting to (ADDRESS=(PROTOCOL=tcp)(HOST=)(PORT=1521))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                27-JAN-2026 21:14:04
+Uptime                    2 days 21 hr. 23 min. 7 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Log File         /u01/app/oracle/diag/tnslsnr/temandin-oravm-vm01/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net)(PORT=1521)))
+Services Summary...
+Service "oradb01" has 1 instance(s).
+  Instance "oradb01", status READY, has 1 handler(s) for this service...
+Service "oradb01XDB" has 1 instance(s).
+  Instance "oradb01", status READY, has 1 handler(s) for this service...
+The command completed successfully
+
+=== TNSNAMES.ORA ===
+
+=== SQLNET.ORA ===
+
+
+[0;32m--- Authentication Configuration ---[0m
+=== PASSWORD FILE ===
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+remote_login_passwordfile	     string	 EXCLUSIVE
+
+Password file location:
+-rw-r-----. 1 oracle oinstall 2048 Jan 27 21:20 /u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
+
+=== SSH DIRECTORY ===
+SSH directory contents (oracle user):
+  No .ssh directory or permission denied
+
+
+[0;32m--- Data Guard Configuration ---[0m
+=== DATA GUARD STATUS ===
+
+DATABASE_ROLE	 SWITCHOVER_STATUS    DATAGUAR
+---------------- -------------------- --------
+PRIMARY 	 NOT ALLOWED	      DISABLED
+
+=== DATA GUARD PARAMETERS ===
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+dg_broker_config_file1		     string	 /u01/app/oracle/product/19.0.0
+						 /dbhome_1/dbs/dr1oradb01.dat
+dg_broker_config_file2		     string	 /u01/app/oracle/product/19.0.0
+						 /dbhome_1/dbs/dr2oradb01.dat
+dg_broker_start 		     boolean	 FALSE
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+fal_server			     string
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+fal_client			     string
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+log_archive_config		     string
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+db_file_name_convert		     string
+pdb_file_name_convert		     string
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+log_file_name_convert		     string
+
+NAME				     TYPE	 VALUE
+------------------------------------ ----------- ------------------------------
+standby_file_management 	     string	 MANUAL
+
+
+[0;32m--- Schema Information ---[0m
+=== SCHEMA SIZES (Non-system schemas > 100MB) ===
+
+=== INVALID OBJECTS ===
+
+
+[0;32m--- Tablespace Autoextend Settings ---[0m
+=== TABLESPACE AUTOEXTEND CONFIGURATION ===
+
+TABLESPACE_NAME 	       FILE_NAME							SIZE_GB  MAXSIZE_GB AUTOEXTEND INCREMENT_MB
+------------------------------ ------------------------------------------------------------ ----------- ----------- ---------- ------------
+SYSAUX			       /u01/app/oracle/oradata/ORADB01/sysaux01.dbf			    .65       32.00 YES 		 10
+SYSTEM			       /u01/app/oracle/oradata/ORADB01/system01.dbf			    .89       32.00 YES 		 10
+UNDOTBS1		       /u01/app/oracle/oradata/ORADB01/undotbs01.dbf			    .33       32.00 YES 		  5
+USERS			       /u01/app/oracle/oradata/ORADB01/users01.dbf			    .00       32.00 YES 		  1
+
+=== TEMP FILES AUTOEXTEND ===
+
+TABLESPACE_NAME 	       FILE_NAME							SIZE_GB  MAXSIZE_GB AUTOEXTEND
+------------------------------ ------------------------------------------------------------ ----------- ----------- ----------
+TEMP			       /u01/app/oracle/oradata/ORADB01/temp01.dbf			    .03       32.00 YES
+
+
+[0;32m--- Backup Schedule and Retention ---[0m
+=== RMAN CONFIGURATION ===
+
+NAME					      VALUE
+--------------------------------------------- --------------------------------------------------
+CONTROLFILE AUTOBACKUP			      ON
+
+=== RECENT BACKUP HISTORY (Last 7 days) ===
+
+=== CONTROLFILE AUTOBACKUP ===
+
+
+[0;32m--- Database Links ---[0m
+=== DATABASE LINKS ===
+
+OWNER		     DB_LINK				      USERNAME		   HOST
+-------------------- ---------------------------------------- -------------------- --------------------------------------------------
+SYS		     SYS_HUB							   SEEDDATA
+Total Database Links: 1
+
+=== DATABASE LINK VALIDATION (Connection Test) ===
+Note: Run 'SELECT * FROM DUAL@<db_link>' to test each link
+
+
+[0;32m--- Materialized View Refresh Schedules ---[0m
+=== MATERIALIZED VIEWS ===
+
+=== MATERIALIZED VIEW REFRESH GROUPS ===
+WHERE OWNER NOT IN ('SYS','SYSTEM')
+      *
+ERROR at line 3:
+ORA-00904: "OWNER": invalid identifier
+
+
+
+=== MATERIALIZED VIEW REFRESH SCHEDULE ===
+
+
+[0;32m--- Scheduler Jobs ---[0m
+=== ACTIVE SCHEDULER JOBS ===
+
+=== SCHEDULER JOB DETAILS ===
+
+=== DBMS_JOB (Legacy Jobs) ===
+
+
+===============================================================================
+DISCOVERY SUMMARY
+===============================================================================
+Successful Sections: 16
+Failed Sections: 0
+===============================================================================

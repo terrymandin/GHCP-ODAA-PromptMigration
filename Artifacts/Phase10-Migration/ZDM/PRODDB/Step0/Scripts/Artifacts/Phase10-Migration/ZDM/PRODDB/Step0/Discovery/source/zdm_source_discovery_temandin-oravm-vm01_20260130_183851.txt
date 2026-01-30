@@ -1,0 +1,131 @@
+===============================================================================
+ZDM SOURCE DATABASE DISCOVERY REPORT
+===============================================================================
+Project: PRODDB Migration to Oracle Database@Azure
+Hostname: temandin-oravm-vm01
+Timestamp: Fri Jan 30 18:38:51 UTC 2026
+ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+ORACLE_SID: oradb01
+===============================================================================
+
+
+[0;32m--- OS Information ---[0m
+=== OS INFORMATION ===
+Hostname: temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+Short Hostname: temandin-oravm-vm01
+IP Addresses:
+  127.0.0.1/8
+  10.1.0.10/24
+
+Operating System:
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+
+Kernel Version: 4.14.35-1902.10.7.el7uek.x86_64
+Architecture: x86_64
+
+=== DISK SPACE ===
+Filesystem                     Size  Used Avail Use% Mounted on
+devtmpfs                       7.7G     0  7.7G   0% /dev
+tmpfs                          7.8G     0  7.8G   0% /dev/shm
+tmpfs                          7.8G   57M  7.7G   1% /run
+tmpfs                          7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda2                       30G   20G  8.3G  70% /
+/dev/sda1                      497M  304M  194M  62% /boot
+/dev/sda15                     495M  7.4M  488M   2% /boot/efi
+/dev/sdb1                      148G  2.1G  138G   2% /mnt/resource
+/dev/mapper/vg_ora01-lv_ora01  4.0T   33M  4.0T   1% /u02
+tmpfs                          1.6G     0  1.6G   0% /run/user/54322
+
+=== MEMORY ===
+              total        used        free      shared  buff/cache   available
+Mem:            15G        934M        238M        5.0G         14G        9.3G
+Swap:          2.0G        1.0M        2.0G
+
+
+[0;32m--- Oracle Environment ---[0m
+=== ORACLE ENVIRONMENT ===
+ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+ORACLE_SID: oradb01
+ORACLE_BASE: /u01/app/oracle/product
+
+Oracle Version:
+
+SQL*Plus: Release 19.0.0.0.0 - Production
+Version 19.3.0.0.0
+
+/etc/oratab contents:
+oradb01:/u01/app/oracle/product/19.0.0/dbhome_1:N
+
+
+[0;32m--- Database Configuration ---[0m
+=== DATABASE CONFIGURATION ===
+
+'DATABASENAME:'||NAME
+------------------------
+Database Name: ORADB01
+
+'DBUNIQUENAME:'||DB_UNIQUE_NAME
+----------------------------------------------
+DB Unique Name: oradb01
+
+'DBID:'||DBID
+----------------------------------------------
+DBID: 1593802201
+
+'DATABASEROLE:'||DATABASE_ROLE
+-------------------------------
+Database Role: PRIMARY
+
+'OPENMODE:'||OPEN_MODE
+-------------------------------
+Open Mode: READ WRITE
+
+'LOGMODE:'||LOG_MODE
+----------------------
+Log Mode: ARCHIVELOG
+
+'FORCELOGGING:'||FORCE_LOGGING
+------------------------------------------------------
+Force Logging: YES
+
+'FLASHBACKON:'||FLASHBACK_ON
+--------------------------------
+Flashback On: NO
+
+'PLATFORMNAME:'||PLATFORM_NAME
+--------------------------------------------------------------------------------------------------------------------
+Platform Name: Linux x86 64-bit
+
+'CREATED:'||TO_CHAR(CREATED,
+----------------------------
+Created: 2026-01-27 21:20:25
+
+=== DATABASE SIZE ===
+
+'DATAFILESSIZE(GB):'||ROUND(SUM(BYTES)/1024/1024/1024,2)
+--------------------------------------------------------------
+Data Files Size (GB): 1.88
+
+'TEMPFILESSIZE(GB):'||ROUND(SUM(BYTES)/1024/1024/1024,2)
+--------------------------------------------------------------
+Temp Files Size (GB): .03
+
+'TOTALUSEDSPACE(GB):'||ROUND(SUM(BYTES)/1024/1024/1024,2)
+---------------------------------------------------------------
+Total Used Space (GB): 1.51

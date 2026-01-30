@@ -1,0 +1,208 @@
+===============================================================================
+ZDM SERVER DISCOVERY REPORT
+===============================================================================
+Project: PRODDB Migration to Oracle Database@Azure
+Hostname: tm-vm-odaa-oracle-jumpbox
+Current User: azureuser
+Timestamp: Fri Jan 30 01:38:15 PM EST 2026
+ZDM_HOME: NOT SET
+JAVA_HOME: NOT SET
+===============================================================================
+
+
+[0;32m--- OS Information ---[0m
+=== OS INFORMATION ===
+Hostname: tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+Short Hostname: tm-vm-odaa-oracle-jumpbox
+Current User: azureuser
+
+Operating System:
+NAME="Oracle Linux Server"
+VERSION="9.5"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="9.5"
+PLATFORM_ID="platform:el9"
+PRETTY_NAME="Oracle Linux Server 9.5"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:9:5:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 9"
+ORACLE_BUGZILLA_PRODUCT_VERSION=9.5
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=9.5
+
+Kernel Version: 5.15.0-307.178.5.el9uek.x86_64
+Architecture: x86_64
+
+
+[0;32m--- ZDM Installation ---[0m
+=== ZDM INSTALLATION ===
+ZDM_HOME: NOT SET
+
+  ZDM_HOME not set or directory not found
+
+[0;32m--- Java Configuration ---[0m
+=== JAVA CONFIGURATION ===
+JAVA_HOME: NOT SET
+
+Java Version:
+  Java not found
+
+
+[0;32m--- OCI CLI Configuration ---[0m
+=== OCI CLI VERSION ===
+./zdm_server_discovery.sh: line 239: oci: command not found
+  OCI CLI not installed
+
+=== OCI CONFIG FILE ===
+Config Path: /home/azureuser/.oci/config
+  OCI config file not found
+
+=== API KEY FILE ===
+Files in /home/azureuser:
+drwx------. 10 azureuser azureuser       4096 Jan 29 15:08 .
+drwxr-xr-x.  4 root      root              38 Jan 19 14:59 ..
+-rw-------.  1 azureuser azureuser       7471 Jan 29 20:51 .bash_history
+-rw-r--r--.  1 azureuser azureuser         18 May  1  2024 .bash_logout
+-rw-r--r--.  1 azureuser azureuser        141 May  1  2024 .bash_profile
+-rw-r--r--.  1 azureuser azureuser        492 May  1  2024 .bashrc
+drwxr-xr-x.  7 azureuser azureuser        113 Jan 29 15:12 GHCP-ODAA-PromptMigration
+-rwx------.  1 azureuser azureuser       2456 Dec 18 18:00 key.pem
+-rw-------.  1 azureuser azureuser         20 Jan 23 17:29 .lesshst
+-rw-r--r--.  1 azureuser azureuser 1134912540 Dec 18 16:55 LINUX.X64_193000_client.zip
+-rw-r--r--.  1 azureuser azureuser      52324 Dec 15 22:08 oracle19c-linux-downloads.html
+drwxr-xr-x.  3 azureuser azureuser         20 Dec 18 17:09 oracle_client
+-rw-rw-rw-.  1 azureuser azureuser     376087 Apr 25  2025 oracle_sample_database.sql
+-rw-r--r--.  1 azureuser azureuser      47931 Apr 25  2025 oracle_sample_database.zip
+drwxr-xr-x.  2 azureuser azureuser       4096 Dec 18 11:54 oracletools
+drwxr-xr-x.  2 azureuser azureuser          6 Dec 18 17:17 oraInventory
+drwxr-xr-x.  2 root      root               6 Jan 19 16:13 –p
+drwx------.  2 azureuser azureuser         71 Dec 18 18:00 .ssh
+-rw-r--r--.  1 azureuser azureuser        257 Dec 18 16:03 tnsnames.ora
+-rw-------.  1 azureuser azureuser       7352 Jan 26 12:50 .viminfo
+-rw-r--r--.  1 azureuser azureuser        169 Dec 18 16:32 .wget-hsts
+drwxr-xr-x.  5 zdmuser   zdm              105 Jan 19 16:20 zdmbase
+drwxr-xr-x.  2 zdmuser   zdm                6 Jan 19 15:48 zdmhome
+
+=== OCI CONNECTIVITY TEST ===
+  OCI CLI not available
+
+
+[0;32m--- SSH Configuration ---[0m
+=== SSH DIRECTORY (Current User) ===
+User: azureuser
+SSH directory contents:
+total 16
+drwx------.  2 azureuser azureuser   71 Dec 18 18:00 .
+drwx------. 10 azureuser azureuser 4096 Jan 29 15:08 ..
+-rw-------.  1 azureuser azureuser  572 Dec 18 11:48 authorized_keys
+-rw-------.  1 azureuser azureuser  736 Dec 18 18:00 known_hosts
+-rw-r--r--.  1 azureuser azureuser  172 Dec 18 18:00 known_hosts.old
+
+Public Keys:
+
+=== SSH DIRECTORY (zdmuser) ===
+  zdmuser SSH directory not found or not accessible
+
+
+[0;32m--- Credential Files Search ---[0m
+=== SEARCHING FOR CREDENTIAL/PASSWORD FILES ===
+Note: This search looks for files that might contain credentials
+
+Files containing 'password' or 'credential' in name:
+/home/azureuser/oracle_client/client/stage/Components/oracle.jdk/1.8.0.201.0/1/DataFiles/Expanded/filegroup2/jre/lib/management/jmxremote.password.template
+
+Wallet files:
+
+Response files (.rsp):
+/home/azureuser/oracle_client/client/response/client_install.rsp
+/home/azureuser/oracle_client/client/response/netca.rsp
+
+
+[0;32m--- Network Configuration ---[0m
+=== IP ADDRESSES ===
+  127.0.0.1/8
+  10.1.0.8/24
+
+=== ROUTING TABLE ===
+default via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+10.1.0.0/24 dev eth0 proto kernel scope link src 10.1.0.8 metric 100 
+168.63.129.16 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+169.254.169.254 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+
+=== DNS CONFIGURATION ===
+Nameservers:
+search s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+nameserver 168.63.129.16
+
+=== HOSTNAMES ===
+/etc/hosts (relevant entries):
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+10.0.1.160  dbServer-1
+10.0.1.114  dbServer-2
+10.0.1.160 tmodaauks-rqahk1
+10.0.1.114 tmodaauks-rqahk2
+10.0.1.155 tmodaauks-rqahk1-vip
+10.0.1.142 tmodaauks-rqahk2-vip
+
+
+[0;32m--- ZDM Logs ---[0m
+=== ZDM LOG DIRECTORY ===
+  ZDM_HOME not set
+
+
+[0;32m--- Disk Space for ZDM Operations ---[0m
+=== DISK SPACE ANALYSIS ===
+Minimum recommended: 50GB for ZDM operations
+
+Filesystem                  Size  Used Avail Use% Mounted on
+devtmpfs                    4.0M     0  4.0M   0% /dev
+tmpfs                       3.8G     0  3.8G   0% /dev/shm
+tmpfs                       1.5G   74M  1.5G   5% /run
+/dev/mapper/rootvg-rootlv    39G   14G   25G  36% /
+/dev/mapper/rootvg-crashlv   10G  104M  9.9G   2% /var/crash
+/dev/sda2                   736M  387M  350M  53% /boot
+/dev/sda5                    99M  6.3M   93M   7% /boot/efi
+/dev/sdb1                    16G   28K   15G   1% /mnt
+tmpfs                       760M     0  760M   0% /run/user/1000
+
+=== ZDM HOME DISK SPACE ===
+  ZDM_HOME not set - checking /home directory
+/dev/mapper/rootvg-rootlv       39G   14G       25G  36% /
+
+=== TMP DIRECTORY SPACE ===
+Filesystem                 Size  Used Avail Use% Mounted on
+/dev/mapper/rootvg-rootlv   39G   14G   25G  36% /
+
+
+[0;32m--- Network Latency Tests ---[0m
+=== PING TEST TO SOURCE DATABASE ===
+Host: proddb01.corp.example.com
+ping: proddb01.corp.example.com: Name or service not known
+  Unable to ping source host
+
+=== PING TEST TO TARGET DATABASE ===
+Host: proddb-oda.eastus.azure.example.com
+ping: proddb-oda.eastus.azure.example.com: Name or service not known
+  Unable to ping target host
+
+=== DNS RESOLUTION TEST ===
+Source: Address:	168.63.129.16#53
+Target: Address:	168.63.129.16#53
+
+=== TRACEROUTE TO TARGET (first 15 hops) ===
+./zdm_server_discovery.sh: line 458: traceroute: command not found
+
+
+===============================================================================
+DISCOVERY SUMMARY
+===============================================================================
+Successful Sections: 10
+Failed Sections: 0
+===============================================================================
