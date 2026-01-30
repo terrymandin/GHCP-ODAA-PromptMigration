@@ -2,16 +2,15 @@
 #===============================================================================
 # ZDM Target Database Discovery Script
 # Project: PRODDB Migration to Oracle Database@Azure
-# Target: proddb-oda.eastus.azure.example.com
 #
-# Purpose: Gather comprehensive information from the target Oracle Database@Azure
-#          server to support ZDM migration planning.
+# Purpose: Discover target Oracle Database@Azure configuration for ZDM migration.
+#          Executed via SSH as admin user, SQL commands run as oracle user.
 #
-# Execution: Run as ADMIN_USER (opc) via SSH. SQL commands execute as ORACLE_USER.
+# Usage: ./zdm_target_discovery.sh
 #
 # Output:
-#   - Text report: ./zdm_target_discovery_<hostname>_<timestamp>.txt
-#   - JSON summary: ./zdm_target_discovery_<hostname>_<timestamp>.json
+#   - zdm_target_discovery_<hostname>_<timestamp>.txt (human-readable report)
+#   - zdm_target_discovery_<hostname>_<timestamp>.json (machine-parseable)
 #===============================================================================
 
 # Color codes for terminal output
@@ -22,80 +21,38 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Script variables
-SCRIPT_NAME="zdm_target_discovery.sh"
-HOSTNAME=$(hostname -s 2>/dev/null || hostname)
+# Timestamp for output files
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-OUTPUT_FILE="./zdm_target_discovery_${HOSTNAME}_${TIMESTAMP}.txt"
-JSON_FILE="./zdm_target_discovery_${HOSTNAME}_${TIMESTAMP}.json"
+HOSTNAME_SHORT=$(hostname -s)
 
-# User configuration - can be overridden via environment
+# Output files (current working directory)
+TEXT_REPORT="./zdm_target_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
+JSON_REPORT="./zdm_target_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
+
+# Default oracle user if not set
 ORACLE_USER="${ORACLE_USER:-oracle}"
 
-# Error tracking
-declare -a FAILED_SECTIONS=()
-declare -a SUCCESS_SECTIONS=()
-
 #===============================================================================
-# FUNCTIONS
+# ENVIRONMENT DETECTION
 #===============================================================================
 
-print_header() {
-    local title="$1"
-    echo -e "\n${BLUE}=================================================================================${NC}"
-    echo -e "${CYAN}  $title${NC}"
-    echo -e "${BLUE}=================================================================================${NC}"
-}
-
-print_section() {
-    local title="$1"
-    echo -e "\n${GREEN}--- $title ---${NC}"
-}
-
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
-
-print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}✗ $1${NC}"
-}
-
-log_section_result() {
-    local section="$1"
-    local status="$2"
-    if [ "$status" = "success" ]; then
-        SUCCESS_SECTIONS+=("$section")
-    else
-        FAILED_SECTIONS+=("$section")
-    fi
-}
-
-# Auto-detect Oracle environment
 detect_oracle_env() {
     # If already set, use existing values
     if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-        print_success "Using pre-configured ORACLE_HOME=$ORACLE_HOME, ORACLE_SID=$ORACLE_SID"
         return 0
     fi
     
-    print_section "Auto-detecting Oracle Environment"
-    
-    # Method 1: Parse /etc/oratab (most reliable)
+    # Method 1: Parse /etc/oratab
     if [ -f /etc/oratab ]; then
         local oratab_entry
         if [ -n "${ORACLE_SID:-}" ]; then
             oratab_entry=$(grep "^${ORACLE_SID}:" /etc/oratab 2>/dev/null | head -1)
         else
-            oratab_entry=$(grep -v '^#' /etc/oratab | grep -v '^$' | grep ':Y$\|:N$' | head -1)
+            oratab_entry=$(grep -v '^#' /etc/oratab | grep -v '^$' | grep -v '^*' | head -1)
         fi
         if [ -n "$oratab_entry" ]; then
             export ORACLE_SID="${ORACLE_SID:-$(echo "$oratab_entry" | cut -d: -f1)}"
             export ORACLE_HOME="${ORACLE_HOME:-$(echo "$oratab_entry" | cut -d: -f2)}"
-            print_success "Detected from /etc/oratab: ORACLE_SID=$ORACLE_SID, ORACLE_HOME=$ORACLE_HOME"
         fi
     fi
     
@@ -103,50 +60,36 @@ detect_oracle_env() {
     if [ -z "${ORACLE_SID:-}" ]; then
         local pmon_sid
         pmon_sid=$(ps -ef | grep 'ora_pmon_' | grep -v grep | head -1 | sed 's/.*ora_pmon_//')
-        if [ -n "$pmon_sid" ]; then
-            export ORACLE_SID="$pmon_sid"
-            print_success "Detected ORACLE_SID from pmon process: $ORACLE_SID"
-        fi
+        [ -n "$pmon_sid" ] && export ORACLE_SID="$pmon_sid"
     fi
     
-    # Method 3: Search common Oracle installation paths (including ODA paths)
+    # Method 3: Search common Oracle installation paths (Exadata/ODA)
     if [ -z "${ORACLE_HOME:-}" ]; then
-        for path in /u02/app/oracle/product/*/dbhome_1 /u01/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1; do
+        for path in /u01/app/oracle/product/*/dbhome_1 /u02/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1; do
             if [ -d "$path" ] && [ -f "$path/bin/sqlplus" ]; then
                 export ORACLE_HOME="$path"
-                print_success "Detected ORACLE_HOME from common path: $ORACLE_HOME"
                 break
             fi
         done
     fi
     
-    # Method 4: Try oraenv if we have ORACLE_SID
-    if [ -z "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-        if [ -f /usr/local/bin/oraenv ]; then
-            ORAENV_ASK=NO . /usr/local/bin/oraenv <<< "$ORACLE_SID" 2>/dev/null
-            [ -n "${ORACLE_HOME:-}" ] && print_success "Detected ORACLE_HOME via oraenv: $ORACLE_HOME"
-        fi
+    # Set ORACLE_BASE if not set
+    if [ -z "${ORACLE_BASE:-}" ] && [ -n "${ORACLE_HOME:-}" ]; then
+        export ORACLE_BASE=$(dirname $(dirname "$ORACLE_HOME"))
     fi
-    
-    # Apply explicit overrides if provided (highest priority)
-    [ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
-    [ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
-    
-    # Set ORACLE_BASE
-    if [ -n "${ORACLE_HOME:-}" ]; then
-        export ORACLE_BASE="${ORACLE_BASE:-$(dirname $(dirname $ORACLE_HOME))}"
-    fi
-    
-    # Validate
-    if [ -z "${ORACLE_HOME:-}" ] || [ -z "${ORACLE_SID:-}" ]; then
-        print_error "Failed to detect Oracle environment"
-        return 1
-    fi
-    
-    return 0
 }
 
-# Execute SQL as oracle user
+# Apply explicit overrides if provided
+[ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
+[ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
+
+# Detect Oracle environment
+detect_oracle_env
+
+#===============================================================================
+# SQL EXECUTION FUNCTIONS
+#===============================================================================
+
 run_sql() {
     local sql_query="$1"
     if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
@@ -161,7 +104,6 @@ SET TRIMSPOOL ON
 $sql_query
 EOSQL
 )
-        # Execute as oracle user - use sudo if current user is not oracle
         if [ "$(whoami)" = "$ORACLE_USER" ]; then
             echo "$sql_script" | ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null
         else
@@ -173,7 +115,6 @@ EOSQL
     fi
 }
 
-# Execute SQL and return single value
 run_sql_value() {
     local sql_query="$1"
     if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
@@ -188,460 +129,429 @@ SET TRIMSPOOL ON
 $sql_query
 EOSQL
 )
-        # Execute as oracle user
         if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            echo "$sql_script" | ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null | head -1 | xargs
+            echo "$sql_script" | ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null | tr -d '[:space:]'
         else
-            echo "$sql_script" | sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null | head -1 | xargs
+            echo "$sql_script" | sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null | tr -d '[:space:]'
         fi
     else
-        echo "ERROR: ORACLE_HOME or ORACLE_SID not set"
+        echo "ERROR"
         return 1
     fi
 }
 
 #===============================================================================
-# DISCOVERY SECTIONS
+# OUTPUT FUNCTIONS
+#===============================================================================
+
+print_header() {
+    local title="$1"
+    echo "" >> "$TEXT_REPORT"
+    echo "===============================================================================" >> "$TEXT_REPORT"
+    echo "  $title" >> "$TEXT_REPORT"
+    echo "===============================================================================" >> "$TEXT_REPORT"
+    echo -e "${BLUE}=== $title ===${NC}"
+}
+
+print_section() {
+    local title="$1"
+    echo "" >> "$TEXT_REPORT"
+    echo "--- $title ---" >> "$TEXT_REPORT"
+    echo -e "${GREEN}--- $title ---${NC}"
+}
+
+print_info() {
+    local label="$1"
+    local value="$2"
+    printf "%-30s: %s\n" "$label" "$value" >> "$TEXT_REPORT"
+    printf "${CYAN}%-30s${NC}: %s\n" "$label" "$value"
+}
+
+print_output() {
+    local output="$1"
+    echo "$output" >> "$TEXT_REPORT"
+    echo "$output"
+}
+
+#===============================================================================
+# JSON BUILDER
+#===============================================================================
+
+declare -A JSON_DATA
+
+add_json() {
+    local key="$1"
+    local value="$2"
+    JSON_DATA["$key"]="$value"
+}
+
+add_json_array() {
+    local key="$1"
+    shift
+    local items=("$@")
+    local json_array="["
+    local first=true
+    for item in "${items[@]}"; do
+        if [ "$first" = true ]; then
+            first=false
+        else
+            json_array+=","
+        fi
+        json_array+="\"$item\""
+    done
+    json_array+="]"
+    JSON_DATA["$key"]="$json_array"
+}
+
+write_json() {
+    echo "{" > "$JSON_REPORT"
+    local first=true
+    for key in "${!JSON_DATA[@]}"; do
+        if [ "$first" = true ]; then
+            first=false
+        else
+            echo "," >> "$JSON_REPORT"
+        fi
+        local value="${JSON_DATA[$key]}"
+        if [[ "$value" =~ ^\[.*\]$ ]] || [[ "$value" =~ ^\{.*\}$ ]]; then
+            printf '  "%s": %s' "$key" "$value" >> "$JSON_REPORT"
+        else
+            printf '  "%s": "%s"' "$key" "$value" >> "$JSON_REPORT"
+        fi
+    done
+    echo "" >> "$JSON_REPORT"
+    echo "}" >> "$JSON_REPORT"
+}
+
+#===============================================================================
+# DISCOVERY FUNCTIONS
 #===============================================================================
 
 discover_os_info() {
-    print_section "OS Information"
-    {
-        echo "=== OS INFORMATION ==="
-        echo "Hostname: $(hostname -f 2>/dev/null || hostname)"
-        echo "Short Hostname: $(hostname -s 2>/dev/null || hostname)"
-        echo "IP Addresses:"
-        ip addr show 2>/dev/null | grep 'inet ' | awk '{print "  " $2}' || ifconfig 2>/dev/null | grep 'inet ' | awk '{print "  " $2}'
-        echo ""
-        echo "Operating System:"
-        cat /etc/os-release 2>/dev/null || cat /etc/oracle-release 2>/dev/null || uname -a
-        echo ""
-        echo "Kernel Version: $(uname -r)"
-        echo "Architecture: $(uname -m)"
-        echo ""
-        log_section_result "OS Information" "success"
-    } 2>&1 || log_section_result "OS Information" "failed"
+    print_header "OS INFORMATION"
+    
+    local hostname_full=$(hostname -f 2>/dev/null || hostname)
+    local hostname_short=$(hostname -s)
+    local ip_addresses=$(hostname -I 2>/dev/null || ip addr show | grep 'inet ' | awk '{print $2}' | cut -d/ -f1 | tr '\n' ' ')
+    local os_version=$(cat /etc/os-release 2>/dev/null | grep "PRETTY_NAME" | cut -d'"' -f2 || uname -a)
+    local kernel_version=$(uname -r)
+    
+    print_info "Hostname (Full)" "$hostname_full"
+    print_info "Hostname (Short)" "$hostname_short"
+    print_info "IP Addresses" "$ip_addresses"
+    print_info "OS Version" "$os_version"
+    print_info "Kernel Version" "$kernel_version"
+    
+    add_json "hostname_full" "$hostname_full"
+    add_json "hostname_short" "$hostname_short"
+    add_json "ip_addresses" "$ip_addresses"
+    add_json "os_version" "$os_version"
+    add_json "kernel_version" "$kernel_version"
 }
 
 discover_oracle_env() {
-    print_section "Oracle Environment"
-    {
-        echo "=== ORACLE ENVIRONMENT ==="
-        echo "ORACLE_HOME: ${ORACLE_HOME:-NOT SET}"
-        echo "ORACLE_SID: ${ORACLE_SID:-NOT SET}"
-        echo "ORACLE_BASE: ${ORACLE_BASE:-NOT SET}"
-        echo ""
-        echo "Oracle Version:"
-        if [ -f "$ORACLE_HOME/bin/sqlplus" ]; then
-            $ORACLE_HOME/bin/sqlplus -V 2>/dev/null | head -3
-        fi
-        echo ""
-        echo "/etc/oratab contents:"
-        cat /etc/oratab 2>/dev/null | grep -v '^#' | grep -v '^$' || echo "  File not found"
-        echo ""
-        log_section_result "Oracle Environment" "success"
-    } 2>&1 || log_section_result "Oracle Environment" "failed"
+    print_header "ORACLE ENVIRONMENT"
+    
+    print_info "ORACLE_HOME" "${ORACLE_HOME:-NOT SET}"
+    print_info "ORACLE_SID" "${ORACLE_SID:-NOT SET}"
+    print_info "ORACLE_BASE" "${ORACLE_BASE:-NOT SET}"
+    
+    add_json "oracle_home" "${ORACLE_HOME:-NOT SET}"
+    add_json "oracle_sid" "${ORACLE_SID:-NOT SET}"
+    add_json "oracle_base" "${ORACLE_BASE:-NOT SET}"
+    
+    if [ -n "${ORACLE_HOME:-}" ]; then
+        local oracle_version=$($ORACLE_HOME/bin/sqlplus -v 2>/dev/null | grep -i "Release" | head -1)
+        print_info "Oracle Version" "$oracle_version"
+        add_json "oracle_version" "$oracle_version"
+    fi
 }
 
 discover_database_config() {
-    print_section "Database Configuration"
-    {
-        echo "=== DATABASE CONFIGURATION ==="
-        run_sql "
-SELECT 'Database Name: ' || NAME FROM V\$DATABASE;
-SELECT 'DB Unique Name: ' || DB_UNIQUE_NAME FROM V\$DATABASE;
-SELECT 'DBID: ' || DBID FROM V\$DATABASE;
-SELECT 'Database Role: ' || DATABASE_ROLE FROM V\$DATABASE;
-SELECT 'Open Mode: ' || OPEN_MODE FROM V\$DATABASE;
-SELECT 'Log Mode: ' || LOG_MODE FROM V\$DATABASE;
-SELECT 'Force Logging: ' || FORCE_LOGGING FROM V\$DATABASE;
-SELECT 'Platform Name: ' || PLATFORM_NAME FROM V\$DATABASE;
-"
-        echo ""
-        echo "=== CHARACTER SET ==="
-        run_sql "
-SELECT 'Database Character Set: ' || VALUE FROM NLS_DATABASE_PARAMETERS WHERE PARAMETER = 'NLS_CHARACTERSET';
-SELECT 'National Character Set: ' || VALUE FROM NLS_DATABASE_PARAMETERS WHERE PARAMETER = 'NLS_NCHAR_CHARACTERSET';
-"
-        echo ""
-        log_section_result "Database Configuration" "success"
-    } 2>&1 || log_section_result "Database Configuration" "failed"
-}
-
-discover_storage() {
-    print_section "Storage Configuration"
-    {
-        echo "=== TABLESPACE INFORMATION ==="
-        run_sql "
-COL TABLESPACE_NAME FORMAT A30
-COL SIZE_GB FORMAT 999,999.99
-COL FREE_GB FORMAT 999,999.99
-COL USED_PCT FORMAT 999.9
-SELECT 
-    DDF.TABLESPACE_NAME,
-    ROUND(DDF.BYTES/1024/1024/1024, 2) AS SIZE_GB,
-    ROUND(NVL(DFS.FREE_BYTES, 0)/1024/1024/1024, 2) AS FREE_GB,
-    ROUND((DDF.BYTES - NVL(DFS.FREE_BYTES, 0)) / DDF.BYTES * 100, 1) AS USED_PCT
-FROM 
-    (SELECT TABLESPACE_NAME, SUM(BYTES) BYTES FROM DBA_DATA_FILES GROUP BY TABLESPACE_NAME) DDF
-LEFT JOIN
-    (SELECT TABLESPACE_NAME, SUM(BYTES) FREE_BYTES FROM DBA_FREE_SPACE GROUP BY TABLESPACE_NAME) DFS
-ON DDF.TABLESPACE_NAME = DFS.TABLESPACE_NAME
-ORDER BY TABLESPACE_NAME;
-"
-        echo ""
-        echo "=== ASM DISK GROUPS (if applicable) ==="
-        run_sql "
-COL NAME FORMAT A20
-COL TOTAL_GB FORMAT 999,999.99
-COL FREE_GB FORMAT 999,999.99
-COL USABLE_GB FORMAT 999,999.99
-COL TYPE FORMAT A10
-COL STATE FORMAT A12
-SELECT NAME, 
-       ROUND(TOTAL_MB/1024, 2) AS TOTAL_GB,
-       ROUND(FREE_MB/1024, 2) AS FREE_GB,
-       ROUND(USABLE_FILE_MB/1024, 2) AS USABLE_GB,
-       TYPE, STATE
-FROM V\$ASM_DISKGROUP;
-"
-        echo ""
-        echo "=== DISK SPACE (OS Level) ==="
-        df -h 2>/dev/null
-        echo ""
-        log_section_result "Storage Configuration" "success"
-    } 2>&1 || log_section_result "Storage Configuration" "failed"
+    print_header "DATABASE CONFIGURATION"
+    
+    if [ -z "${ORACLE_HOME:-}" ] || [ -z "${ORACLE_SID:-}" ]; then
+        print_output "ERROR: Oracle environment not configured"
+        return 1
+    fi
+    
+    local db_name=$(run_sql_value "SELECT name FROM v\$database;")
+    local db_unique_name=$(run_sql_value "SELECT db_unique_name FROM v\$database;")
+    local db_role=$(run_sql_value "SELECT database_role FROM v\$database;")
+    local open_mode=$(run_sql_value "SELECT open_mode FROM v\$database;")
+    
+    print_info "Database Name" "$db_name"
+    print_info "DB Unique Name" "$db_unique_name"
+    print_info "Database Role" "$db_role"
+    print_info "Open Mode" "$open_mode"
+    
+    add_json "db_name" "$db_name"
+    add_json "db_unique_name" "$db_unique_name"
+    add_json "database_role" "$db_role"
+    add_json "open_mode" "$open_mode"
+    
+    print_section "Character Set"
+    local charset=$(run_sql_value "SELECT value FROM nls_database_parameters WHERE parameter = 'NLS_CHARACTERSET';")
+    print_info "Character Set" "$charset"
+    add_json "character_set" "$charset"
 }
 
 discover_cdb_pdb() {
-    print_section "Container Database / PDBs"
-    {
-        echo "=== CDB STATUS ==="
-        local cdb_status
-        cdb_status=$(run_sql_value "SELECT CDB FROM V\$DATABASE;")
-        echo "CDB Enabled: $cdb_status"
-        echo ""
+    print_header "CONTAINER DATABASE (CDB/PDB)"
+    
+    local cdb_status=$(run_sql_value "SELECT CDB FROM v\$database;")
+    print_info "CDB Status" "$cdb_status"
+    add_json "is_cdb" "$cdb_status"
+    
+    if [ "$cdb_status" = "YES" ]; then
+        print_section "PDB Information"
+        run_sql "
+SELECT con_id, name, open_mode, restricted, total_size/1024/1024/1024 as size_gb
+FROM v\$pdbs
+ORDER BY con_id;
+" >> "$TEXT_REPORT"
         
-        if [ "$cdb_status" = "YES" ]; then
-            echo "=== PDB INFORMATION ==="
-            run_sql "
-COL NAME FORMAT A30
-COL OPEN_MODE FORMAT A15
-COL RESTRICTED FORMAT A10
-COL TOTAL_SIZE_GB FORMAT 999,999.99
-SELECT CON_ID, NAME, OPEN_MODE, RESTRICTED, 
-       ROUND(TOTAL_SIZE/1024/1024/1024, 2) AS TOTAL_SIZE_GB
-FROM V\$PDBS ORDER BY CON_ID;
-"
-        fi
-        echo ""
-        log_section_result "CDB/PDB Status" "success"
-    } 2>&1 || log_section_result "CDB/PDB Status" "failed"
+        local pdb_list=$(run_sql_value "SELECT LISTAGG(name, ',') WITHIN GROUP (ORDER BY con_id) FROM v\$pdbs WHERE name != 'PDB\$SEED';")
+        add_json "pdb_list" "$pdb_list"
+    fi
 }
 
-discover_tde_wallet() {
-    print_section "TDE/Wallet Configuration"
-    {
-        echo "=== TDE WALLET STATUS ==="
-        run_sql "
-COL WRL_TYPE FORMAT A10
-COL WRL_PARAMETER FORMAT A60
-COL STATUS FORMAT A15
-COL WALLET_TYPE FORMAT A15
-SELECT WRL_TYPE, WRL_PARAMETER, STATUS, WALLET_TYPE 
-FROM V\$ENCRYPTION_WALLET;
-"
-        echo ""
-        echo "=== WALLET PARAMETERS ==="
-        run_sql "SHOW PARAMETER WALLET_ROOT;"
-        run_sql "SHOW PARAMETER TDE_CONFIGURATION;"
-        echo ""
-        log_section_result "TDE/Wallet Configuration" "success"
-    } 2>&1 || log_section_result "TDE/Wallet Configuration" "failed"
+discover_storage() {
+    print_header "STORAGE CONFIGURATION"
+    
+    print_section "Tablespace Usage"
+    run_sql "
+SELECT tablespace_name,
+       ROUND(SUM(bytes)/1024/1024/1024, 2) as used_gb,
+       ROUND(SUM(maxbytes)/1024/1024/1024, 2) as max_gb
+FROM dba_data_files
+GROUP BY tablespace_name
+ORDER BY tablespace_name;
+" >> "$TEXT_REPORT"
+    
+    print_section "ASM Disk Groups (if applicable)"
+    run_sql "
+SELECT name, state, type, total_mb/1024 as total_gb, free_mb/1024 as free_gb,
+       ROUND((total_mb - free_mb)/total_mb * 100, 2) as pct_used
+FROM v\$asm_diskgroup;
+" >> "$TEXT_REPORT" 2>/dev/null || print_output "ASM not configured or not accessible"
+    
+    local total_storage=$(run_sql_value "SELECT ROUND(SUM(maxbytes)/1024/1024/1024, 2) FROM dba_data_files;")
+    add_json "total_storage_gb" "$total_storage"
+}
+
+discover_tde_config() {
+    print_header "TDE CONFIGURATION"
+    
+    local tde_enabled=$(run_sql_value "SELECT COUNT(*) FROM v\$encryption_wallet WHERE status = 'OPEN';")
+    
+    if [ "$tde_enabled" -gt 0 ] 2>/dev/null; then
+        print_info "TDE Status" "ENABLED"
+        add_json "tde_enabled" "true"
+        
+        print_section "Wallet Information"
+        run_sql "SELECT * FROM v\$encryption_wallet;" >> "$TEXT_REPORT"
+        
+        local wallet_type=$(run_sql_value "SELECT wallet_type FROM v\$encryption_wallet WHERE rownum = 1;")
+        print_info "Wallet Type" "$wallet_type"
+        add_json "wallet_type" "$wallet_type"
+    else
+        print_info "TDE Status" "NOT ENABLED"
+        add_json "tde_enabled" "false"
+    fi
 }
 
 discover_network_config() {
-    print_section "Network Configuration"
-    {
-        echo "=== LISTENER STATUS ==="
-        if [ -n "${ORACLE_HOME:-}" ]; then
-            $ORACLE_HOME/bin/lsnrctl status 2>&1 || echo "  Unable to get listener status"
-        fi
-        echo ""
-        
-        echo "=== SCAN LISTENER (if RAC) ==="
-        if [ -f /u01/app/grid/*/bin/srvctl ]; then
-            /u01/app/grid/*/bin/srvctl status scan_listener 2>&1 || echo "  No SCAN listener or not RAC"
+    print_header "NETWORK CONFIGURATION"
+    
+    print_section "Listener Status"
+    if [ -n "${ORACLE_HOME:-}" ]; then
+        if [ "$(whoami)" = "$ORACLE_USER" ]; then
+            $ORACLE_HOME/bin/lsnrctl status 2>&1 >> "$TEXT_REPORT" || echo "Unable to get listener status" >> "$TEXT_REPORT"
         else
-            echo "  Grid Infrastructure not found (may be single instance)"
+            sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" $ORACLE_HOME/bin/lsnrctl status 2>&1 >> "$TEXT_REPORT" || echo "Unable to get listener status" >> "$TEXT_REPORT"
         fi
-        echo ""
-        
-        echo "=== TNSNAMES.ORA ==="
-        for tns_file in "$ORACLE_HOME/network/admin/tnsnames.ora" "$TNS_ADMIN/tnsnames.ora" "/etc/tnsnames.ora"; do
-            if [ -f "$tns_file" ]; then
-                echo "File: $tns_file"
-                cat "$tns_file"
-                break
-            fi
-        done
-        echo ""
-        log_section_result "Network Configuration" "success"
-    } 2>&1 || log_section_result "Network Configuration" "failed"
+    fi
+    
+    print_section "SCAN Listener (RAC)"
+    if command -v srvctl >/dev/null 2>&1; then
+        srvctl status scan_listener 2>&1 >> "$TEXT_REPORT" || echo "SCAN listener not configured or not accessible" >> "$TEXT_REPORT"
+    else
+        print_output "srvctl not available - may not be RAC"
+    fi
+    
+    print_section "tnsnames.ora"
+    local tns_file="$ORACLE_HOME/network/admin/tnsnames.ora"
+    if [ -f "$tns_file" ]; then
+        cat "$tns_file" >> "$TEXT_REPORT"
+    else
+        print_output "File not found: $tns_file"
+    fi
 }
 
 discover_oci_azure_integration() {
-    print_section "OCI/Azure Integration"
-    {
-        echo "=== OCI CLI VERSION ==="
-        oci --version 2>&1 || echo "  OCI CLI not installed"
-        echo ""
+    print_header "OCI/AZURE INTEGRATION"
+    
+    print_section "OCI CLI"
+    if command -v oci >/dev/null 2>&1; then
+        local oci_version=$(oci --version 2>&1)
+        print_info "OCI CLI Version" "$oci_version"
+        add_json "oci_cli_version" "$oci_version"
         
-        echo "=== OCI CONFIG ==="
+        print_section "OCI Config"
         if [ -f ~/.oci/config ]; then
-            echo "OCI config found at: ~/.oci/config"
-            echo "Profiles:"
-            grep '^\[' ~/.oci/config 2>/dev/null
-            echo ""
-            echo "Config (sensitive data masked):"
-            cat ~/.oci/config 2>/dev/null | sed 's/key_file=.*/key_file=***MASKED***/g' | sed 's/fingerprint=.*/fingerprint=***MASKED***/g'
+            # Mask sensitive data
+            grep -v 'key_file\|fingerprint\|pass_phrase' ~/.oci/config 2>/dev/null >> "$TEXT_REPORT"
+            print_info "OCI Config" "EXISTS"
+            add_json "oci_config_exists" "true"
         else
-            echo "  No OCI config found at ~/.oci/config"
+            print_info "OCI Config" "NOT FOUND"
+            add_json "oci_config_exists" "false"
         fi
-        echo ""
         
-        echo "=== OCI CONNECTIVITY TEST ==="
-        if command -v oci >/dev/null 2>&1; then
-            timeout 10 oci iam region list --output table 2>&1 | head -20 || echo "  OCI connectivity test failed or timed out"
+        print_section "OCI Connectivity Test"
+        if oci iam region list --output table 2>&1 | head -10 >> "$TEXT_REPORT"; then
+            print_info "OCI Connectivity" "SUCCESS"
+            add_json "oci_connectivity" "success"
         else
-            echo "  OCI CLI not available"
+            print_info "OCI Connectivity" "FAILED"
+            add_json "oci_connectivity" "failed"
         fi
-        echo ""
-        
-        echo "=== INSTANCE METADATA (OCI) ==="
-        curl -s -H "Authorization: Bearer Oracle" -L http://169.254.169.254/opc/v2/instance/ 2>/dev/null | head -50 || echo "  Unable to retrieve OCI instance metadata"
-        echo ""
-        
-        echo "=== INSTANCE METADATA (Azure) ==="
-        curl -s -H "Metadata:true" "http://169.254.169.254/metadata/instance?api-version=2021-02-01" 2>/dev/null | head -50 || echo "  Unable to retrieve Azure instance metadata"
-        echo ""
-        log_section_result "OCI/Azure Integration" "success"
-    } 2>&1 || log_section_result "OCI/Azure Integration" "failed"
+    else
+        print_info "OCI CLI" "NOT INSTALLED"
+        add_json "oci_cli_installed" "false"
+    fi
+    
+    print_section "Instance Metadata"
+    # OCI Instance Metadata
+    if curl -s -m 5 http://169.254.169.254/opc/v1/instance/ >/dev/null 2>&1; then
+        print_output "OCI Instance Metadata:"
+        curl -s http://169.254.169.254/opc/v1/instance/ 2>/dev/null | head -20 >> "$TEXT_REPORT"
+        add_json "cloud_provider" "OCI"
+    fi
+    
+    # Azure Instance Metadata
+    if curl -s -m 5 -H "Metadata:true" "http://169.254.169.254/metadata/instance?api-version=2021-02-01" >/dev/null 2>&1; then
+        print_output "Azure Instance Metadata:"
+        curl -s -H "Metadata:true" "http://169.254.169.254/metadata/instance?api-version=2021-02-01" 2>/dev/null | head -20 >> "$TEXT_REPORT"
+        add_json "cloud_provider" "Azure"
+    fi
 }
 
-discover_grid_crs() {
-    print_section "Grid Infrastructure / CRS"
-    {
-        echo "=== GRID INFRASTRUCTURE STATUS ==="
-        if [ -f /u01/app/grid/*/bin/crsctl ]; then
-            echo "Grid Infrastructure found"
-            /u01/app/grid/*/bin/crsctl stat res -t 2>&1 || echo "  Unable to get CRS status"
-        else
-            echo "  Grid Infrastructure not found (may be single instance)"
-        fi
-        echo ""
+discover_grid_infrastructure() {
+    print_header "GRID INFRASTRUCTURE (RAC)"
+    
+    if command -v crsctl >/dev/null 2>&1; then
+        print_section "CRS Status"
+        crsctl check crs 2>&1 >> "$TEXT_REPORT" || echo "Unable to check CRS status" >> "$TEXT_REPORT"
         
-        echo "=== ORACLE RESTART STATUS (if applicable) ==="
-        if [ -f "$ORACLE_HOME/bin/srvctl" ]; then
-            $ORACLE_HOME/bin/srvctl status database -d ${ORACLE_SID:-ORCL} 2>&1 || echo "  Unable to get database status via srvctl"
-        fi
-        echo ""
-        log_section_result "Grid/CRS Status" "success"
-    } 2>&1 || log_section_result "Grid/CRS Status" "failed"
+        print_section "Cluster Nodes"
+        olsnodes -n 2>&1 >> "$TEXT_REPORT" || echo "Unable to list cluster nodes" >> "$TEXT_REPORT"
+        
+        add_json "is_rac" "true"
+    else
+        print_info "RAC Status" "NOT RAC or Grid Infrastructure not configured"
+        add_json "is_rac" "false"
+    fi
 }
 
 discover_authentication() {
-    print_section "Authentication Configuration"
-    {
-        echo "=== PASSWORD FILE ==="
-        run_sql "SHOW PARAMETER REMOTE_LOGIN_PASSWORDFILE;"
-        echo ""
-        echo "Password file location:"
-        ls -la $ORACLE_HOME/dbs/orapw* 2>/dev/null || echo "  No password file found in \$ORACLE_HOME/dbs/"
-        echo ""
-        
-        echo "=== SSH DIRECTORY ==="
-        echo "SSH directory contents (current user):"
-        ls -la ~/.ssh/ 2>/dev/null || echo "  No .ssh directory"
-        echo ""
-        
-        echo "SSH directory contents (oracle user):"
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            ls -la ~/.ssh/ 2>/dev/null || echo "  No .ssh directory"
-        else
-            sudo -u "$ORACLE_USER" ls -la ~$ORACLE_USER/.ssh/ 2>/dev/null || echo "  No .ssh directory or permission denied"
-        fi
-        echo ""
-        log_section_result "Authentication Configuration" "success"
-    } 2>&1 || log_section_result "Authentication Configuration" "failed"
+    print_header "AUTHENTICATION"
+    
+    print_section "SSH Directory Contents"
+    if [ -d ~/.ssh ]; then
+        ls -la ~/.ssh 2>/dev/null >> "$TEXT_REPORT"
+    else
+        print_output "SSH directory not found"
+    fi
 }
 
-#===============================================================================
-# ADDITIONAL DISCOVERY (Project-specific requirements)
-#===============================================================================
-
 discover_exadata_storage() {
-    print_section "Exadata Storage Capacity"
-    {
-        echo "=== EXADATA STORAGE (if applicable) ==="
-        run_sql "
-COL NAME FORMAT A20
-COL TYPE FORMAT A10
-COL TOTAL_GB FORMAT 999,999.99
-COL FREE_GB FORMAT 999,999.99
-COL STATE FORMAT A15
-SELECT NAME, TYPE, 
-       ROUND(TOTAL_MB/1024, 2) AS TOTAL_GB,
-       ROUND(FREE_MB/1024, 2) AS FREE_GB,
-       STATE
-FROM V\$ASM_DISKGROUP
-ORDER BY NAME;
-"
-        echo ""
+    print_header "EXADATA STORAGE CAPACITY"
+    
+    print_section "Exadata Cell Information"
+    if command -v cellcli >/dev/null 2>&1; then
+        cellcli -e "list cell detail" 2>&1 >> "$TEXT_REPORT" || echo "Unable to get cell information" >> "$TEXT_REPORT"
         
-        echo "=== AVAILABLE STORAGE FOR NEW DATABASES ==="
-        run_sql "
-SELECT 'Total Free Space in ASM (GB): ' || ROUND(SUM(FREE_MB)/1024, 2) 
-FROM V\$ASM_DISKGROUP 
-WHERE STATE = 'MOUNTED';
-"
-        echo ""
+        print_section "Grid Disk Status"
+        cellcli -e "list griddisk" 2>&1 >> "$TEXT_REPORT" || echo "Unable to list grid disks" >> "$TEXT_REPORT"
         
-        echo "=== EXADATA CELL STATUS (if applicable) ==="
-        if command -v cellcli >/dev/null 2>&1; then
-            cellcli -e list cell detail 2>&1 || echo "  Unable to get cell status"
-        else
-            echo "  cellcli not available (may not be Exadata)"
-        fi
-        echo ""
-        log_section_result "Exadata Storage" "success"
-    } 2>&1 || log_section_result "Exadata Storage" "failed"
+        add_json "is_exadata" "true"
+    else
+        # Check ASM for storage capacity
+        print_section "ASM Disk Group Capacity"
+        run_sql "
+SELECT name, 
+       state,
+       type,
+       ROUND(total_mb/1024, 2) as total_gb,
+       ROUND(free_mb/1024, 2) as free_gb,
+       ROUND(usable_file_mb/1024, 2) as usable_gb
+FROM v\$asm_diskgroup
+ORDER BY name;
+" >> "$TEXT_REPORT" 2>/dev/null || print_output "ASM information not available"
+        
+        add_json "is_exadata" "false"
+    fi
+    
+    print_section "Available Storage Summary"
+    local asm_free=$(run_sql_value "SELECT ROUND(SUM(free_mb)/1024, 2) FROM v\$asm_diskgroup;" 2>/dev/null)
+    if [ -n "$asm_free" ] && [ "$asm_free" != "ERROR" ]; then
+        print_info "Total ASM Free Space (GB)" "$asm_free"
+        add_json "asm_free_space_gb" "$asm_free"
+    fi
 }
 
 discover_preconfigured_pdbs() {
-    print_section "Pre-configured PDBs"
-    {
-        echo "=== EXISTING PDBs ==="
-        run_sql "
-COL PDB_NAME FORMAT A30
-COL STATUS FORMAT A15
-COL OPEN_MODE FORMAT A15
-COL CREATION_TIME FORMAT A25
-SELECT PDB_NAME, STATUS, OPEN_MODE, 
-       TO_CHAR(CREATION_TIME, 'YYYY-MM-DD HH24:MI:SS') AS CREATION_TIME
-FROM DBA_PDBS
-ORDER BY CON_ID;
-"
-        echo ""
-        
-        echo "=== PDB DATAFILES ==="
-        run_sql "
-COL PDB_NAME FORMAT A20
-COL FILE_NAME FORMAT A60
-COL SIZE_GB FORMAT 999,999.99
-SELECT P.PDB_NAME, D.FILE_NAME, 
-       ROUND(D.BYTES/1024/1024/1024, 2) AS SIZE_GB
-FROM DBA_PDBS P, CDB_DATA_FILES D
-WHERE P.CON_ID = D.CON_ID
-ORDER BY P.PDB_NAME, D.FILE_NAME;
-"
-        echo ""
-        
-        echo "=== PDB SERVICES ==="
-        run_sql "
-COL PDB_NAME FORMAT A20
-COL SERVICE_NAME FORMAT A40
-COL NETWORK_NAME FORMAT A40
-SELECT P.PDB_NAME, S.NAME AS SERVICE_NAME, S.NETWORK_NAME
-FROM DBA_PDBS P, CDB_SERVICES S
-WHERE P.CON_ID = S.CON_ID
-  AND S.NAME NOT LIKE 'SYS%'
-ORDER BY P.PDB_NAME, S.NAME;
-"
-        echo ""
-        log_section_result "Pre-configured PDBs" "success"
-    } 2>&1 || log_section_result "Pre-configured PDBs" "failed"
+    print_header "PRE-CONFIGURED PDBs"
+    
+    run_sql "
+SELECT p.con_id, 
+       p.name as pdb_name, 
+       p.open_mode,
+       ROUND(p.total_size/1024/1024/1024, 2) as size_gb,
+       p.creation_time,
+       (SELECT COUNT(*) FROM cdb_users u WHERE u.con_id = p.con_id AND u.oracle_maintained = 'N') as user_count,
+       (SELECT COUNT(*) FROM cdb_tables t WHERE t.con_id = p.con_id AND t.owner NOT IN ('SYS','SYSTEM')) as table_count
+FROM v\$pdbs p
+ORDER BY p.con_id;
+" >> "$TEXT_REPORT"
+    
+    print_section "PDB Services"
+    run_sql "
+SELECT con_id, name as service_name, network_name
+FROM v\$services
+WHERE con_id > 0
+ORDER BY con_id, name;
+" >> "$TEXT_REPORT"
 }
 
 discover_network_security() {
-    print_section "Network Security Group Rules"
-    {
-        echo "=== FIREWALL STATUS (OS Level) ==="
-        systemctl status firewalld 2>&1 | head -10 || echo "  firewalld not available"
-        echo ""
-        
-        echo "=== IPTABLES RULES ==="
-        iptables -L -n 2>&1 | head -30 || echo "  Unable to list iptables rules (may require root)"
-        echo ""
-        
-        echo "=== LISTENING PORTS ==="
-        ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo "  Unable to list listening ports"
-        echo ""
-        
-        echo "=== NSG RULES (from Azure metadata if available) ==="
-        # Try to get network info from Azure IMDS
-        curl -s -H "Metadata:true" "http://169.254.169.254/metadata/instance/network?api-version=2021-02-01" 2>/dev/null | head -30 || echo "  Unable to retrieve Azure network metadata"
-        echo ""
-        
-        echo "=== OCI SECURITY LISTS (if applicable) ==="
-        if command -v oci >/dev/null 2>&1; then
-            echo "Note: Use OCI Console or CLI with compartment ID to view NSG/Security List rules"
-        fi
-        echo ""
-        log_section_result "Network Security" "success"
-    } 2>&1 || log_section_result "Network Security" "failed"
-}
-
-#===============================================================================
-# JSON OUTPUT GENERATION
-#===============================================================================
-
-generate_json_summary() {
-    print_section "Generating JSON Summary"
+    print_header "NETWORK SECURITY"
     
-    local db_name db_unique_name db_role open_mode cdb_status charset tde_status
-    local asm_free_gb pdb_count
+    print_section "Firewall Status"
+    if command -v firewall-cmd >/dev/null 2>&1; then
+        firewall-cmd --state 2>&1 >> "$TEXT_REPORT"
+        firewall-cmd --list-all 2>&1 >> "$TEXT_REPORT"
+    elif command -v iptables >/dev/null 2>&1; then
+        iptables -L -n 2>&1 >> "$TEXT_REPORT"
+    else
+        print_output "Firewall status unavailable"
+    fi
     
-    db_name=$(run_sql_value "SELECT NAME FROM V\$DATABASE;")
-    db_unique_name=$(run_sql_value "SELECT DB_UNIQUE_NAME FROM V\$DATABASE;")
-    db_role=$(run_sql_value "SELECT DATABASE_ROLE FROM V\$DATABASE;")
-    open_mode=$(run_sql_value "SELECT OPEN_MODE FROM V\$DATABASE;")
-    cdb_status=$(run_sql_value "SELECT CDB FROM V\$DATABASE;")
-    charset=$(run_sql_value "SELECT VALUE FROM NLS_DATABASE_PARAMETERS WHERE PARAMETER = 'NLS_CHARACTERSET';")
-    tde_status=$(run_sql_value "SELECT STATUS FROM V\$ENCRYPTION_WALLET WHERE ROWNUM = 1;")
-    asm_free_gb=$(run_sql_value "SELECT ROUND(SUM(FREE_MB)/1024, 2) FROM V\$ASM_DISKGROUP WHERE STATE = 'MOUNTED';")
-    pdb_count=$(run_sql_value "SELECT COUNT(*) FROM DBA_PDBS WHERE STATUS != 'UNUSABLE';")
+    print_section "Listening Ports"
+    ss -tlnp 2>/dev/null | grep -E ':(1521|1522|1523|5500|5501)' >> "$TEXT_REPORT" || \
+    netstat -tlnp 2>/dev/null | grep -E ':(1521|1522|1523|5500|5501)' >> "$TEXT_REPORT" || \
+    print_output "Port information unavailable"
     
-    cat > "$JSON_FILE" << EOJSON
-{
-    "discovery_type": "target",
-    "discovery_timestamp": "$(date -Iseconds)",
-    "hostname": "$HOSTNAME",
-    "oracle_home": "${ORACLE_HOME:-}",
-    "oracle_sid": "${ORACLE_SID:-}",
-    "database": {
-        "name": "$db_name",
-        "unique_name": "$db_unique_name",
-        "role": "$db_role",
-        "open_mode": "$open_mode",
-        "cdb": "$cdb_status",
-        "pdb_count": ${pdb_count:-0},
-        "character_set": "$charset"
-    },
-    "storage": {
-        "asm_free_gb": ${asm_free_gb:-0}
-    },
-    "tde": {
-        "status": "${tde_status:-NOT_CONFIGURED}"
-    },
-    "discovery_status": {
-        "successful_sections": [$(printf '"%s",' "${SUCCESS_SECTIONS[@]}" | sed 's/,$//')]
-        "failed_sections": [$(printf '"%s",' "${FAILED_SECTIONS[@]}" | sed 's/,$//')]
-    }
-}
-EOJSON
-    
-    print_success "JSON summary written to: $JSON_FILE"
+    print_section "Network Security Group Rules (if available)"
+    # This would require Azure CLI or OCI CLI access
+    if command -v az >/dev/null 2>&1; then
+        print_output "Azure CLI available - NSG rules can be queried via Azure Portal or CLI"
+    fi
+    if command -v oci >/dev/null 2>&1; then
+        print_output "OCI CLI available - Security List rules can be queried via OCI Console or CLI"
+    fi
 }
 
 #===============================================================================
@@ -649,76 +559,44 @@ EOJSON
 #===============================================================================
 
 main() {
-    print_header "ZDM Target Database Discovery"
-    echo "Project: PRODDB Migration to Oracle Database@Azure"
-    echo "Timestamp: $(date)"
-    echo "Output File: $OUTPUT_FILE"
+    echo "ZDM Target Database Discovery Script" > "$TEXT_REPORT"
+    echo "Generated: $(date)" >> "$TEXT_REPORT"
+    echo "Hostname: $(hostname)" >> "$TEXT_REPORT"
+    echo "User: $(whoami)" >> "$TEXT_REPORT"
+    
+    add_json "discovery_type" "target"
+    add_json "discovery_timestamp" "$(date -Iseconds)"
+    add_json "discovered_by" "$(whoami)"
+    
+    echo -e "${CYAN}Starting Target Database Discovery...${NC}"
+    echo -e "${CYAN}Output files will be created in current directory${NC}"
+    
+    # Run all discovery functions (continue on error)
+    discover_os_info || echo "Warning: OS info discovery had errors"
+    discover_oracle_env || echo "Warning: Oracle env discovery had errors"
+    discover_database_config || echo "Warning: Database config discovery had errors"
+    discover_cdb_pdb || echo "Warning: CDB/PDB discovery had errors"
+    discover_storage || echo "Warning: Storage discovery had errors"
+    discover_tde_config || echo "Warning: TDE discovery had errors"
+    discover_network_config || echo "Warning: Network config discovery had errors"
+    discover_oci_azure_integration || echo "Warning: OCI/Azure integration discovery had errors"
+    discover_grid_infrastructure || echo "Warning: Grid Infrastructure discovery had errors"
+    discover_authentication || echo "Warning: Authentication discovery had errors"
+    
+    # Additional discovery requirements
+    discover_exadata_storage || echo "Warning: Exadata storage discovery had errors"
+    discover_preconfigured_pdbs || echo "Warning: Pre-configured PDB discovery had errors"
+    discover_network_security || echo "Warning: Network security discovery had errors"
+    
+    # Write JSON report
+    write_json
+    
     echo ""
-    
-    # Detect Oracle environment
-    detect_oracle_env
-    if [ $? -ne 0 ]; then
-        print_warning "Oracle environment not fully detected - continuing with available checks"
-    fi
-    
-    # Run all discovery sections and capture to output file
-    {
-        echo "==============================================================================="
-        echo "ZDM TARGET DATABASE DISCOVERY REPORT"
-        echo "==============================================================================="
-        echo "Project: PRODDB Migration to Oracle Database@Azure"
-        echo "Hostname: $HOSTNAME"
-        echo "Timestamp: $(date)"
-        echo "ORACLE_HOME: ${ORACLE_HOME:-NOT SET}"
-        echo "ORACLE_SID: ${ORACLE_SID:-NOT SET}"
-        echo "==============================================================================="
-        echo ""
-        
-        # Standard discovery sections
-        discover_os_info
-        discover_oracle_env
-        discover_database_config
-        discover_storage
-        discover_cdb_pdb
-        discover_tde_wallet
-        discover_network_config
-        discover_oci_azure_integration
-        discover_grid_crs
-        discover_authentication
-        
-        # Additional discovery (project-specific)
-        discover_exadata_storage
-        discover_preconfigured_pdbs
-        discover_network_security
-        
-        echo ""
-        echo "==============================================================================="
-        echo "DISCOVERY SUMMARY"
-        echo "==============================================================================="
-        echo "Successful Sections: ${#SUCCESS_SECTIONS[@]}"
-        echo "Failed Sections: ${#FAILED_SECTIONS[@]}"
-        if [ ${#FAILED_SECTIONS[@]} -gt 0 ]; then
-            echo "Failed: ${FAILED_SECTIONS[*]}"
-        fi
-        echo "==============================================================================="
-        
-    } 2>&1 | tee "$OUTPUT_FILE"
-    
-    # Generate JSON summary
-    generate_json_summary
-    
-    print_header "Discovery Complete"
-    echo "Text Report: $OUTPUT_FILE"
-    echo "JSON Summary: $JSON_FILE"
-    echo ""
-    
-    if [ ${#FAILED_SECTIONS[@]} -gt 0 ]; then
-        print_warning "Some sections failed. Check the output for details."
-        exit 1
-    else
-        print_success "All discovery sections completed successfully"
-        exit 0
-    fi
+    echo -e "${GREEN}===============================================================================${NC}"
+    echo -e "${GREEN}Discovery Complete${NC}"
+    echo -e "${GREEN}===============================================================================${NC}"
+    echo -e "Text Report: ${CYAN}$TEXT_REPORT${NC}"
+    echo -e "JSON Report: ${CYAN}$JSON_REPORT${NC}"
 }
 
 # Run main function

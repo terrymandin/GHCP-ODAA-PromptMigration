@@ -320,8 +320,10 @@ check_required_passwords() {
 - Collect results to local Artifacts directory
 
 **Output Directory:**
-- Default output should be the Artifacts directory: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/Discovery/`
-- Configurable via command-line option or environment variable
+- Default output should be the Discovery directory **relative to the repository root**: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/Discovery/`
+- The script must calculate the repository root by navigating up from `SCRIPT_DIR` (e.g., `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"`)
+- Use an absolute path for `OUTPUT_DIR` by combining `REPO_ROOT` with the relative path: `OUTPUT_DIR="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step0/Discovery"`
+- Configurable via command-line option or environment variable (when set externally, use as-is)
 - Create subdirectories for each server type (source/, target/, server/)
 
 **Resilience Requirements:**
