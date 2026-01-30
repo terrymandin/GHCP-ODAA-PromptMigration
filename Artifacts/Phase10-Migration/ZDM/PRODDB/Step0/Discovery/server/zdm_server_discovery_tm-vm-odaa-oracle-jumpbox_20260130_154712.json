@@ -1,0 +1,24 @@
+{
+  "zdm_version": "PRCG-1027 : Invalid command specified: -version",
+  "discovered_by": "azureuser",
+  "os_version": "Oracle Linux Server 9.5",
+  "java_home": "/u01/app/zdmhome/jdk",
+  "zdm_log_dir": "/u01/app/zdmhome/log",
+  "oci_cli_installed": "false",
+  "zdm_space_warning": "true",
+  "zdm_available_space_gb": "25",
+  "hostname_short": "tm-vm-odaa-oracle-jumpbox",
+  "zdm_home": "/u01/app/zdmhome",
+  "hostname_full": "tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net",
+  "zdm_service_status": "not running",
+  "target_latency_ms": "unreachable",
+  "java_version": "NOT FOUND",
+  "discovery_type": "zdm_server",
+  "current_user": "azureuser",
+  "discovery_timestamp": "2026-01-30T15:47:12-05:00",
+  "ip_addresses": "10.1.0.8 ",
+  "source_latency_ms": "unreachable",
+  "active_migration_jobs": "0
+0",
+  "kernel_version": "5.15.0-307.178.5.el9uek.x86_64"
+}
