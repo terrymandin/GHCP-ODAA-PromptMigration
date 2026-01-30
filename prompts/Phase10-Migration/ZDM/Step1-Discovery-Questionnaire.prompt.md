@@ -1,27 +1,31 @@
-# ZDM Migration Step 1: Discovery and Questionnaire
+# ZDM Migration Step 1: Discovery Analysis and Migration Planning
 
 ## Purpose
-This prompt guides the discovery phase of a Zero Downtime Migration (ZDM) from on-premise Oracle databases to Oracle Database@Azure. After running discovery scripts from Step 0, complete this questionnaire with gathered information.
+This prompt analyzes the discovery output from Step 0 and generates:
+1. **Discovery Summary** - Auto-populated findings from the discovery scripts
+2. **Migration Planning Questionnaire** - Questions requiring manual input with recommended defaults
 
 ---
 
 ## Prerequisites
 
-Before completing this questionnaire:
-1. Run `Step0-Generate-Discovery-Scripts.prompt.md` to generate fresh discovery scripts
-2. Execute discovery scripts on all servers
-3. Check in the output files to the repository under the appropriate database folder
+Before running this prompt:
+1. ✅ Run `Step0-Generate-Discovery-Scripts.prompt.md` to generate discovery scripts
+2. ✅ Execute the discovery scripts on all servers
+3. ✅ Check discovery output files into the repository
 
 ---
 
 ## How to Use This Prompt
 
-When running this prompt, attach the discovery files from Step0 using the `#file:` syntax:
+Attach the discovery files from Step0 and run this prompt:
 
 ```
 @Step1-Discovery-Questionnaire.prompt.md
 
-I have completed the discovery questionnaire for our <DATABASE> migration.
+Please analyze the discovery results for our <DATABASE> migration and generate:
+1. A summary of discovered configurations
+2. A questionnaire for manual decisions with recommended defaults
 
 ## Attached Discovery Files
 
@@ -37,374 +41,281 @@ I have completed the discovery questionnaire for our <DATABASE> migration.
 #file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
 #file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
 
-## Completed Questionnaire
-
-[Paste your completed questionnaire here]
+**Note:** Replace `<DATABASE>`, `<hostname>`, and `<timestamp>` with actual values.
+Use the most recent discovery files if multiple exist (highest timestamp).
 ```
 
-**Note:** Replace `<DATABASE>`, `<hostname>`, and `<timestamp>` with actual values. Use the most recent discovery files (highest timestamp).
+---
+
+## AI Instructions
+
+When this prompt is run with discovery files attached, perform the following:
+
+### Part 1: Generate Discovery Summary
+
+Create a file `Discovery-Summary-<DATABASE>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/` that includes:
+
+1. **Environment Overview**
+   - Source database summary (name, version, size, character set)
+   - Target environment summary (version, platform)
+   - ZDM server summary (version, status)
+
+2. **Migration Readiness Assessment**
+   - ✅ Requirements met (e.g., ARCHIVELOG mode, Force Logging)
+   - ⚠️ Actions required (e.g., enable supplemental logging)
+   - ❌ Blockers (if any)
+
+3. **Discovered Configurations**
+   - All auto-populated values from discovery scripts
+   - Organized by source/target/ZDM server
+
+4. **Recommendations**
+   - Suggested migration method based on findings
+   - Identified risks or concerns
+
+### Part 2: Generate Migration Planning Questionnaire
+
+Create a file `Migration-Questionnaire-<DATABASE>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/` containing ONLY the items requiring manual input:
+
+**Section A: Migration Strategy Decisions**
+- Online vs Offline migration (with recommendation based on discovery)
+- Migration timeline and maintenance window
+- Maximum acceptable downtime
+
+**Section B: OCI/Azure Identifiers** (🔐 Manual Entry Required)
+- OCI Tenancy OCID
+- OCI User OCID
+- OCI Compartment OCID
+- OCI Region
+- Target DB System OCID
+- Target Database OCID
+
+**Section C: Object Storage Configuration**
+- Bucket namespace and name
+- Bucket region
+
+**Section D: Migration Options**
+- Data Guard protection mode (with recommendation)
+- Auto switchover preference
+- Pause points for validation
+
+**Section E: Network Configuration** (if not fully discovered)
+- ExpressRoute/VPN details
+- Bandwidth estimates
+
+Each question should include:
+- The question/field
+- A **recommended default** based on discovery analysis
+- Brief justification for the recommendation
 
 ---
+
+## Output Files
+
+Step 1 creates the following outputs:
+
+```
+Artifacts/Phase10-Migration/ZDM/<DATABASE>/
+├── Step0/
+│   └── Discovery/
+│       ├── source/
+│       ├── target/
+│       └── server/
+└── Step1/                                      # NEW: Created by this step
+    ├── Discovery-Summary-<DATABASE>.md         # NEW: Generated summary
+    └── Migration-Questionnaire-<DATABASE>.md   # NEW: Manual items only
+```
+
+---
+
+## Discovery Summary Template
+
+The Discovery Summary should follow this structure:
+
+```markdown
+# Discovery Summary: <DATABASE> Migration
+
+## Generated
+- Date: <timestamp>
+- Source Files: <list of discovery files analyzed>
+
+## Executive Summary
+
+| Component | Status | Key Findings |
+|-----------|--------|--------------|
+| Source Database | ✅/⚠️/❌ | Brief status |
+| Target Environment | ✅/⚠️/❌ | Brief status |
+| ZDM Server | ✅/⚠️/❌ | Brief status |
+| Network | ✅/⚠️/❌ | Brief status |
+
+## Migration Method Recommendation
+
+**Recommended:** [ONLINE_PHYSICAL / OFFLINE_PHYSICAL]
+
+**Justification:**
+- [Reason 1 based on discovery]
+- [Reason 2 based on discovery]
+
+## Source Database Details
+
+### Database Identification
+| Property | Value |
+|----------|-------|
+| Database Name | <from discovery> |
+| ... | ... |
+
+### Configuration Status
+| Requirement | Current State | Required State | Status |
+|-------------|---------------|----------------|--------|
+| ARCHIVELOG Mode | YES/NO | YES | ✅/❌ |
+| Force Logging | YES/NO | YES | ✅/❌ |
+| Supplemental Logging | YES/NO | YES (for online) | ✅/⚠️ |
+| TDE Enabled | YES/NO | N/A | ✅ |
+
+## Target Environment Details
+[Similar structure]
+
+## ZDM Server Details
+[Similar structure]
+
+## Required Actions Before Migration
+
+### Critical (Must Fix)
+1. [Action item with command if applicable]
+
+### Recommended
+1. [Action item]
+
+## Discovered Values Reference
+
+[Complete list of all discovered values for reference in Step 2]
+```
+
+---
+
+## Migration Questionnaire Template
+
+The Questionnaire should follow this structure:
+
+```markdown
+# Migration Planning Questionnaire: <DATABASE>
 
 ## Instructions
-
-### Phase 1A: Discovery Output Files
-
-The discovery output files from Step 0 should be checked into the repository at:
-
-```
-Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/
-├── source/
-│   ├── zdm_source_discovery_<hostname>_<timestamp>.txt
-│   └── zdm_source_discovery_<hostname>_<timestamp>.json
-├── target/
-│   ├── zdm_target_discovery_<hostname>_<timestamp>.txt
-│   └── zdm_target_discovery_<hostname>_<timestamp>.json
-└── server/
-    ├── zdm_server_discovery_<hostname>_<timestamp>.txt
-    └── zdm_server_discovery_<hostname>_<timestamp>.json
-```
-
-**Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB). Use the most recent discovery files based on timestamp.
-
-### Phase 1B: Complete Questionnaire
-
-Fill in all fields below. Fields marked with 🔍 can be auto-populated from discovery scripts. Fields marked with 🔐 require manual entry (credentials).
+Please complete the following questions. Recommended defaults are provided based on discovery analysis.
+After completing, save this file and proceed to Step 2.
 
 ---
 
-## SECTION 1: Migration Strategy
+## Section A: Migration Strategy
 
-### 1.1 Migration Type (Required)
-```
-Migration Method: [ ] ONLINE_PHYSICAL  [ ] OFFLINE_PHYSICAL
+### A.1 Migration Method
+**Recommended:** ONLINE_PHYSICAL ✓
 
-Justification: ________________________________________________
-```
+[ ] ONLINE_PHYSICAL - Minimal downtime using Data Guard
+[ ] OFFLINE_PHYSICAL - Extended downtime, simpler setup
 
-| Decision Factor | Online Physical | Offline Physical |
-|----------------|-----------------|------------------|
-| Downtime Tolerance | Minimal (minutes) | Extended (hours) |
-| Data Guard Required | Yes | No |
-| Complexity | Higher | Lower |
-| Network Requirements | Sustained connectivity | Backup transfer only |
+**Your Selection:** _______________
 
-### 1.2 Migration Timeline
-```
-Planned Migration Date: ____________________
-Maintenance Window Start: __________________
-Maintenance Window End: ____________________
-Maximum Acceptable Downtime: ________________
-```
+**Why we recommend ONLINE_PHYSICAL:**
+- Source database is in ARCHIVELOG mode
+- Force Logging is enabled
+- [Other reasons from discovery]
 
----
+### A.2 Migration Timeline
 
-## SECTION 2: Source Database Information
-
-### 2.1 Database Identification 🔍
-*Auto-populated from: zdm_source_discovery.sh*
-
-```
-Database Name (DB_NAME):        ____________________
-Database Unique Name:           ____________________
-Database SID:                   ____________________
-Database ID (DBID):             ____________________
-Database Version:               ____________________
-Database Role:                  ____________________
-```
-
-### 2.2 Database Configuration 🔍
-*Auto-populated from: zdm_source_discovery.sh*
-
-```
-Database Size (GB):             ____________________
-Character Set:                  ____________________
-National Character Set:         ____________________
-Open Mode:                      ____________________
-Log Mode:                       [ ] ARCHIVELOG  [ ] NOARCHIVELOG
-Force Logging:                  [ ] YES  [ ] NO
-```
-
-### 2.3 Container Database Information 🔍
-```
-Is CDB:                         [ ] YES  [ ] NO
-PDB Names (comma-separated):    ____________________
-```
-
-### 2.4 TDE Configuration 🔍
-```
-TDE Enabled:                    [ ] YES  [ ] NO
-TDE Wallet Type:                [ ] FILE  [ ] HSM  [ ] OKV
-TDE Wallet Location:            ____________________
-```
-
-**Note:** TDE wallet password should be set via the `SOURCE_TDE_WALLET_PASSWORD` environment variable at migration runtime. See Step0 for password environment variable configuration. Never commit passwords to source control.
-
-### 2.5 Supplemental Logging 🔍
-*Required for Online Migration*
-
-```
-Supplemental Log Data Min:      [ ] YES  [ ] NO
-Supplemental Log Data PK:       [ ] YES  [ ] NO
-Supplemental Log Data UI:       [ ] YES  [ ] NO
-```
-
-### 2.6 Source Host Information 🔍
-```
-Hostname:                       ____________________
-IP Address:                     ____________________
-Operating System:               ____________________
-OS Version:                     ____________________
-```
-
-### 2.7 Source Oracle Installation 🔍
-```
-Oracle Home Path:               ____________________
-Oracle Base Path:               ____________________
-Oracle OS User:                 ____________________
-Oracle OS Group:                ____________________
-Listener Port:                  ____________________
-Service Name:                   ____________________
-```
-
-### 2.8 Source Credentials
-```
-Password File Location:         ____________________
-```
-
-**Security Note:** The SYS password should be set via the `SOURCE_SYS_PASSWORD` environment variable at migration runtime. Password environment variables are defined in Step0. Never commit passwords to GitHub or any source control system.
+| Field | Your Value |
+|-------|------------|
+| Planned Migration Date | _______________ |
+| Maintenance Window Start | _______________ |
+| Maintenance Window End | _______________ |
+| Maximum Acceptable Downtime | _______________ (Recommended: 15-30 minutes for online) |
 
 ---
 
-## SECTION 3: Target Database Information (Oracle Database@Azure)
+## Section B: OCI/Azure Identifiers (Required)
 
-### 3.1 Azure/OCI Identifiers (Required)
-```
-OCI Tenancy OCID:               ____________________
-OCI User OCID:                  ____________________
-OCI Compartment OCID:           ____________________
-OCI Region:                     ____________________
-Target DB System OCID:          ____________________
-Target Database OCID:           ____________________
-```
+These values must be obtained from the OCI Console or Azure Portal.
 
-### 3.2 Database Identification 🔍
-*Auto-populated from: zdm_target_discovery.sh*
-
-```
-Database Name (DB_NAME):        ____________________
-Database Unique Name:           ____________________
-Database Version:               ____________________
-```
-
-### 3.3 Target Host Information 🔍
-```
-Hostname:                       ____________________
-IP Address:                     ____________________
-SCAN Name (if RAC):             ____________________
-Operating System:               ____________________
-```
-
-### 3.4 Target Oracle Installation 🔍
-```
-Oracle Home Path:               ____________________
-Oracle Base Path:               ____________________
-Oracle OS User:                 ____________________
-Listener Port:                  ____________________
-Service Name:                   ____________________
-```
-
-### 3.5 Target Credentials
-
-**Security Note:** The target SYS password should be set via the `TARGET_SYS_PASSWORD` environment variable at migration runtime. Password environment variables are defined in Step0. Never commit passwords to GitHub or any source control system.
+| Field | Value | Where to Find |
+|-------|-------|---------------|
+| OCI Tenancy OCID | _______________ | OCI Console > Tenancy Details |
+| OCI User OCID | _______________ | OCI Console > User Settings |
+| OCI Compartment OCID | _______________ | OCI Console > Compartments |
+| OCI Region | _______________ | e.g., uk-london-1 |
+| Target DB System OCID | _______________ | OCI Console > DB Systems |
+| Target Database OCID | _______________ | OCI Console > Databases |
 
 ---
 
-## SECTION 4: ZDM Server Information
+## Section C: Object Storage
 
-### 4.1 ZDM Host Information 🔍
-*Auto-populated from: zdm_server_discovery.sh*
+**Recommended Bucket Name:** zdm-migration-<database>-<date>
 
-```
-Hostname:                       ____________________
-IP Address:                     ____________________
-Operating System:               ____________________
-```
-
-### 4.2 ZDM Installation 🔍
-```
-ZDM Home Path:                  ____________________
-ZDM Version:                    ____________________
-ZDM Service Status:             [ ] Running  [ ] Stopped
-ZDM OS User:                    ____________________
-ZDM OS Group:                   ____________________
-```
-
-### 4.3 OCI CLI Configuration 🔍
-```
-OCI CLI Installed:              [ ] YES  [ ] NO
-OCI CLI Version:                ____________________
-OCI Config Path:                ____________________
-OCI Private Key Path:           ____________________
-API Key Fingerprint:            ____________________
-```
-
-### 4.4 SSH Configuration
-```
-SSH Private Key Path:           ____________________
-SSH Public Key Path:            ____________________
-```
+| Field | Recommended | Your Value |
+|-------|-------------|------------|
+| Object Storage Namespace | [from discovery or manual] | _______________ |
+| Bucket Name | zdm-migration-<database> | _______________ |
+| Bucket Region | [same as target] | _______________ |
+| Create New Bucket? | YES | [ ] YES [ ] NO |
 
 ---
 
-## SECTION 5: Network Configuration
+## Section D: Migration Options
 
-### 5.1 Connectivity Matrix
-*Test each connection and record results*
+### D.1 Data Guard Configuration (Online Migration)
+**Recommended:** MAXIMUM_PERFORMANCE with ASYNC
 
-| From | To | Port | Protocol | Status |
-|------|-----|------|----------|--------|
-| ZDM Server | Source DB | 22 | SSH | [ ] OK [ ] FAIL |
-| ZDM Server | Source DB | 1521 | Oracle | [ ] OK [ ] FAIL |
-| ZDM Server | Target DB | 22 | SSH | [ ] OK [ ] FAIL |
-| ZDM Server | Target DB | 1521 | Oracle | [ ] OK [ ] FAIL |
-| ZDM Server | OCI OSS | 443 | HTTPS | [ ] OK [ ] FAIL |
-| Source DB | Target DB | 1521 | Oracle | [ ] OK [ ] FAIL |
+| Option | Recommended | Your Selection |
+|--------|-------------|----------------|
+| Protection Mode | MAXIMUM_PERFORMANCE | [ ] MAX_PERF [ ] MAX_AVAIL |
+| Transport Type | ASYNC | [ ] ASYNC [ ] SYNC |
 
-### 5.2 Network Path
-```
-ExpressRoute/VPN Configured:    [ ] YES  [ ] NO
-Network Path Description:       ____________________
-Estimated Bandwidth (Mbps):     ____________________
-```
+### D.2 Post-Migration Options
 
----
+| Option | Recommended | Your Selection |
+|--------|-------------|----------------|
+| Auto Switchover | NO (manual control) | [ ] YES [ ] NO |
+| Delete Backup After Migration | NO (keep for rollback) | [ ] YES [ ] NO |
+| Include Performance Data | YES | [ ] YES [ ] NO |
 
-## SECTION 6: Backup and Storage Configuration
+### D.3 Pause Points
+**Recommended:** Pause before switchover for validation
 
-### 6.1 Object Storage Settings
-```
-Object Storage Namespace:       ____________________
-Bucket Name:                    ____________________
-Bucket Region:                  ____________________
-Bucket Already Exists:          [ ] YES  [ ] NO
-```
-
-### 6.2 RMAN Settings
-```
-Parallel Channels:              ____________________ (default: 4)
-Compression Level:              [ ] LOW  [ ] MEDIUM  [ ] HIGH
-Encryption Algorithm:           [ ] AES128  [ ] AES192  [ ] AES256
-```
-
-### 6.3 Backup Location
-```
-Backup Method:                  [ ] Object Storage  [ ] NFS  [ ] Local
-NFS Mount Path (if NFS):        ____________________
-Local Path (if Local):          ____________________
-```
+[ ] ZDM_CONFIGURE_DG_SRC - Pause after Data Guard setup
+[X] ZDM_SWITCHOVER_SRC - Pause before switchover (Recommended)
+[ ] None - Run to completion
 
 ---
 
-## SECTION 7: Migration Options
+## Section E: Confirmation
 
-### 7.1 Data Guard Configuration (Online Migration Only)
-```
-Protection Mode:                [ ] MAXIMUM_PERFORMANCE  [ ] MAXIMUM_AVAILABILITY
-Transport Type:                 [ ] ASYNC  [ ] SYNC
-```
+[ ] I have reviewed the Discovery Summary
+[ ] I have completed all required fields above
+[ ] I understand the recommended defaults and their justifications
 
-### 7.2 Post-Migration Actions
-```
-Auto Switchover:                [ ] YES  [ ] NO
-Delete Backup After Migration:  [ ] YES  [ ] NO
-Include Performance Data:       [ ] YES  [ ] NO
-```
-
-### 7.3 Pause Points
-```
-Pause After Phase:              [ ] ZDM_CONFIGURE_DG_SRC
-                                [ ] ZDM_SWITCHOVER_SRC
-                                [ ] None (run to completion)
-```
-
----
-
-## SECTION 8: Validation Checklist
-
-### 8.1 Pre-requisites Verification
-
-| Requirement | Status | Notes |
-|-------------|--------|-------|
-| Source DB in ARCHIVELOG mode | [ ] | |
-| Force Logging enabled | [ ] | |
-| Supplemental Logging enabled | [ ] | |
-| TDE wallet accessible | [ ] | |
-| SSH keys configured | [ ] | |
-| OCI CLI working | [ ] | |
-| Network connectivity verified | [ ] | |
-| Sufficient OSS storage | [ ] | |
-| ZDM service running | [ ] | |
-
-### 8.2 Discovery Files Attached
-
-**Important:** When running this prompt, attach the discovery files from Step0 using the `#file:` syntax:
-
-```
-[ ] source/zdm_source_discovery_<hostname>_<timestamp>.txt attached
-[ ] source/zdm_source_discovery_<hostname>_<timestamp>.json attached
-[ ] target/zdm_target_discovery_<hostname>_<timestamp>.txt attached  
-[ ] target/zdm_target_discovery_<hostname>_<timestamp>.json attached
-[ ] server/zdm_server_discovery_<hostname>_<timestamp>.txt attached
-[ ] server/zdm_server_discovery_<hostname>_<timestamp>.json attached
-```
-
-**File Location:** `Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/`
-
----
-
-## SECTION 9: Additional Notes
-
-```
-Special Considerations:
-________________________________________________________________
-________________________________________________________________
-
-Known Issues or Constraints:
-________________________________________________________________
-________________________________________________________________
-
-Rollback Plan:
-________________________________________________________________
-________________________________________________________________
-```
-
----
-
-## Output Location
-
-Save the completed questionnaire to: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/`
-
-**Filename:** `Completed-Questionnaire-<DB_NAME>.md`
+**Completed By:** _______________
+**Date:** _______________
 
 ---
 
 ## Next Steps
 
 After completing this questionnaire:
-
-1. **Save this file** to `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/Completed-Questionnaire-<DB_NAME>.md`
-2. **Attach discovery script outputs** from `Step0/Discovery/`
-3. **Run Step 2 prompt**: `Step2-Generate-Migration-Artifacts.prompt.md`
-   - This will generate the RSP file, ZDM CLI commands, and installation runbook to `Step2/`
+1. Save this file
+2. Run `Step2-Generate-Migration-Artifacts.prompt.md` with:
+   - This completed questionnaire
+   - The Discovery Summary
+```
 
 ---
 
-## Questionnaire Completion Metadata
+## Next Steps
 
-```
-Completed By:                   ____________________
-Completion Date:                ____________________
-Reviewed By:                    ____________________
-Review Date:                    ____________________
-```
+After Step 1 generates the outputs:
+
+1. **Review Discovery Summary** - Check for any required actions
+2. **Complete the Questionnaire** - Fill in manual items
+3. **Run Step 2**: `Step2-Generate-Migration-Artifacts.prompt.md`
+   - Attach the completed questionnaire
+   - Attach the discovery summary
+   - This generates the RSP file, ZDM commands, and runbook
