@@ -190,6 +190,46 @@ The script may be executed as a different user (e.g., azureuser) than the ZDM so
 - Routing table
 - DNS configuration
 
+**IMPORTANT: Network Connectivity Tests to Source and Target:**
+The ZDM server discovery script MUST test network connectivity to the source and target database servers. These hostnames are NOT hardcoded in the script - they MUST be passed as environment variables by the orchestration script:
+
+```bash
+# Environment variables that MUST be set by orchestration script
+SOURCE_HOST="${SOURCE_HOST:-}"   # Source database hostname (passed from orchestration)
+TARGET_HOST="${TARGET_HOST:-}"   # Target database hostname (passed from orchestration)
+```
+
+The script should:
+1. **Only run connectivity tests if SOURCE_HOST and TARGET_HOST are provided** - Skip tests gracefully if not set
+2. **Ping tests** - Test ICMP connectivity and measure latency
+3. **Port tests** - Test SSH (22) and Oracle (1521) port connectivity using `timeout` and `/dev/tcp`
+4. **Report clearly** - Show SUCCESS/FAILED for each test with actionable guidance
+
+Example connectivity test logic:
+```bash
+# Test connectivity only if hosts are provided
+if [ -n "${SOURCE_HOST:-}" ]; then
+    # Ping test
+    if ping -c 3 "$SOURCE_HOST" &>/dev/null; then
+        SOURCE_PING="SUCCESS"
+    else
+        SOURCE_PING="FAILED"
+    fi
+    
+    # Port tests
+    for port in 22 1521; do
+        if timeout 5 bash -c "echo >/dev/tcp/$SOURCE_HOST/$port" 2>/dev/null; then
+            log_info "Source port $port: OPEN"
+        else
+            log_warn "Source port $port: BLOCKED or unreachable"
+        fi
+    done
+else
+    log_info "SOURCE_HOST not provided - skipping source connectivity tests"
+    SOURCE_PING="SKIPPED"
+fi
+```
+
 **ZDM Logs:**
 - Log directory location
 - Recent log files
@@ -361,6 +401,12 @@ check_required_passwords() {
 - **Login shell for remote execution** - SSH commands run non-interactively, which means `.bashrc` is typically NOT sourced (it often has guards like `[ -z "$PS1" ] && return` at the top). To ensure environment variables like ZDM_HOME, ORACLE_HOME, JAVA_HOME are available:
   - Use `bash -l -c 'command'` to force a login shell when executing remote scripts
   - This ensures `.bash_profile` and `.bashrc` are properly sourced
+- **Pass SOURCE_HOST and TARGET_HOST to ZDM server discovery** - The orchestration script MUST pass the source and target hostnames as environment variables when running the ZDM server discovery script, so connectivity tests work correctly:
+  ```bash
+  # When running server discovery, pass the hostnames for connectivity testing
+  ssh $SSH_OPTS -i "$key_path" "${ZDM_ADMIN_USER}@${ZDM_HOST}" \
+      "SOURCE_HOST='$SOURCE_HOST' TARGET_HOST='$TARGET_HOST' ZDM_USER='$ZDM_USER' bash -l -s" < "$script_path"
+  ```
 - **Auto-detection as primary method** - The remote discovery scripts should auto-detect Oracle and ZDM environments by:
   - Parsing /etc/oratab for Oracle homes and SIDs
   - Checking running pmon processes

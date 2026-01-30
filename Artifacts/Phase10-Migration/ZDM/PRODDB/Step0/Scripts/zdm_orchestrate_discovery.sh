@@ -396,8 +396,9 @@ run_server_discovery() {
     print_section "Running discovery script on ZDM server..."
     
     # Copy script to remote and execute with login shell
+    # IMPORTANT: Pass SOURCE_HOST and TARGET_HOST for connectivity testing
     if ssh $SSH_OPTS -i "$key_path" "${ZDM_ADMIN_USER}@${ZDM_HOST}" \
-        "ZDM_USER='$ZDM_USER' bash -l -s" < "$script_path"; then
+        "SOURCE_HOST='$SOURCE_HOST' TARGET_HOST='$TARGET_HOST' ZDM_USER='$ZDM_USER' bash -l -s" < "$script_path"; then
         
         log_success "Discovery script completed on ZDM server"
         

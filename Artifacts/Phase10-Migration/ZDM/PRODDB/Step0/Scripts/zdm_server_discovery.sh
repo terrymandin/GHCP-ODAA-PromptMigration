@@ -385,62 +385,82 @@ sudo ls -la ~${ZDM_USER}/.ssh/ >> "$OUTPUT_TXT" 2>/dev/null || echo "ZDM user SS
 # -------------------------------------------
 log_section "Network Connectivity"
 
-SOURCE_HOST="proddb01.corp.example.com"
-TARGET_HOST="proddb-oda.eastus.azure.example.com"
+# SOURCE_HOST and TARGET_HOST should be passed as environment variables from orchestration script
+# If not provided, connectivity tests will be skipped
+SOURCE_HOST="${SOURCE_HOST:-}"
+TARGET_HOST="${TARGET_HOST:-}"
 
 # Ping tests for latency
 echo "" >> "$OUTPUT_TXT"
 echo "Network Latency Tests:" >> "$OUTPUT_TXT"
 
-SOURCE_PING="FAILED"
-TARGET_PING="FAILED"
+SOURCE_PING="SKIPPED"
+TARGET_PING="SKIPPED"
+SOURCE_LATENCY="N/A"
+TARGET_LATENCY="N/A"
 
-# Test source connectivity
-echo "Ping to Source ($SOURCE_HOST):" >> "$OUTPUT_TXT"
-if ping -c 3 "$SOURCE_HOST" >> "$OUTPUT_TXT" 2>&1; then
-    SOURCE_PING="SUCCESS"
-    SOURCE_LATENCY=$(ping -c 3 "$SOURCE_HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
-    log_info "Source ping: SUCCESS (avg ${SOURCE_LATENCY:-N/A}ms)"
+# Test source connectivity (only if SOURCE_HOST is provided)
+if [ -n "$SOURCE_HOST" ]; then
+    echo "Ping to Source ($SOURCE_HOST):" >> "$OUTPUT_TXT"
+    if ping -c 3 "$SOURCE_HOST" >> "$OUTPUT_TXT" 2>&1; then
+        SOURCE_PING="SUCCESS"
+        SOURCE_LATENCY=$(ping -c 3 "$SOURCE_HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
+        log_info "Source ping: SUCCESS (avg ${SOURCE_LATENCY:-N/A}ms)"
+    else
+        SOURCE_PING="FAILED"
+        log_warn "Source ping: FAILED - check DNS and network connectivity"
+    fi
 else
-    log_warn "Source ping: FAILED - check DNS and network connectivity"
+    log_info "SOURCE_HOST not provided - skipping source connectivity tests"
+    echo "SOURCE_HOST not provided - skipping source connectivity tests" >> "$OUTPUT_TXT"
 fi
 
-# Test target connectivity
-echo "" >> "$OUTPUT_TXT"
-echo "Ping to Target ($TARGET_HOST):" >> "$OUTPUT_TXT"
-if ping -c 3 "$TARGET_HOST" >> "$OUTPUT_TXT" 2>&1; then
-    TARGET_PING="SUCCESS"
-    TARGET_LATENCY=$(ping -c 3 "$TARGET_HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
-    log_info "Target ping: SUCCESS (avg ${TARGET_LATENCY:-N/A}ms)"
+# Test target connectivity (only if TARGET_HOST is provided)
+if [ -n "$TARGET_HOST" ]; then
+    echo "" >> "$OUTPUT_TXT"
+    echo "Ping to Target ($TARGET_HOST):" >> "$OUTPUT_TXT"
+    if ping -c 3 "$TARGET_HOST" >> "$OUTPUT_TXT" 2>&1; then
+        TARGET_PING="SUCCESS"
+        TARGET_LATENCY=$(ping -c 3 "$TARGET_HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
+        log_info "Target ping: SUCCESS (avg ${TARGET_LATENCY:-N/A}ms)"
+    else
+        TARGET_PING="FAILED"
+        log_warn "Target ping: FAILED - check DNS and network connectivity"
+    fi
 else
-    log_warn "Target ping: FAILED - check DNS and network connectivity"
+    log_info "TARGET_HOST not provided - skipping target connectivity tests"
+    echo "TARGET_HOST not provided - skipping target connectivity tests" >> "$OUTPUT_TXT"
 fi
 
 # Port connectivity tests
 echo "" >> "$OUTPUT_TXT"
 echo "Port Connectivity Tests:" >> "$OUTPUT_TXT"
 
-# Source ports
-for port in 22 1521; do
-    if timeout 5 bash -c "echo >/dev/tcp/$SOURCE_HOST/$port" 2>/dev/null; then
-        log_info "Source port $port: OPEN"
-        echo "  Source:$port - OPEN" >> "$OUTPUT_TXT"
-    else
-        log_warn "Source port $port: BLOCKED or unreachable"
-        echo "  Source:$port - BLOCKED" >> "$OUTPUT_TXT"
-    fi
-done
+# Source ports (only if SOURCE_HOST is provided)
+if [ -n "$SOURCE_HOST" ]; then
+    for port in 22 1521; do
+        if timeout 5 bash -c "echo >/dev/tcp/$SOURCE_HOST/$port" 2>/dev/null; then
+            log_info "Source port $port: OPEN"
+            echo "  Source:$port - OPEN" >> "$OUTPUT_TXT"
+        else
+            log_warn "Source port $port: BLOCKED or unreachable"
+            echo "  Source:$port - BLOCKED" >> "$OUTPUT_TXT"
+        fi
+    done
+fi
 
-# Target ports
-for port in 22 1521; do
-    if timeout 5 bash -c "echo >/dev/tcp/$TARGET_HOST/$port" 2>/dev/null; then
-        log_info "Target port $port: OPEN"
-        echo "  Target:$port - OPEN" >> "$OUTPUT_TXT"
-    else
-        log_warn "Target port $port: BLOCKED or unreachable"
-        echo "  Target:$port - BLOCKED" >> "$OUTPUT_TXT"
-    fi
-done
+# Target ports (only if TARGET_HOST is provided)
+if [ -n "$TARGET_HOST" ]; then
+    for port in 22 1521; do
+        if timeout 5 bash -c "echo >/dev/tcp/$TARGET_HOST/$port" 2>/dev/null; then
+            log_info "Target port $port: OPEN"
+            echo "  Target:$port - OPEN" >> "$OUTPUT_TXT"
+        else
+            log_warn "Target port $port: BLOCKED or unreachable"
+            echo "  Target:$port - BLOCKED" >> "$OUTPUT_TXT"
+        fi
+    done
+fi
 
 # -------------------------------------------
 # NETWORK CONFIGURATION
@@ -534,8 +554,8 @@ cat > "$OUTPUT_JSON" << EOJSON
     "connectivity": "$OCI_CONNECTIVITY"
   },
   "network": {
-    "source_host": "$SOURCE_HOST",
-    "target_host": "$TARGET_HOST",
+    "source_host": "${SOURCE_HOST:-NOT PROVIDED}",
+    "target_host": "${TARGET_HOST:-NOT PROVIDED}",
     "source_ping": "$SOURCE_PING",
     "target_ping": "$TARGET_PING",
     "source_latency_ms": "${SOURCE_LATENCY:-N/A}",
@@ -547,8 +567,8 @@ cat > "$OUTPUT_JSON" << EOJSON
     "oci_configured": $OCI_CONFIGURED,
     "oci_connected": $([ "$OCI_CONNECTIVITY" = "SUCCESS" ] && echo "true" || echo "false"),
     "disk_space_ok": $SPACE_OK,
-    "source_reachable": $([ "$SOURCE_PING" = "SUCCESS" ] && echo "true" || echo "false"),
-    "target_reachable": $([ "$TARGET_PING" = "SUCCESS" ] && echo "true" || echo "false")
+    "source_reachable": $(if [ "$SOURCE_PING" = "SUCCESS" ]; then echo "true"; elif [ "$SOURCE_PING" = "SKIPPED" ]; then echo "\"skipped\""; else echo "false"; fi),
+    "target_reachable": $(if [ "$TARGET_PING" = "SUCCESS" ]; then echo "true"; elif [ "$TARGET_PING" = "SKIPPED" ]; then echo "\"skipped\""; else echo "false"; fi)
   }
 }
 EOJSON
@@ -573,6 +593,29 @@ echo "  - ZDM Service: $([ "$ZDM_SERVICE_STATUS" = "RUNNING" ] && echo -e "${GRE
 echo "  - OCI CLI Configured: $([ "$OCI_CONFIGURED" = "true" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
 echo "  - OCI Connectivity: $([ "$OCI_CONNECTIVITY" = "SUCCESS" ] && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FAILED${NC}")"
 echo "  - Disk Space (>=50GB): $([ "$SPACE_OK" = "true" ] && echo -e "${GREEN}OK${NC}" || echo -e "${YELLOW}LOW${NC}")"
-echo "  - Source Reachable: $([ "$SOURCE_PING" = "SUCCESS" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
-echo "  - Target Reachable: $([ "$TARGET_PING" = "SUCCESS" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
+
+# Source/Target reachability - handle SKIPPED case
+if [ "$SOURCE_PING" = "SKIPPED" ]; then
+    echo -e "  - Source Reachable: ${YELLOW}SKIPPED${NC} (SOURCE_HOST not provided)"
+elif [ "$SOURCE_PING" = "SUCCESS" ]; then
+    echo -e "  - Source Reachable: ${GREEN}YES${NC}"
+else
+    echo -e "  - Source Reachable: ${RED}NO${NC}"
+fi
+
+if [ "$TARGET_PING" = "SKIPPED" ]; then
+    echo -e "  - Target Reachable: ${YELLOW}SKIPPED${NC} (TARGET_HOST not provided)"
+elif [ "$TARGET_PING" = "SUCCESS" ]; then
+    echo -e "  - Target Reachable: ${GREEN}YES${NC}"
+else
+    echo -e "  - Target Reachable: ${RED}NO${NC}"
+fi
+
+if [ -z "$SOURCE_HOST" ] || [ -z "$TARGET_HOST" ]; then
+    echo ""
+    echo -e "${YELLOW}NOTE:${NC} To test connectivity, run the orchestration script which passes SOURCE_HOST and TARGET_HOST,"
+    echo "      or set these environment variables before running this script:"
+    echo "        export SOURCE_HOST='your-source-hostname'"
+    echo "        export TARGET_HOST='your-target-hostname'"
+fi
 echo ""
