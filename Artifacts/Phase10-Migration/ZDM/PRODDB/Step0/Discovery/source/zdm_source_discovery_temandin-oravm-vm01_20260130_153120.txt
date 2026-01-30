@@ -1,0 +1,584 @@
+
+================================================================================
+ OS INFORMATION
+================================================================================
+
+Hostname: temandin-oravm-vm01
+FQDN: temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+
+
+--- IP Addresses ---
+
+    inet 127.0.0.1/8 scope host lo
+    inet 10.1.0.10/24 brd 10.1.0.255 scope global eth0
+
+--- Operating System ---
+
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+
+--- Kernel ---
+
+4.14.35-1902.10.7.el7uek.x86_64
+
+--- Disk Space ---
+
+Filesystem                     Size  Used Avail Use% Mounted on
+devtmpfs                       7.7G     0  7.7G   0% /dev
+tmpfs                          7.8G     0  7.8G   0% /dev/shm
+tmpfs                          7.8G   57M  7.7G   1% /run
+tmpfs                          7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda2                       30G   20G  8.3G  70% /
+/dev/sda1                      497M  304M  194M  62% /boot
+/dev/sda15                     495M  7.4M  488M   2% /boot/efi
+/dev/sdb1                      148G  2.1G  138G   2% /mnt/resource
+/dev/mapper/vg_ora01-lv_ora01  4.0T   33M  4.0T   1% /u02
+tmpfs                          1.6G     0  1.6G   0% /run/user/54322
+
+--- Memory ---
+
+              total        used        free      shared  buff/cache   available
+Mem:            15G        917M        271M        5.0G         14G        9.3G
+Swap:          2.0G        1.0M        2.0G
+
+--- CPU Info ---
+
+model name	: Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz
+CPU Cores: 4
+
+================================================================================
+ ORACLE ENVIRONMENT
+================================================================================
+
+ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+ORACLE_SID: oradb01
+ORACLE_BASE: /u01/app/oracle
+TNS_ADMIN: NOT SET
+
+--- Oracle Version ---
+
+
+SQL*Plus: Release 19.0.0.0.0 - Production
+Version 19.3.0.0.0
+
+
+--- oratab Contents ---
+
+oradb01:/u01/app/oracle/product/19.0.0/dbhome_1:N
+
+--- Running Oracle Processes ---
+
+oracle    9464     1  0 Jan27 ?        00:00:03 /u01/app/oracle/product/19.0.0/dbhome_1/bin/tnslsnr LISTENER -inherit
+oracle   30671     1  0 Jan28 ?        00:00:08 ora_pmon_oradb01
+oracle   30714     1  0 Jan28 ?        00:00:02 ora_smon_oradb01
+
+================================================================================
+ DATABASE CONFIGURATION
+================================================================================
+
+
+--- Database Identification ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query database identification
+
+--- Instance Information ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query instance information
+
+--- Database Version Details ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query version
+
+--- Database Size ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query database size
+
+--- Character Set ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query character set
+
+================================================================================
+ CONTAINER DATABASE CONFIGURATION
+================================================================================
+
+
+--- CDB Status ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not determine CDB status
+
+--- PDB Information ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+NOTE: Not a CDB or could not query PDBs
+
+--- Container Information ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+NOTE: Not a CDB or could not query containers
+
+================================================================================
+ TDE CONFIGURATION
+================================================================================
+
+
+--- Encryption Wallet Status ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query encryption wallet
+
+--- Encrypted Tablespaces ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+NOTE: No encrypted tablespaces found or could not query
+
+--- Encryption Keys ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query encryption keys
+
+================================================================================
+ SUPPLEMENTAL LOGGING
+================================================================================
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query supplemental logging
+
+================================================================================
+ REDO AND ARCHIVE CONFIGURATION
+================================================================================
+
+
+--- Redo Log Groups ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query redo log groups
+
+--- Redo Log Members ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query redo log members
+
+--- Archive Log Destinations ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query archive destinations
+
+--- Archive Log Parameters ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query archive parameters
+
+================================================================================
+ NETWORK CONFIGURATION
+================================================================================
+
+
+--- Listener Status ---
+
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 30-JAN-2026 15:31:52
+
+Copyright (c) 1991, 2019, Oracle.  All rights reserved.
+
+Connecting to (ADDRESS=(PROTOCOL=tcp)(HOST=)(PORT=1521))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                27-JAN-2026 21:14:04
+Uptime                    2 days 18 hr. 17 min. 49 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Log File         /u01/app/oracle/diag/tnslsnr/temandin-oravm-vm01/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net)(PORT=1521)))
+Services Summary...
+Service "oradb01" has 1 instance(s).
+  Instance "oradb01", status READY, has 1 handler(s) for this service...
+Service "oradb01XDB" has 1 instance(s).
+  Instance "oradb01", status READY, has 1 handler(s) for this service...
+The command completed successfully
+
+--- tnsnames.ora ---
+
+
+--- sqlnet.ora ---
+
+
+--- listener.ora ---
+
+
+================================================================================
+ AUTHENTICATION CONFIGURATION
+================================================================================
+
+
+--- Password File ---
+
+-rw-r-----. 1 oracle oinstall 2048 Jan 27 21:20 /u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
+
+--- SSH Directory ---
+
+Contents of ~/.ssh/:
+total 4
+drwx------. 1 temandin temandin  30 Jan 26 23:30 .
+drwx------. 1 temandin temandin 110 Jan 27 20:26 ..
+-rw-r--r--. 1 temandin temandin 959 Jan 26 23:38 authorized_keys
+
+--- SSH Public Keys ---
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8u7bysaeVb/ZNLBzzdtPCniontwssJhwC+gHw+P3C2UGejFvSiWE91RJsAZDr7KrQOENY2hctUn9FJDEojAEhku/OzjX/+6EbdxsR7rqashKt2fjx3BKRoskiWd5sdC6efDOU41keFOHH74fmfZfeW8fLeimqnNKcXiXeUc0Ll8ql6j2/KZRpa7VD/99ETkMNoCftiPWuJXneeIbfZDHQsOceARbdFOz+EMWSg41mQgtDYCA8T06yiXsSh34keWCC8ses7i6uy/wUmmgZFOnjOyoe0ig09Ij9bNyZrdIGCRCEgPT7KADIEgOWyjlSPqDxznDpRC4Hp6ZMtw2EN/AT
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCKUCp8age+l779549IS8GRuZbO9z21PAmdsyqCD8DiSiYffOELRtMl/jEjudJt8rugIRuKdnjX1LCwkp+Id/DP+d17+bvDeYhKB566vLlacITTXtWNJWn0d+4N+zKsO6MVubW8SYdYC1DW0DHx1Hf3aXsiRSS/Zf2ITgEZgjhPlmAc0kcMxx1TPoyVrQtO8J1ZEtrIdo5EBIbgJwKfOND9R22t/dEA1yg2vrt2/nyhymB3l1oW8ePk91XZwnFkTkcxvKNEFcdLGfktuoUQACj/NB6LAvyNNsY7TA0v7UqW5n/PYBjZMxpG7Sz4v9Gc9t2swbAwWz/sPnGOJOL8geVTqvKI3mdxPigYi7xQMBtj+WfYyYT33WYTu7CsFubyS3mwxzsQk8pAmyre5Uejma9q4QdYPCVv0JFXRwjbDa8bClcvfrxSpuYtUnJI1FtL3J5apfY2x3sDV+vP2viWZq6YuVcpALHhWHB/aKNfwSZ0RboZMigHC3Wm5zzxRNtX+Fk= temandin@WIN-5J2LH7F6SUT
+
+================================================================================
+ DATA GUARD CONFIGURATION
+================================================================================
+
+
+--- Data Guard Parameters ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query Data Guard parameters
+
+--- Standby Redo Logs ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+NOTE: No standby redo logs configured
+
+================================================================================
+ SCHEMA INFORMATION
+================================================================================
+
+
+--- Large Schemas (>100MB) ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query schema sizes
+
+--- Invalid Objects by Owner ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query invalid objects
+
+================================================================================
+ TABLESPACE AUTOEXTEND SETTINGS
+================================================================================
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query tablespace autoextend settings
+
+================================================================================
+ BACKUP SCHEDULE AND RETENTION
+================================================================================
+
+
+--- RMAN Configuration ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query RMAN configuration
+
+--- Recent Backup History ---
+
+ERROR:
+ORA-01017: invalid username/password; logon denied
+
+
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0306: Invalid option.
+Usage: CONN[ECT] [{logon|/|proxy} [AS {SYSDBA|SYSOPER|SYSASM|SYSBACKUP|SYSDG|SYSKM|SYSRAC}] [edition=value]]
+where <logon> ::= <username>[/<password>][@<connect_identifier>]
+      <proxy> ::= <proxyuser>[<username>][/<password>][@<connect_identifier>]
+SP2-0157: unable to CONNECT to ORACLE after 3 attempts, exiting SQL*Plus
+WARNING: Could not query backup history
+
+--- Backup Scheduler Jobs ---
+

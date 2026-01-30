@@ -1,0 +1,33 @@
+{
+  "discovery_type": "source",
+  "discovery_timestamp": "2026-01-30T16:20:57+0000",
+  "hostname": "temandin-oravm-vm01",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "oracle_environment": {
+    "oracle_home": "/u01/app/oracle/product/19.0.0/dbhome_1",
+    "oracle_sid": "oradb01",
+    "oracle_base": "unknown",
+    "oracle_version": "19.0.0.0.0"
+  },
+  "database_config": {
+    "db_name": "ORADB01",
+    "db_unique_name": "oradb01",
+    "dbid": "1593802201",
+    "database_role": "PRIMARY",
+    "open_mode": "READ WRITE",
+    "log_mode": "ARCHIVELOG",
+    "force_logging": "YES",
+    "is_cdb": "NO",
+    "character_set": "AL32UTF8",
+    "national_character_set": "AL16UTF16",
+    "database_size_gb": "1.87"
+  },
+  "tde_config": {
+    "wallet_status": "OPEN"
+  },
+  "section_errors": 0,
+  "output_files": {
+    "text_report": "./zdm_source_discovery_temandin-oravm-vm01_20260130_162009.txt",
+    "json_summary": "./zdm_source_discovery_temandin-oravm-vm01_20260130_162009.json"
+  }
+}

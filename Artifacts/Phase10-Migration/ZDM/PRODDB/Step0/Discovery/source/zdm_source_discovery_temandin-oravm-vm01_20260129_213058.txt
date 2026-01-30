@@ -1,0 +1,53 @@
+ZDM Source Database Discovery Report
+Generated: Thu Jan 29 21:30:58 UTC 2026
+Hostname: temandin-oravm-vm01
+
+===============================================================================
+OS Information
+===============================================================================
+Hostname: temandin-oravm-vm01
+Hostname FQDN: temandin-oravm-vm01.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+
+IP Addresses:
+
+Operating System:
+NAME="Oracle Linux Server"
+VERSION="7.9"
+Linux temandin-oravm-vm01 4.14.35-1902.10.7.el7uek.x86_64 #2 SMP Fri Jan 31 12:23:16 PST 2020 x86_64 x86_64 x86_64 GNU/Linux
+
+Disk Space:
+Filesystem                     Size  Used Avail Use% Mounted on
+devtmpfs                       7.7G     0  7.7G   0% /dev
+tmpfs                          7.8G     0  7.8G   0% /dev/shm
+tmpfs                          7.8G   49M  7.7G   1% /run
+tmpfs                          7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda2                       30G   19G  8.6G  69% /
+/dev/sda1                      497M  304M  194M  62% /boot
+/dev/sda15                     495M  7.4M  488M   2% /boot/efi
+/dev/sdb1                      148G  2.1G  138G   2% /mnt/resource
+/dev/mapper/vg_ora01-lv_ora01  4.0T   33M  4.0T   1% /u02
+tmpfs                          1.6G     0  1.6G   0% /run/user/54322
+
+===============================================================================
+Oracle Environment
+===============================================================================
+ORACLE_HOME: NOT SET
+ORACLE_SID: NOT SET
+ORACLE_BASE: NOT SET
+
+===============================================================================
+Database Configuration
+===============================================================================
+Database Identification:
+
+Database Instance:
+
+Database Size (Data Files):
+
+Database Size (Temp Files):
+
+Character Set:
+
+===============================================================================
+Container Database Configuration
+===============================================================================
