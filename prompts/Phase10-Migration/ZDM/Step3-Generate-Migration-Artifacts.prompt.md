@@ -1,7 +1,7 @@
-# ZDM Migration Step 2: Generate Migration Artifacts
+# ZDM Migration Step 3: Generate Migration Artifacts
 
 ## Purpose
-This prompt takes completed questionnaire responses from Step 1 and generates all required migration artifacts:
+This prompt takes completed questionnaire responses from Step 1, confirmed issue resolution from Step 2, and generates all required migration artifacts:
 - **Runbook**: Step-by-step installation and configuration guide
 - **RSP File**: ZDM response file with all parameters
 - **ZDM CLI Commands**: Ready-to-execute migration commands
@@ -11,35 +11,54 @@ This prompt takes completed questionnaire responses from Step 1 and generates al
 ## Instructions
 
 ### Prerequisites
-1. Complete `Step1-Discovery-Questionnaire.prompt.md` with all required information
-2. Attach the completed questionnaire to this prompt
-3. Attach all discovery script outputs from Step0
+1. ✅ Complete `Step0-Generate-Discovery-Scripts.prompt.md` and run discovery scripts
+2. ✅ Complete `Step1-Discovery-Questionnaire.prompt.md` with all required information
+3. ✅ Complete `Step2-Fix-Issues.prompt.md` - all blockers must be resolved
+4. ✅ Attach the completed questionnaire and Issue Resolution Log
 
 ### Input Required
-Provide the completed questionnaire by either:
-- Attaching the saved questionnaire from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/Completed-Questionnaire-<DB_NAME>.md`
-- Pasting the completed sections below
+Provide the completed artifacts from previous steps:
+- Migration Questionnaire from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/`
+- Issue Resolution Log from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
+- Discovery output files from Step0 (or verification files from Step2)
 
 ### How to Use This Prompt
 
 ```
-@Step2-Generate-Migration-Artifacts.prompt.md
+@Step3-Generate-Migration-Artifacts.prompt.md
 
 Generate all migration artifacts for the <DATABASE> migration to Oracle Database@Azure.
 
-## Completed Questionnaire
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/Completed-Questionnaire-<DATABASE>.md
+## Migration Questionnaire (from Step1)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/Migration-Questionnaire-<DATABASE>.md
 
-## Discovery Files (from Step0)
+## Issue Resolution Log (from Step2)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/Issue-Resolution-Log-<DATABASE>.md
+
+## Discovery Files (from Step0 or Step2 verification)
 #file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
 #file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
 #file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3/
 ```
 
 **Note:** Replace `<DATABASE>`, `<hostname>`, and `<timestamp>` with actual values from your environment.
+
+---
+
+## Pre-Generation Validation
+
+Before generating artifacts, verify:
+
+| Requirement | Check |
+|-------------|-------|
+| All blockers resolved in Step 2 | ✅ |
+| All required fields completed in questionnaire | ✅ |
+| OCI/Azure identifiers provided | ✅ |
+| Network connectivity verified | ✅ |
+| SSH key authentication working | ✅ |
 
 ---
 
@@ -48,7 +67,7 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step
 Based on the attached/provided questionnaire responses, generate the following artifacts:
 
 ### Artifact 1: Installation Runbook
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 **Filename:** `ZDM-Migration-Runbook-<DB_NAME>.md`
 
 Generate a comprehensive runbook that includes:
@@ -96,7 +115,7 @@ Generate a comprehensive runbook that includes:
 ---
 
 ### Artifact 2: RSP File
-**Output Location:** User-specified migration working directory
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 **Filename:** `zdm_migrate_<DB_NAME>.rsp`
 
 Generate a complete RSP file with:
@@ -106,13 +125,10 @@ Generate a complete RSP file with:
 - Data Guard settings (for online migration)
 - Backup and RMAN settings
 
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
-**Filename:** `zdm_migrate_<DB_NAME>.rsp`
-
 ---
 
 ### Artifact 3: ZDM CLI Commands
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 **Filename:** `zdm_commands_<DB_NAME>.sh`
 
 Generate a shell script containing:
@@ -429,10 +445,28 @@ cleanup_password_files() {
 
 ## Output Confirmation
 
-After generation, confirm all files are saved to the user-specified migration working directory:
+After generation, confirm all files are saved to:
+`Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 
 1. **Runbook**: `ZDM-Migration-Runbook-<DB_NAME>.md`
 2. **RSP file**: `zdm_migrate_<DB_NAME>.rsp`
 3. **CLI commands**: `zdm_commands_<DB_NAME>.sh`
 
 Review all generated artifacts before execution.
+
+---
+
+## Next Steps
+
+After generating artifacts:
+
+1. ✅ Review all generated files for accuracy
+2. 🔲 Create password files as instructed (at runtime)
+3. 🔲 Run evaluation command first: `./zdm_commands_<DB_NAME>.sh --eval`
+4. 🔲 Execute migration following the runbook
+5. 🔲 Monitor migration progress
+6. 🔲 Perform post-migration validation
+
+---
+
+*Generated by ZDM Migration Planning - Step 3*

@@ -1,9 +1,23 @@
-# ZDM Migration Step 1: Discovery Analysis and Migration Planning
+# ZDM Migration Step 1: Get Manual Configuration Context
 
 ## Purpose
 This prompt analyzes the discovery output from Step 0 and generates:
 1. **Discovery Summary** - Auto-populated findings from the discovery scripts
 2. **Migration Planning Questionnaire** - Questions requiring manual input with recommended defaults
+
+---
+
+## Migration Flow Overview
+
+```
+Step 0: Run Scripts to Get Context
+         ↓
+Step 1: Get Manual Configuration Context    ← YOU ARE HERE
+         ↓
+Step 2: Fix Issues (Iteration may be required)
+         ↓
+Step 3: Generate Migration Artifacts & Run Migration
+```
 
 ---
 
@@ -302,9 +316,12 @@ These values must be obtained from the OCI Console or Azure Portal.
 
 After completing this questionnaire:
 1. Save this file
-2. Run `Step2-Generate-Migration-Artifacts.prompt.md` with:
+2. Review the Discovery Summary for any critical actions
+3. Run `Step2-Fix-Issues.prompt.md` to address any blockers
+4. After all issues resolved, run `Step3-Generate-Migration-Artifacts.prompt.md` with:
    - This completed questionnaire
    - The Discovery Summary
+   - The Issue Resolution Log
 ```
 
 ---
@@ -313,9 +330,12 @@ After completing this questionnaire:
 
 After Step 1 generates the outputs:
 
-1. **Review Discovery Summary** - Check for any required actions
+1. **Review Discovery Summary** - Check for any required actions or blockers
 2. **Complete the Questionnaire** - Fill in manual items
-3. **Run Step 2**: `Step2-Generate-Migration-Artifacts.prompt.md`
+3. **Run Step 2**: `Step2-Fix-Issues.prompt.md`
+   - Address all blockers and required actions
+   - Iterate until all issues are resolved
+4. **Run Step 3**: `Step3-Generate-Migration-Artifacts.prompt.md`
    - Attach the completed questionnaire
-   - Attach the discovery summary
+   - Attach the Issue Resolution Log
    - This generates the RSP file, ZDM commands, and runbook

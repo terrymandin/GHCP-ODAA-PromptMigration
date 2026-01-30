@@ -1,41 +1,63 @@
 #!/bin/bash
-#===============================================================================
+# ===========================================
 # ZDM Server Discovery Script
 # Project: PRODDB Migration to Oracle Database@Azure
+# ZDM Server: zdm-jumpbox.corp.example.com
+# Generated: 2026-01-30
+# ===========================================
 #
-# Purpose: Discover ZDM jumpbox server configuration for migration planning.
-#          Executed via SSH as admin user, ZDM CLI commands run as zdmuser.
+# This script discovers ZDM server configuration for migration.
+# Run as: azureuser (or admin user with sudo to zdmuser)
 #
-# Usage: ./zdm_server_discovery.sh
+# Usage:
+#   ./zdm_server_discovery.sh
 #
 # Output:
-#   - zdm_server_discovery_<hostname>_<timestamp>.txt (human-readable report)
+#   - zdm_server_discovery_<hostname>_<timestamp>.txt (human-readable)
 #   - zdm_server_discovery_<hostname>_<timestamp>.json (machine-parseable)
-#===============================================================================
+# ===========================================
 
 # Color codes for terminal output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Timestamp for output files
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-HOSTNAME_SHORT=$(hostname -s)
-
-# Output files (current working directory)
-TEXT_REPORT="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
-JSON_REPORT="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
-
-# Default ZDM user if not set
+# User configuration
 ZDM_USER="${ZDM_USER:-zdmuser}"
 
-#===============================================================================
-# ENVIRONMENT DETECTION
-#===============================================================================
+# Timestamp and hostname for output files
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+HOSTNAME_SHORT=$(hostname -s)
+OUTPUT_TXT="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
+OUTPUT_JSON="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
 
+# ===========================================
+# HELPER FUNCTIONS
+# ===========================================
+
+log_section() {
+    echo -e "\n${BLUE}=== $1 ===${NC}"
+    echo -e "\n=== $1 ===" >> "$OUTPUT_TXT"
+}
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+    echo "[INFO] $1" >> "$OUTPUT_TXT"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo "[WARN] $1" >> "$OUTPUT_TXT"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    echo "[ERROR] $1" >> "$OUTPUT_TXT"
+}
+
+# Auto-detect ZDM environment
 detect_zdm_env() {
     # If already set, use existing values
     if [ -n "${ZDM_HOME:-}" ] && [ -n "${JAVA_HOME:-}" ]; then
@@ -44,13 +66,10 @@ detect_zdm_env() {
     
     # Detect ZDM_HOME using multiple methods
     if [ -z "${ZDM_HOME:-}" ]; then
-        local zdm_user="${ZDM_USER:-zdmuser}"
-        
-        # Method 1: Get ZDM_HOME from zdmuser's environment (most reliable)
-        # This is critical when running as a different user (e.g., azureuser)
-        if id "$zdm_user" &>/dev/null; then
+        # Method 1: Get ZDM_HOME from zdmuser's environment
+        if id "$ZDM_USER" &>/dev/null; then
             local zdm_home_from_user
-            zdm_home_from_user=$(sudo -u "$zdm_user" -i bash -c 'echo $ZDM_HOME' 2>/dev/null)
+            zdm_home_from_user=$(sudo -u "$ZDM_USER" -i bash -c 'echo $ZDM_HOME' 2>/dev/null)
             if [ -n "$zdm_home_from_user" ] && [ -d "$zdm_home_from_user" ] && [ -f "$zdm_home_from_user/bin/zdmcli" ]; then
                 export ZDM_HOME="$zdm_home_from_user"
             fi
@@ -59,7 +78,7 @@ detect_zdm_env() {
         # Method 2: Check zdmuser's home directory for common ZDM paths
         if [ -z "${ZDM_HOME:-}" ]; then
             local zdm_user_home
-            zdm_user_home=$(eval echo ~$zdm_user 2>/dev/null)
+            zdm_user_home=$(eval echo ~$ZDM_USER 2>/dev/null)
             if [ -n "$zdm_user_home" ]; then
                 for subdir in zdmhome zdm app/zdmhome; do
                     local candidate="$zdm_user_home/$subdir"
@@ -71,10 +90,9 @@ detect_zdm_env() {
             fi
         fi
         
-        # Method 3: Check common system paths
+        # Method 3: Check common ZDM installation locations system-wide
         if [ -z "${ZDM_HOME:-}" ]; then
-            for path in /u01/app/zdmhome /u01/zdm /u01/app/zdm /opt/zdm /home/zdmuser/zdmhome /home/*/zdmhome ~/zdmhome ~/zdm "$HOME/zdmhome"; do
-                # Use sudo to check paths that may not be readable by current user
+            for path in /u01/app/zdmhome /u01/zdm /u01/app/zdm /opt/zdm /home/zdmuser/zdmhome; do
                 if sudo test -d "$path" 2>/dev/null && sudo test -f "$path/bin/zdmcli" 2>/dev/null; then
                     export ZDM_HOME="$path"
                     break
@@ -85,12 +103,11 @@ detect_zdm_env() {
             done
         fi
         
-        # Method 4: Search for zdmcli binary and derive ZDM_HOME
+        # Method 4: Search for zdmcli binary
         if [ -z "${ZDM_HOME:-}" ]; then
             local zdmcli_path
             zdmcli_path=$(sudo find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
             if [ -n "$zdmcli_path" ]; then
-                # zdmcli is in $ZDM_HOME/bin/zdmcli, so go up two levels
                 export ZDM_HOME="$(dirname "$(dirname "$zdmcli_path")")"
             fi
         fi
@@ -98,7 +115,7 @@ detect_zdm_env() {
     
     # Detect JAVA_HOME - check ZDM's bundled JDK first
     if [ -z "${JAVA_HOME:-}" ]; then
-        # Method 1: Check ZDM's bundled JDK (ZDM often includes its own JDK)
+        # Method 1: Check ZDM's bundled JDK
         if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}/jdk" ]; then
             export JAVA_HOME="${ZDM_HOME}/jdk"
         fi
@@ -114,7 +131,7 @@ detect_zdm_env() {
         
         # Method 3: Search common Java paths
         if [ -z "${JAVA_HOME:-}" ]; then
-            for path in /usr/java/latest /usr/java/jdk* /usr/lib/jvm/java-* /opt/java/jdk* /usr/lib/jvm/jre-*; do
+            for path in /usr/java/latest /usr/java/jdk* /usr/lib/jvm/java-* /opt/java/jdk*; do
                 if [ -d "$path" ] && [ -f "$path/bin/java" ]; then
                     export JAVA_HOME="$path"
                     break
@@ -124,22 +141,12 @@ detect_zdm_env() {
     fi
 }
 
-# Apply explicit overrides if provided
-[ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
-[ -n "${JAVA_HOME_OVERRIDE:-}" ] && export JAVA_HOME="$JAVA_HOME_OVERRIDE"
-
-# Detect ZDM environment
-detect_zdm_env
-
-#===============================================================================
-# ZDM EXECUTION FUNCTIONS
-#===============================================================================
-
+# Run ZDM command as zdmuser
 run_zdm_cmd() {
     local zdm_cmd="$1"
     if [ -n "${ZDM_HOME:-}" ]; then
         if [ "$(whoami)" = "$ZDM_USER" ]; then
-            ZDM_HOME="$ZDM_HOME" $ZDM_HOME/bin/$zdm_cmd 2>&1
+            $ZDM_HOME/bin/$zdm_cmd 2>&1
         else
             sudo -u "$ZDM_USER" ZDM_HOME="$ZDM_HOME" $ZDM_HOME/bin/$zdm_cmd 2>&1
         fi
@@ -149,463 +156,423 @@ run_zdm_cmd() {
     fi
 }
 
-#===============================================================================
-# OUTPUT FUNCTIONS
-#===============================================================================
+# ===========================================
+# MAIN DISCOVERY
+# ===========================================
 
-print_header() {
-    local title="$1"
-    echo "" >> "$TEXT_REPORT"
-    echo "===============================================================================" >> "$TEXT_REPORT"
-    echo "  $title" >> "$TEXT_REPORT"
-    echo "===============================================================================" >> "$TEXT_REPORT"
-    echo -e "${BLUE}=== $title ===${NC}"
-}
+echo -e "${BLUE}=========================================${NC}"
+echo -e "${BLUE}  ZDM Server Discovery${NC}"
+echo -e "${BLUE}  Project: PRODDB Migration${NC}"
+echo -e "${BLUE}=========================================${NC}"
 
-print_section() {
-    local title="$1"
-    echo "" >> "$TEXT_REPORT"
-    echo "--- $title ---" >> "$TEXT_REPORT"
-    echo -e "${GREEN}--- $title ---${NC}"
-}
+# Initialize output file
+echo "ZDM Server Discovery Report" > "$OUTPUT_TXT"
+echo "Project: PRODDB Migration to Oracle Database@Azure" >> "$OUTPUT_TXT"
+echo "Generated: $(date)" >> "$OUTPUT_TXT"
+echo "Hostname: $(hostname)" >> "$OUTPUT_TXT"
+echo "Current User: $(whoami)" >> "$OUTPUT_TXT"
+echo "==========================================" >> "$OUTPUT_TXT"
 
-print_info() {
-    local label="$1"
-    local value="$2"
-    printf "%-30s: %s\n" "$label" "$value" >> "$TEXT_REPORT"
-    printf "${CYAN}%-30s${NC}: %s\n" "$label" "$value"
-}
+# Detect ZDM environment
+detect_zdm_env
 
-print_output() {
-    local output="$1"
-    echo "$output" >> "$TEXT_REPORT"
-    echo "$output"
-}
+# -------------------------------------------
+# OS INFORMATION
+# -------------------------------------------
+log_section "OS Information"
 
-#===============================================================================
-# JSON BUILDER
-#===============================================================================
+HOSTNAME_FULL=$(hostname -f 2>/dev/null || hostname)
+IP_ADDRESSES=$(hostname -I 2>/dev/null || ip addr show | grep 'inet ' | awk '{print $2}' | cut -d/ -f1 | tr '\n' ' ')
+OS_VERSION=$(cat /etc/os-release 2>/dev/null | grep "PRETTY_NAME" | cut -d'"' -f2)
+KERNEL_VERSION=$(uname -r)
+CURRENT_USER=$(whoami)
 
-declare -A JSON_DATA
+log_info "Hostname: $HOSTNAME_FULL"
+log_info "IP Addresses: $IP_ADDRESSES"
+log_info "OS Version: $OS_VERSION"
+log_info "Kernel: $KERNEL_VERSION"
+log_info "Current User: $CURRENT_USER"
+log_info "ZDM User: $ZDM_USER"
 
-add_json() {
-    local key="$1"
-    local value="$2"
-    JSON_DATA["$key"]="$value"
-}
+# -------------------------------------------
+# DISK SPACE (CUSTOM REQUIREMENT - Minimum 50GB)
+# -------------------------------------------
+log_section "Disk Space Analysis"
 
-write_json() {
-    echo "{" > "$JSON_REPORT"
-    local first=true
-    for key in "${!JSON_DATA[@]}"; do
-        if [ "$first" = true ]; then
-            first=false
+echo "" >> "$OUTPUT_TXT"
+echo "Disk Usage:" >> "$OUTPUT_TXT"
+df -h >> "$OUTPUT_TXT" 2>/dev/null
+
+# Check available space on key partitions
+ROOT_AVAIL=$(df -BG / 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'G')
+HOME_AVAIL=$(df -BG /home 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'G')
+ZDM_AVAIL="N/A"
+
+if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}" ]; then
+    ZDM_AVAIL=$(df -BG "${ZDM_HOME}" 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'G')
+fi
+
+log_info "Root (/) available: ${ROOT_AVAIL:-N/A} GB"
+log_info "Home (/home) available: ${HOME_AVAIL:-N/A} GB"
+log_info "ZDM_HOME partition available: ${ZDM_AVAIL} GB"
+
+# Minimum 50GB check
+MIN_SPACE=50
+SPACE_OK="false"
+if [ -n "$ROOT_AVAIL" ] && [ "$ROOT_AVAIL" -ge "$MIN_SPACE" ] 2>/dev/null; then
+    SPACE_OK="true"
+    log_info "Disk space check: ${GREEN}PASS${NC} (>= ${MIN_SPACE}GB available)"
+elif [ -n "$HOME_AVAIL" ] && [ "$HOME_AVAIL" -ge "$MIN_SPACE" ] 2>/dev/null; then
+    SPACE_OK="true"
+    log_info "Disk space check: ${GREEN}PASS${NC} (>= ${MIN_SPACE}GB available on /home)"
+else
+    log_warn "Disk space check: FAIL (< ${MIN_SPACE}GB available) - recommend expanding disk"
+fi
+
+# -------------------------------------------
+# ZDM INSTALLATION
+# -------------------------------------------
+log_section "ZDM Installation"
+
+log_info "ZDM_HOME: ${ZDM_HOME:-NOT FOUND}"
+
+ZDM_INSTALLED="false"
+ZDM_SERVICE_STATUS="NOT RUNNING"
+
+if [ -n "${ZDM_HOME:-}" ]; then
+    if [ -f "${ZDM_HOME}/bin/zdmcli" ]; then
+        ZDM_INSTALLED="true"
+        log_info "ZDM CLI: Found at ${ZDM_HOME}/bin/zdmcli"
+        
+        # Check if executable
+        if [ -x "${ZDM_HOME}/bin/zdmcli" ] || sudo test -x "${ZDM_HOME}/bin/zdmcli" 2>/dev/null; then
+            log_info "ZDM CLI: Executable"
         else
-            echo "," >> "$JSON_REPORT"
-        fi
-        local value="${JSON_DATA[$key]}"
-        if [[ "$value" =~ ^\[.*\]$ ]] || [[ "$value" =~ ^\{.*\}$ ]]; then
-            printf '  "%s": %s' "$key" "$value" >> "$JSON_REPORT"
-        else
-            printf '  "%s": "%s"' "$key" "$value" >> "$JSON_REPORT"
-        fi
-    done
-    echo "" >> "$JSON_REPORT"
-    echo "}" >> "$JSON_REPORT"
-}
-
-#===============================================================================
-# DISCOVERY FUNCTIONS
-#===============================================================================
-
-discover_os_info() {
-    print_header "OS INFORMATION"
-    
-    local hostname_full=$(hostname -f 2>/dev/null || hostname)
-    local hostname_short=$(hostname -s)
-    local current_user=$(whoami)
-    local os_version=$(cat /etc/os-release 2>/dev/null | grep "PRETTY_NAME" | cut -d'"' -f2 || uname -a)
-    local kernel_version=$(uname -r)
-    local ip_addresses=$(hostname -I 2>/dev/null || ip addr show | grep 'inet ' | awk '{print $2}' | cut -d/ -f1 | tr '\n' ' ')
-    
-    print_info "Hostname (Full)" "$hostname_full"
-    print_info "Hostname (Short)" "$hostname_short"
-    print_info "Current User" "$current_user"
-    print_info "OS Version" "$os_version"
-    print_info "Kernel Version" "$kernel_version"
-    print_info "IP Addresses" "$ip_addresses"
-    
-    add_json "hostname_full" "$hostname_full"
-    add_json "hostname_short" "$hostname_short"
-    add_json "current_user" "$current_user"
-    add_json "os_version" "$os_version"
-    add_json "kernel_version" "$kernel_version"
-    add_json "ip_addresses" "$ip_addresses"
-}
-
-discover_zdm_installation() {
-    print_header "ZDM INSTALLATION"
-    
-    print_info "ZDM_HOME" "${ZDM_HOME:-NOT FOUND}"
-    add_json "zdm_home" "${ZDM_HOME:-NOT FOUND}"
-    
-    if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}" ]; then
-        # Check if zdmcli binary exists and is executable
-        print_section "ZDM Installation Verification"
-        if [ -f "${ZDM_HOME}/bin/zdmcli" ]; then
-            print_info "zdmcli binary" "FOUND at ${ZDM_HOME}/bin/zdmcli"
-            add_json "zdm_installed" "true"
-            
-            # Run zdmcli without args to verify it works (shows usage)
-            local zdm_usage=$(run_zdm_cmd "zdmcli" 2>&1 | head -10)
-            print_output "$zdm_usage"
-            
-            if echo "$zdm_usage" | grep -qi "usage\|migrate\|database"; then
-                add_json "zdm_verified" "true"
-                print_info "ZDM Status" "INSTALLED AND WORKING"
-            else
-                add_json "zdm_verified" "false"
-                print_info "ZDM Status" "Binary found but may have issues"
-            fi
-        else
-            print_info "zdmcli binary" "NOT FOUND"
-            add_json "zdm_installed" "false"
+            log_warn "ZDM CLI: Not executable"
         fi
         
-        # Check for ZDM response file templates
-        print_section "ZDM Response File Templates"
-        local rsp_files=$(ls -la "${ZDM_HOME}/rhp/zdm/template/"*.rsp 2>/dev/null)
-        if [ -n "$rsp_files" ]; then
-            print_output "$rsp_files"
-            add_json "zdm_templates_found" "true"
+        # Check for response file templates
+        if sudo ls "${ZDM_HOME}/rhp/zdm/template/"*.rsp &>/dev/null 2>&1; then
+            log_info "ZDM Templates: Found"
         else
-            print_info "Templates" "No .rsp templates found"
-            add_json "zdm_templates_found" "false"
-        fi
-        
-        print_section "ZDM Service Status"
-        local zdm_status=$(run_zdm_cmd "zdmservice status" 2>/dev/null)
-        print_output "$zdm_status"
-        
-        if echo "$zdm_status" | grep -qi "running.*true\|Running:.*true"; then
-            add_json "zdm_service_status" "running"
-        else
-            add_json "zdm_service_status" "not running"
-        fi
-        
-        print_section "Active Migration Jobs"
-        local active_jobs=$(run_zdm_cmd "zdmcli query job -jobtype MIGRATE_DATABASE" 2>/dev/null | head -20)
-        print_output "$active_jobs"
-        
-        local job_count=$(echo "$active_jobs" | grep -c "JOBID" || echo "0")
-        add_json "active_migration_jobs" "$job_count"
-    else
-        print_info "ZDM Status" "ZDM_HOME not found or not accessible"
-        add_json "zdm_installed" "false"
-        add_json "zdm_service_status" "not installed"
-    fi
-}
-
-discover_java_config() {
-    print_header "JAVA CONFIGURATION"
-    
-    print_info "JAVA_HOME" "${JAVA_HOME:-NOT SET}"
-    add_json "java_home" "${JAVA_HOME:-NOT SET}"
-    
-    if command -v java >/dev/null 2>&1; then
-        local java_version=$(java -version 2>&1 | head -3)
-        print_section "Java Version"
-        print_output "$java_version"
-        add_json "java_version" "$(echo "$java_version" | head -1)"
-    else
-        print_info "Java" "NOT FOUND"
-        add_json "java_version" "NOT FOUND"
-    fi
-}
-
-discover_oci_config() {
-    print_header "OCI CLI CONFIGURATION"
-    
-    if command -v oci >/dev/null 2>&1; then
-        local oci_version=$(oci --version 2>&1)
-        print_info "OCI CLI Version" "$oci_version"
-        add_json "oci_cli_version" "$oci_version"
-        add_json "oci_cli_installed" "true"
-        
-        print_section "OCI Config File"
-        local oci_config="$HOME/.oci/config"
-        if [ -f "$oci_config" ]; then
-            print_info "Config Location" "$oci_config"
-            add_json "oci_config_path" "$oci_config"
-            
-            # Show config with sensitive data masked
-            print_output "Config Contents (sensitive data masked):"
-            sed 's/fingerprint=.*/fingerprint=***MASKED***/g' "$oci_config" 2>/dev/null | \
-            sed 's/pass_phrase=.*/pass_phrase=***MASKED***/g' >> "$TEXT_REPORT"
-            
-            # List profiles
-            local profiles=$(grep '^\[' "$oci_config" 2>/dev/null | tr -d '[]')
-            print_section "Configured Profiles"
-            print_output "$profiles"
-            
-            # List regions
-            local regions=$(grep 'region=' "$oci_config" 2>/dev/null | cut -d= -f2 | sort -u)
-            print_section "Configured Regions"
-            print_output "$regions"
-        else
-            print_info "OCI Config" "NOT FOUND at $oci_config"
-            add_json "oci_config_exists" "false"
-        fi
-        
-        print_section "API Key File"
-        local key_file=$(grep 'key_file=' "$oci_config" 2>/dev/null | head -1 | cut -d= -f2)
-        if [ -n "$key_file" ]; then
-            # Expand ~ to home directory
-            key_file="${key_file/#\~/$HOME}"
-            if [ -f "$key_file" ]; then
-                print_info "API Key File" "EXISTS: $key_file"
-                add_json "oci_api_key_exists" "true"
-            else
-                print_info "API Key File" "NOT FOUND: $key_file"
-                add_json "oci_api_key_exists" "false"
-            fi
-        fi
-        
-        print_section "OCI Connectivity Test"
-        if oci iam region list --output table 2>&1 | head -10 >> "$TEXT_REPORT"; then
-            print_info "OCI Connectivity" "SUCCESS"
-            add_json "oci_connectivity" "success"
-        else
-            print_info "OCI Connectivity" "FAILED"
-            add_json "oci_connectivity" "failed"
+            log_warn "ZDM Templates: Not found"
         fi
     else
-        print_info "OCI CLI" "NOT INSTALLED"
-        add_json "oci_cli_installed" "false"
+        log_error "ZDM CLI not found at ${ZDM_HOME}/bin/zdmcli"
     fi
-}
-
-discover_ssh_config() {
-    print_header "SSH CONFIGURATION"
     
-    print_section "SSH Directory Contents"
-    if [ -d ~/.ssh ]; then
-        ls -la ~/.ssh 2>/dev/null >> "$TEXT_REPORT"
+    # ZDM Service Status
+    echo "" >> "$OUTPUT_TXT"
+    echo "ZDM Service Status:" >> "$OUTPUT_TXT"
+    if sudo -u "$ZDM_USER" ZDM_HOME="$ZDM_HOME" $ZDM_HOME/bin/zdmservice status >> "$OUTPUT_TXT" 2>&1; then
+        ZDM_SERVICE_STATUS="RUNNING"
+        log_info "ZDM Service: RUNNING"
+    else
+        log_warn "ZDM Service: NOT RUNNING or error querying status"
+    fi
+    
+    # Active migration jobs
+    echo "" >> "$OUTPUT_TXT"
+    echo "Active Migration Jobs:" >> "$OUTPUT_TXT"
+    run_zdm_cmd "zdmcli query job" >> "$OUTPUT_TXT" 2>&1 || echo "No active jobs or could not query" >> "$OUTPUT_TXT"
+else
+    log_error "ZDM_HOME not detected - ZDM may not be installed"
+fi
+
+# -------------------------------------------
+# JAVA CONFIGURATION
+# -------------------------------------------
+log_section "Java Configuration"
+
+log_info "JAVA_HOME: ${JAVA_HOME:-NOT SET}"
+
+if [ -n "${JAVA_HOME:-}" ] && [ -f "${JAVA_HOME}/bin/java" ]; then
+    JAVA_VERSION=$("${JAVA_HOME}/bin/java" -version 2>&1 | head -1)
+    log_info "Java Version: $JAVA_VERSION"
+elif command -v java &>/dev/null; then
+    JAVA_VERSION=$(java -version 2>&1 | head -1)
+    log_info "Java Version (system): $JAVA_VERSION"
+else
+    log_warn "Java not found"
+    JAVA_VERSION="NOT FOUND"
+fi
+
+# -------------------------------------------
+# OCI CLI CONFIGURATION
+# -------------------------------------------
+log_section "OCI CLI Configuration"
+
+OCI_INSTALLED="false"
+OCI_CONFIGURED="false"
+OCI_CONNECTIVITY="FAILED"
+
+if command -v oci &>/dev/null; then
+    OCI_INSTALLED="true"
+    OCI_VERSION=$(oci --version 2>&1)
+    log_info "OCI CLI Version: $OCI_VERSION"
+    
+    # Check OCI config
+    OCI_CONFIG_FILE="${HOME}/.oci/config"
+    if [ -f "$OCI_CONFIG_FILE" ]; then
+        OCI_CONFIGURED="true"
+        log_info "OCI Config: Found at $OCI_CONFIG_FILE"
         
-        print_section "Available SSH Keys"
-        for key in ~/.ssh/*.pub; do
-            if [ -f "$key" ]; then
-                local key_name=$(basename "$key")
-                local private_key="${key%.pub}"
-                if [ -f "$private_key" ]; then
-                    print_info "$key_name" "Private key exists"
-                else
-                    print_info "$key_name" "Public key only"
-                fi
-            fi
-        done
-    else
-        print_output "SSH directory not found"
-    fi
-    
-    # Check zdmuser's SSH keys
-    print_section "ZDM User SSH Keys"
-    local zdm_user_home=$(eval echo ~$ZDM_USER 2>/dev/null)
-    if [ -d "$zdm_user_home/.ssh" ]; then
-        sudo ls -la "$zdm_user_home/.ssh" 2>/dev/null >> "$TEXT_REPORT" || \
-        print_output "Cannot access $ZDM_USER SSH directory"
-    else
-        print_output "$ZDM_USER SSH directory not found"
-    fi
-}
-
-discover_credential_files() {
-    print_header "CREDENTIAL FILES"
-    
-    print_section "Searching for Credential Files"
-    
-    # Search common locations for credential files
-    local search_paths="/home /opt /u01 /var"
-    local cred_patterns="*password* *credential* *wallet* *.pem *.key"
-    
-    for pattern in $cred_patterns; do
-        local found=$(find $search_paths -name "$pattern" -type f 2>/dev/null | head -10)
-        if [ -n "$found" ]; then
-            print_output "Files matching '$pattern':"
-            echo "$found" >> "$TEXT_REPORT"
-        fi
-    done
-    
-    print_section "ZDM Response Files"
-    if [ -n "${ZDM_HOME:-}" ]; then
-        local rsp_files=$(find "${ZDM_HOME}" -name "*.rsp" -type f 2>/dev/null)
-        if [ -n "$rsp_files" ]; then
-            print_output "Response files found:"
-            echo "$rsp_files" >> "$TEXT_REPORT"
-        else
-            print_output "No response files found in ZDM_HOME"
-        fi
-    fi
-}
-
-discover_network_config() {
-    print_header "NETWORK CONFIGURATION"
-    
-    print_section "IP Addresses"
-    ip addr show 2>/dev/null | grep 'inet ' >> "$TEXT_REPORT" || \
-    ifconfig 2>/dev/null | grep 'inet ' >> "$TEXT_REPORT"
-    
-    print_section "Routing Table"
-    ip route 2>/dev/null | head -20 >> "$TEXT_REPORT" || \
-    route -n 2>/dev/null | head -20 >> "$TEXT_REPORT"
-    
-    print_section "DNS Configuration"
-    cat /etc/resolv.conf 2>/dev/null >> "$TEXT_REPORT"
-}
-
-discover_zdm_logs() {
-    print_header "ZDM LOGS"
-    
-    if [ -n "${ZDM_HOME:-}" ]; then
-        local log_dir="${ZDM_HOME}/log"
-        if [ -d "$log_dir" ]; then
-            print_info "Log Directory" "$log_dir"
-            add_json "zdm_log_dir" "$log_dir"
-            
-            print_section "Recent Log Files"
-            ls -lt "$log_dir"/*.log 2>/dev/null | head -10 >> "$TEXT_REPORT" || \
-            print_output "No log files found"
-            
-            print_section "Log Directory Size"
-            du -sh "$log_dir" 2>/dev/null >> "$TEXT_REPORT"
-        else
-            print_output "Log directory not found: $log_dir"
-        fi
-    else
-        print_output "ZDM_HOME not set - cannot locate logs"
-    fi
-}
-
-discover_disk_space() {
-    print_header "DISK SPACE FOR ZDM OPERATIONS"
-    
-    print_section "Disk Usage"
-    df -h 2>/dev/null >> "$TEXT_REPORT"
-    
-    # Check ZDM_HOME partition specifically
-    if [ -n "${ZDM_HOME:-}" ]; then
-        print_section "ZDM_HOME Partition"
-        local zdm_partition=$(df -h "${ZDM_HOME}" 2>/dev/null | tail -1)
-        print_output "$zdm_partition"
+        echo "" >> "$OUTPUT_TXT"
+        echo "OCI Config (sensitive data masked):" >> "$OUTPUT_TXT"
+        grep -v "key\|pass\|secret" "$OCI_CONFIG_FILE" >> "$OUTPUT_TXT" 2>/dev/null
         
-        local available_gb=$(df -BG "${ZDM_HOME}" 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'G')
-        print_info "Available Space (GB)" "$available_gb"
-        add_json "zdm_available_space_gb" "$available_gb"
+        # Check profiles
+        PROFILES=$(grep "^\[" "$OCI_CONFIG_FILE" 2>/dev/null | tr -d '[]')
+        log_info "OCI Profiles: $PROFILES"
         
-        # Check if minimum 50GB recommended
-        if [ -n "$available_gb" ] && [ "$available_gb" -lt 50 ] 2>/dev/null; then
-            print_output ""
-            echo -e "${YELLOW}⚠ WARNING: Less than 50GB available. Recommended minimum is 50GB for ZDM operations.${NC}"
-            echo "WARNING: Less than 50GB available. Recommended minimum is 50GB for ZDM operations." >> "$TEXT_REPORT"
-            add_json "zdm_space_warning" "true"
+        # Check for API key
+        KEY_FILE=$(grep "key_file" "$OCI_CONFIG_FILE" 2>/dev/null | head -1 | cut -d= -f2 | tr -d ' ')
+        if [ -n "$KEY_FILE" ] && [ -f "$(eval echo $KEY_FILE)" ]; then
+            log_info "OCI API Key: Found"
         else
-            add_json "zdm_space_warning" "false"
+            log_warn "OCI API Key: Not found or path invalid"
         fi
-    fi
-    
-    print_section "/tmp Space"
-    df -h /tmp 2>/dev/null >> "$TEXT_REPORT"
-}
-
-discover_network_latency() {
-    print_header "NETWORK LATENCY TESTS"
-    
-    # Source server connectivity (placeholder - actual host would be passed or configured)
-    local source_host="${SOURCE_HOST:-proddb01.corp.example.com}"
-    local target_host="${TARGET_HOST:-proddb-oda.eastus.azure.example.com}"
-    
-    print_section "Ping Test to Source ($source_host)"
-    if ping -c 5 "$source_host" 2>&1 >> "$TEXT_REPORT"; then
-        local source_latency=$(ping -c 5 "$source_host" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
-        print_info "Average Latency to Source" "${source_latency}ms"
-        add_json "source_latency_ms" "$source_latency"
     else
-        print_output "Unable to ping source host"
-        add_json "source_latency_ms" "unreachable"
+        log_warn "OCI Config: Not found at $OCI_CONFIG_FILE"
     fi
     
-    print_section "Ping Test to Target ($target_host)"
-    if ping -c 5 "$target_host" 2>&1 >> "$TEXT_REPORT"; then
-        local target_latency=$(ping -c 5 "$target_host" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
-        print_info "Average Latency to Target" "${target_latency}ms"
-        add_json "target_latency_ms" "$target_latency"
+    # Test OCI connectivity
+    echo "" >> "$OUTPUT_TXT"
+    echo "OCI Connectivity Test:" >> "$OUTPUT_TXT"
+    if oci os ns get >> "$OUTPUT_TXT" 2>&1; then
+        OCI_CONNECTIVITY="SUCCESS"
+        log_info "OCI Connectivity: ${GREEN}SUCCESS${NC}"
     else
-        print_output "Unable to ping target host"
-        add_json "target_latency_ms" "unreachable"
+        log_error "OCI Connectivity: FAILED"
     fi
-    
-    print_section "SSH Port Connectivity"
-    # Test SSH port connectivity
-    for host in "$source_host" "$target_host"; do
-        if timeout 5 bash -c "echo >/dev/tcp/$host/22" 2>/dev/null; then
-            print_info "SSH to $host" "Port 22 OPEN"
-        else
-            print_info "SSH to $host" "Port 22 CLOSED or filtered"
-        fi
-    done
-    
-    print_section "Oracle Port Connectivity"
-    # Test Oracle listener port
-    for host in "$source_host" "$target_host"; do
-        if timeout 5 bash -c "echo >/dev/tcp/$host/1521" 2>/dev/null; then
-            print_info "Oracle to $host" "Port 1521 OPEN"
-        else
-            print_info "Oracle to $host" "Port 1521 CLOSED or filtered"
-        fi
-    done
+else
+    log_warn "OCI CLI: Not installed"
+    OCI_VERSION="NOT INSTALLED"
+fi
+
+# -------------------------------------------
+# SSH CONFIGURATION
+# -------------------------------------------
+log_section "SSH Configuration"
+
+echo "" >> "$OUTPUT_TXT"
+echo "SSH Keys (${CURRENT_USER}):" >> "$OUTPUT_TXT"
+ls -la ~/.ssh/ >> "$OUTPUT_TXT" 2>/dev/null || echo "SSH directory not found" >> "$OUTPUT_TXT"
+
+# Check for required SSH keys
+SOURCE_KEY="~/.ssh/onprem_oracle_key"
+TARGET_KEY="~/.ssh/oci_opc_key"
+AZURE_KEY="~/.ssh/azure_key"
+
+for key_var in "SOURCE_KEY:$SOURCE_KEY" "TARGET_KEY:$TARGET_KEY" "AZURE_KEY:$AZURE_KEY"; do
+    key_name="${key_var%%:*}"
+    key_path="${key_var#*:}"
+    expanded_path=$(eval echo "$key_path")
+    if [ -f "$expanded_path" ]; then
+        log_info "$key_name ($key_path): Found"
+    else
+        log_warn "$key_name ($key_path): Not found"
+    fi
+done
+
+# Check ZDM user's SSH keys
+echo "" >> "$OUTPUT_TXT"
+echo "SSH Keys (${ZDM_USER}):" >> "$OUTPUT_TXT"
+sudo ls -la ~${ZDM_USER}/.ssh/ >> "$OUTPUT_TXT" 2>/dev/null || echo "ZDM user SSH directory not found" >> "$OUTPUT_TXT"
+
+# -------------------------------------------
+# NETWORK CONNECTIVITY (CUSTOM REQUIREMENT)
+# -------------------------------------------
+log_section "Network Connectivity"
+
+SOURCE_HOST="proddb01.corp.example.com"
+TARGET_HOST="proddb-oda.eastus.azure.example.com"
+
+# Ping tests for latency
+echo "" >> "$OUTPUT_TXT"
+echo "Network Latency Tests:" >> "$OUTPUT_TXT"
+
+SOURCE_PING="FAILED"
+TARGET_PING="FAILED"
+
+# Test source connectivity
+echo "Ping to Source ($SOURCE_HOST):" >> "$OUTPUT_TXT"
+if ping -c 3 "$SOURCE_HOST" >> "$OUTPUT_TXT" 2>&1; then
+    SOURCE_PING="SUCCESS"
+    SOURCE_LATENCY=$(ping -c 3 "$SOURCE_HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
+    log_info "Source ping: SUCCESS (avg ${SOURCE_LATENCY:-N/A}ms)"
+else
+    log_warn "Source ping: FAILED - check DNS and network connectivity"
+fi
+
+# Test target connectivity
+echo "" >> "$OUTPUT_TXT"
+echo "Ping to Target ($TARGET_HOST):" >> "$OUTPUT_TXT"
+if ping -c 3 "$TARGET_HOST" >> "$OUTPUT_TXT" 2>&1; then
+    TARGET_PING="SUCCESS"
+    TARGET_LATENCY=$(ping -c 3 "$TARGET_HOST" 2>/dev/null | tail -1 | awk -F'/' '{print $5}')
+    log_info "Target ping: SUCCESS (avg ${TARGET_LATENCY:-N/A}ms)"
+else
+    log_warn "Target ping: FAILED - check DNS and network connectivity"
+fi
+
+# Port connectivity tests
+echo "" >> "$OUTPUT_TXT"
+echo "Port Connectivity Tests:" >> "$OUTPUT_TXT"
+
+# Source ports
+for port in 22 1521; do
+    if timeout 5 bash -c "echo >/dev/tcp/$SOURCE_HOST/$port" 2>/dev/null; then
+        log_info "Source port $port: OPEN"
+        echo "  Source:$port - OPEN" >> "$OUTPUT_TXT"
+    else
+        log_warn "Source port $port: BLOCKED or unreachable"
+        echo "  Source:$port - BLOCKED" >> "$OUTPUT_TXT"
+    fi
+done
+
+# Target ports
+for port in 22 1521; do
+    if timeout 5 bash -c "echo >/dev/tcp/$TARGET_HOST/$port" 2>/dev/null; then
+        log_info "Target port $port: OPEN"
+        echo "  Target:$port - OPEN" >> "$OUTPUT_TXT"
+    else
+        log_warn "Target port $port: BLOCKED or unreachable"
+        echo "  Target:$port - BLOCKED" >> "$OUTPUT_TXT"
+    fi
+done
+
+# -------------------------------------------
+# NETWORK CONFIGURATION
+# -------------------------------------------
+log_section "Network Configuration"
+
+echo "" >> "$OUTPUT_TXT"
+echo "IP Addresses:" >> "$OUTPUT_TXT"
+ip addr show >> "$OUTPUT_TXT" 2>/dev/null || ifconfig >> "$OUTPUT_TXT" 2>/dev/null
+
+echo "" >> "$OUTPUT_TXT"
+echo "Routing Table:" >> "$OUTPUT_TXT"
+ip route >> "$OUTPUT_TXT" 2>/dev/null || netstat -rn >> "$OUTPUT_TXT" 2>/dev/null
+
+echo "" >> "$OUTPUT_TXT"
+echo "DNS Configuration:" >> "$OUTPUT_TXT"
+cat /etc/resolv.conf >> "$OUTPUT_TXT" 2>/dev/null
+
+# -------------------------------------------
+# CREDENTIAL FILES
+# -------------------------------------------
+log_section "Credential Files"
+
+echo "" >> "$OUTPUT_TXT"
+echo "Searching for credential files..." >> "$OUTPUT_TXT"
+
+# Search for potential credential files (DO NOT print contents)
+CRED_FILES=$(find ~/creds ~/.credentials /tmp -name "*password*" -o -name "*credential*" -o -name "*wallet*" 2>/dev/null | head -10)
+if [ -n "$CRED_FILES" ]; then
+    log_warn "Potential credential files found (review for security):"
+    echo "$CRED_FILES" >> "$OUTPUT_TXT"
+else
+    log_info "No credential files found in common locations"
+fi
+
+# -------------------------------------------
+# ZDM LOGS
+# -------------------------------------------
+log_section "ZDM Logs"
+
+if [ -n "${ZDM_HOME:-}" ]; then
+    ZDM_LOG_DIR="${ZDM_HOME}/log"
+    if [ -d "$ZDM_LOG_DIR" ] || sudo test -d "$ZDM_LOG_DIR" 2>/dev/null; then
+        log_info "ZDM Log Directory: $ZDM_LOG_DIR"
+        echo "" >> "$OUTPUT_TXT"
+        echo "Recent ZDM Log Files:" >> "$OUTPUT_TXT"
+        sudo ls -lt "$ZDM_LOG_DIR" 2>/dev/null | head -10 >> "$OUTPUT_TXT"
+    else
+        log_warn "ZDM Log Directory not found"
+    fi
+fi
+
+# -------------------------------------------
+# GENERATE JSON OUTPUT
+# -------------------------------------------
+log_section "Generating JSON Output"
+
+cat > "$OUTPUT_JSON" << EOJSON
+{
+  "discovery_type": "zdm_server",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "timestamp": "$(date -Iseconds)",
+  "hostname": "$HOSTNAME_FULL",
+  "ip_addresses": "$IP_ADDRESSES",
+  "current_user": "$CURRENT_USER",
+  "os": {
+    "version": "$OS_VERSION",
+    "kernel": "$KERNEL_VERSION"
+  },
+  "disk_space": {
+    "root_available_gb": "${ROOT_AVAIL:-0}",
+    "home_available_gb": "${HOME_AVAIL:-0}",
+    "zdm_available_gb": "${ZDM_AVAIL:-0}",
+    "minimum_required_gb": 50,
+    "sufficient": $SPACE_OK
+  },
+  "zdm": {
+    "home": "${ZDM_HOME:-NOT FOUND}",
+    "installed": $ZDM_INSTALLED,
+    "service_status": "$ZDM_SERVICE_STATUS",
+    "user": "$ZDM_USER"
+  },
+  "java": {
+    "home": "${JAVA_HOME:-NOT SET}",
+    "version": "${JAVA_VERSION:-NOT FOUND}"
+  },
+  "oci_cli": {
+    "installed": $OCI_INSTALLED,
+    "configured": $OCI_CONFIGURED,
+    "version": "${OCI_VERSION:-NOT INSTALLED}",
+    "connectivity": "$OCI_CONNECTIVITY"
+  },
+  "network": {
+    "source_host": "$SOURCE_HOST",
+    "target_host": "$TARGET_HOST",
+    "source_ping": "$SOURCE_PING",
+    "target_ping": "$TARGET_PING",
+    "source_latency_ms": "${SOURCE_LATENCY:-N/A}",
+    "target_latency_ms": "${TARGET_LATENCY:-N/A}"
+  },
+  "readiness": {
+    "zdm_installed": $ZDM_INSTALLED,
+    "zdm_running": $([ "$ZDM_SERVICE_STATUS" = "RUNNING" ] && echo "true" || echo "false"),
+    "oci_configured": $OCI_CONFIGURED,
+    "oci_connected": $([ "$OCI_CONNECTIVITY" = "SUCCESS" ] && echo "true" || echo "false"),
+    "disk_space_ok": $SPACE_OK,
+    "source_reachable": $([ "$SOURCE_PING" = "SUCCESS" ] && echo "true" || echo "false"),
+    "target_reachable": $([ "$TARGET_PING" = "SUCCESS" ] && echo "true" || echo "false")
+  }
 }
+EOJSON
 
-#===============================================================================
-# MAIN EXECUTION
-#===============================================================================
+log_info "JSON output saved to: $OUTPUT_JSON"
 
-main() {
-    echo "ZDM Server Discovery Script" > "$TEXT_REPORT"
-    echo "Generated: $(date)" >> "$TEXT_REPORT"
-    echo "Hostname: $(hostname)" >> "$TEXT_REPORT"
-    echo "User: $(whoami)" >> "$TEXT_REPORT"
-    
-    add_json "discovery_type" "zdm_server"
-    add_json "discovery_timestamp" "$(date -Iseconds)"
-    add_json "discovered_by" "$(whoami)"
-    
-    echo -e "${CYAN}Starting ZDM Server Discovery...${NC}"
-    echo -e "${CYAN}Output files will be created in current directory${NC}"
-    
-    # Run all discovery functions (continue on error)
-    discover_os_info || echo "Warning: OS info discovery had errors"
-    discover_zdm_installation || echo "Warning: ZDM installation discovery had errors"
-    discover_java_config || echo "Warning: Java config discovery had errors"
-    discover_oci_config || echo "Warning: OCI config discovery had errors"
-    discover_ssh_config || echo "Warning: SSH config discovery had errors"
-    discover_credential_files || echo "Warning: Credential file discovery had errors"
-    discover_network_config || echo "Warning: Network config discovery had errors"
-    discover_zdm_logs || echo "Warning: ZDM logs discovery had errors"
-    
-    # Additional discovery requirements
-    discover_disk_space || echo "Warning: Disk space discovery had errors"
-    discover_network_latency || echo "Warning: Network latency discovery had errors"
-    
-    # Write JSON report
-    write_json
-    
-    echo ""
-    echo -e "${GREEN}===============================================================================${NC}"
-    echo -e "${GREEN}Discovery Complete${NC}"
-    echo -e "${GREEN}===============================================================================${NC}"
-    echo -e "Text Report: ${CYAN}$TEXT_REPORT${NC}"
-    echo -e "JSON Report: ${CYAN}$JSON_REPORT${NC}"
-}
+# -------------------------------------------
+# SUMMARY
+# -------------------------------------------
+log_section "Discovery Summary"
 
-# Run main function
-main "$@"
+echo ""
+echo -e "${GREEN}ZDM Server discovery completed!${NC}"
+echo ""
+echo "Output files:"
+echo "  - Text report: $OUTPUT_TXT"
+echo "  - JSON summary: $OUTPUT_JSON"
+echo ""
+echo "ZDM Server Readiness:"
+echo "  - ZDM Installed: $([ "$ZDM_INSTALLED" = "true" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
+echo "  - ZDM Service: $([ "$ZDM_SERVICE_STATUS" = "RUNNING" ] && echo -e "${GREEN}RUNNING${NC}" || echo -e "${RED}NOT RUNNING${NC}")"
+echo "  - OCI CLI Configured: $([ "$OCI_CONFIGURED" = "true" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
+echo "  - OCI Connectivity: $([ "$OCI_CONNECTIVITY" = "SUCCESS" ] && echo -e "${GREEN}OK${NC}" || echo -e "${RED}FAILED${NC}")"
+echo "  - Disk Space (>=50GB): $([ "$SPACE_OK" = "true" ] && echo -e "${GREEN}OK${NC}" || echo -e "${YELLOW}LOW${NC}")"
+echo "  - Source Reachable: $([ "$SOURCE_PING" = "SUCCESS" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
+echo "  - Target Reachable: $([ "$TARGET_PING" = "SUCCESS" ] && echo -e "${GREEN}YES${NC}" || echo -e "${RED}NO${NC}")"
+echo ""

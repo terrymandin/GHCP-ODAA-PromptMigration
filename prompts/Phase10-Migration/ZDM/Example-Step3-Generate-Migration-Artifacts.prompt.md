@@ -1,13 +1,14 @@
-# Example: Generate Migration Artifacts for PRODDB
+# Example: Generate Migration Artifacts for PRODDB (Step 3)
 
-This example demonstrates how to use Step 2 to generate all migration artifacts (RSP file, CLI commands, and runbook) from a completed questionnaire.
+This example demonstrates how to use Step 3 to generate all migration artifacts (RSP file, CLI commands, and runbook) from a completed questionnaire after all issues have been resolved in Step 2.
 
 ## Prerequisites
 
 Before using this example:
-- Complete `Step1-Discovery-Questionnaire.prompt.md` with all required information
-- Have discovery output files available
-- Determine output directory for generated artifacts
+- ✅ Complete `Step0-Generate-Discovery-Scripts.prompt.md` and run discovery
+- ✅ Complete `Step1-Discovery-Questionnaire.prompt.md` with all required information
+- ✅ Complete `Step2-Fix-Issues.prompt.md` - all blockers must be resolved
+- Have discovery output files and Issue Resolution Log available
 
 ---
 
@@ -16,12 +17,15 @@ Before using this example:
 Copy and use this prompt to generate migration artifacts:
 
 ```
-@Step2-Generate-Migration-Artifacts.prompt.md
+@Step3-Generate-Migration-Artifacts.prompt.md
 
 Generate all migration artifacts for the PRODDB migration to Oracle Database@Azure.
 
-## Completed Questionnaire
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Completed-Questionnaire-PRODDB.md
+## Migration Questionnaire (from Step1)
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Migration-Questionnaire-PRODDB.md
+
+## Issue Resolution Log (from Step2)
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/Issue-Resolution-Log-PRODDB.md
 
 ## Discovery Files (from Step0)
 
@@ -37,7 +41,7 @@ Generate all migration artifacts for the PRODDB migration to Oracle Database@Azu
 **Note:** Replace `<hostname>` and `<timestamp>` with actual values from your discovery files.
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 
 ## Key Parameters from Questionnaire
 

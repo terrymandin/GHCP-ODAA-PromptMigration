@@ -1,7 +1,21 @@
-# ZDM Migration Step 0: Generate Discovery Scripts
+# ZDM Migration Step 0: Run Scripts to Get Context
 
 ## Purpose
-This prompt generates the discovery scripts that will be used to gather information from the source database server, target Oracle Database@Azure server, and ZDM jumpbox server.
+This prompt generates the discovery scripts that will be used to gather technical context from the source database server, target Oracle Database@Azure server, and ZDM jumpbox server. The discovery outputs form the foundation for all subsequent migration steps.
+
+---
+
+## Migration Flow Overview
+
+```
+Step 0: Run Scripts to Get Context    ← YOU ARE HERE
+         ↓
+Step 1: Get Manual Configuration Context
+         ↓
+Step 2: Fix Issues (Iteration may be required)
+         ↓
+Step 3: Generate Migration Artifacts & Run Migration
+```
 
 ---
 
