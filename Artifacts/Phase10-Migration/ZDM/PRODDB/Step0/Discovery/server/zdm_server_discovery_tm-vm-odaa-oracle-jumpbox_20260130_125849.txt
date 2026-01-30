@@ -1,0 +1,143 @@
+[0;36m============================================================[0m
+[0;36mZDM Server Discovery Report[0m
+[0;36m============================================================[0m
+Generated: Fri Jan 30 12:58:49 PM EST 2026
+Hostname: tm-vm-odaa-oracle-jumpbox
+Script Version: 1.0.0
+
+
+[0;34m------------------------------------------------------------[0m
+[0;34mOS INFORMATION[0m
+[0;34m------------------------------------------------------------[0m
+Hostname: tm-vm-odaa-oracle-jumpbox
+Current User: azureuser
+
+IP Addresses:
+  127.0.0.1/8
+  10.1.0.8/24
+
+Operating System:
+  NAME="Oracle Linux Server"
+  VERSION="9.5"
+  ID="ol"
+
+Kernel Version: 5.15.0-307.178.5.el9uek.x86_64
+
+[0;34m------------------------------------------------------------[0m
+[0;34mZDM INSTALLATION[0m
+[0;34m------------------------------------------------------------[0m
+ZDM_HOME: NOT SET
+  ZDM not found
+
+[0;34m------------------------------------------------------------[0m
+[0;34mJAVA CONFIGURATION[0m
+[0;34m------------------------------------------------------------[0m
+JAVA_HOME: NOT SET
+
+Java Version:
+  Java not found
+
+[0;34m------------------------------------------------------------[0m
+[0;34mOCI CLI CONFIGURATION[0m
+[0;34m------------------------------------------------------------[0m
+OCI CLI Version:
+  OCI CLI not installed
+
+OCI Config Location:
+  OCI config not found at /home/azureuser/.oci/config
+
+OCI API Key Files:
+
+OCI Connectivity Test:
+  OCI connectivity: FAILED or not configured
+
+[0;34m------------------------------------------------------------[0m
+[0;34mSSH CONFIGURATION[0m
+[0;34m------------------------------------------------------------[0m
+SSH Directory Contents:
+total 16
+drwx------.  2 azureuser azureuser   71 Dec 18 18:00 .
+drwx------. 10 azureuser azureuser 4096 Jan 29 15:08 ..
+-rw-------.  1 azureuser azureuser  572 Dec 18 11:48 authorized_keys
+-rw-------.  1 azureuser azureuser  736 Dec 18 18:00 known_hosts
+-rw-r--r--.  1 azureuser azureuser  172 Dec 18 18:00 known_hosts.old
+
+Available SSH Keys:
+
+SSH Config (~/.ssh/config):
+  ~/.ssh/config not found
+
+[0;34m------------------------------------------------------------[0m
+[0;34mCREDENTIAL FILES SEARCH[0m
+[0;34m------------------------------------------------------------[0m
+Searching for potential credential files...
+
+Files containing 'password' in name (in home directory):
+
+ZDM Credential Store:
+  ZDM credential store not found
+
+[0;34m------------------------------------------------------------[0m
+[0;34mNETWORK CONFIGURATION[0m
+[0;34m------------------------------------------------------------[0m
+IP Addresses:
+  127.0.0.1/8
+  10.1.0.8/24
+
+Routing Table:
+  default via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+  10.1.0.0/24 dev eth0 proto kernel scope link src 10.1.0.8 metric 100 
+  168.63.129.16 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+  169.254.169.254 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+
+DNS Configuration:
+  search s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+  nameserver 168.63.129.16
+
+[0;34m------------------------------------------------------------[0m
+[0;34mZDM LOGS[0m
+[0;34m------------------------------------------------------------[0m
+  ZDM_HOME not set - cannot locate logs
+
+[0;34m------------------------------------------------------------[0m
+[0;34mDISK SPACE FOR ZDM OPERATIONS[0m
+[0;34m------------------------------------------------------------[0m
+Disk Space Usage:
+Filesystem                  Size  Used Avail Use% Mounted on
+/dev/mapper/rootvg-rootlv    39G   14G   25G  36% /
+/dev/mapper/rootvg-crashlv   10G  104M  9.9G   2% /var/crash
+/dev/sda2                   736M  387M  350M  53% /boot
+/dev/sda5                    99M  6.3M   93M   7% /boot/efi
+/dev/sdb1                    16G   28K   15G   1% /mnt
+
+ZDM Home Disk Space:
+  ZDM_HOME not set
+
+Home Directory Space:
+2.6G	/home/azureuser
+
+[0;34m------------------------------------------------------------[0m
+[0;34mNETWORK LATENCY TESTS[0m
+[0;34m------------------------------------------------------------[0m
+Ping to Source Database Server (proddb01.corp.example.com):
+
+Ping to Target Database Server (proddb-oda.eastus.azure.example.com):
+
+SSH Connectivity Tests:
+  Source: Testing SSH port 22 to proddb01.corp.example.com...
+    Port 22: CLOSED or timeout
+  Target: Testing SSH port 22 to proddb-oda.eastus.azure.example.com...
+    Port 22: CLOSED or timeout
+
+Database Port Tests (1521):
+  Source: Testing port 1521 to proddb01.corp.example.com...
+    Port 1521: CLOSED or timeout
+  Target: Testing port 1521 to proddb-oda.eastus.azure.example.com...
+    Port 1521: CLOSED or timeout
+
+[0;36m============================================================[0m
+[0;36mDISCOVERY COMPLETE[0m
+[0;36m============================================================[0m
+Text Report: ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260130_125849.txt
+JSON Summary: ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260130_125849.json
+[0;32m[SUCCESS][0m All sections completed successfully
