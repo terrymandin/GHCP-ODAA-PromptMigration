@@ -250,16 +250,44 @@ discover_zdm_installation() {
     add_json "zdm_home" "${ZDM_HOME:-NOT FOUND}"
     
     if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}" ]; then
-        print_section "ZDM Version"
-        local zdm_version=$(run_zdm_cmd "zdmcli -version" 2>/dev/null | head -5)
-        print_output "$zdm_version"
-        add_json "zdm_version" "$(echo "$zdm_version" | head -1)"
+        # Check if zdmcli binary exists and is executable
+        print_section "ZDM Installation Verification"
+        if [ -f "${ZDM_HOME}/bin/zdmcli" ]; then
+            print_info "zdmcli binary" "FOUND at ${ZDM_HOME}/bin/zdmcli"
+            add_json "zdm_installed" "true"
+            
+            # Run zdmcli without args to verify it works (shows usage)
+            local zdm_usage=$(run_zdm_cmd "zdmcli" 2>&1 | head -10)
+            print_output "$zdm_usage"
+            
+            if echo "$zdm_usage" | grep -qi "usage\|migrate\|database"; then
+                add_json "zdm_verified" "true"
+                print_info "ZDM Status" "INSTALLED AND WORKING"
+            else
+                add_json "zdm_verified" "false"
+                print_info "ZDM Status" "Binary found but may have issues"
+            fi
+        else
+            print_info "zdmcli binary" "NOT FOUND"
+            add_json "zdm_installed" "false"
+        fi
+        
+        # Check for ZDM response file templates
+        print_section "ZDM Response File Templates"
+        local rsp_files=$(ls -la "${ZDM_HOME}/rhp/zdm/template/"*.rsp 2>/dev/null)
+        if [ -n "$rsp_files" ]; then
+            print_output "$rsp_files"
+            add_json "zdm_templates_found" "true"
+        else
+            print_info "Templates" "No .rsp templates found"
+            add_json "zdm_templates_found" "false"
+        fi
         
         print_section "ZDM Service Status"
         local zdm_status=$(run_zdm_cmd "zdmservice status" 2>/dev/null)
         print_output "$zdm_status"
         
-        if echo "$zdm_status" | grep -q "running"; then
+        if echo "$zdm_status" | grep -qi "running.*true\|Running:.*true"; then
             add_json "zdm_service_status" "running"
         else
             add_json "zdm_service_status" "not running"
@@ -273,6 +301,7 @@ discover_zdm_installation() {
         add_json "active_migration_jobs" "$job_count"
     else
         print_info "ZDM Status" "ZDM_HOME not found or not accessible"
+        add_json "zdm_installed" "false"
         add_json "zdm_service_status" "not installed"
     fi
 }

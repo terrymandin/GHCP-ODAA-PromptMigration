@@ -133,9 +133,17 @@ Generate a bash script to run on the **ZDM jumpbox server** (executed via SSH as
 
 **ZDM Installation:**
 - ZDM_HOME location (must detect even when running as different user than zdmuser)
-- ZDM version
-- ZDM service status
+- ZDM installation verification (check if `$ZDM_HOME/bin/zdmcli` exists and is executable)
+- ZDM service status (via `zdmservice status`)
 - Active migration jobs
+
+**IMPORTANT: ZDM Version Detection:**
+ZDM does NOT support a `-version` flag. To verify ZDM is installed:
+1. Check if `$ZDM_HOME/bin/zdmcli` exists and is executable
+2. Run `$ZDM_HOME/bin/zdmcli` without arguments - it will display usage information if installed correctly
+3. Check for ZDM response file templates at `$ZDM_HOME/rhp/zdm/template/*.rsp`
+4. Use `zdmservice status` to check if the ZDM service is running
+Do NOT use `zdmcli -version` as this is an invalid command.
 
 **IMPORTANT: ZDM Detection Requirements:**
 The script may be executed as a different user (e.g., azureuser) than the ZDM software owner (zdmuser). The script MUST detect ZDM using these methods in priority order:
