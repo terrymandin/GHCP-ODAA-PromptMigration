@@ -187,6 +187,32 @@ HOSTNAME=$(hostname)
 OUTPUT_FILE="./zdm_source_discovery_${HOSTNAME}_${TIMESTAMP}.txt"
 JSON_FILE="./zdm_source_discovery_${HOSTNAME}_${TIMESTAMP}.json"
 
+# Helper function to run SQL - executes as oracle user via sudo if needed
+run_sql() {
+    local sql_query="$1"
+    if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
+        local sqlplus_cmd="$ORACLE_HOME/bin/sqlplus -s / as sysdba"
+        local sql_script=$(cat <<EOSQL
+SET PAGESIZE 1000
+SET LINESIZE 200
+SET FEEDBACK OFF
+SET HEADING ON
+SET ECHO OFF
+$sql_query
+EOSQL
+)
+        # Execute as oracle user - use sudo if current user is not oracle
+        if [ "$(whoami)" = "oracle" ]; then
+            echo "$sql_script" | $sqlplus_cmd
+        else
+            echo "$sql_script" | sudo -u oracle -E ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd
+        fi
+    else
+        echo "ERROR: ORACLE_HOME or ORACLE_SID not set"
+        return 1
+    fi
+}
+
 # ... comprehensive discovery logic with resilient sections ...
 
 # Each section wrapped in error handling

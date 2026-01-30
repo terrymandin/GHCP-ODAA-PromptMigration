@@ -1,214 +1,264 @@
 #!/bin/bash
-# =============================================================================
 # ZDM Discovery Orchestration Script
-# =============================================================================
 # Project: PRODDB Migration to Oracle Database@Azure
-# Generated: 2026-01-29
-# =============================================================================
-# This script orchestrates the discovery process across all servers:
-# - Source database server
-# - Target Oracle Database@Azure server
-# - ZDM jumpbox server
-# =============================================================================
+# Generated: 2026-01-30
 
 # =============================================================================
-# Color Output
+# CONFIGURATION
 # =============================================================================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m' # No Color
 
-# =============================================================================
-# Configuration - Pre-configured for PRODDB Migration
-# =============================================================================
 # Server hostnames
 SOURCE_HOST="${SOURCE_HOST:-proddb01.corp.example.com}"
 TARGET_HOST="${TARGET_HOST:-proddb-oda.eastus.azure.example.com}"
 ZDM_HOST="${ZDM_HOST:-zdm-jumpbox.corp.example.com}"
 
-# User accounts for each server
+# SSH users
 SOURCE_USER="${SOURCE_USER:-oracle}"
 TARGET_USER="${TARGET_USER:-opc}"
 ZDM_USER="${ZDM_USER:-zdmuser}"
 
-# SSH Keys - typically different for each server environment
+# SSH keys (separate keys for each security domain)
 SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-~/.ssh/source_db_key}"
 TARGET_SSH_KEY="${TARGET_SSH_KEY:-~/.ssh/oda_azure_key}"
 ZDM_SSH_KEY="${ZDM_SSH_KEY:-~/.ssh/zdm_jumpbox_key}"
 
-# Explicit environment variable overrides (optional - use when auto-detection fails)
-# These are passed to remote scripts via environment
-ZDM_REMOTE_ZDM_HOME="${ZDM_REMOTE_ZDM_HOME:-}"
-ZDM_REMOTE_JAVA_HOME="${ZDM_REMOTE_JAVA_HOME:-}"
-SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-}"
-SOURCE_REMOTE_ORACLE_SID="${SOURCE_REMOTE_ORACLE_SID:-}"
-TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-}"
-TARGET_REMOTE_ORACLE_SID="${TARGET_REMOTE_ORACLE_SID:-}"
+# Database name (for output directory)
+DB_NAME="${DB_NAME:-PRODDB}"
 
-# Output directory - default to Artifacts directory (relative to script location)
+# Output directory - defaults to Artifacts directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_DIR="${OUTPUT_DIR:-$SCRIPT_DIR/../Discovery}"
+OUTPUT_BASE="${OUTPUT_DIR:-$(dirname "$SCRIPT_DIR")/Discovery}"
 
-# SSH options
-SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -o BatchMode=yes"
+# Optional environment overrides (passed to remote scripts)
+# These are used when auto-detection fails
+# SOURCE_REMOTE_ORACLE_HOME - Oracle home on source server
+# SOURCE_REMOTE_ORACLE_SID - Oracle SID on source server
+# TARGET_REMOTE_ORACLE_HOME - Oracle home on target server
+# TARGET_REMOTE_ORACLE_SID - Oracle SID on target server
+# ZDM_REMOTE_ZDM_HOME - ZDM home on ZDM server
+# ZDM_REMOTE_JAVA_HOME - Java home on ZDM server
 
-# Remote working directory
-REMOTE_WORK_DIR="/tmp/zdm_discovery"
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-# =============================================================================
-# Error Tracking
-# =============================================================================
+# Tracking variables
+ERRORS=0
 SOURCE_SUCCESS=false
 TARGET_SUCCESS=false
 ZDM_SUCCESS=false
 
 # =============================================================================
-# Helper Functions
+# HELPER FUNCTIONS
 # =============================================================================
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+
+log_header() {
+    echo -e "\n${CYAN}===============================================================================${NC}"
+    echo -e "${CYAN}  $1${NC}"
+    echo -e "${CYAN}===============================================================================${NC}\n"
+}
+
+log_section() {
+    echo -e "\n${BLUE}>>> $1${NC}"
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo -e "${GREEN}[OK]${NC} $1"
 }
 
 log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-log_header() {
-    echo ""
-    echo -e "${BOLD}${CYAN}================================================================================${NC}"
-    echo -e "${BOLD}${CYAN} $1${NC}"
-    echo -e "${BOLD}${CYAN}================================================================================${NC}"
-    echo ""
-}
+show_help() {
+    cat <<EOF
+ZDM Discovery Orchestration Script
+Project: PRODDB Migration to Oracle Database@Azure
 
-usage() {
-    cat << EOF
-Usage: $(basename "$0") [OPTIONS]
-
-ZDM Discovery Orchestration Script for PRODDB Migration
+Usage: $0 [OPTIONS]
 
 Options:
   -h, --help        Show this help message
   -c, --config      Display current configuration
   -t, --test        Test SSH connectivity only (no discovery)
-  -s, --source-only Run discovery on source server only
-  -T, --target-only Run discovery on target server only
-  -z, --zdm-only    Run discovery on ZDM server only
-  -o, --output DIR  Set output directory (default: $OUTPUT_DIR)
+  --source-only     Run discovery only on source server
+  --target-only     Run discovery only on target server
+  --zdm-only        Run discovery only on ZDM server
 
 Environment Variables:
-  SOURCE_HOST              Source database hostname (default: proddb01.corp.example.com)
-  TARGET_HOST              Target database hostname (default: proddb-oda.eastus.azure.example.com)
-  ZDM_HOST                 ZDM server hostname (default: zdm-jumpbox.corp.example.com)
-  SOURCE_USER              Source server user (default: oracle)
-  TARGET_USER              Target server user (default: opc)
-  ZDM_USER                 ZDM server user (default: zdmuser)
-  SOURCE_SSH_KEY           SSH key for source server (default: ~/.ssh/source_db_key)
-  TARGET_SSH_KEY           SSH key for target server (default: ~/.ssh/oda_azure_key)
-  ZDM_SSH_KEY              SSH key for ZDM server (default: ~/.ssh/zdm_jumpbox_key)
-  
-  # Optional overrides for remote environments (use if auto-detection fails):
-  SOURCE_REMOTE_ORACLE_HOME   Oracle home on source server
-  SOURCE_REMOTE_ORACLE_SID    Oracle SID on source server
-  TARGET_REMOTE_ORACLE_HOME   Oracle home on target server
-  TARGET_REMOTE_ORACLE_SID    Oracle SID on target server
-  ZDM_REMOTE_ZDM_HOME         ZDM home on ZDM server
-  ZDM_REMOTE_JAVA_HOME        Java home on ZDM server
+  SOURCE_HOST           Source database server hostname (default: proddb01.corp.example.com)
+  TARGET_HOST           Target Oracle Database@Azure hostname (default: proddb-oda.eastus.azure.example.com)
+  ZDM_HOST              ZDM jumpbox server hostname (default: zdm-jumpbox.corp.example.com)
+  SOURCE_USER           SSH user for source server (default: oracle)
+  TARGET_USER           SSH user for target server (default: opc)
+  ZDM_USER              SSH user for ZDM server (default: zdmuser)
+  SOURCE_SSH_KEY        SSH key for source server (default: ~/.ssh/source_db_key)
+  TARGET_SSH_KEY        SSH key for target server (default: ~/.ssh/oda_azure_key)
+  ZDM_SSH_KEY           SSH key for ZDM server (default: ~/.ssh/zdm_jumpbox_key)
+  DB_NAME               Database name for output directory (default: PRODDB)
+  OUTPUT_DIR            Output directory for discovery results
+
+Optional Environment Overrides (when auto-detection fails):
+  SOURCE_REMOTE_ORACLE_HOME    Oracle home path on source server
+  SOURCE_REMOTE_ORACLE_SID     Oracle SID on source server
+  TARGET_REMOTE_ORACLE_HOME    Oracle home path on target server
+  TARGET_REMOTE_ORACLE_SID     Oracle SID on target server
+  ZDM_REMOTE_ZDM_HOME          ZDM home path on ZDM server
+  ZDM_REMOTE_JAVA_HOME         Java home path on ZDM server
+
+Output:
+  Discovery results are saved to:
+  ${OUTPUT_BASE}/
+    ├── source/   # Source server discovery results
+    ├── target/   # Target server discovery results
+    └── server/   # ZDM server discovery results
 
 Examples:
-  # Run full discovery with default configuration
-  ./$(basename "$0")
-  
-  # Test connectivity before running discovery
-  ./$(basename "$0") --test
-  
-  # Run with custom SSH keys
-  SOURCE_SSH_KEY=~/.ssh/id_rsa TARGET_SSH_KEY=~/.ssh/id_rsa ./$(basename "$0")
-  
-  # Run only source discovery with explicit Oracle home
-  SOURCE_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19c/dbhome_1 ./$(basename "$0") --source-only
+  # Run full discovery with defaults
+  $0
+
+  # Test connectivity only
+  $0 --test
+
+  # Run with custom SSH key
+  SOURCE_SSH_KEY=~/.ssh/custom_key $0
+
+  # Override Oracle home when auto-detection fails
+  SOURCE_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19.0.0.0/dbhome_1 $0
 
 EOF
 }
 
 show_config() {
     log_header "Current Configuration"
-    
-    echo "Server Configuration:"
-    echo "  Source Host:        $SOURCE_HOST"
-    echo "  Source User:        $SOURCE_USER"
-    echo "  Source SSH Key:     $SOURCE_SSH_KEY"
+    echo "Source Server:"
+    echo "  Host: $SOURCE_HOST"
+    echo "  User: $SOURCE_USER"
+    echo "  SSH Key: $SOURCE_SSH_KEY"
     echo ""
-    echo "  Target Host:        $TARGET_HOST"
-    echo "  Target User:        $TARGET_USER"
-    echo "  Target SSH Key:     $TARGET_SSH_KEY"
+    echo "Target Server (Oracle Database@Azure):"
+    echo "  Host: $TARGET_HOST"
+    echo "  User: $TARGET_USER"
+    echo "  SSH Key: $TARGET_SSH_KEY"
     echo ""
-    echo "  ZDM Host:           $ZDM_HOST"
-    echo "  ZDM User:           $ZDM_USER"
-    echo "  ZDM SSH Key:        $ZDM_SSH_KEY"
+    echo "ZDM Server:"
+    echo "  Host: $ZDM_HOST"
+    echo "  User: $ZDM_USER"
+    echo "  SSH Key: $ZDM_SSH_KEY"
     echo ""
-    echo "Output Directory:     $OUTPUT_DIR"
+    echo "Output Configuration:"
+    echo "  Database Name: $DB_NAME"
+    echo "  Output Directory: $OUTPUT_BASE"
+    echo "  Script Directory: $SCRIPT_DIR"
     echo ""
-    echo "Environment Overrides (if set):"
+    echo "Optional Overrides (if set):"
     echo "  SOURCE_REMOTE_ORACLE_HOME: ${SOURCE_REMOTE_ORACLE_HOME:-<not set>}"
-    echo "  SOURCE_REMOTE_ORACLE_SID:  ${SOURCE_REMOTE_ORACLE_SID:-<not set>}"
+    echo "  SOURCE_REMOTE_ORACLE_SID: ${SOURCE_REMOTE_ORACLE_SID:-<not set>}"
     echo "  TARGET_REMOTE_ORACLE_HOME: ${TARGET_REMOTE_ORACLE_HOME:-<not set>}"
-    echo "  TARGET_REMOTE_ORACLE_SID:  ${TARGET_REMOTE_ORACLE_SID:-<not set>}"
-    echo "  ZDM_REMOTE_ZDM_HOME:       ${ZDM_REMOTE_ZDM_HOME:-<not set>}"
-    echo "  ZDM_REMOTE_JAVA_HOME:      ${ZDM_REMOTE_JAVA_HOME:-<not set>}"
+    echo "  TARGET_REMOTE_ORACLE_SID: ${TARGET_REMOTE_ORACLE_SID:-<not set>}"
+    echo "  ZDM_REMOTE_ZDM_HOME: ${ZDM_REMOTE_ZDM_HOME:-<not set>}"
+    echo "  ZDM_REMOTE_JAVA_HOME: ${ZDM_REMOTE_JAVA_HOME:-<not set>}"
 }
 
-# =============================================================================
-# SSH Connectivity Test
-# =============================================================================
-test_ssh_connectivity() {
-    local host=$1
-    local user=$2
-    local ssh_key=$3
-    local name=$4
+validate_config() {
+    log_section "Validating Configuration"
+    local valid=true
     
-    echo -n "  Testing $name ($user@$host)... "
+    # Check SSH keys exist
+    local source_key=$(eval echo "$SOURCE_SSH_KEY")
+    local target_key=$(eval echo "$TARGET_SSH_KEY")
+    local zdm_key=$(eval echo "$ZDM_SSH_KEY")
     
-    # Expand tilde in ssh_key path
-    ssh_key="${ssh_key/#\~/$HOME}"
+    if [ ! -f "$source_key" ]; then
+        log_error "Source SSH key not found: $source_key"
+        valid=false
+    else
+        log_success "Source SSH key found: $source_key"
+    fi
     
-    if [ ! -f "$ssh_key" ]; then
-        echo -e "${RED}FAILED${NC} (SSH key not found: $ssh_key)"
+    if [ ! -f "$target_key" ]; then
+        log_error "Target SSH key not found: $target_key"
+        valid=false
+    else
+        log_success "Target SSH key found: $target_key"
+    fi
+    
+    if [ ! -f "$zdm_key" ]; then
+        log_error "ZDM SSH key not found: $zdm_key"
+        valid=false
+    else
+        log_success "ZDM SSH key found: $zdm_key"
+    fi
+    
+    # Check discovery scripts exist
+    if [ ! -f "$SCRIPT_DIR/zdm_source_discovery.sh" ]; then
+        log_error "Source discovery script not found: $SCRIPT_DIR/zdm_source_discovery.sh"
+        valid=false
+    else
+        log_success "Source discovery script found"
+    fi
+    
+    if [ ! -f "$SCRIPT_DIR/zdm_target_discovery.sh" ]; then
+        log_error "Target discovery script not found: $SCRIPT_DIR/zdm_target_discovery.sh"
+        valid=false
+    else
+        log_success "Target discovery script found"
+    fi
+    
+    if [ ! -f "$SCRIPT_DIR/zdm_server_discovery.sh" ]; then
+        log_error "ZDM server discovery script not found: $SCRIPT_DIR/zdm_server_discovery.sh"
+        valid=false
+    else
+        log_success "ZDM server discovery script found"
+    fi
+    
+    if [ "$valid" = false ]; then
+        log_error "Configuration validation failed"
         return 1
     fi
     
-    if ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "echo 'OK'" 2>/dev/null; then
-        echo -e "${GREEN}OK${NC}"
+    log_success "Configuration validation passed"
+    return 0
+}
+
+test_ssh_connectivity() {
+    local host="$1"
+    local user="$2"
+    local key="$3"
+    local name="$4"
+    
+    local key_path=$(eval echo "$key")
+    
+    log_section "Testing SSH connectivity to $name ($user@$host)"
+    
+    if ssh -i "$key_path" -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no \
+       "$user@$host" "echo 'SSH connection successful'" 2>/dev/null; then
+        log_success "SSH connection to $name successful"
         return 0
     else
-        echo -e "${RED}FAILED${NC}"
+        log_error "SSH connection to $name failed"
         return 1
     fi
 }
 
 test_all_connectivity() {
     log_header "Testing SSH Connectivity"
-    
     local all_ok=true
     
-    test_ssh_connectivity "$SOURCE_HOST" "$SOURCE_USER" "$SOURCE_SSH_KEY" "Source" || all_ok=false
-    test_ssh_connectivity "$TARGET_HOST" "$TARGET_USER" "$TARGET_SSH_KEY" "Target" || all_ok=false
-    test_ssh_connectivity "$ZDM_HOST" "$ZDM_USER" "$ZDM_SSH_KEY" "ZDM" || all_ok=false
+    test_ssh_connectivity "$SOURCE_HOST" "$SOURCE_USER" "$SOURCE_SSH_KEY" "Source Server" || all_ok=false
+    test_ssh_connectivity "$TARGET_HOST" "$TARGET_USER" "$TARGET_SSH_KEY" "Target Server" || all_ok=false
+    test_ssh_connectivity "$ZDM_HOST" "$ZDM_USER" "$ZDM_SSH_KEY" "ZDM Server" || all_ok=false
     
     echo ""
-    if $all_ok; then
+    if [ "$all_ok" = true ]; then
         log_success "All connectivity tests passed"
         return 0
     else
@@ -217,239 +267,231 @@ test_all_connectivity() {
     fi
 }
 
-# =============================================================================
-# Discovery Execution
-# =============================================================================
-run_discovery() {
-    local host=$1
-    local user=$2
-    local ssh_key=$3
-    local script=$4
-    local target_type=$5
-    local env_overrides=$6
-    local output_subdir=$7
+run_remote_discovery() {
+    local host="$1"
+    local user="$2"
+    local key="$3"
+    local script="$4"
+    local output_subdir="$5"
+    local name="$6"
+    local env_overrides="$7"
     
-    log_info "Running discovery on $target_type ($host)..."
+    local key_path=$(eval echo "$key")
+    local output_dir="${OUTPUT_BASE}/${output_subdir}"
     
-    # Expand tilde in ssh_key path
-    ssh_key="${ssh_key/#\~/$HOME}"
+    log_section "Running discovery on $name ($user@$host)"
     
-    # Verify SSH key exists
-    if [ ! -f "$ssh_key" ]; then
-        log_error "SSH key not found: $ssh_key"
-        return 1
-    fi
-    
-    # Create remote working directory
-    log_info "Creating remote working directory..."
-    if ! ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "mkdir -p $REMOTE_WORK_DIR" 2>/dev/null; then
-        log_error "Failed to create remote directory on $host"
-        return 1
-    fi
+    # Create output directory
+    mkdir -p "$output_dir"
     
     # Copy discovery script to remote server
-    log_info "Copying discovery script to $host..."
-    if ! scp $SSH_OPTS -i "$ssh_key" "$SCRIPT_DIR/$script" "$user@$host:$REMOTE_WORK_DIR/" 2>/dev/null; then
-        log_error "Failed to copy script to $host"
+    log_success "Copying discovery script to $name..."
+    if ! scp -i "$key_path" -o StrictHostKeyChecking=no \
+         "$SCRIPT_DIR/$script" "$user@$host:/tmp/$script" 2>/dev/null; then
+        log_error "Failed to copy discovery script to $name"
         return 1
     fi
     
-    # Execute discovery script using login shell
-    # This ensures .bash_profile and .bashrc are sourced properly
-    log_info "Executing discovery script..."
-    ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "bash -l -c '
-        # Apply explicit environment overrides if provided
-        $env_overrides
-        
-        # Change to working directory and run script
-        cd $REMOTE_WORK_DIR
-        chmod +x $script
-        ./$script
-    '" 2>&1
+    # Build remote command with environment overrides
+    local remote_cmd="chmod +x /tmp/$script && cd /tmp && $env_overrides bash -l -c '/tmp/$script'"
     
-    local exit_code=$?
+    # Execute discovery script remotely
+    log_success "Executing discovery on $name..."
+    if ! ssh -i "$key_path" -o StrictHostKeyChecking=no \
+         "$user@$host" "$remote_cmd" 2>&1 | tee "${output_dir}/discovery_execution.log"; then
+        log_warning "Discovery script execution had issues on $name (continuing anyway)"
+    fi
     
     # Collect results
-    log_info "Collecting discovery results..."
-    mkdir -p "$OUTPUT_DIR/$output_subdir"
-    
-    # Copy output files
-    scp $SSH_OPTS -i "$ssh_key" "$user@$host:$REMOTE_WORK_DIR/zdm_*_discovery_*.txt" "$OUTPUT_DIR/$output_subdir/" 2>/dev/null
-    scp $SSH_OPTS -i "$ssh_key" "$user@$host:$REMOTE_WORK_DIR/zdm_*_discovery_*.json" "$OUTPUT_DIR/$output_subdir/" 2>/dev/null
-    
-    # Clean up remote working directory
-    log_info "Cleaning up remote directory..."
-    ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "rm -rf $REMOTE_WORK_DIR" 2>/dev/null
-    
-    if [ $exit_code -eq 0 ]; then
-        log_success "Discovery completed for $target_type"
-        return 0
+    log_success "Collecting discovery results from $name..."
+    if scp -i "$key_path" -o StrictHostKeyChecking=no \
+       "$user@$host:/tmp/zdm_*_discovery_*.txt" "$output_dir/" 2>/dev/null; then
+        log_success "Text report collected"
     else
-        log_warning "Discovery completed with warnings for $target_type (exit code: $exit_code)"
-        return 0  # Still return 0 since script completed
+        log_warning "No text report found on $name"
+    fi
+    
+    if scp -i "$key_path" -o StrictHostKeyChecking=no \
+       "$user@$host:/tmp/zdm_*_discovery_*.json" "$output_dir/" 2>/dev/null; then
+        log_success "JSON summary collected"
+    else
+        log_warning "No JSON summary found on $name"
+    fi
+    
+    # Cleanup remote files
+    ssh -i "$key_path" -o StrictHostKeyChecking=no \
+        "$user@$host" "rm -f /tmp/$script /tmp/zdm_*_discovery_*" 2>/dev/null || true
+    
+    log_success "Discovery completed on $name"
+    return 0
+}
+
+run_source_discovery() {
+    local env_overrides=""
+    [ -n "${SOURCE_REMOTE_ORACLE_HOME:-}" ] && env_overrides="$env_overrides ORACLE_HOME_OVERRIDE='$SOURCE_REMOTE_ORACLE_HOME'"
+    [ -n "${SOURCE_REMOTE_ORACLE_SID:-}" ] && env_overrides="$env_overrides ORACLE_SID_OVERRIDE='$SOURCE_REMOTE_ORACLE_SID'"
+    
+    if run_remote_discovery "$SOURCE_HOST" "$SOURCE_USER" "$SOURCE_SSH_KEY" \
+       "zdm_source_discovery.sh" "source" "Source Server" "$env_overrides"; then
+        SOURCE_SUCCESS=true
+    else
+        ERRORS=$((ERRORS + 1))
     fi
 }
 
+run_target_discovery() {
+    local env_overrides=""
+    [ -n "${TARGET_REMOTE_ORACLE_HOME:-}" ] && env_overrides="$env_overrides ORACLE_HOME_OVERRIDE='$TARGET_REMOTE_ORACLE_HOME'"
+    [ -n "${TARGET_REMOTE_ORACLE_SID:-}" ] && env_overrides="$env_overrides ORACLE_SID_OVERRIDE='$TARGET_REMOTE_ORACLE_SID'"
+    
+    if run_remote_discovery "$TARGET_HOST" "$TARGET_USER" "$TARGET_SSH_KEY" \
+       "zdm_target_discovery.sh" "target" "Target Server" "$env_overrides"; then
+        TARGET_SUCCESS=true
+    else
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+run_zdm_discovery() {
+    local env_overrides=""
+    [ -n "${ZDM_REMOTE_ZDM_HOME:-}" ] && env_overrides="$env_overrides ZDM_HOME_OVERRIDE='$ZDM_REMOTE_ZDM_HOME'"
+    [ -n "${ZDM_REMOTE_JAVA_HOME:-}" ] && env_overrides="$env_overrides JAVA_HOME_OVERRIDE='$ZDM_REMOTE_JAVA_HOME'"
+    
+    if run_remote_discovery "$ZDM_HOST" "$ZDM_USER" "$ZDM_SSH_KEY" \
+       "zdm_server_discovery.sh" "server" "ZDM Server" "$env_overrides"; then
+        ZDM_SUCCESS=true
+    else
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+print_summary() {
+    log_header "Discovery Summary"
+    
+    echo "Results saved to: $OUTPUT_BASE"
+    echo ""
+    echo "Server Status:"
+    if [ "$SOURCE_SUCCESS" = true ]; then
+        echo -e "  Source Server:  ${GREEN}✓ SUCCESS${NC}"
+    else
+        echo -e "  Source Server:  ${RED}✗ FAILED${NC}"
+    fi
+    
+    if [ "$TARGET_SUCCESS" = true ]; then
+        echo -e "  Target Server:  ${GREEN}✓ SUCCESS${NC}"
+    else
+        echo -e "  Target Server:  ${RED}✗ FAILED${NC}"
+    fi
+    
+    if [ "$ZDM_SUCCESS" = true ]; then
+        echo -e "  ZDM Server:     ${GREEN}✓ SUCCESS${NC}"
+    else
+        echo -e "  ZDM Server:     ${RED}✗ FAILED${NC}"
+    fi
+    
+    echo ""
+    echo "Output Files:"
+    ls -la "$OUTPUT_BASE"/source/*.txt 2>/dev/null || echo "  (No source reports)"
+    ls -la "$OUTPUT_BASE"/target/*.txt 2>/dev/null || echo "  (No target reports)"
+    ls -la "$OUTPUT_BASE"/server/*.txt 2>/dev/null || echo "  (No ZDM server reports)"
+    
+    echo ""
+    if [ $ERRORS -eq 0 ]; then
+        echo -e "${GREEN}All discovery operations completed successfully!${NC}"
+    else
+        echo -e "${YELLOW}Discovery completed with $ERRORS error(s).${NC}"
+        echo "Review the individual discovery logs for details."
+    fi
+    
+    echo ""
+    echo "Next Steps:"
+    echo "  1. Review the discovery reports in $OUTPUT_BASE"
+    echo "  2. Proceed to Step 1: Discovery Questionnaire"
+    echo "     Use the discovery data to complete the questionnaire"
+}
+
 # =============================================================================
-# Main Execution
+# MAIN EXECUTION
 # =============================================================================
+
 main() {
-    local run_source=true
-    local run_target=true
-    local run_zdm=true
-    local test_only=false
-    
-    # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            -h|--help)
-                usage
-                exit 0
-                ;;
-            -c|--config)
-                show_config
-                exit 0
-                ;;
-            -t|--test)
-                test_only=true
-                shift
-                ;;
-            -s|--source-only)
-                run_target=false
-                run_zdm=false
-                shift
-                ;;
-            -T|--target-only)
-                run_source=false
-                run_zdm=false
-                shift
-                ;;
-            -z|--zdm-only)
-                run_source=false
-                run_target=false
-                shift
-                ;;
-            -o|--output)
-                OUTPUT_DIR="$2"
-                shift 2
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                usage
-                exit 1
-                ;;
-        esac
-    done
-    
     log_header "ZDM Discovery Orchestration"
     echo "Project: PRODDB Migration to Oracle Database@Azure"
     echo "Timestamp: $(date)"
     echo ""
     
-    # Show configuration
-    show_config
-    
-    # Test connectivity
-    if ! test_all_connectivity; then
-        if $test_only; then
-            exit 1
-        fi
-        log_warning "Proceeding despite connectivity failures (will skip failed servers)"
+    # Validate configuration
+    if ! validate_config; then
+        log_error "Please fix configuration issues before running discovery"
+        exit 1
     fi
     
-    if $test_only; then
-        log_info "Test mode - exiting without running discovery"
-        exit 0
+    # Create output directories
+    mkdir -p "$OUTPUT_BASE/source"
+    mkdir -p "$OUTPUT_BASE/target"
+    mkdir -p "$OUTPUT_BASE/server"
+    
+    # Test connectivity first
+    test_all_connectivity
+    
+    # Run discoveries (continue on failure)
+    log_header "Running Discovery Scripts"
+    
+    run_source_discovery
+    run_target_discovery
+    run_zdm_discovery
+    
+    # Print summary
+    print_summary
+    
+    # Exit with error code if any failures
+    if [ $ERRORS -gt 0 ]; then
+        exit 1
     fi
-    
-    # Create output directory structure
-    log_info "Creating output directory structure..."
-    mkdir -p "$OUTPUT_DIR/source"
-    mkdir -p "$OUTPUT_DIR/target"
-    mkdir -p "$OUTPUT_DIR/server"
-    
-    # Run discoveries
-    if $run_source; then
-        log_header "Source Database Discovery"
-        local source_env=""
-        [ -n "$SOURCE_REMOTE_ORACLE_HOME" ] && source_env="export ORACLE_HOME_OVERRIDE='$SOURCE_REMOTE_ORACLE_HOME'; "
-        [ -n "$SOURCE_REMOTE_ORACLE_SID" ] && source_env="${source_env}export ORACLE_SID_OVERRIDE='$SOURCE_REMOTE_ORACLE_SID'; "
-        
-        if run_discovery "$SOURCE_HOST" "$SOURCE_USER" "$SOURCE_SSH_KEY" "zdm_source_discovery.sh" "Source" "$source_env" "source"; then
-            SOURCE_SUCCESS=true
-        fi
-    fi
-    
-    if $run_target; then
-        log_header "Target Database Discovery"
-        local target_env=""
-        [ -n "$TARGET_REMOTE_ORACLE_HOME" ] && target_env="export ORACLE_HOME_OVERRIDE='$TARGET_REMOTE_ORACLE_HOME'; "
-        [ -n "$TARGET_REMOTE_ORACLE_SID" ] && target_env="${target_env}export ORACLE_SID_OVERRIDE='$TARGET_REMOTE_ORACLE_SID'; "
-        
-        if run_discovery "$TARGET_HOST" "$TARGET_USER" "$TARGET_SSH_KEY" "zdm_target_discovery.sh" "Target" "$target_env" "target"; then
-            TARGET_SUCCESS=true
-        fi
-    fi
-    
-    if $run_zdm; then
-        log_header "ZDM Server Discovery"
-        local zdm_env=""
-        [ -n "$ZDM_REMOTE_ZDM_HOME" ] && zdm_env="export ZDM_HOME_OVERRIDE='$ZDM_REMOTE_ZDM_HOME'; "
-        [ -n "$ZDM_REMOTE_JAVA_HOME" ] && zdm_env="${zdm_env}export JAVA_HOME_OVERRIDE='$ZDM_REMOTE_JAVA_HOME'; "
-        
-        if run_discovery "$ZDM_HOST" "$ZDM_USER" "$ZDM_SSH_KEY" "zdm_server_discovery.sh" "ZDM" "$zdm_env" "server"; then
-            ZDM_SUCCESS=true
-        fi
-    fi
-    
-    # Summary
-    log_header "Discovery Summary"
-    
-    echo "Results:"
-    if $run_source; then
-        if $SOURCE_SUCCESS; then
-            echo -e "  Source:  ${GREEN}SUCCESS${NC}"
-        else
-            echo -e "  Source:  ${RED}FAILED${NC}"
-        fi
-    else
-        echo -e "  Source:  ${YELLOW}SKIPPED${NC}"
-    fi
-    
-    if $run_target; then
-        if $TARGET_SUCCESS; then
-            echo -e "  Target:  ${GREEN}SUCCESS${NC}"
-        else
-            echo -e "  Target:  ${RED}FAILED${NC}"
-        fi
-    else
-        echo -e "  Target:  ${YELLOW}SKIPPED${NC}"
-    fi
-    
-    if $run_zdm; then
-        if $ZDM_SUCCESS; then
-            echo -e "  ZDM:     ${GREEN}SUCCESS${NC}"
-        else
-            echo -e "  ZDM:     ${RED}FAILED${NC}"
-        fi
-    else
-        echo -e "  ZDM:     ${YELLOW}SKIPPED${NC}"
-    fi
-    
-    echo ""
-    echo "Output Directory: $OUTPUT_DIR"
-    echo ""
-    echo "Discovery files:"
-    ls -la "$OUTPUT_DIR"/source/*.txt "$OUTPUT_DIR"/target/*.txt "$OUTPUT_DIR"/server/*.txt 2>/dev/null || echo "  (No output files found)"
-    
-    log_header "Next Steps"
-    echo "1. Review discovery output files in $OUTPUT_DIR"
-    echo "2. Proceed to Step 1: Discovery Questionnaire"
-    echo "   - Use prompts/Phase10-Migration/ZDM/Step1-Discovery-Questionnaire.prompt.md"
-    echo "   - Attach discovery output files"
-    echo "3. Complete all questionnaire sections including business decisions"
-    echo "4. Save to Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/"
 }
 
-# Run main
-main "$@"
+# =============================================================================
+# ARGUMENT PARSING
+# =============================================================================
+
+case "${1:-}" in
+    -h|--help)
+        show_help
+        exit 0
+        ;;
+    -c|--config)
+        show_config
+        exit 0
+        ;;
+    -t|--test)
+        validate_config && test_all_connectivity
+        exit $?
+        ;;
+    --source-only)
+        log_header "ZDM Discovery - Source Server Only"
+        validate_config || exit 1
+        mkdir -p "$OUTPUT_BASE/source"
+        run_source_discovery
+        print_summary
+        exit $ERRORS
+        ;;
+    --target-only)
+        log_header "ZDM Discovery - Target Server Only"
+        validate_config || exit 1
+        mkdir -p "$OUTPUT_BASE/target"
+        run_target_discovery
+        print_summary
+        exit $ERRORS
+        ;;
+    --zdm-only)
+        log_header "ZDM Discovery - ZDM Server Only"
+        validate_config || exit 1
+        mkdir -p "$OUTPUT_BASE/server"
+        run_zdm_discovery
+        print_summary
+        exit $ERRORS
+        ;;
+    *)
+        main
+        ;;
+esac

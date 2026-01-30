@@ -334,6 +334,33 @@ All scripts should include:
   [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
   [ -n "${JAVA_HOME_OVERRIDE:-}" ] && export JAVA_HOME="$JAVA_HOME_OVERRIDE"
   ```
+- **Execute SQL as oracle user** - All `run_sql` and `run_sql_value` functions must ensure SQL commands are executed as the `oracle` user:
+  ```bash
+  run_sql() {
+      local sql_query="$1"
+      if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
+          local sqlplus_cmd="$ORACLE_HOME/bin/sqlplus -s / as sysdba"
+          local sql_script=$(cat <<EOSQL
+  SET PAGESIZE 1000
+  SET LINESIZE 200
+  SET FEEDBACK OFF
+  SET HEADING ON
+  SET ECHO OFF
+  $sql_query
+  EOSQL
+  )
+          # Execute as oracle user - use sudo if current user is not oracle
+          if [ "$(whoami)" = "oracle" ]; then
+              echo "$sql_script" | $sqlplus_cmd
+          else
+              echo "$sql_script" | sudo -u oracle -E ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd
+          fi
+      else
+          echo "ERROR: ORACLE_HOME or ORACLE_SID not set"
+          return 1
+      fi
+  }
+  ```
 - Color-coded terminal output
 - Clear section headers in output
 - Both human-readable text and machine-parseable JSON output
