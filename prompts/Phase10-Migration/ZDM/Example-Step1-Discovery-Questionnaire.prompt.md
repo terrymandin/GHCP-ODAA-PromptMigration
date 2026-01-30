@@ -21,12 +21,21 @@ Copy and use this prompt with your completed questionnaire:
 I have completed the discovery questionnaire for our PRODDB migration.
 
 ## Attached Discovery Files
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.json
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.json
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.json
+
+### Source Database Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+
+### Target Database Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+
+### ZDM Server Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+
+**Note:** Replace `<hostname>` and `<timestamp>` with the actual values from your discovery files.
+Use the most recent discovery files if multiple exist (highest timestamp).
 
 ## Completed Questionnaire
 
@@ -365,3 +374,44 @@ With this completed questionnaire:
 3. **Test network connectivity** - Run nc/telnet tests for all port combinations
 4. **Secure credentials** - Never embed passwords; always use file references
 5. **Document everything** - The "Additional Notes" section is crucial for troubleshooting
+---
+
+## File Referencing Guide
+
+### Discovery File Structure from Step0
+
+After running the orchestration script from Step0, discovery files are organized as:
+
+```
+Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/
+├── source/
+│   ├── zdm_source_discovery_<source_hostname>_<timestamp>.txt
+│   └── zdm_source_discovery_<source_hostname>_<timestamp>.json
+├── target/
+│   ├── zdm_target_discovery_<target_hostname>_<timestamp>.txt
+│   └── zdm_target_discovery_<target_hostname>_<timestamp>.json
+└── server/
+    ├── zdm_server_discovery_<zdm_hostname>_<timestamp>.txt
+    └── zdm_server_discovery_<zdm_hostname>_<timestamp>.json
+```
+
+### Finding the Correct Files
+
+1. Navigate to `Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/`
+2. Check each subdirectory (`source/`, `target/`, `server/`)
+3. If multiple files exist, use the **most recent** based on timestamp (format: `YYYYMMDD_HHMMSS`)
+4. Attach both `.txt` and `.json` files for each server
+
+### Example with Real Hostnames
+
+If your environment has:
+- Source server: `proddb01.corp.example.com`
+- Target server: `odadb-node1.azure.example.com`
+- ZDM server: `zdm-jumpbox.corp.example.com`
+
+Your discovery files might be named:
+```
+source/zdm_source_discovery_proddb01_20260128_140532.txt
+target/zdm_target_discovery_odadb-node1_20260128_141022.txt
+server/zdm_server_discovery_zdm-jumpbox_20260128_141545.txt
+```

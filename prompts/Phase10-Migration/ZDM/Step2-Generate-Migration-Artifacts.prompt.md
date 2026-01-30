@@ -13,12 +13,33 @@ This prompt takes completed questionnaire responses from Step 1 and generates al
 ### Prerequisites
 1. Complete `Step1-Discovery-Questionnaire.prompt.md` with all required information
 2. Attach the completed questionnaire to this prompt
-3. Attach all discovery script outputs
+3. Attach all discovery script outputs from Step0
 
 ### Input Required
 Provide the completed questionnaire by either:
-- Attaching the filled `Step1-Discovery-Questionnaire.prompt.md` file
+- Attaching the saved questionnaire from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/Completed-Questionnaire-<DB_NAME>.md`
 - Pasting the completed sections below
+
+### How to Use This Prompt
+
+```
+@Step2-Generate-Migration-Artifacts.prompt.md
+
+Generate all migration artifacts for the <DATABASE> migration to Oracle Database@Azure.
+
+## Completed Questionnaire
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/Completed-Questionnaire-<DATABASE>.md
+
+## Discovery Files (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+
+## Output Directory
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/
+```
+
+**Note:** Replace `<DATABASE>`, `<hostname>`, and `<timestamp>` with actual values from your environment.
 
 ---
 

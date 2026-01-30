@@ -10,24 +10,62 @@ This prompt guides the discovery phase of a Zero Downtime Migration (ZDM) from o
 Before completing this questionnaire:
 1. Run `Step0-Generate-Discovery-Scripts.prompt.md` to generate fresh discovery scripts
 2. Execute discovery scripts on all servers
-3. Collect the output files from each server
+3. Check in the output files to the repository under the appropriate database folder
+
+---
+
+## How to Use This Prompt
+
+When running this prompt, attach the discovery files from Step0 using the `#file:` syntax:
+
+```
+@Step1-Discovery-Questionnaire.prompt.md
+
+I have completed the discovery questionnaire for our <DATABASE> migration.
+
+## Attached Discovery Files
+
+### Source Database Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+
+### Target Database Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+
+### ZDM Server Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+
+## Completed Questionnaire
+
+[Paste your completed questionnaire here]
+```
+
+**Note:** Replace `<DATABASE>`, `<hostname>`, and `<timestamp>` with actual values. Use the most recent discovery files (highest timestamp).
 
 ---
 
 ## Instructions
 
-### Phase 1A: Attach Discovery Outputs
+### Phase 1A: Discovery Output Files
 
-Attach the following discovery output files (generated from Step 0 scripts):
+The discovery output files from Step 0 should be checked into the repository at:
 
 ```
-[ ] zdm_source_discovery_<hostname>_<timestamp>.txt
-[ ] zdm_source_discovery_<hostname>_<timestamp>.json
-[ ] zdm_target_discovery_<hostname>_<timestamp>.txt
-[ ] zdm_target_discovery_<hostname>_<timestamp>.json
-[ ] zdm_server_discovery_<hostname>_<timestamp>.txt
-[ ] zdm_server_discovery_<hostname>_<timestamp>.json
+Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/
+├── source/
+│   ├── zdm_source_discovery_<hostname>_<timestamp>.txt
+│   └── zdm_source_discovery_<hostname>_<timestamp>.json
+├── target/
+│   ├── zdm_target_discovery_<hostname>_<timestamp>.txt
+│   └── zdm_target_discovery_<hostname>_<timestamp>.json
+└── server/
+    ├── zdm_server_discovery_<hostname>_<timestamp>.txt
+    └── zdm_server_discovery_<hostname>_<timestamp>.json
 ```
+
+**Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB). Use the most recent discovery files based on timestamp.
 
 ### Phase 1B: Complete Questionnaire
 
@@ -308,11 +346,19 @@ Pause After Phase:              [ ] ZDM_CONFIGURE_DG_SRC
 | ZDM service running | [ ] | |
 
 ### 8.2 Discovery Files Attached
+
+**Important:** When running this prompt, attach the discovery files from Step0 using the `#file:` syntax:
+
 ```
-[ ] zdm_source_discovery_*.txt attached
-[ ] zdm_target_discovery_*.txt attached  
-[ ] zdm_server_discovery_*.txt attached
+[ ] source/zdm_source_discovery_<hostname>_<timestamp>.txt attached
+[ ] source/zdm_source_discovery_<hostname>_<timestamp>.json attached
+[ ] target/zdm_target_discovery_<hostname>_<timestamp>.txt attached  
+[ ] target/zdm_target_discovery_<hostname>_<timestamp>.json attached
+[ ] server/zdm_server_discovery_<hostname>_<timestamp>.txt attached
+[ ] server/zdm_server_discovery_<hostname>_<timestamp>.json attached
 ```
+
+**File Location:** `Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/`
 
 ---
 

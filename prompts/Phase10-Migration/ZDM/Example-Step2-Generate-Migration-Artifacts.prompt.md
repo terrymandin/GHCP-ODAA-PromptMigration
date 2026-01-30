@@ -21,15 +21,23 @@ Copy and use this prompt to generate migration artifacts:
 Generate all migration artifacts for the PRODDB migration to Oracle Database@Azure.
 
 ## Completed Questionnaire
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Questionnaire/Step1-Completed-PRODDB.md
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Completed-Questionnaire-PRODDB.md
 
-## Discovery Files
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.json
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.json
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.json
+## Discovery Files (from Step0)
+
+### Source Database Discovery
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+
+### Target Database Discovery
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+
+### ZDM Server Discovery
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+
+**Note:** Replace `<hostname>` and `<timestamp>` with actual values from your discovery files.
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/
 
 ## Key Parameters from Questionnaire
 

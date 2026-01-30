@@ -27,13 +27,20 @@ Generate discovery scripts for our PRODDB migration project.
 - Target Database: proddb-oda.eastus.azure.example.com  
 - ZDM Server: zdm-jumpbox.corp.example.com
 
+## User Configuration (different admin users per server)
+- Source Admin User: oracle (on-premise server uses oracle user for SSH)
+- Target Admin User: opc (OCI/ODA uses opc user for SSH)
+- ZDM Admin User: azureuser (Azure VM uses azureuser for SSH)
+- Oracle User: oracle (database software owner)
+- ZDM User: zdmuser (ZDM software owner)
+
 ## SSH Key Configuration
-- Source SSH Key: ~/.ssh/source_db_key
-- Target SSH Key: ~/.ssh/oda_azure_key
-- ZDM SSH Key: ~/.ssh/zdm_jumpbox_key
+- Source SSH Key: ~/.ssh/onprem_oracle_key
+- Target SSH Key: ~/.ssh/oci_opc_key
+- ZDM SSH Key: ~/.ssh/azure_key
 
 ## Script Output Location
-Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Scripts/
+Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts/
 
 ## Additional Discovery Requirements
 
@@ -74,6 +81,16 @@ Generate discovery scripts for our PRODDB migration project.
 
 **Option B: Set environment variables before running orchestration script**
 ```bash
+# Admin user configuration (can be different for each server)
+export SOURCE_ADMIN_USER=oracle
+export TARGET_ADMIN_USER=opc
+export ZDM_ADMIN_USER=azureuser
+
+# Application user configuration
+export ORACLE_USER=oracle
+export ZDM_USER=zdmuser
+
+# Path overrides (if auto-detection fails)
 export SOURCE_REMOTE_ORACLE_HOME=/custom/path/oracle/product/19.0.0.0/dbhome_1
 export SOURCE_REMOTE_ORACLE_SID=PRODDB
 ./zdm_orchestrate_discovery.sh

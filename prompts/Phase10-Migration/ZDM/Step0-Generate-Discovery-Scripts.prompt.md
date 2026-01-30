@@ -17,7 +17,7 @@ Please generate the following discovery scripts for a ZDM migration from on-prem
 
 ### 1. Source Database Discovery Script (`zdm_source_discovery.sh`)
 
-Generate a bash script to run on the **source database server** (as oracle user) that discovers:
+Generate a bash script to run on the **source database server** (executed via SSH as ADMIN_USER, with SQL commands running as oracle user via sudo) that discovers:
 
 **OS Information:**
 - Hostname, IP addresses
@@ -77,7 +77,7 @@ Generate a bash script to run on the **source database server** (as oracle user)
 
 ### 2. Target Database Discovery Script (`zdm_target_discovery.sh`)
 
-Generate a bash script to run on the **target database server** (Oracle Database@Azure, as opc or oracle user) that discovers:
+Generate a bash script to run on the **target database server** (Oracle Database@Azure, executed via SSH as ADMIN_USER, with SQL commands running as oracle user via sudo) that discovers:
 
 **OS Information:**
 - Hostname, IP addresses
@@ -125,7 +125,7 @@ Generate a bash script to run on the **target database server** (Oracle Database
 
 ### 3. ZDM Server Discovery Script (`zdm_server_discovery.sh`)
 
-Generate a bash script to run on the **ZDM jumpbox server** (as zdmuser) that discovers:
+Generate a bash script to run on the **ZDM jumpbox server** (executed via SSH as ADMIN_USER for OS-level discovery, with ZDM CLI commands running as ZDM_USER via sudo) that discovers:
 
 **OS Information:**
 - Hostname, current user
@@ -177,12 +177,46 @@ Generate a bash script that can be run from any machine with SSH access to orche
 
 **Configuration:**
 - Environment variables for SOURCE_HOST, TARGET_HOST, ZDM_HOST
-- Environment variables for users (SOURCE_USER, TARGET_USER, ZDM_USER)
+- Environment variables for SSH/admin users (each server can have a different admin user):
+  - SOURCE_ADMIN_USER: Linux admin user for source database server (default: "azureuser")
+  - TARGET_ADMIN_USER: Linux admin user for target Oracle Database@Azure server (default: "azureuser")
+  - ZDM_ADMIN_USER: Linux admin user for ZDM jumpbox server (default: "azureuser")
+- Environment variables for application users:
+  - ORACLE_USER: Oracle database software owner (default: "oracle")
+  - ZDM_USER: ZDM software owner user for ZDM CLI commands (default: "zdmuser")
 - Separate SSH key paths for each environment:
   - SOURCE_SSH_KEY: SSH key for source database server
   - TARGET_SSH_KEY: SSH key for target Oracle Database@Azure server
   - ZDM_SSH_KEY: SSH key for ZDM jumpbox server
   (Note: These are typically different keys due to separate security domains)
+
+**User Execution Model:**
+- Each server can have a different admin user for SSH connections:
+  - Source server: SOURCE_ADMIN_USER (default: "azureuser")
+  - Target server: TARGET_ADMIN_USER (default: "azureuser")
+  - ZDM server: ZDM_ADMIN_USER (default: "azureuser")
+- OS-level discovery commands run as the respective admin user
+- Oracle SQL commands run as ORACLE_USER (default: "oracle") via `sudo -u oracle`
+- ZDM CLI commands run as ZDM_USER (default: "zdmuser") via `sudo -u zdmuser`
+
+**Environment Variable Defaults in Orchestration Script:**
+```bash
+# ===========================================
+# USER CONFIGURATION
+# ===========================================
+
+# SSH/Admin users for each server (can be different for each environment)
+# These are Linux admin users with sudo privileges
+SOURCE_ADMIN_USER="${SOURCE_ADMIN_USER:-azureuser}"
+TARGET_ADMIN_USER="${TARGET_ADMIN_USER:-azureuser}"
+ZDM_ADMIN_USER="${ZDM_ADMIN_USER:-azureuser}"
+
+# Oracle database software owner (for running SQL commands)
+ORACLE_USER="${ORACLE_USER:-oracle}"
+
+# ZDM software owner (for running ZDM CLI commands)
+ZDM_USER="${ZDM_USER:-zdmuser}"
+```
 
 **Functions:**
 - Configuration validation
@@ -333,9 +367,16 @@ All scripts should include:
   [ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
   [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
   [ -n "${JAVA_HOME_OVERRIDE:-}" ] && export JAVA_HOME="$JAVA_HOME_OVERRIDE"
+  
+  # User defaults - can be overridden via environment
+  ORACLE_USER="${ORACLE_USER:-oracle}"
+  ZDM_USER="${ZDM_USER:-zdmuser}"
   ```
-- **Execute SQL as oracle user** - All `run_sql` and `run_sql_value` functions must ensure SQL commands are executed as the `oracle` user:
+- **Execute SQL as oracle user** - All `run_sql` and `run_sql_value` functions must ensure SQL commands are executed as the ORACLE_USER (default: oracle):
   ```bash
+  # Default oracle user if not set
+  ORACLE_USER="${ORACLE_USER:-oracle}"
+  
   run_sql() {
       local sql_query="$1"
       if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
@@ -350,13 +391,33 @@ All scripts should include:
   EOSQL
   )
           # Execute as oracle user - use sudo if current user is not oracle
-          if [ "$(whoami)" = "oracle" ]; then
+          if [ "$(whoami)" = "$ORACLE_USER" ]; then
               echo "$sql_script" | $sqlplus_cmd
           else
-              echo "$sql_script" | sudo -u oracle -E ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd
+              echo "$sql_script" | sudo -u "$ORACLE_USER" -E ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd
           fi
       else
           echo "ERROR: ORACLE_HOME or ORACLE_SID not set"
+          return 1
+      fi
+  }
+  ```
+- **Execute ZDM CLI as zdmuser** - All ZDM CLI commands must be executed as the ZDM_USER (default: zdmuser):
+  ```bash
+  # Default ZDM user if not set
+  ZDM_USER="${ZDM_USER:-zdmuser}"
+  
+  run_zdm_cmd() {
+      local zdm_cmd="$1"
+      if [ -n "${ZDM_HOME:-}" ]; then
+          # Execute as zdmuser - use sudo if current user is not zdmuser
+          if [ "$(whoami)" = "$ZDM_USER" ]; then
+              $ZDM_HOME/bin/$zdm_cmd
+          else
+              sudo -u "$ZDM_USER" -E ZDM_HOME="$ZDM_HOME" $ZDM_HOME/bin/$zdm_cmd
+          fi
+      else
+          echo "ERROR: ZDM_HOME not set"
           return 1
       fi
   }
