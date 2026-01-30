@@ -218,6 +218,80 @@ ORACLE_USER="${ORACLE_USER:-oracle}"
 ZDM_USER="${ZDM_USER:-zdmuser}"
 ```
 
+**Required Password/Credential Environment Variables:**
+
+The following environment variables must be set before running ZDM migration scripts. These are used in Step 2 when generating migration artifacts and executing the migration.
+
+```bash
+# ===========================================
+# PASSWORD/CREDENTIAL CONFIGURATION (Required for Migration)
+# ===========================================
+# IMPORTANT: Set these securely and never commit to source control
+
+# --- Source Database Credentials ---
+# Source Oracle SYS Password
+export SOURCE_SYS_PASSWORD="<source_sys_password>"
+
+# Source TDE Wallet Password
+export SOURCE_TDE_WALLET_PASSWORD="<source_tde_wallet_password>"
+
+# --- Target Database Credentials ---
+# Target Oracle SYS Password
+export TARGET_SYS_PASSWORD="<target_sys_password>"
+
+# --- OCI Authentication ---
+# OCI User OCID
+export OCI_USER_OCID="<oci_user_ocid>"
+
+# OCI Compartment OCID
+export OCI_COMPARTMENT_OCID="<oci_compartment_ocid>"
+
+# Target DB System OCID
+export TARGET_DB_SYSTEM_OCID="<target_db_system_ocid>"
+
+# Target Database OCID
+export TARGET_DATABASE_OCID="<target_database_ocid>"
+
+# OCI API Key Fingerprint
+export OCI_API_KEY_FINGERPRINT="<oci_api_key_fingerprint>"
+
+# OCI CLI Configuration Path
+export OCI_CONFIG_PATH="~/.oci/config"
+
+# OCI Private Key Path
+export OCI_PRIVATE_KEY_PATH="~/.oci/oci_api_key.pem"
+
+# --- OCI Object Storage ---
+# Object Storage Namespace
+export OCI_OSS_NAMESPACE="<oci_oss_namespace>"
+
+# Object Storage Bucket Name
+export OCI_OSS_BUCKET_NAME="<oci_oss_bucket_name>"
+```
+
+**PowerShell Equivalent (Windows):**
+```powershell
+# Source Database Credentials
+$env:SOURCE_SYS_PASSWORD = "<source_sys_password>"
+$env:SOURCE_TDE_WALLET_PASSWORD = "<source_tde_wallet_password>"
+
+# Target Database Credentials
+$env:TARGET_SYS_PASSWORD = "<target_sys_password>"
+
+# OCI Authentication
+$env:OCI_USER_OCID = "<oci_user_ocid>"
+$env:OCI_COMPARTMENT_OCID = "<oci_compartment_ocid>"
+$env:TARGET_DB_SYSTEM_OCID = "<target_db_system_ocid>"
+$env:TARGET_DATABASE_OCID = "<target_database_ocid>"
+$env:OCI_API_KEY_FINGERPRINT = "<oci_api_key_fingerprint>"
+$env:OCI_CONFIG_PATH = "~/.oci/config"
+$env:OCI_PRIVATE_KEY_PATH = "~/.oci/oci_api_key.pem"
+
+# OCI Object Storage
+$env:OCI_OSS_NAMESPACE = "<oci_oss_namespace>"
+$env:OCI_OSS_BUCKET_NAME = "<oci_oss_bucket_name>"
+```
+
 **Functions:**
 - Configuration validation
 - SSH connectivity testing

@@ -106,6 +106,31 @@ export SOURCE_REMOTE_ORACLE_SID=PRODDB
 export TARGET_REMOTE_ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
 export TARGET_REMOTE_ORACLE_SID=
 
+# ===========================================
+# PASSWORD/CREDENTIAL CONFIGURATION (Required for Migration)
+# ===========================================
+# IMPORTANT: Set these securely and never commit to source control
+
+# --- Source Database Credentials ---
+export SOURCE_SYS_PASSWORD="<source_sys_password>"
+export SOURCE_TDE_WALLET_PASSWORD="<source_tde_wallet_password>"
+
+# --- Target Database Credentials ---
+export TARGET_SYS_PASSWORD="<target_sys_password>"
+
+# --- OCI Authentication ---
+export OCI_USER_OCID="<oci_user_ocid>"
+export OCI_COMPARTMENT_OCID="<oci_compartment_ocid>"
+export TARGET_DB_SYSTEM_OCID="<target_db_system_ocid>"
+export TARGET_DATABASE_OCID="<target_database_ocid>"
+export OCI_API_KEY_FINGERPRINT="<oci_api_key_fingerprint>"
+export OCI_CONFIG_PATH="~/.oci/config"
+export OCI_PRIVATE_KEY_PATH="~/.oci/oci_api_key.pem"
+
+# --- OCI Object Storage ---
+export OCI_OSS_NAMESPACE="<oci_oss_namespace>"
+export OCI_OSS_BUCKET_NAME="<oci_oss_bucket_name>"
+
 ./zdm_orchestrate_discovery.sh
 ```
 
