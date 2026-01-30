@@ -136,8 +136,9 @@ PDB Names (comma-separated):    ____________________
 TDE Enabled:                    [ ] YES  [ ] NO
 TDE Wallet Type:                [ ] FILE  [ ] HSM  [ ] OKV
 TDE Wallet Location:            ____________________
-TDE Wallet Password:            ____________________ (store securely)
 ```
+
+**Note:** TDE wallet password should be set via the `SOURCE_TDE_WALLET_PASSWORD` environment variable at migration runtime. See Step0 for password environment variable configuration. Never commit passwords to source control.
 
 ### 2.5 Supplemental Logging 🔍
 *Required for Online Migration*
@@ -166,11 +167,12 @@ Listener Port:                  ____________________
 Service Name:                   ____________________
 ```
 
-### 2.8 Source Credentials (Manual Entry Required)
+### 2.8 Source Credentials
 ```
-SYS Password:                   ____________________ (store securely)
 Password File Location:         ____________________
 ```
+
+**Security Note:** The SYS password should be set via the `SOURCE_SYS_PASSWORD` environment variable at migration runtime. Password environment variables are defined in Step0. Never commit passwords to GitHub or any source control system.
 
 ---
 
@@ -212,10 +214,9 @@ Listener Port:                  ____________________
 Service Name:                   ____________________
 ```
 
-### 3.5 Target Credentials (Manual Entry Required)
-```
-SYS Password:                   ____________________ (store securely)
-```
+### 3.5 Target Credentials
+
+**Security Note:** The target SYS password should be set via the `TARGET_SYS_PASSWORD` environment variable at migration runtime. Password environment variables are defined in Step0. Never commit passwords to GitHub or any source control system.
 
 ---
 

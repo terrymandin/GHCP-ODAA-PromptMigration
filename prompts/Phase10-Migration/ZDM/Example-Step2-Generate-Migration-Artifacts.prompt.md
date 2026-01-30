@@ -93,7 +93,16 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/
 - Pause After: ZDM_CONFIGURE_DG_SRC
 - Auto Switchover: No
 
-### Credential Files (to be created)
+### Credential Files (created at runtime from environment variables)
+
+> ⚠️ **SECURITY**: Password files are created at migration runtime from environment variables. Passwords should NEVER be committed to source control.
+
+**Required Password Environment Variables (set on ZDM server before running):**
+- `SOURCE_SYS_PASSWORD` - Source Oracle SYS password
+- `TARGET_SYS_PASSWORD` - Target Oracle SYS password  
+- `SOURCE_TDE_WALLET_PASSWORD` - TDE wallet password (since TDE is enabled)
+
+**Password files created by script (at runtime):**
 - Source SYS Password: /home/zdmuser/creds/source_sys_password.txt
 - Target SYS Password: /home/zdmuser/creds/target_sys_password.txt
 - TDE Wallet Password: /home/zdmuser/creds/tde_password.txt
@@ -194,6 +203,99 @@ POSTMIGRATIONACTIONS_DELETEBACKUP=FALSE
 # Migration Type: Online Physical
 # Generated: 2026-01-28
 # ===========================================
+
+# ===========================================
+# PASSWORD ENVIRONMENT VARIABLE VALIDATION
+# ===========================================
+# This script requires password environment variables to be set.
+# NEVER hardcode passwords in this script.
+
+TDE_ENABLED=true  # Set based on questionnaire
+
+validate_password_environment() {
+    local missing_vars=()
+    local errors=0
+    
+    echo "Validating required password environment variables..."
+    
+    # Check SOURCE_SYS_PASSWORD
+    if [ -z "${SOURCE_SYS_PASSWORD:-}" ]; then
+        missing_vars+=("SOURCE_SYS_PASSWORD")
+        ((errors++))
+    else
+        echo "  ✓ SOURCE_SYS_PASSWORD is set"
+    fi
+    
+    # Check TARGET_SYS_PASSWORD
+    if [ -z "${TARGET_SYS_PASSWORD:-}" ]; then
+        missing_vars+=("TARGET_SYS_PASSWORD")
+        ((errors++))
+    else
+        echo "  ✓ TARGET_SYS_PASSWORD is set"
+    fi
+    
+    # Check SOURCE_TDE_WALLET_PASSWORD (only if TDE is enabled)
+    if [ "${TDE_ENABLED:-false}" = "true" ]; then
+        if [ -z "${SOURCE_TDE_WALLET_PASSWORD:-}" ]; then
+            missing_vars+=("SOURCE_TDE_WALLET_PASSWORD")
+            ((errors++))
+        else
+            echo "  ✓ SOURCE_TDE_WALLET_PASSWORD is set"
+        fi
+    fi
+    
+    if [ $errors -gt 0 ]; then
+        echo ""
+        echo "ERROR: The following required password environment variables are not set:"
+        printf '  - %s\n' "${missing_vars[@]}"
+        echo ""
+        echo "Please set these variables before running the migration script:"
+        echo ""
+        echo "  # Secure password entry (passwords not visible while typing):"
+        printf '  read -sp "Enter %s: " %s; echo; export %s\n' "${missing_vars[@]}" "${missing_vars[@]}" "${missing_vars[@]}"
+        echo ""
+        echo "See Step0-Generate-Discovery-Scripts.prompt.md for password configuration details."
+        return 1
+    fi
+    
+    echo ""
+    echo "✓ All required password environment variables are set"
+    return 0
+}
+
+# Create password files from environment variables
+create_password_files() {
+    local creds_dir="${HOME}/creds"
+    
+    echo "Creating password files from environment variables..."
+    
+    # Create credentials directory
+    mkdir -p "$creds_dir"
+    chmod 700 "$creds_dir"
+    
+    # Create password files from environment variables
+    echo "$SOURCE_SYS_PASSWORD" > "$creds_dir/source_sys_password.txt"
+    echo "$TARGET_SYS_PASSWORD" > "$creds_dir/target_sys_password.txt"
+    
+    if [ "${TDE_ENABLED:-false}" = "true" ]; then
+        echo "$SOURCE_TDE_WALLET_PASSWORD" > "$creds_dir/tde_password.txt"
+    fi
+    
+    # Secure the files
+    chmod 600 "$creds_dir"/*.txt
+    
+    echo "  ✓ Password files created in $creds_dir"
+}
+
+# Clean up password files after migration
+cleanup_password_files() {
+    local creds_dir="${HOME}/creds"
+    
+    if [ -d "$creds_dir" ]; then
+        rm -f "$creds_dir"/*.txt
+        echo "  ✓ Password files cleaned up"
+    fi
+}
 
 # ===========================================
 # ENVIRONMENT CONFIGURATION
@@ -477,19 +579,15 @@ nc -zv objectstorage.us-ashburn-1.oraclecloud.com 443
 
 After artifacts are generated:
 
-### 1. Create Password Files
+### 1. Set Password Environment Variables (on ZDM server)
+
+> ⚠️ **SECURITY**: Set passwords securely at runtime. Never save passwords to files in the repository.
+
 ```bash
-# On ZDM server as zdmuser
-mkdir -p /home/zdmuser/creds
-chmod 700 /home/zdmuser/creds
-
-# Create password files (replace with actual passwords)
-echo '<SOURCE_SYS_PASSWORD>' > /home/zdmuser/creds/source_sys_password.txt
-echo '<TARGET_SYS_PASSWORD>' > /home/zdmuser/creds/target_sys_password.txt
-echo '<TDE_WALLET_PASSWORD>' > /home/zdmuser/creds/tde_password.txt
-
-# Secure the files
-chmod 600 /home/zdmuser/creds/*.txt
+# On ZDM server as zdmuser - use secure password entry
+read -sp "Enter SOURCE_SYS_PASSWORD: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD
+read -sp "Enter TARGET_SYS_PASSWORD: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD
+read -sp "Enter SOURCE_TDE_WALLET_PASSWORD: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
 ```
 
 ### 2. Copy Artifacts to ZDM Server
@@ -500,10 +598,21 @@ scp Artifacts/Phase10-Migration/ZDM/PRODDB/* zdmuser@zdm-jumpbox.corp.example.co
 ### 3. Quick Start Commands
 ```bash
 # On ZDM server
+
+# First, set password environment variables (see step 1 above)
+
 cd /home/zdmuser/migrations/PRODDB
 source zdm_commands_PRODDB.sh
+
+# Script will validate password environment variables automatically
+# Then create password files from environment variables
+create_password_files
+
 check_zdm_service
 run_evaluation
+
+# After migration is complete, clean up password files
+cleanup_password_files
 ```
 
 ### 4. Estimated Timeline
@@ -521,6 +630,8 @@ run_evaluation
 
 1. **Review all artifacts** before copying to ZDM server
 2. **Test RSP file syntax** with a dry-run evaluation first
-3. **Create password files** on ZDM server, not on Windows
-4. **Follow the runbook** step by step - don't skip verification steps
-5. **Monitor the job** continuously during migration
+3. **Set password environment variables** on ZDM server at runtime - never save passwords in the repository
+4. **Password files are created automatically** by the `create_password_files` function from environment variables
+5. **Clean up password files** after migration using `cleanup_password_files`
+6. **Follow the runbook** step by step - don't skip verification steps
+7. **Monitor the job** continuously during migration

@@ -107,32 +107,53 @@ export TARGET_REMOTE_ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
 export TARGET_REMOTE_ORACLE_SID=
 
 # ===========================================
-# PASSWORD/CREDENTIAL CONFIGURATION (Required for Migration)
+# OCI/AZURE CONFIGURATION (Non-sensitive identifiers)
 # ===========================================
-# IMPORTANT: Set these securely and never commit to source control
-
-# --- Source Database Credentials ---
-export SOURCE_SYS_PASSWORD="<source_sys_password>"
-export SOURCE_TDE_WALLET_PASSWORD="<source_tde_wallet_password>"
-
-# --- Target Database Credentials ---
-export TARGET_SYS_PASSWORD="<target_sys_password>"
-
-# --- OCI Authentication ---
-export OCI_USER_OCID="<oci_user_ocid>"
-export OCI_COMPARTMENT_OCID="<oci_compartment_ocid>"
-export TARGET_DB_SYSTEM_OCID="<target_db_system_ocid>"
-export TARGET_DATABASE_OCID="<target_database_ocid>"
-export OCI_API_KEY_FINGERPRINT="<oci_api_key_fingerprint>"
+export OCI_USER_OCID="ocid1.user.oc1..example"
+export OCI_COMPARTMENT_OCID="ocid1.compartment.oc1..example"
+export TARGET_DB_SYSTEM_OCID="ocid1.dbsystem.oc1..example"
+export TARGET_DATABASE_OCID="ocid1.database.oc1..example"
+export OCI_API_KEY_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
 export OCI_CONFIG_PATH="~/.oci/config"
 export OCI_PRIVATE_KEY_PATH="~/.oci/oci_api_key.pem"
 
 # --- OCI Object Storage ---
-export OCI_OSS_NAMESPACE="<oci_oss_namespace>"
-export OCI_OSS_BUCKET_NAME="<oci_oss_bucket_name>"
+export OCI_OSS_NAMESPACE="example_namespace"
+export OCI_OSS_BUCKET_NAME="zdm-migration-bucket"
 
 ./zdm_orchestrate_discovery.sh
 ```
+
+> ⚠️ **SECURITY NOTE**: Password environment variables (`SOURCE_SYS_PASSWORD`, `TARGET_SYS_PASSWORD`, `SOURCE_TDE_WALLET_PASSWORD`) should be set at **migration runtime** on the ZDM server, NOT saved to any files in the repository. See the section below for secure password handling.
+
+---
+
+## Password Environment Variables (Set at Migration Runtime)
+
+> **NEVER commit passwords to GitHub or any source control system.**
+
+Password environment variables are required for Step 2 migration scripts, but should be set securely at runtime on the ZDM server:
+
+### Secure Password Entry (on ZDM server before running migration)
+
+```bash
+# Prompt for passwords securely (passwords not visible while typing)
+read -sp "Enter SOURCE_SYS_PASSWORD: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD
+read -sp "Enter SOURCE_TDE_WALLET_PASSWORD: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
+read -sp "Enter TARGET_SYS_PASSWORD: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD
+```
+
+### Required Password Variables
+
+| Variable | Description | Required For |
+|----------|-------------|--------------|
+| `SOURCE_SYS_PASSWORD` | Source Oracle SYS password | All migrations |
+| `SOURCE_TDE_WALLET_PASSWORD` | Source TDE wallet password | TDE-enabled databases only |
+| `TARGET_SYS_PASSWORD` | Target Oracle SYS password | All migrations |
+
+### Generated Scripts Validate Passwords
+
+All scripts generated in Step 2 will check that required password environment variables are set before executing any migration operations. If passwords are not set, the script will exit with an error message explaining which variables need to be set.
 
 ---
 

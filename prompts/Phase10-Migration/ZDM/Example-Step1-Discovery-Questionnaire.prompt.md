@@ -103,12 +103,9 @@ TDE Wallet Type:                [X] FILE  [ ] HSM  [ ] OKV
 TDE Wallet Location:            /u01/app/oracle/admin/PRODDB/wallet/tde
 ```
 
-#### 2.5 TDE Credentials 🔐
-```
-TDE Wallet Password:            ********** (stored in /home/zdmuser/creds/tde_password.txt)
-```
+**Note:** TDE wallet password should be set via the `SOURCE_TDE_WALLET_PASSWORD` environment variable at migration runtime. See Step0 for secure password configuration.
 
-#### 2.6 Supplemental Logging 🔍
+#### 2.5 Supplemental Logging 🔍
 *Required for Online Migration*
 
 ```
@@ -117,7 +114,7 @@ Supplemental Log Data PK:       [X] YES  [ ] NO
 Supplemental Log Data UI:       [X] YES  [ ] NO
 ```
 
-#### 2.7 Source Host Information 🔍
+#### 2.6 Source Host Information 🔍
 ```
 Hostname:                       proddb01.corp.example.com
 IP Address:                     10.100.50.25
@@ -125,7 +122,7 @@ Operating System:               Oracle Linux Server
 OS Version:                     8.7
 ```
 
-#### 2.8 Source Oracle Installation 🔍
+#### 2.7 Source Oracle Installation 🔍
 ```
 Oracle Home Path:               /u01/app/oracle/product/19.21.0/dbhome_1
 Oracle Base Path:               /u01/app/oracle
@@ -135,11 +132,12 @@ Listener Port:                  1521
 Service Name:                   PRODDB.corp.example.com
 ```
 
-#### 2.9 Source Credentials 🔐
+#### 2.8 Source Credentials
 ```
-SYS Password:                   ********** (stored in /home/zdmuser/creds/source_sys_password.txt)
 Password File Location:         /u01/app/oracle/product/19.21.0/dbhome_1/dbs/orapwPRODDB
 ```
+
+**Security Note:** The SYS password should be set via the `SOURCE_SYS_PASSWORD` environment variable at migration runtime. Never commit passwords to source control.
 
 ---
 
@@ -181,10 +179,9 @@ Listener Port:                  1521
 Service Name:                   PRODDB_AZURE.eastus.azure.example.com
 ```
 
-#### 3.5 Target Credentials 🔐
-```
-SYS Password:                   ********** (stored in /home/zdmuser/creds/target_sys_password.txt)
-```
+#### 3.5 Target Credentials
+
+**Security Note:** The target SYS password should be set via the `TARGET_SYS_PASSWORD` environment variable at migration runtime. Never commit passwords to source control.
 
 ---
 

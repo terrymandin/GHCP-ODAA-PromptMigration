@@ -301,7 +301,9 @@ When generating artifacts, ensure:
 
 - [ ] All placeholder values are replaced with actual questionnaire responses
 - [ ] Commands use absolute paths from questionnaire
-- [ ] Passwords are referenced via files, not embedded
+- [ ] **Password environment variable validation is included** - Scripts must check that `SOURCE_SYS_PASSWORD`, `TARGET_SYS_PASSWORD`, and `SOURCE_TDE_WALLET_PASSWORD` (if TDE enabled) are set before executing
+- [ ] Passwords are NEVER embedded in scripts or files - only referenced via environment variables
+- [ ] RSP file references password files that will be created from environment variables at runtime
 - [ ] RSP file matches migration type (online vs offline)
 - [ ] Runbook includes rollback procedures
 - [ ] CLI script has proper error handling
@@ -309,6 +311,119 @@ When generating artifacts, ensure:
 - [ ] Network ports match questionnaire values
 - [ ] TDE settings included if TDE is enabled
 - [ ] Data Guard settings included for online migration
+
+---
+
+## Password Security Requirements
+
+> ⚠️ **SECURITY**: Generated scripts must validate password environment variables and must NEVER contain hardcoded passwords.
+
+### Required Password Validation in Generated Scripts
+
+All generated CLI command scripts (`zdm_commands_<DB_NAME>.sh`) must include a password validation function that runs before any migration operation:
+
+```bash
+# ===========================================
+# PASSWORD ENVIRONMENT VARIABLE VALIDATION
+# ===========================================
+
+validate_password_environment() {
+    local missing_vars=()
+    local errors=0
+    
+    echo "Validating required password environment variables..."
+    
+    # Check SOURCE_SYS_PASSWORD
+    if [ -z "${SOURCE_SYS_PASSWORD:-}" ]; then
+        missing_vars+=("SOURCE_SYS_PASSWORD")
+        ((errors++))
+    else
+        echo "  ✓ SOURCE_SYS_PASSWORD is set"
+    fi
+    
+    # Check TARGET_SYS_PASSWORD
+    if [ -z "${TARGET_SYS_PASSWORD:-}" ]; then
+        missing_vars+=("TARGET_SYS_PASSWORD")
+        ((errors++))
+    else
+        echo "  ✓ TARGET_SYS_PASSWORD is set"
+    fi
+    
+    # Check SOURCE_TDE_WALLET_PASSWORD (only if TDE is enabled)
+    # TDE_ENABLED should be set to "true" or "false" based on questionnaire
+    if [ "${TDE_ENABLED:-false}" = "true" ]; then
+        if [ -z "${SOURCE_TDE_WALLET_PASSWORD:-}" ]; then
+            missing_vars+=("SOURCE_TDE_WALLET_PASSWORD")
+            ((errors++))
+        else
+            echo "  ✓ SOURCE_TDE_WALLET_PASSWORD is set"
+        fi
+    fi
+    
+    if [ $errors -gt 0 ]; then
+        echo ""
+        echo "ERROR: The following required password environment variables are not set:"
+        printf '  - %s\n' "${missing_vars[@]}"
+        echo ""
+        echo "Please set these variables before running the migration script:"
+        printf '  export %s="<value>"\n' "${missing_vars[@]}"
+        echo ""
+        echo "For secure password entry, use:"
+        echo '  read -sp "Enter PASSWORD: " VAR_NAME; echo; export VAR_NAME'
+        echo ""
+        echo "See Step0-Generate-Discovery-Scripts.prompt.md for password configuration details."
+        return 1
+    fi
+    
+    echo ""
+    echo "✓ All required password environment variables are set"
+    return 0
+}
+
+# Call validation before any operation
+validate_password_environment || exit 1
+```
+
+### Password File Creation at Runtime
+
+The runbook and CLI scripts should include instructions to create temporary password files from environment variables at migration runtime:
+
+```bash
+# Create password files from environment variables (run on ZDM server)
+create_password_files() {
+    local creds_dir="${HOME}/creds"
+    
+    # Validate environment variables first
+    validate_password_environment || return 1
+    
+    # Create credentials directory
+    mkdir -p "$creds_dir"
+    chmod 700 "$creds_dir"
+    
+    # Create password files from environment variables
+    echo "$SOURCE_SYS_PASSWORD" > "$creds_dir/source_sys_password.txt"
+    echo "$TARGET_SYS_PASSWORD" > "$creds_dir/target_sys_password.txt"
+    
+    if [ "${TDE_ENABLED:-false}" = "true" ]; then
+        echo "$SOURCE_TDE_WALLET_PASSWORD" > "$creds_dir/tde_password.txt"
+    fi
+    
+    # Secure the files
+    chmod 600 "$creds_dir"/*.txt
+    
+    echo "Password files created in $creds_dir"
+}
+
+# Clean up password files after migration
+cleanup_password_files() {
+    local creds_dir="${HOME}/creds"
+    
+    if [ -d "$creds_dir" ]; then
+        rm -f "$creds_dir"/*.txt
+        echo "Password files cleaned up"
+    fi
+}
+```
 
 ---
 

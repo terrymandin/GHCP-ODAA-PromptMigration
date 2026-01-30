@@ -1,128 +1,116 @@
-# PRODDB Migration - Step 0: Discovery
+# ZDM Migration Step 0: Discovery
 
-## Overview
+## Project: PRODDB Migration to Oracle Database@Azure
 
-This directory contains the discovery scripts and outputs for the PRODDB migration to Oracle Database@Azure using Zero Downtime Migration (ZDM).
-
-## Project Details
-
-| Property | Value |
-|----------|-------|
-| Project Name | PRODDB Migration to Oracle Database@Azure |
-| Source Database | proddb01.corp.example.com |
-| Target Database | proddb-oda.eastus.azure.example.com |
-| ZDM Server | zdm-jumpbox.corp.example.com |
+This directory contains the Step 0 artifacts for the PRODDB migration project.
 
 ## Directory Structure
 
 ```
 Step0/
-├── README.md                    # This file
-├── Scripts/                     # Discovery scripts
+├── README.md              # This file
+├── Scripts/               # Discovery scripts
 │   ├── zdm_source_discovery.sh
 │   ├── zdm_target_discovery.sh
 │   ├── zdm_server_discovery.sh
 │   ├── zdm_orchestrate_discovery.sh
 │   └── README.md
-└── Discovery/                   # Discovery output (after execution)
-    ├── source/                  # Source server results
-    ├── target/                  # Target server results
-    └── server/                  # ZDM server results
+└── Discovery/             # Discovery output (after execution)
+    ├── source/
+    ├── target/
+    └── server/
 ```
+
+## Migration Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Project Name | PRODDB Migration to Oracle Database@Azure |
+| Source Database | proddb01.corp.example.com |
+| Target Database | proddb-oda.eastus.azure.example.com |
+| ZDM Server | zdm-jumpbox.corp.example.com |
+
+### User Configuration
+
+| Server | SSH Admin User | Purpose |
+|--------|---------------|---------|
+| Source | oracle | On-premise server SSH access |
+| Target | opc | OCI/ODA SSH access |
+| ZDM | azureuser | Azure VM SSH access |
+
+| User | Purpose |
+|------|---------|
+| oracle | Oracle database software owner |
+| zdmuser | ZDM software owner |
+
+### SSH Key Configuration
+
+| Server | SSH Key Path |
+|--------|--------------|
+| Source | ~/.ssh/onprem_oracle_key |
+| Target | ~/.ssh/oci_opc_key |
+| ZDM | ~/.ssh/azure_key |
 
 ## Quick Start
 
-```bash
-# Navigate to Scripts directory
-cd Scripts
+1. Navigate to the Scripts directory:
+   ```bash
+   cd Scripts/
+   ```
 
-# Make executable
-chmod +x *.sh
+2. Make scripts executable:
+   ```bash
+   chmod +x *.sh
+   ```
 
-# Test connectivity
-./zdm_orchestrate_discovery.sh -t
+3. Test connectivity:
+   ```bash
+   ./zdm_orchestrate_discovery.sh -t
+   ```
 
-# Run full discovery
-./zdm_orchestrate_discovery.sh
-```
+4. Run discovery:
+   ```bash
+   ./zdm_orchestrate_discovery.sh
+   ```
 
-## User Configuration
+5. Review results in `Discovery/` directory
 
-| Server | SSH User | SSH Key |
-|--------|----------|---------|
-| Source (proddb01.corp.example.com) | oracle | ~/.ssh/onprem_oracle_key |
-| Target (proddb-oda.eastus.azure.example.com) | opc | ~/.ssh/oci_opc_key |
-| ZDM (zdm-jumpbox.corp.example.com) | azureuser | ~/.ssh/azure_key |
+## Additional Discovery Items
 
-## What Gets Discovered
+This discovery includes extra checks specific to this migration:
 
 ### Source Database
-- OS and Oracle environment
-- Database configuration (name, DBID, log mode, force logging)
-- CDB/PDB configuration
-- TDE/wallet status
-- Supplemental logging settings
-- Redo and archive log configuration
-- Network configuration (listener, tnsnames, sqlnet)
-- Authentication (password files, SSH)
-- Data Guard parameters
-- Schema sizes and invalid objects
-- **Additional for PRODDB:**
-  - Tablespace autoextend settings
-  - Backup schedule and retention
-  - Database links
-  - Materialized view refresh schedules
-  - Scheduler jobs
+- Tablespace autoextend settings
+- Current backup schedule and retention
+- Database links configured
+- Materialized view refresh schedules
+- Scheduler jobs that may need reconfiguration
 
 ### Target Database (Oracle Database@Azure)
-- OS and Oracle environment
-- Database configuration
-- Storage (tablespaces, ASM)
-- CDB/PDB configuration
-- TDE/wallet status
-- Network configuration
-- OCI/Azure integration
-- Grid infrastructure (if RAC)
-- **Additional for PRODDB:**
-  - Exadata storage capacity
-  - Pre-configured PDBs
-  - Network security group rules
+- Available Exadata storage capacity
+- Pre-configured PDBs
+- Network security group rules
 
 ### ZDM Server
-- OS information
-- ZDM installation and version
-- Java configuration
-- OCI CLI configuration and connectivity
-- SSH keys
-- Credential files
-- Network configuration
-- ZDM logs
-- **Additional for PRODDB:**
-  - Disk space (50GB minimum recommended)
-  - Network latency to source and target
+- Available disk space for ZDM operations (minimum 50GB recommended)
+- Network latency tests to source and target
 
 ## Next Steps
 
-After running discovery:
+After completing Step 0:
 
-1. **Review Discovery Reports**
-   - Check for any errors or warnings
-   - Verify all required information was collected
+1. **Review Discovery Reports** - Examine the text and JSON reports
+2. **Proceed to Step 1** - Complete the Discovery Questionnaire using the gathered information
+3. **Proceed to Step 2** - Generate migration artifacts based on questionnaire answers
 
-2. **Proceed to Step 1: Discovery Questionnaire**
-   - Complete the questionnaire with discovery data
-   - Make business decisions (migration window, method, etc.)
+## File Locations
 
-3. **Proceed to Step 2: Generate Migration Artifacts**
-   - Generate ZDM response file
-   - Generate migration commands
-   - Generate runbook
+| Artifact | Location |
+|----------|----------|
+| Discovery Scripts | `Scripts/` |
+| Discovery Output | `Discovery/` |
+| Step 1 Questionnaire | `../Step1/` |
+| Step 2 Migration Artifacts | `../Step2/` |
 
-## Troubleshooting
-
-See [Scripts/README.md](Scripts/README.md) for detailed troubleshooting steps.
-
-## Generated
-
-- **Date:** January 30, 2026
-- **Script Version:** 1.0.0
+---
+Generated for PRODDB Migration Project

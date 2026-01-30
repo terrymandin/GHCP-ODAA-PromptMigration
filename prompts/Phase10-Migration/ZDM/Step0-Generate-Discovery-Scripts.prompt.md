@@ -218,79 +218,100 @@ ORACLE_USER="${ORACLE_USER:-oracle}"
 ZDM_USER="${ZDM_USER:-zdmuser}"
 ```
 
-**Required Password/Credential Environment Variables:**
+---
+
+## Required Password/Credential Environment Variables
+
+> ⚠️ **SECURITY WARNING**: Never commit passwords or secrets to GitHub or any source control system. The environment variables below must be set at runtime on the ZDM server before executing migration scripts. Step 1 questionnaire will reference these variables rather than requesting direct password entry. Step 2 generated scripts will validate that these variables are set before executing.
 
 The following environment variables must be set before running ZDM migration scripts. These are used in Step 2 when generating migration artifacts and executing the migration.
 
+### Required Password Variables
+
+| Variable | Description | Required For |
+|----------|-------------|--------------|
+| `SOURCE_SYS_PASSWORD` | Source Oracle SYS password | All migrations |
+| `SOURCE_TDE_WALLET_PASSWORD` | Source TDE wallet password | TDE-enabled databases |
+| `TARGET_SYS_PASSWORD` | Target Oracle SYS password | All migrations |
+
+### How to Set Password Variables Securely
+
+**On the ZDM server (Linux) - Set at runtime:**
 ```bash
-# ===========================================
-# PASSWORD/CREDENTIAL CONFIGURATION (Required for Migration)
-# ===========================================
-# IMPORTANT: Set these securely and never commit to source control
+# Set password environment variables (do NOT save to a file in the repo)
+# Run this in your terminal session before executing migration scripts
 
-# --- Source Database Credentials ---
-# Source Oracle SYS Password
-export SOURCE_SYS_PASSWORD="<source_sys_password>"
+export SOURCE_SYS_PASSWORD="your_source_sys_password"
+export SOURCE_TDE_WALLET_PASSWORD="your_tde_wallet_password"  # Only if TDE enabled
+export TARGET_SYS_PASSWORD="your_target_sys_password"
+```
 
-# Source TDE Wallet Password
-export SOURCE_TDE_WALLET_PASSWORD="<source_tde_wallet_password>"
-
-# --- Target Database Credentials ---
-# Target Oracle SYS Password
-export TARGET_SYS_PASSWORD="<target_sys_password>"
-
-# --- OCI Authentication ---
-# OCI User OCID
-export OCI_USER_OCID="<oci_user_ocid>"
-
-# OCI Compartment OCID
-export OCI_COMPARTMENT_OCID="<oci_compartment_ocid>"
-
-# Target DB System OCID
-export TARGET_DB_SYSTEM_OCID="<target_db_system_ocid>"
-
-# Target Database OCID
-export TARGET_DATABASE_OCID="<target_database_ocid>"
-
-# OCI API Key Fingerprint
-export OCI_API_KEY_FINGERPRINT="<oci_api_key_fingerprint>"
-
-# OCI CLI Configuration Path
-export OCI_CONFIG_PATH="~/.oci/config"
-
-# OCI Private Key Path
-export OCI_PRIVATE_KEY_PATH="~/.oci/oci_api_key.pem"
-
-# --- OCI Object Storage ---
-# Object Storage Namespace
-export OCI_OSS_NAMESPACE="<oci_oss_namespace>"
-
-# Object Storage Bucket Name
-export OCI_OSS_BUCKET_NAME="<oci_oss_bucket_name>"
+**Alternative: Use a secure credential store or prompt:**
+```bash
+# Prompt for passwords securely (passwords not visible while typing)
+read -sp "Enter SOURCE_SYS_PASSWORD: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD
+read -sp "Enter SOURCE_TDE_WALLET_PASSWORD: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
+read -sp "Enter TARGET_SYS_PASSWORD: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD
 ```
 
 **PowerShell Equivalent (Windows):**
 ```powershell
-# Source Database Credentials
-$env:SOURCE_SYS_PASSWORD = "<source_sys_password>"
-$env:SOURCE_TDE_WALLET_PASSWORD = "<source_tde_wallet_password>"
-
-# Target Database Credentials
-$env:TARGET_SYS_PASSWORD = "<target_sys_password>"
-
-# OCI Authentication
-$env:OCI_USER_OCID = "<oci_user_ocid>"
-$env:OCI_COMPARTMENT_OCID = "<oci_compartment_ocid>"
-$env:TARGET_DB_SYSTEM_OCID = "<target_db_system_ocid>"
-$env:TARGET_DATABASE_OCID = "<target_database_ocid>"
-$env:OCI_API_KEY_FINGERPRINT = "<oci_api_key_fingerprint>"
-$env:OCI_CONFIG_PATH = "~/.oci/config"
-$env:OCI_PRIVATE_KEY_PATH = "~/.oci/oci_api_key.pem"
-
-# OCI Object Storage
-$env:OCI_OSS_NAMESPACE = "<oci_oss_namespace>"
-$env:OCI_OSS_BUCKET_NAME = "<oci_oss_bucket_name>"
+# Set password environment variables
+$env:SOURCE_SYS_PASSWORD = Read-Host "Enter SOURCE_SYS_PASSWORD" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+$env:SOURCE_TDE_WALLET_PASSWORD = Read-Host "Enter SOURCE_TDE_WALLET_PASSWORD" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+$env:TARGET_SYS_PASSWORD = Read-Host "Enter TARGET_SYS_PASSWORD" -AsSecureString | ConvertFrom-SecureString -AsPlainText
 ```
+
+### OCI/Azure Configuration Variables
+
+These non-sensitive identifiers can be set in environment or configuration files:
+
+```bash
+# --- OCI Authentication ---
+export OCI_USER_OCID="<oci_user_ocid>"
+export OCI_COMPARTMENT_OCID="<oci_compartment_ocid>"
+export TARGET_DB_SYSTEM_OCID="<target_db_system_ocid>"
+export TARGET_DATABASE_OCID="<target_database_ocid>"
+export OCI_API_KEY_FINGERPRINT="<oci_api_key_fingerprint>"
+export OCI_CONFIG_PATH="~/.oci/config"
+export OCI_PRIVATE_KEY_PATH="~/.oci/oci_api_key.pem"
+
+# --- OCI Object Storage ---
+export OCI_OSS_NAMESPACE="<oci_oss_namespace>"
+export OCI_OSS_BUCKET_NAME="<oci_oss_bucket_name>"
+```
+
+### Password Variable Validation
+
+Step 2 generated scripts will include validation to check that required password environment variables are set before executing:
+
+```bash
+# Example validation included in generated scripts
+check_required_passwords() {
+    local missing_vars=()
+    
+    [ -z "${SOURCE_SYS_PASSWORD:-}" ] && missing_vars+=("SOURCE_SYS_PASSWORD")
+    [ -z "${TARGET_SYS_PASSWORD:-}" ] && missing_vars+=("TARGET_SYS_PASSWORD")
+    
+    # Check TDE password only if TDE is enabled
+    if [ "${TDE_ENABLED:-false}" = "true" ] && [ -z "${SOURCE_TDE_WALLET_PASSWORD:-}" ]; then
+        missing_vars+=("SOURCE_TDE_WALLET_PASSWORD")
+    fi
+    
+    if [ ${#missing_vars[@]} -gt 0 ]; then
+        echo "ERROR: The following required password environment variables are not set:"
+        printf '  - %s\n' "${missing_vars[@]}"
+        echo ""
+        echo "Set these variables before running the migration script:"
+        printf '  export %s="<value>"\n' "${missing_vars[@]}"
+        exit 1
+    fi
+    
+    echo "✓ All required password environment variables are set"
+}
+```
+
+---
 
 **Functions:**
 - Configuration validation
