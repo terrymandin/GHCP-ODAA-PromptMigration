@@ -1,0 +1,123 @@
+ZDM Source Database Discovery Report
+Generated: Mon Feb  2 20:19:24 UTC 2026
+Hostname: temandin-oravm-vm01
+
+
+========================================
+OS INFORMATION
+========================================
+[INFO] Hostname: temandin-oravm-vm01
+Hostname: temandin-oravm-vm01
+[INFO] IP Addresses:
+127.0.0.1/8
+10.1.0.10/24
+[INFO] Operating System:
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+[INFO] Disk Space:
+Filesystem                     Size  Used Avail Use% Mounted on
+devtmpfs                       7.7G     0  7.7G   0% /dev
+tmpfs                          7.7G     0  7.7G   0% /dev/shm
+tmpfs                          7.7G  8.6M  7.7G   1% /run
+tmpfs                          7.7G     0  7.7G   0% /sys/fs/cgroup
+/dev/sda2                       30G   20G  7.7G  72% /
+/dev/mapper/vg_ora01-lv_ora01  4.0T   33M  4.0T   1% /u02
+/dev/sda1                      497M  317M  181M  64% /boot
+/dev/sda15                     495M  7.4M  488M   2% /boot/efi
+tmpfs                          1.6G     0  1.6G   0% /run/user/54322
+
+========================================
+ORACLE ENVIRONMENT
+========================================
+[INFO] ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+[INFO] ORACLE_SID: oradb01
+ORACLE_SID: oradb01
+[INFO] ORACLE_BASE: NOT SET
+ORACLE_BASE: NOT SET
+[INFO] Oracle Version:
+
+========================================
+DATABASE CONFIGURATION
+========================================
+[INFO] Database Name and Configuration:
+SELECT name, db_unique_name, dbid, database_role, open_mode, log_mode, force_logging FROM v$database
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+[INFO] Database Size (Data Files):
+SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) AS size_gb FROM dba_data_files
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+[INFO] Database Size (Temp Files):
+SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) AS size_gb FROM dba_temp_files
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+[INFO] Character Set:
+SELECT parameter, value FROM nls_database_parameters WHERE parameter IN ('NLS_CHARACTERSET', 'NLS_NCHAR_CHARACTERSET')
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+========================================
+CONTAINER DATABASE CONFIGURATION
+========================================
+[INFO] CDB Status: SELECT cdb FROM v$database
+CDB Status: SELECT cdb FROM v$database
+[INFO] This is a non-CDB database
+
+========================================
+TDE CONFIGURATION
+========================================
+[INFO] Encryption Wallet Status:
+SELECT wrl_type, wrl_parameter, status, wallet_type FROM v$encryption_wallet
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+[INFO] Encrypted Tablespaces:
+SELECT tablespace_name, encrypted FROM dba_tablespaces WHERE encrypted = 'YES'
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+[INFO] TDE Master Key Info:
