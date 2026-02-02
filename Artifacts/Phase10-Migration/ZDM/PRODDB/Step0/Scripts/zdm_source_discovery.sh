@@ -1,70 +1,53 @@
 #!/bin/bash
-################################################################################
+#===============================================================================
 # ZDM Source Database Discovery Script
 # Project: PRODDB Migration to Oracle Database@Azure
-# 
-# Purpose: Discover source database configuration for ZDM migration
-# 
-# Usage: Run on source database server as admin user (oracle)
-#        This script will execute SQL commands as the oracle user
+# Source: proddb01.corp.example.com
 #
-# Output: 
-#   - Text report: ./zdm_source_discovery_<hostname>_<timestamp>.txt
-#   - JSON summary: ./zdm_source_discovery_<hostname>_<timestamp>.json
-################################################################################
+# This script discovers source database configuration for ZDM migration.
+# It is executed via SSH as an admin user, with SQL commands running as
+# the oracle user via sudo.
+#
+# Usage: ./zdm_source_discovery.sh
+# Output: zdm_source_discovery_<hostname>_<timestamp>.txt
+#         zdm_source_discovery_<hostname>_<timestamp>.json
+#===============================================================================
 
-# Color codes for terminal output
+#-------------------------------------------------------------------------------
+# Color Output Functions
+#-------------------------------------------------------------------------------
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Timestamp for output files
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-HOSTNAME_SHORT=$(hostname -s 2>/dev/null || hostname)
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+log_section() { echo -e "\n${CYAN}=== $1 ===${NC}"; }
 
-# Output files (in current working directory)
-TEXT_OUTPUT="./zdm_source_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
-JSON_OUTPUT="./zdm_source_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
+#-------------------------------------------------------------------------------
+# Configuration
+#-------------------------------------------------------------------------------
+HOSTNAME=$(hostname -s 2>/dev/null || hostname)
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+OUTPUT_FILE="./zdm_source_discovery_${HOSTNAME}_${TIMESTAMP}.txt"
+JSON_FILE="./zdm_source_discovery_${HOSTNAME}_${TIMESTAMP}.json"
 
 # User configuration
 ORACLE_USER="${ORACLE_USER:-oracle}"
 
-################################################################################
-# Helper Functions
-################################################################################
-
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-    echo "[INFO] $1" >> "$TEXT_OUTPUT"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-    echo "[WARN] $1" >> "$TEXT_OUTPUT"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-    echo "[ERROR] $1" >> "$TEXT_OUTPUT"
-}
-
-log_section() {
-    echo ""
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo "" >> "$TEXT_OUTPUT"
-    echo "========================================" >> "$TEXT_OUTPUT"
-    echo "$1" >> "$TEXT_OUTPUT"
-    echo "========================================" >> "$TEXT_OUTPUT"
-}
-
-# Auto-detect Oracle environment
+#-------------------------------------------------------------------------------
+# Auto-detect Oracle Environment
+#-------------------------------------------------------------------------------
 detect_oracle_env() {
+    log_info "Auto-detecting Oracle environment..."
+    
     # If already set, use existing values
     if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
+        log_info "Using pre-configured ORACLE_HOME=$ORACLE_HOME, ORACLE_SID=$ORACLE_SID"
         return 0
     fi
     
@@ -74,11 +57,12 @@ detect_oracle_env() {
         if [ -n "${ORACLE_SID:-}" ]; then
             oratab_entry=$(grep "^${ORACLE_SID}:" /etc/oratab 2>/dev/null | head -1)
         else
-            oratab_entry=$(grep -v '^#' /etc/oratab | grep -v '^$' | head -1)
+            oratab_entry=$(grep -v '^#' /etc/oratab | grep -v '^$' | grep -v '^\*' | head -1)
         fi
         if [ -n "$oratab_entry" ]; then
             export ORACLE_SID="${ORACLE_SID:-$(echo "$oratab_entry" | cut -d: -f1)}"
             export ORACLE_HOME="${ORACLE_HOME:-$(echo "$oratab_entry" | cut -d: -f2)}"
+            log_info "Detected from oratab: ORACLE_SID=$ORACLE_SID, ORACLE_HOME=$ORACLE_HOME"
         fi
     fi
     
@@ -86,7 +70,10 @@ detect_oracle_env() {
     if [ -z "${ORACLE_SID:-}" ]; then
         local pmon_sid
         pmon_sid=$(ps -ef | grep 'ora_pmon_' | grep -v grep | head -1 | sed 's/.*ora_pmon_//')
-        [ -n "$pmon_sid" ] && export ORACLE_SID="$pmon_sid"
+        if [ -n "$pmon_sid" ]; then
+            export ORACLE_SID="$pmon_sid"
+            log_info "Detected from pmon process: ORACLE_SID=$ORACLE_SID"
+        fi
     fi
     
     # Method 3: Search common Oracle installation paths
@@ -94,24 +81,34 @@ detect_oracle_env() {
         for path in /u01/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1 /oracle/product/*/dbhome_1; do
             if [ -d "$path" ] && [ -f "$path/bin/sqlplus" ]; then
                 export ORACLE_HOME="$path"
+                log_info "Detected from common path: ORACLE_HOME=$ORACLE_HOME"
                 break
             fi
         done
     fi
     
-    # Method 4: Check oraenv/coraenv
-    if [ -z "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-        [ -f /usr/local/bin/oraenv ] && . /usr/local/bin/oraenv <<< "$ORACLE_SID" 2>/dev/null
+    # Method 4: Get from oracle user's environment
+    if [ -z "${ORACLE_HOME:-}" ] || [ -z "${ORACLE_SID:-}" ]; then
+        if id "$ORACLE_USER" &>/dev/null; then
+            local oracle_env
+            oracle_env=$(sudo -u "$ORACLE_USER" -i bash -c 'echo "ORACLE_HOME=$ORACLE_HOME;ORACLE_SID=$ORACLE_SID"' 2>/dev/null)
+            if [ -n "$oracle_env" ]; then
+                eval "$oracle_env"
+                [ -n "$ORACLE_HOME" ] && export ORACLE_HOME
+                [ -n "$ORACLE_SID" ] && export ORACLE_SID
+                log_info "Detected from oracle user environment: ORACLE_HOME=$ORACLE_HOME, ORACLE_SID=$ORACLE_SID"
+            fi
+        fi
     fi
-}
-
-# Apply explicit overrides if provided
-apply_overrides() {
+    
+    # Apply explicit overrides if provided (highest priority)
     [ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
     [ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
 }
 
-# Execute SQL and return output
+#-------------------------------------------------------------------------------
+# SQL Execution Functions
+#-------------------------------------------------------------------------------
 run_sql() {
     local sql_query="$1"
     if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
@@ -125,7 +122,7 @@ SET ECHO OFF
 $sql_query
 EOSQL
 )
-        # Execute as oracle user
+        # Execute as oracle user - use sudo if current user is not oracle
         if [ "$(whoami)" = "$ORACLE_USER" ]; then
             echo "$sql_script" | ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null
         else
@@ -137,7 +134,6 @@ EOSQL
     fi
 }
 
-# Execute SQL and return single value
 run_sql_value() {
     local sql_query="$1"
     if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
@@ -152,404 +148,484 @@ SET TRIMSPOOL ON
 $sql_query
 EOSQL
 )
-        # Execute as oracle user
+        local result
         if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            echo "$sql_script" | ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null | grep -v '^$' | head -1
+            result=$(echo "$sql_script" | ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null)
         else
-            echo "$sql_script" | sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null | grep -v '^$' | head -1
+            result=$(echo "$sql_script" | sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>/dev/null)
         fi
+        echo "$result" | sed '/^$/d' | head -1
     else
-        echo "ERROR: ORACLE_HOME or ORACLE_SID not set"
+        echo "ERROR"
         return 1
     fi
 }
 
-################################################################################
-# Initialize
-################################################################################
+#-------------------------------------------------------------------------------
+# Discovery Functions
+#-------------------------------------------------------------------------------
 
-# Initialize output file
-echo "ZDM Source Database Discovery Report" > "$TEXT_OUTPUT"
-echo "Generated: $(date)" >> "$TEXT_OUTPUT"
-echo "Hostname: $(hostname)" >> "$TEXT_OUTPUT"
-echo "" >> "$TEXT_OUTPUT"
-
-# Detect and apply Oracle environment
-detect_oracle_env
-apply_overrides
-
-# Initialize JSON output
-cat > "$JSON_OUTPUT" << 'EOJSON'
-{
-  "discovery_type": "source_database",
-  "generated_timestamp": "TIMESTAMP_PLACEHOLDER",
-  "hostname": "HOSTNAME_PLACEHOLDER",
-EOJSON
-sed -i "s/TIMESTAMP_PLACEHOLDER/$(date -Iseconds)/g" "$JSON_OUTPUT" 2>/dev/null || \
-    sed -i '' "s/TIMESTAMP_PLACEHOLDER/$(date -Iseconds)/g" "$JSON_OUTPUT" 2>/dev/null
-sed -i "s/HOSTNAME_PLACEHOLDER/$(hostname)/g" "$JSON_OUTPUT" 2>/dev/null || \
-    sed -i '' "s/HOSTNAME_PLACEHOLDER/$(hostname)/g" "$JSON_OUTPUT" 2>/dev/null
-
-################################################################################
-# OS Information
-################################################################################
-
-log_section "OS INFORMATION"
-
-log_info "Hostname: $(hostname)"
-echo "Hostname: $(hostname)" >> "$TEXT_OUTPUT"
-
-log_info "IP Addresses:"
-ip addr show 2>/dev/null | grep 'inet ' | awk '{print $2}' | tee -a "$TEXT_OUTPUT" || \
-    ifconfig 2>/dev/null | grep 'inet ' | awk '{print $2}' | tee -a "$TEXT_OUTPUT"
-
-log_info "Operating System:"
-if [ -f /etc/os-release ]; then
-    cat /etc/os-release | tee -a "$TEXT_OUTPUT"
-elif [ -f /etc/redhat-release ]; then
-    cat /etc/redhat-release | tee -a "$TEXT_OUTPUT"
-else
-    uname -a | tee -a "$TEXT_OUTPUT"
-fi
-
-log_info "Disk Space:"
-df -h | tee -a "$TEXT_OUTPUT"
-
-################################################################################
-# Oracle Environment
-################################################################################
-
-log_section "ORACLE ENVIRONMENT"
-
-log_info "ORACLE_HOME: ${ORACLE_HOME:-NOT SET}"
-echo "ORACLE_HOME: ${ORACLE_HOME:-NOT SET}" >> "$TEXT_OUTPUT"
-
-log_info "ORACLE_SID: ${ORACLE_SID:-NOT SET}"
-echo "ORACLE_SID: ${ORACLE_SID:-NOT SET}" >> "$TEXT_OUTPUT"
-
-log_info "ORACLE_BASE: ${ORACLE_BASE:-NOT SET}"
-echo "ORACLE_BASE: ${ORACLE_BASE:-NOT SET}" >> "$TEXT_OUTPUT"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -f "$ORACLE_HOME/bin/sqlplus" ]; then
-    log_info "Oracle Version:"
-    if [ "$(whoami)" = "$ORACLE_USER" ]; then
-        "$ORACLE_HOME/bin/sqlplus" -v 2>/dev/null | tee -a "$TEXT_OUTPUT"
-    else
-        sudo -u "$ORACLE_USER" "$ORACLE_HOME/bin/sqlplus" -v 2>/dev/null | tee -a "$TEXT_OUTPUT"
-    fi
-else
-    log_warn "ORACLE_HOME not found or sqlplus not accessible"
-fi
-
-################################################################################
-# Database Configuration
-################################################################################
-
-log_section "DATABASE CONFIGURATION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Database Name and Configuration:"
-    run_sql "SELECT name, db_unique_name, dbid, database_role, open_mode, log_mode, force_logging FROM v\$database;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Database Size (Data Files):"
-    run_sql "SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) AS size_gb FROM dba_data_files;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Database Size (Temp Files):"
-    run_sql "SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) AS size_gb FROM dba_temp_files;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Character Set:"
-    run_sql "SELECT parameter, value FROM nls_database_parameters WHERE parameter IN ('NLS_CHARACTERSET', 'NLS_NCHAR_CHARACTERSET');" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query database - Oracle environment not configured"
-fi
-
-################################################################################
-# Container Database (CDB/PDB)
-################################################################################
-
-log_section "CONTAINER DATABASE CONFIGURATION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    CDB_STATUS=$(run_sql_value "SELECT cdb FROM v\$database;")
-    log_info "CDB Status: $CDB_STATUS"
-    echo "CDB Status: $CDB_STATUS" >> "$TEXT_OUTPUT"
-    
-    if [ "$CDB_STATUS" = "YES" ]; then
-        log_info "PDB List:"
-        run_sql "SELECT pdb_name, status, open_mode FROM dba_pdbs ORDER BY pdb_name;" | tee -a "$TEXT_OUTPUT"
-        
-        log_info "PDB Details:"
-        run_sql "SELECT con_id, name, open_mode FROM v\$pdbs ORDER BY con_id;" | tee -a "$TEXT_OUTPUT"
-    else
-        log_info "This is a non-CDB database"
-    fi
-else
-    log_warn "Cannot query CDB status - Oracle environment not configured"
-fi
-
-################################################################################
-# TDE Configuration
-################################################################################
-
-log_section "TDE CONFIGURATION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Encryption Wallet Status:"
-    run_sql "SELECT wrl_type, wrl_parameter, status, wallet_type FROM v\$encryption_wallet;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Encrypted Tablespaces:"
-    run_sql "SELECT tablespace_name, encrypted FROM dba_tablespaces WHERE encrypted = 'YES';" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "TDE Master Key Info:"
-    run_sql "SELECT key_id, activation_time, creator FROM v\$encryption_keys WHERE activating_pdbid IS NOT NULL;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query TDE status - Oracle environment not configured"
-fi
-
-################################################################################
-# Supplemental Logging
-################################################################################
-
-log_section "SUPPLEMENTAL LOGGING"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Supplemental Logging Status:"
-    run_sql "SELECT supplemental_log_data_min, supplemental_log_data_pk, supplemental_log_data_ui, supplemental_log_data_fk, supplemental_log_data_all FROM v\$database;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query supplemental logging - Oracle environment not configured"
-fi
-
-################################################################################
-# Redo/Archive Configuration
-################################################################################
-
-log_section "REDO/ARCHIVE CONFIGURATION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Redo Log Groups:"
-    run_sql "SELECT group#, thread#, bytes/1024/1024 AS size_mb, members, status FROM v\$log ORDER BY group#;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Redo Log Members:"
-    run_sql "SELECT group#, member, type FROM v\$logfile ORDER BY group#;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Archive Log Destinations:"
-    run_sql "SELECT dest_id, dest_name, status, destination FROM v\$archive_dest WHERE status != 'INACTIVE';" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Archive Log Mode:"
-    run_sql "SELECT log_mode FROM v\$database;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query redo/archive config - Oracle environment not configured"
-fi
-
-################################################################################
-# Network Configuration
-################################################################################
-
-log_section "NETWORK CONFIGURATION"
-
-if [ -n "${ORACLE_HOME:-}" ]; then
-    log_info "Listener Status:"
-    if [ "$(whoami)" = "$ORACLE_USER" ]; then
-        "$ORACLE_HOME/bin/lsnrctl" status 2>&1 | tee -a "$TEXT_OUTPUT" || log_warn "Could not get listener status"
-    else
-        sudo -u "$ORACLE_USER" "$ORACLE_HOME/bin/lsnrctl" status 2>&1 | tee -a "$TEXT_OUTPUT" || log_warn "Could not get listener status"
-    fi
-    
-    log_info "tnsnames.ora:"
-    if [ -f "$ORACLE_HOME/network/admin/tnsnames.ora" ]; then
-        cat "$ORACLE_HOME/network/admin/tnsnames.ora" | tee -a "$TEXT_OUTPUT"
-    else
-        log_warn "tnsnames.ora not found at $ORACLE_HOME/network/admin/tnsnames.ora"
-    fi
-    
-    log_info "sqlnet.ora:"
-    if [ -f "$ORACLE_HOME/network/admin/sqlnet.ora" ]; then
-        cat "$ORACLE_HOME/network/admin/sqlnet.ora" | tee -a "$TEXT_OUTPUT"
-    else
-        log_warn "sqlnet.ora not found at $ORACLE_HOME/network/admin/sqlnet.ora"
-    fi
-else
-    log_warn "ORACLE_HOME not set - cannot check network configuration"
-fi
-
-################################################################################
-# Authentication
-################################################################################
-
-log_section "AUTHENTICATION"
-
-if [ -n "${ORACLE_HOME:-}" ]; then
-    log_info "Password File Location:"
-    PWFILE_PATH="$ORACLE_HOME/dbs/orapw${ORACLE_SID}"
-    if [ -f "$PWFILE_PATH" ]; then
-        ls -la "$PWFILE_PATH" | tee -a "$TEXT_OUTPUT"
-    else
-        log_warn "Password file not found at $PWFILE_PATH"
-        # Check alternative locations
-        find "$ORACLE_HOME/dbs" -name 'orapw*' 2>/dev/null | tee -a "$TEXT_OUTPUT"
-    fi
-fi
-
-log_info "SSH Directory Contents (oracle user):"
-ORACLE_SSH_DIR=$(eval echo ~$ORACLE_USER)/.ssh
-if [ -d "$ORACLE_SSH_DIR" ]; then
-    ls -la "$ORACLE_SSH_DIR" 2>/dev/null | tee -a "$TEXT_OUTPUT" || \
-        sudo ls -la "$ORACLE_SSH_DIR" 2>/dev/null | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "SSH directory not found for $ORACLE_USER"
-fi
-
-################################################################################
-# Data Guard Configuration
-################################################################################
-
-log_section "DATA GUARD CONFIGURATION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Data Guard Parameters:"
-    run_sql "SELECT name, value FROM v\$parameter WHERE name IN ('dg_broker_start', 'log_archive_config', 'log_archive_dest_1', 'log_archive_dest_2', 'log_archive_dest_state_1', 'log_archive_dest_state_2', 'fal_server', 'fal_client', 'standby_file_management', 'db_file_name_convert', 'log_file_name_convert') ORDER BY name;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Database Role and Protection Mode:"
-    run_sql "SELECT database_role, protection_mode, protection_level FROM v\$database;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query Data Guard config - Oracle environment not configured"
-fi
-
-################################################################################
-# Schema Information
-################################################################################
-
-log_section "SCHEMA INFORMATION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Schema Sizes (non-system schemas > 100MB):"
-    run_sql "SELECT owner, ROUND(SUM(bytes)/1024/1024, 2) AS size_mb FROM dba_segments WHERE owner NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'DIP', 'ORACLE_OCM', 'DBSNMP', 'APPQOSSYS', 'WMSYS', 'XDB', 'CTXSYS', 'ANONYMOUS', 'MDSYS', 'OLAPSYS', 'ORDDATA', 'ORDSYS', 'SI_INFORMTN_SCHEMA', 'ORDPLUGINS', 'FLOWS_FILES', 'APEX_PUBLIC_USER', 'APEX_040200') GROUP BY owner HAVING SUM(bytes)/1024/1024 > 100 ORDER BY size_mb DESC;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Invalid Objects by Owner/Type:"
-    run_sql "SELECT owner, object_type, COUNT(*) AS invalid_count FROM dba_objects WHERE status = 'INVALID' GROUP BY owner, object_type ORDER BY owner, object_type;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query schema info - Oracle environment not configured"
-fi
-
-################################################################################
-# ADDITIONAL DISCOVERY: Tablespace Autoextend Settings
-################################################################################
-
-log_section "TABLESPACE AUTOEXTEND SETTINGS"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Tablespace Autoextend Configuration:"
-    run_sql "SELECT tablespace_name, file_name, autoextensible, ROUND(bytes/1024/1024, 2) AS size_mb, ROUND(maxbytes/1024/1024, 2) AS max_size_mb, ROUND(increment_by * (SELECT value FROM v\$parameter WHERE name = 'db_block_size') / 1024 / 1024, 2) AS increment_mb FROM dba_data_files ORDER BY tablespace_name, file_name;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query tablespace settings - Oracle environment not configured"
-fi
-
-################################################################################
-# ADDITIONAL DISCOVERY: Backup Schedule and Retention
-################################################################################
-
-log_section "BACKUP SCHEDULE AND RETENTION"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "RMAN Configuration:"
-    run_sql "SELECT name, value FROM v\$rman_configuration ORDER BY name;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Recent Backup Summary (last 7 days):"
-    run_sql "SELECT input_type, status, TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI:SS') AS start_time, TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI:SS') AS end_time, ROUND(input_bytes/1024/1024/1024, 2) AS input_gb FROM v\$rman_backup_job_details WHERE start_time > SYSDATE - 7 ORDER BY start_time DESC;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Backup Retention Policy:"
-    run_sql "SELECT * FROM v\$rman_configuration WHERE name LIKE '%RETENTION%';" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query backup info - Oracle environment not configured"
-fi
-
-################################################################################
-# ADDITIONAL DISCOVERY: Database Links
-################################################################################
-
-log_section "DATABASE LINKS"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "All Database Links:"
-    run_sql "SELECT owner, db_link, username, host, created FROM dba_db_links ORDER BY owner, db_link;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query database links - Oracle environment not configured"
-fi
-
-################################################################################
-# ADDITIONAL DISCOVERY: Materialized View Refresh Schedules
-################################################################################
-
-log_section "MATERIALIZED VIEW REFRESH SCHEDULES"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Materialized Views and Refresh Settings:"
-    run_sql "SELECT owner, mview_name, refresh_mode, refresh_method, build_mode, fast_refreshable, last_refresh_type, TO_CHAR(last_refresh_date, 'YYYY-MM-DD HH24:MI:SS') AS last_refresh FROM dba_mviews ORDER BY owner, mview_name;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "Materialized View Refresh Groups:"
-    run_sql "SELECT rowner, rname, refgroup, implicit_destroy, push_deferred_rpc, refresh_after_errors, job, TO_CHAR(next_date, 'YYYY-MM-DD HH24:MI:SS') AS next_date, interval FROM dba_refresh ORDER BY rowner, rname;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query materialized views - Oracle environment not configured"
-fi
-
-################################################################################
-# ADDITIONAL DISCOVERY: Scheduler Jobs
-################################################################################
-
-log_section "SCHEDULER JOBS"
-
-if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-    log_info "Scheduler Jobs (enabled):"
-    run_sql "SELECT owner, job_name, job_type, state, enabled, TO_CHAR(last_start_date, 'YYYY-MM-DD HH24:MI:SS') AS last_start, TO_CHAR(next_run_date, 'YYYY-MM-DD HH24:MI:SS') AS next_run, repeat_interval FROM dba_scheduler_jobs WHERE enabled = 'TRUE' ORDER BY owner, job_name;" | tee -a "$TEXT_OUTPUT"
-    
-    log_info "DBMS_JOBS (legacy jobs):"
-    run_sql "SELECT job, schema_user, TO_CHAR(last_date, 'YYYY-MM-DD HH24:MI:SS') AS last_date, TO_CHAR(next_date, 'YYYY-MM-DD HH24:MI:SS') AS next_date, interval, broken, what FROM dba_jobs ORDER BY job;" | tee -a "$TEXT_OUTPUT"
-else
-    log_warn "Cannot query scheduler jobs - Oracle environment not configured"
-fi
-
-################################################################################
-# Finalize JSON Output
-################################################################################
-
-log_section "FINALIZING DISCOVERY"
-
-# Get key values for JSON
-DB_NAME=$(run_sql_value "SELECT name FROM v\$database;" 2>/dev/null)
-DB_VERSION=$(run_sql_value "SELECT version FROM v\$instance;" 2>/dev/null)
-DB_SIZE=$(run_sql_value "SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) FROM dba_data_files;" 2>/dev/null)
-LOG_MODE=$(run_sql_value "SELECT log_mode FROM v\$database;" 2>/dev/null)
-CDB_STATUS=$(run_sql_value "SELECT cdb FROM v\$database;" 2>/dev/null)
-TDE_STATUS=$(run_sql_value "SELECT status FROM v\$encryption_wallet WHERE rownum = 1;" 2>/dev/null)
-CHARSET=$(run_sql_value "SELECT value FROM nls_database_parameters WHERE parameter = 'NLS_CHARACTERSET';" 2>/dev/null)
-
-# Complete JSON output
-cat >> "$JSON_OUTPUT" << EOJSON
-  "oracle_environment": {
-    "oracle_home": "${ORACLE_HOME:-NOT SET}",
-    "oracle_sid": "${ORACLE_SID:-NOT SET}",
-    "oracle_base": "${ORACLE_BASE:-NOT SET}"
-  },
-  "database_configuration": {
-    "database_name": "${DB_NAME:-UNKNOWN}",
-    "version": "${DB_VERSION:-UNKNOWN}",
-    "size_gb": "${DB_SIZE:-UNKNOWN}",
-    "log_mode": "${LOG_MODE:-UNKNOWN}",
-    "cdb_status": "${CDB_STATUS:-UNKNOWN}",
-    "tde_status": "${TDE_STATUS:-NOT CONFIGURED}",
-    "character_set": "${CHARSET:-UNKNOWN}"
-  },
-  "discovery_status": "COMPLETED"
+discover_os_info() {
+    log_section "OS Information"
+    echo "Hostname: $(hostname)"
+    echo "FQDN: $(hostname -f 2>/dev/null || echo 'N/A')"
+    echo "IP Addresses:"
+    ip addr show 2>/dev/null | grep 'inet ' | awk '{print "  " $2}' || hostname -I 2>/dev/null | tr ' ' '\n' | sed 's/^/  /'
+    echo ""
+    echo "Operating System:"
+    cat /etc/os-release 2>/dev/null | grep -E '^(NAME|VERSION)=' || cat /etc/redhat-release 2>/dev/null
+    echo ""
+    echo "Kernel: $(uname -r)"
+    echo ""
+    echo "Disk Space:"
+    df -h 2>/dev/null | grep -E '^/|Filesystem'
 }
-EOJSON
 
-log_info "Discovery completed successfully"
-log_info "Text report: $TEXT_OUTPUT"
-log_info "JSON summary: $JSON_OUTPUT"
+discover_oracle_env() {
+    log_section "Oracle Environment"
+    echo "ORACLE_HOME: ${ORACLE_HOME:-NOT SET}"
+    echo "ORACLE_SID: ${ORACLE_SID:-NOT SET}"
+    echo "ORACLE_BASE: ${ORACLE_BASE:-NOT SET}"
+    
+    if [ -n "${ORACLE_HOME:-}" ]; then
+        if [ -f "$ORACLE_HOME/bin/sqlplus" ]; then
+            echo ""
+            echo "Oracle Version:"
+            if [ "$(whoami)" = "$ORACLE_USER" ]; then
+                $ORACLE_HOME/bin/sqlplus -V 2>/dev/null | head -3
+            else
+                sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" $ORACLE_HOME/bin/sqlplus -V 2>/dev/null | head -3
+            fi
+        fi
+    fi
+}
 
-echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Discovery Complete${NC}"
-echo -e "${GREEN}========================================${NC}"
-echo "Text report: $TEXT_OUTPUT"
-echo "JSON summary: $JSON_OUTPUT"
+discover_db_config() {
+    log_section "Database Configuration"
+    
+    run_sql "SELECT 'Database Name: ' || name FROM v\$database;"
+    run_sql "SELECT 'DB Unique Name: ' || db_unique_name FROM v\$database;"
+    run_sql "SELECT 'DBID: ' || dbid FROM v\$database;"
+    run_sql "SELECT 'Database Role: ' || database_role FROM v\$database;"
+    run_sql "SELECT 'Open Mode: ' || open_mode FROM v\$database;"
+    run_sql "SELECT 'Log Mode: ' || log_mode FROM v\$database;"
+    run_sql "SELECT 'Force Logging: ' || force_logging FROM v\$database;"
+    run_sql "SELECT 'Flashback On: ' || flashback_on FROM v\$database;"
+    
+    echo ""
+    echo "Database Size:"
+    run_sql "
+SELECT 'Data Files: ' || ROUND(SUM(bytes)/1024/1024/1024, 2) || ' GB' 
+FROM dba_data_files;
+"
+    run_sql "
+SELECT 'Temp Files: ' || ROUND(SUM(bytes)/1024/1024/1024, 2) || ' GB' 
+FROM dba_temp_files;
+"
+    
+    echo ""
+    echo "Character Set:"
+    run_sql "SELECT 'Character Set: ' || value FROM nls_database_parameters WHERE parameter = 'NLS_CHARACTERSET';"
+    run_sql "SELECT 'National Character Set: ' || value FROM nls_database_parameters WHERE parameter = 'NLS_NCHAR_CHARACTERSET';"
+}
+
+discover_cdb_pdb() {
+    log_section "Container Database Configuration"
+    
+    local cdb_status=$(run_sql_value "SELECT CDB FROM v\$database;")
+    echo "CDB Status: $cdb_status"
+    
+    if [ "$cdb_status" = "YES" ]; then
+        echo ""
+        echo "PDB List:"
+        run_sql "
+SELECT con_id, name, open_mode, restricted, total_size/1024/1024 AS size_mb
+FROM v\$pdbs
+ORDER BY con_id;
+"
+    fi
+}
+
+discover_tde() {
+    log_section "TDE Configuration"
+    
+    echo "Encryption Wallet Status:"
+    run_sql "
+SELECT wrl_type, wrl_parameter, status, wallet_type, wallet_order
+FROM v\$encryption_wallet;
+"
+    
+    echo ""
+    echo "Encrypted Tablespaces:"
+    run_sql "
+SELECT tablespace_name, encrypted, status
+FROM dba_tablespaces
+WHERE encrypted = 'YES';
+"
+    
+    echo ""
+    echo "TDE Master Key Info:"
+    run_sql "
+SELECT key_id, activation_time, creator, key_use
+FROM v\$encryption_keys
+WHERE ROWNUM <= 5;
+"
+}
+
+discover_supplemental_logging() {
+    log_section "Supplemental Logging"
+    
+    run_sql "
+SELECT 'Supplemental Log Data Min: ' || supplemental_log_data_min,
+       'Supplemental Log Data PK: ' || supplemental_log_data_pk,
+       'Supplemental Log Data UI: ' || supplemental_log_data_ui,
+       'Supplemental Log Data FK: ' || supplemental_log_data_fk,
+       'Supplemental Log Data All: ' || supplemental_log_data_all
+FROM v\$database;
+"
+}
+
+discover_redo_archive() {
+    log_section "Redo and Archive Configuration"
+    
+    echo "Redo Log Groups:"
+    run_sql "
+SELECT group#, thread#, sequence#, bytes/1024/1024 AS size_mb, 
+       members, archived, status
+FROM v\$log
+ORDER BY group#;
+"
+    
+    echo ""
+    echo "Redo Log Members:"
+    run_sql "
+SELECT group#, member, type, status
+FROM v\$logfile
+ORDER BY group#;
+"
+    
+    echo ""
+    echo "Archive Log Destinations:"
+    run_sql "
+SELECT dest_id, dest_name, status, type, destination
+FROM v\$archive_dest
+WHERE status = 'VALID' OR destination IS NOT NULL;
+"
+    
+    echo ""
+    echo "Archive Log Mode:"
+    run_sql "SELECT 'Archive Mode: ' || log_mode FROM v\$database;"
+}
+
+discover_network_config() {
+    log_section "Network Configuration"
+    
+    echo "Listener Status:"
+    if [ -n "${ORACLE_HOME:-}" ]; then
+        if [ "$(whoami)" = "$ORACLE_USER" ]; then
+            ORACLE_HOME="$ORACLE_HOME" $ORACLE_HOME/bin/lsnrctl status 2>/dev/null | head -30
+        else
+            sudo -u "$ORACLE_USER" ORACLE_HOME="$ORACLE_HOME" $ORACLE_HOME/bin/lsnrctl status 2>/dev/null | head -30
+        fi
+    fi
+    
+    echo ""
+    echo "tnsnames.ora:"
+    if [ -n "${ORACLE_HOME:-}" ] && [ -f "$ORACLE_HOME/network/admin/tnsnames.ora" ]; then
+        cat "$ORACLE_HOME/network/admin/tnsnames.ora" 2>/dev/null
+    else
+        echo "File not found"
+    fi
+    
+    echo ""
+    echo "sqlnet.ora:"
+    if [ -n "${ORACLE_HOME:-}" ] && [ -f "$ORACLE_HOME/network/admin/sqlnet.ora" ]; then
+        cat "$ORACLE_HOME/network/admin/sqlnet.ora" 2>/dev/null
+    else
+        echo "File not found"
+    fi
+}
+
+discover_auth_config() {
+    log_section "Authentication Configuration"
+    
+    echo "Password File Location:"
+    if [ -n "${ORACLE_HOME:-}" ]; then
+        ls -la "$ORACLE_HOME/dbs/orapw"* 2>/dev/null || echo "No password file found in \$ORACLE_HOME/dbs/"
+    fi
+    
+    echo ""
+    echo "SSH Directory Contents (for oracle user):"
+    local oracle_home_dir=$(eval echo ~$ORACLE_USER)
+    if [ -d "$oracle_home_dir/.ssh" ]; then
+        ls -la "$oracle_home_dir/.ssh/" 2>/dev/null
+    else
+        echo "SSH directory not found for $ORACLE_USER user (this is expected when using admin user with sudo)"
+    fi
+}
+
+discover_dataguard() {
+    log_section "Data Guard Configuration"
+    
+    run_sql "
+SELECT name, value 
+FROM v\$parameter 
+WHERE name IN (
+    'log_archive_config',
+    'log_archive_dest_1',
+    'log_archive_dest_2',
+    'log_archive_dest_state_1',
+    'log_archive_dest_state_2',
+    'fal_server',
+    'fal_client',
+    'standby_file_management',
+    'db_file_name_convert',
+    'log_file_name_convert'
+)
+ORDER BY name;
+"
+}
+
+discover_schema_info() {
+    log_section "Schema Information"
+    
+    echo "Schema Sizes (non-system schemas > 100MB):"
+    run_sql "
+SELECT owner, ROUND(SUM(bytes)/1024/1024, 2) AS size_mb
+FROM dba_segments
+WHERE owner NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'DIP', 'ORACLE_OCM', 
+                    'DBSNMP', 'APPQOSSYS', 'WMSYS', 'EXFSYS', 'CTXSYS',
+                    'XDB', 'ORDDATA', 'ORDSYS', 'MDSYS', 'OLAPSYS',
+                    'GSMADMIN_INTERNAL', 'AUDSYS', 'DBSFWUSER', 'REMOTE_SCHEDULER_AGENT')
+GROUP BY owner
+HAVING SUM(bytes) > 100*1024*1024
+ORDER BY size_mb DESC;
+"
+    
+    echo ""
+    echo "Invalid Objects by Owner/Type:"
+    run_sql "
+SELECT owner, object_type, COUNT(*) AS invalid_count
+FROM dba_objects
+WHERE status = 'INVALID'
+AND owner NOT IN ('SYS', 'SYSTEM', 'OUTLN', 'PUBLIC')
+GROUP BY owner, object_type
+ORDER BY owner, object_type;
+"
+}
+
+#-------------------------------------------------------------------------------
+# Additional Discovery (Custom Requirements)
+#-------------------------------------------------------------------------------
+
+discover_tablespace_autoextend() {
+    log_section "Tablespace Autoextend Settings"
+    
+    run_sql "
+SELECT tablespace_name, file_name, 
+       ROUND(bytes/1024/1024, 2) AS size_mb,
+       ROUND(maxbytes/1024/1024, 2) AS max_size_mb,
+       autoextensible,
+       ROUND(increment_by * (SELECT value FROM v\$parameter WHERE name = 'db_block_size') / 1024 / 1024, 2) AS increment_mb
+FROM dba_data_files
+ORDER BY tablespace_name, file_name;
+"
+}
+
+discover_backup_schedule() {
+    log_section "Backup Schedule and Retention"
+    
+    echo "RMAN Configuration:"
+    run_sql "SELECT name, value FROM v\$rman_configuration ORDER BY name;"
+    
+    echo ""
+    echo "Recent Backup History (last 7 days):"
+    run_sql "
+SELECT TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
+       TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
+       input_type, status, 
+       ROUND(input_bytes/1024/1024/1024, 2) AS input_gb,
+       ROUND(output_bytes/1024/1024/1024, 2) AS output_gb
+FROM v\$rman_backup_job_details
+WHERE start_time > SYSDATE - 7
+ORDER BY start_time DESC;
+"
+}
+
+discover_db_links() {
+    log_section "Database Links"
+    
+    run_sql "
+SELECT owner, db_link, username, host, created
+FROM dba_db_links
+ORDER BY owner, db_link;
+"
+}
+
+discover_materialized_views() {
+    log_section "Materialized View Refresh Schedules"
+    
+    run_sql "
+SELECT owner, mview_name, refresh_mode, refresh_method,
+       build_mode, fast_refreshable,
+       last_refresh_type, 
+       TO_CHAR(last_refresh_date, 'YYYY-MM-DD HH24:MI:SS') AS last_refresh
+FROM dba_mviews
+WHERE owner NOT IN ('SYS', 'SYSTEM')
+ORDER BY owner, mview_name;
+"
+    
+    echo ""
+    echo "Materialized View Refresh Groups:"
+    run_sql "
+SELECT rowner, rname, refgroup, implicit_destroy, 
+       push_deferred_rpc, refresh_after_errors,
+       job, next_date, interval
+FROM dba_refresh
+ORDER BY rowner, rname;
+"
+}
+
+discover_scheduler_jobs() {
+    log_section "Scheduler Jobs"
+    
+    run_sql "
+SELECT owner, job_name, job_type, state, enabled,
+       TO_CHAR(start_date, 'YYYY-MM-DD HH24:MI') AS start_date,
+       repeat_interval,
+       TO_CHAR(last_start_date, 'YYYY-MM-DD HH24:MI') AS last_start,
+       TO_CHAR(next_run_date, 'YYYY-MM-DD HH24:MI') AS next_run
+FROM dba_scheduler_jobs
+WHERE owner NOT IN ('SYS', 'SYSTEM', 'ORACLE_OCM', 'EXFSYS')
+ORDER BY owner, job_name;
+"
+    
+    echo ""
+    echo "DBMS_JOB Jobs (Legacy):"
+    run_sql "
+SELECT job, log_user, schema_user, 
+       TO_CHAR(last_date, 'YYYY-MM-DD HH24:MI') AS last_date,
+       TO_CHAR(next_date, 'YYYY-MM-DD HH24:MI') AS next_date,
+       interval, broken, failures, what
+FROM dba_jobs
+ORDER BY job;
+"
+}
+
+#-------------------------------------------------------------------------------
+# JSON Output Generation
+#-------------------------------------------------------------------------------
+generate_json_summary() {
+    local db_name=$(run_sql_value "SELECT name FROM v\$database;")
+    local db_unique_name=$(run_sql_value "SELECT db_unique_name FROM v\$database;")
+    local dbid=$(run_sql_value "SELECT dbid FROM v\$database;")
+    local db_role=$(run_sql_value "SELECT database_role FROM v\$database;")
+    local open_mode=$(run_sql_value "SELECT open_mode FROM v\$database;")
+    local log_mode=$(run_sql_value "SELECT log_mode FROM v\$database;")
+    local force_logging=$(run_sql_value "SELECT force_logging FROM v\$database;")
+    local cdb_status=$(run_sql_value "SELECT CDB FROM v\$database;")
+    local charset=$(run_sql_value "SELECT value FROM nls_database_parameters WHERE parameter = 'NLS_CHARACTERSET';")
+    local version=$(run_sql_value "SELECT version_full FROM v\$instance;" 2>/dev/null || run_sql_value "SELECT version FROM v\$instance;")
+    local data_size=$(run_sql_value "SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) FROM dba_data_files;")
+    local wallet_status=$(run_sql_value "SELECT status FROM v\$encryption_wallet WHERE ROWNUM = 1;")
+    local supp_log_min=$(run_sql_value "SELECT supplemental_log_data_min FROM v\$database;")
+    
+    cat > "$JSON_FILE" <<EOF
+{
+  "discovery_type": "source",
+  "discovery_timestamp": "$(date -Iseconds)",
+  "hostname": "$HOSTNAME",
+  "oracle_home": "${ORACLE_HOME:-}",
+  "oracle_sid": "${ORACLE_SID:-}",
+  "database": {
+    "name": "$db_name",
+    "unique_name": "$db_unique_name",
+    "dbid": "$dbid",
+    "role": "$db_role",
+    "open_mode": "$open_mode",
+    "log_mode": "$log_mode",
+    "force_logging": "$force_logging",
+    "cdb": "$cdb_status",
+    "version": "$version",
+    "character_set": "$charset",
+    "data_size_gb": "$data_size"
+  },
+  "tde": {
+    "wallet_status": "$wallet_status"
+  },
+  "supplemental_logging": {
+    "minimal": "$supp_log_min"
+  },
+  "output_files": {
+    "text_report": "$OUTPUT_FILE",
+    "json_summary": "$JSON_FILE"
+  }
+}
+EOF
+    
+    log_info "JSON summary written to: $JSON_FILE"
+}
+
+#-------------------------------------------------------------------------------
+# Main Execution
+#-------------------------------------------------------------------------------
+main() {
+    log_info "Starting ZDM Source Discovery on $HOSTNAME"
+    log_info "Timestamp: $TIMESTAMP"
+    log_info "Running as user: $(whoami)"
+    log_info "Oracle user for SQL execution: $ORACLE_USER"
+    
+    # Detect Oracle environment
+    detect_oracle_env
+    
+    if [ -z "${ORACLE_HOME:-}" ] || [ -z "${ORACLE_SID:-}" ]; then
+        log_error "Failed to detect Oracle environment. Please set ORACLE_HOME and ORACLE_SID."
+        exit 1
+    fi
+    
+    # Run all discovery sections with error handling
+    {
+        echo "==============================================================================="
+        echo "ZDM Source Database Discovery Report"
+        echo "Project: PRODDB Migration to Oracle Database@Azure"
+        echo "Source: proddb01.corp.example.com"
+        echo "Generated: $(date)"
+        echo "Hostname: $HOSTNAME"
+        echo "==============================================================================="
+        
+        # Standard discovery
+        discover_os_info || log_warn "OS info discovery had errors"
+        discover_oracle_env || log_warn "Oracle env discovery had errors"
+        discover_db_config || log_warn "DB config discovery had errors"
+        discover_cdb_pdb || log_warn "CDB/PDB discovery had errors"
+        discover_tde || log_warn "TDE discovery had errors"
+        discover_supplemental_logging || log_warn "Supplemental logging discovery had errors"
+        discover_redo_archive || log_warn "Redo/Archive discovery had errors"
+        discover_network_config || log_warn "Network config discovery had errors"
+        discover_auth_config || log_warn "Auth config discovery had errors"
+        discover_dataguard || log_warn "Data Guard discovery had errors"
+        discover_schema_info || log_warn "Schema info discovery had errors"
+        
+        # Additional custom discovery requirements
+        discover_tablespace_autoextend || log_warn "Tablespace autoextend discovery had errors"
+        discover_backup_schedule || log_warn "Backup schedule discovery had errors"
+        discover_db_links || log_warn "Database links discovery had errors"
+        discover_materialized_views || log_warn "Materialized views discovery had errors"
+        discover_scheduler_jobs || log_warn "Scheduler jobs discovery had errors"
+        
+        echo ""
+        echo "==============================================================================="
+        echo "End of Discovery Report"
+        echo "==============================================================================="
+    } 2>&1 | tee "$OUTPUT_FILE"
+    
+    # Generate JSON summary
+    generate_json_summary
+    
+    log_info "Discovery complete!"
+    log_info "Text report: $OUTPUT_FILE"
+    log_info "JSON summary: $JSON_FILE"
+}
+
+# Execute main function
+main "$@"

@@ -184,18 +184,25 @@ oci os ns get
 ```
 
 #### 5. SSH Key Authentication Issues
+
+> **IMPORTANT:** ZDM uses admin users with sudo, NOT direct SSH as oracle.
+> If Step 0 discovery completed successfully, SSH is already working.
+
 ```bash
-# Generate SSH key if needed
-ssh-keygen -t rsa -b 4096 -f ~/.ssh/zdm_key
+# SSH Pattern: admin user + sudo to oracle
+# Source: ssh SOURCE_ADMIN_USER@host → sudo -u oracle
+# Target: ssh TARGET_ADMIN_USER@host → sudo -u oracle
 
-# Copy to source/target
-ssh-copy-id -i ~/.ssh/zdm_key.pub oracle@<source_host>
-ssh-copy-id -i ~/.ssh/zdm_key.pub opc@<target_host>
+# Test SSH (as configured admin users, not oracle)
+ssh -i <key> ${SOURCE_ADMIN_USER}@<source_host> "sudo -u oracle whoami"  # Should print: oracle
+ssh -i <key> ${TARGET_ADMIN_USER}@<target_host> "sudo -u oracle whoami"  # Should print: oracle
 
-# Test
-ssh -i ~/.ssh/zdm_key oracle@<source_host> "echo 'Source OK'"
-ssh -i ~/.ssh/zdm_key opc@<target_host> "echo 'Target OK'"
+# Example with typical users:
+ssh -i iaas.pem temandin@source_host "sudo -u oracle whoami"
+ssh opc@target_host "sudo -u oracle whoami"
 ```
+
+**Note:** "SSH directory not found for oracle user" is NOT a blocker - we don't SSH as oracle.
 
 ### Network Issues
 
@@ -217,11 +224,14 @@ nc -zv <target_ip> 1521
 After fixing issues, re-run the relevant discovery script:
 
 ```bash
-# From ZDM server, re-run source discovery
+# From ZDM server, re-run source discovery (uses SOURCE_ADMIN_USER automatically)
 ./zdm_orchestrate_discovery.sh source
 
-# Or run individual scripts
-ssh oracle@<source_host> 'bash -s' < zdm_source_discovery.sh
+# Or run individual scripts (SSH as admin user, script will sudo to oracle)
+ssh -i <key> ${SOURCE_ADMIN_USER}@<source_host> 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
+
+# Example:
+ssh -i iaas.pem temandin@10.1.0.10 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
 ```
 
 Save updated discovery outputs to:

@@ -78,6 +78,11 @@ Create a file `Discovery-Summary-<DATABASE>.md` in `Artifacts/Phase10-Migration/
    - ✅ Requirements met (e.g., ARCHIVELOG mode, Force Logging)
    - ⚠️ Actions required (e.g., enable supplemental logging)
    - ❌ Blockers (if any)
+   
+   > **IMPORTANT: SSH Authentication**
+   > Do NOT flag "SSH directory not found for oracle user" as a blocker.
+   > ZDM uses admin users (SOURCE_ADMIN_USER, TARGET_ADMIN_USER) with `sudo -u oracle`.
+   > If discovery succeeded, SSH connectivity is already working.
 
 3. **Discovered Configurations**
    - All auto-populated values from discovery scripts

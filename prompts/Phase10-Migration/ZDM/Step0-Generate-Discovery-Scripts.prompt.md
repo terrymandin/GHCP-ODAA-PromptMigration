@@ -19,6 +19,41 @@ Step 3: Generate Migration Artifacts & Run Migration
 
 ---
 
+## SSH Authentication Pattern
+
+> **IMPORTANT:** The discovery scripts use a secure admin-user-with-sudo pattern, NOT direct SSH as oracle.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SSH Authentication Model                                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ZDM Server (zdmuser)                                                        │
+│       │                                                                      │
+│       ├──► SSH as SOURCE_ADMIN_USER ──► sudo -u oracle (for SQL)            │
+│       │         (e.g., temandin)                                             │
+│       │                                                                      │
+│       └──► SSH as TARGET_ADMIN_USER ──► sudo -u oracle (for SQL)            │
+│                 (e.g., opc)                                                  │
+│                                                                              │
+│  We do NOT SSH directly as 'oracle' - this follows enterprise security      │
+│  patterns where direct oracle login is disabled.                             │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Environment Variables:**
+- `SOURCE_ADMIN_USER` - Admin user for SSH to source (default: oracle, but often a named admin like temandin)
+- `TARGET_ADMIN_USER` - Admin user for SSH to target (default: opc for Exadata/ODA)
+- `ORACLE_USER` - Database software owner for sudo (default: oracle)
+
+**Discovery scripts automatically:**
+1. SSH as the admin user (SOURCE_ADMIN_USER or TARGET_ADMIN_USER)
+2. Detect if running as oracle; if not, use `sudo -u oracle` for SQL commands
+3. This means "SSH directory not found for oracle user" is NOT a blocker
+
+---
+
 ## Instructions
 
 Run this prompt to generate fresh discovery scripts. These scripts should be generated at the start of each migration project to ensure they contain the latest discovery logic.
