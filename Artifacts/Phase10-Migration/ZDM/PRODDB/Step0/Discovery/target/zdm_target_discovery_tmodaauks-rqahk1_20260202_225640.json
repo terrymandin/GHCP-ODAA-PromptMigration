@@ -1,0 +1,27 @@
+{
+  "discovery_type": "target",
+  "discovery_timestamp": "2026-02-02T22:57:05+00:00",
+  "hostname": "tmodaauks-rqahk1",
+  "oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
+  "oracle_sid": "+ASM1",
+  "database": {
+    "name": "SELECT name FROM v$database",
+    "unique_name": "SELECT db_unique_name FROM v$database",
+    "role": "SELECT database_role FROM v$database",
+    "open_mode": "SELECT open_mode FROM v$database",
+    "cdb": "SELECT CDB FROM v$database",
+    "version": "SELECT version_full FROM v$instance",
+    "character_set": "SELECT value FROM nls_database_parameters WHERE parameter = 'NLS_CHARACTERSET'"
+  },
+  "tde": {
+    "wallet_status": "SELECT status FROM v$encryption_wallet WHERE ROWNUM = 1"
+  },
+  "storage": {
+    "asm_total_gb": "SELECT ROUND(SUM(total_mb)/1024, 2) FROM v$asm_diskgroup",
+    "asm_free_gb": "SELECT ROUND(SUM(free_mb)/1024, 2) FROM v$asm_diskgroup"
+  },
+  "output_files": {
+    "text_report": "./zdm_target_discovery_tmodaauks-rqahk1_20260202_225640.txt",
+    "json_summary": "./zdm_target_discovery_tmodaauks-rqahk1_20260202_225640.json"
+  }
+}
