@@ -1,0 +1,30 @@
+{
+  "discovery_type": "source",
+  "discovery_timestamp": "2026-02-02T22:56:39+0000",
+  "hostname": "temandin-oravm-vm01",
+  "oracle_home": "/u01/app/oracle/product/19.0.0/dbhome_1",
+  "oracle_sid": "oradb01",
+  "database": {
+    "name": "ORADB01",
+    "unique_name": "oradb01",
+    "dbid": "1593802201",
+    "role": "PRIMARY",
+    "open_mode": "READ WRITE",
+    "log_mode": "ARCHIVELOG",
+    "force_logging": "YES",
+    "cdb": "NO",
+    "version": "19.3.0.0.0",
+    "character_set": "AL32UTF8",
+    "data_size_gb": "			       1.9"
+  },
+  "tde": {
+    "wallet_status": "OPEN"
+  },
+  "supplemental_logging": {
+    "minimal": "YES"
+  },
+  "output_files": {
+    "text_report": "./zdm_source_discovery_temandin-oravm-vm01_20260202_225551.txt",
+    "json_summary": "./zdm_source_discovery_temandin-oravm-vm01_20260202_225551.json"
+  }
+}
