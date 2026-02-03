@@ -1,0 +1,371 @@
+ZDM Target Database Discovery Report
+Generated: Tue Feb  3 13:58:34 UTC 2026
+Hostname: tmodaauks-rqahk1
+Project: PRODDB Migration to Oracle Database@Azure
+========================================
+
+========================================
+OS Information
+========================================
+Hostname: tmodaauks-rqahk1.ocioracle.ocitmvnetuks.oraclevcn.com
+IP Addresses: 127.0.0.1,10.0.1.160,10.0.1.155,10.0.1.159,10.0.1.200,192.168.255.151,169.254.200.2,100.106.64.130,100.106.64.131,100.107.0.192,100.107.0.193
+OS Version: Oracle Linux Server 8.10
+
+========================================
+Oracle Environment
+========================================
+ORACLE_HOME: /u02/app/oracle/product/19.0.0.0/dbhome_1
+ORACLE_SID: +ASM1
+ORACLE_BASE: /u02/app/oracle
+Oracle Version: Session ID: 0 Serial number: 0
+
+========================================
+Database Configuration
+========================================
+Database Name: Session ID: 0 Serial number: 0
+DB Unique Name: Session ID: 0 Serial number: 0
+Database Role: Session ID: 0 Serial number: 0
+Open Mode: Session ID: 0 Serial number: 0
+Character Set: Session ID: 0 Serial number: 0
+
+========================================
+Storage Configuration
+========================================
+Tablespace Space Usage:
+SELECT tablespace_name,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+ASM Disk Groups:
+SELECT name, state, type,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+========================================
+Container Database / PDBs
+========================================
+Is CDB: Session ID: 0 Serial number: 0
+
+========================================
+TDE/Wallet Configuration
+========================================
+Encryption Wallet Status:
+SELECT * FROM v$encryption_wallet
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+========================================
+Network Configuration
+========================================
+Listener Status:
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 03-FEB-2026 13:58:46
+
+Copyright (c) 1991, 2025, Oracle.  All rights reserved.
+
+Connecting to (ADDRESS=(PROTOCOL=tcp)(HOST=)(PORT=1521))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                02-FEB-2026 20:13:41
+Uptime                    0 days 17 hr. 45 min. 5 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Parameter File   /u01/app/19.0.0.0/grid/network/admin/listener.ora
+Listener Log File         /u01/app/grid/diag/tnslsnr/tmodaauks-rqahk1/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=ipc)(KEY=LISTENER)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=10.0.1.155)(PORT=2484)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.0.1.160)(PORT=1521)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.0.1.155)(PORT=1521)))
+Services Summary...
+Service "+APX" has 1 instance(s).
+  Instance "+APX1", status READY, has 1 handler(s) for this service...
+Service "+ASM" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_DATAC3" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_RECOC3" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "4142c932dbecb6f0e0634e514664b1aa.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "migdb1", status READY, has 1 handler(s) for this service...
+Service "491625e3d8970986e063a001000a5fe5.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "migdb1", status READY, has 1 handler(s) for this service...
+Service "migdb.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "migdb1", status READY, has 1 handler(s) for this service...
+Service "migdbXDB.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "migdb1", status READY, has 1 handler(s) for this service...
+Service "migdb_MIGDBPDB.paas.oracle.com" has 1 instance(s).
+  Instance "migdb1", status READY, has 1 handler(s) for this service...
+Service "migdbpdb.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "migdb1", status READY, has 1 handler(s) for this service...
+The command completed successfully
+
+SCAN Listener (if RAC):
+SCAN Listener LISTENER_SCAN1 is enabled
+SCAN listener LISTENER_SCAN1 is running on node tmodaauks-rqahk2
+SCAN Listener LISTENER_SCAN2 is enabled
+SCAN listener LISTENER_SCAN2 is running on node tmodaauks-rqahk1
+SCAN Listener LISTENER_SCAN3 is enabled
+SCAN listener LISTENER_SCAN3 is running on node tmodaauks-rqahk1
+
+tnsnames.ora contents:
+File not found: /u02/app/oracle/product/19.0.0.0/dbhome_1/network/admin/tnsnames.ora
+
+========================================
+OCI/Azure Integration
+========================================
+OCI CLI Version:
+OCI CLI not installed
+
+OCI Config File Location:
+OCI config file not found at ~/.oci/config
+
+OCI Connectivity Test:
+
+OCI Instance Metadata:
+<html>
+<head><title>404 Not Found</title></head>
+<body bgcolor="white">
+<center><h1>404 Not Found</h1></center>
+</body>
+</html>
+(OCI metadata retrieved)
+
+Azure Instance Metadata:
+<html>
+<head><title>404 Not Found</title></head>
+<body bgcolor="white">
+<center><h1>404 Not Found</h1></center>
+</body>
+</html>
+(Azure metadata retrieved)
+
+========================================
+Grid Infrastructure / RAC
+========================================
+Grid Home: /u01/app/19.0.0.0/grid
+
+CRS Status:
+--------------------------------------------------------------------------------
+Name           Target  State        Server                   State details       
+--------------------------------------------------------------------------------
+Local Resources
+--------------------------------------------------------------------------------
+ora.DATAC3.ACFSVOL01.advm
+               ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.LISTENER.lsnr
+               ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.chad
+               ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.datac3.acfsvol01.acfs
+               ONLINE  ONLINE       tmodaauks-rqahk1         mounted on /acfs01,S
+                                                             TABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         mounted on /acfs01,S
+                                                             TABLE
+ora.net1.network
+               ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.ons
+               ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.proxy_advm
+               ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+               ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+--------------------------------------------------------------------------------
+Cluster Resources
+--------------------------------------------------------------------------------
+ora.ASMNET1LSNR_ASM.lsnr(ora.asmgroup)
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+      2        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.DATAC3.dg(ora.asmgroup)
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+      2        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.LISTENER_SCAN1.lsnr
+      1        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.LISTENER_SCAN2.lsnr
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.LISTENER_SCAN3.lsnr
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.RECOC3.dg(ora.asmgroup)
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+      2        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.asm(ora.asmgroup)
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         Started,STABLE
+      2        ONLINE  ONLINE       tmodaauks-rqahk2         Started,STABLE
+ora.asmnet1.asmnetwork(ora.asmgroup)
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+      2        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.cvu
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.migdb.db
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         Open,HOME=/u02/app/o
+                                                             racle/product/19.0.0
+                                                             .0/dbhome_1,STABLE
+      2        ONLINE  ONLINE       tmodaauks-rqahk2         Open,HOME=/u02/app/o
+                                                             racle/product/19.0.0
+                                                             .0/dbhome_1,STABLE
+ora.migdb.migdb_migdbpdb.paas.oracle.com.svc
+      1        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+      3        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.mydb.db
+      1        OFFLINE OFFLINE                               Instance Shutdown,ST
+                                                             ABLE
+      2        OFFLINE OFFLINE                               Instance Shutdown,ST
+                                                             ABLE
+ora.mydb.mydb_mydbpdb.paas.oracle.com.svc
+      1        OFFLINE OFFLINE                               STABLE
+      3        OFFLINE OFFLINE                               STABLE
+ora.mydb.mydb_zdm_restore.svc
+      1        OFFLINE OFFLINE                               STABLE
+ora.oradb01m.db
+      1        OFFLINE OFFLINE                               Instance Shutdown,ST
+                                                             ABLE
+      2        OFFLINE OFFLINE                               Instance Shutdown,ST
+                                                             ABLE
+ora.oradb01m.oradb01_oradb01pdb.paas.oracle.com.svc
+      1        OFFLINE OFFLINE                               STABLE
+      3        OFFLINE OFFLINE                               STABLE
+ora.qosmserver
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.scan1.vip
+      1        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+ora.scan2.vip
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.scan3.vip
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.tmodaauks-rqahk1.vip
+      1        ONLINE  ONLINE       tmodaauks-rqahk1         STABLE
+ora.tmodaauks-rqahk2.vip
+      1        ONLINE  ONLINE       tmodaauks-rqahk2         STABLE
+--------------------------------------------------------------------------------
+
+Cluster Nodes:
+tmodaauks-rqahk1	1
+tmodaauks-rqahk2	2
+
+========================================
+SSH Configuration
+========================================
+SSH Directory Contents (current user):
+total 24
+drwx------. 2 opc opc   80 Dec 16 16:26 .
+drwx------. 6 opc opc 4096 Feb  3 13:58 ..
+-rw-------. 1 opc opc 3086 Feb  3 08:41 authorized_keys
+-rw-------. 1 opc opc 2590 Dec 16 15:12 id_rsa
+-rw-------. 1 opc opc  562 Dec 16 15:12 id_rsa.pub
+-rw-rw-r--. 1 opc opc 4524 Dec 16 16:22 known_hosts
+
+SSH Directory Contents (oracle user):
+SSH directory not found for oracle user
+
+========================================
+Exadata Storage Capacity
+========================================
+Exadata Cell Information:
+SELECT cell_name, cell_version, status
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+Exadata Disk Groups (Detailed):
+SELECT name, state, type,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+Exadata Storage Summary:
+SELECT
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+========================================
+Pre-configured PDBs
+========================================
+PDB Details:
+SELECT p.pdb_name, p.status, p.open_mode, p.con_id,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+PDB Services:
+SELECT pdb, name AS service_name, network_name, enabled,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+PDB Resource Limits:
+SELECT pdb_name,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+========================================
+Network Security Group Rules
+========================================
+Listening Ports (relevant to Oracle):
+LISTEN 0      128    169.254.200.2:22         0.0.0.0:*                                     
+LISTEN 0      128       10.0.1.200:1521       0.0.0.0:*                                     
+LISTEN 0      128        127.0.0.1:22         0.0.0.0:*                                     
+LISTEN 0      128       10.0.1.155:1521       0.0.0.0:*                                     
+LISTEN 0      128       10.0.1.159:1521       0.0.0.0:*                                     
+LISTEN 0      50           0.0.0.0:55000      0.0.0.0:*                                     
+LISTEN 0      128       10.0.1.160:1521       0.0.0.0:*                                     
+LISTEN 0      128       10.0.1.160:22         0.0.0.0:*                                     
+
+Firewall Rules (if applicable):
+Firewalld zones and services:
+Unable to query firewalld
+
+OCI/Azure Network Configuration Note:
+NSG rules are managed at the cloud infrastructure level.
+Use OCI Console or Azure Portal to review actual NSG rules.
+Ensure the following ports are open:
+  - SSH (22)
+  - Oracle Listener (1521)
+  - Oracle EM (5500)
