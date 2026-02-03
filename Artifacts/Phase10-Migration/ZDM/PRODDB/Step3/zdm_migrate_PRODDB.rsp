@@ -1,0 +1,214 @@
+# ===========================================
+# ZDM Response File
+# Database: PRODDB (oradb01)
+# Migration Type: ONLINE_PHYSICAL
+# Generated: 2026-02-03
+# ===========================================
+
+# -------------------------------------------
+# MIGRATION METHOD
+# -------------------------------------------
+# ONLINE_PHYSICAL - Uses Data Guard for minimal downtime
+# OFFLINE_PHYSICAL - Uses backup/restore with extended downtime
+MIGRATION_METHOD=ONLINE_PHYSICAL
+
+# -------------------------------------------
+# SOURCE DATABASE CONFIGURATION
+# -------------------------------------------
+# Source database unique name
+SOURCEDATABASE_ADMINUSERNAME=SYS
+
+# Source database connection details
+SOURCEDATABASE_CONNECTIONDETAILS_HOST=temandin-oravm-vm01
+SOURCEDATABASE_CONNECTIONDETAILS_PORT=1521
+SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01
+
+# Source Oracle Home
+SOURCEDATABASE_ORACLEHOME=/u01/app/oracle/product/19.0.0/dbhome_1
+
+# Source database environment details
+SOURCEDATABASE_ENVIRONMENTBASE=/u01/app/oracle
+SOURCEDATABASE_DBID=1593802201
+
+# Password file location (discovered)
+SOURCEDATABASE_ADMINPASSWORDFILE=/u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
+
+# -------------------------------------------
+# TARGET DATABASE CONFIGURATION
+# -------------------------------------------
+# Target database OCID (REQUIRED - obtain from OCI Console)
+# OCI Console > Databases > Exadata DB Systems > Database Details
+TARGETDATABASE_OCID=<TARGET_DATABASE_OCID>
+
+# Target database connection details
+TARGETDATABASE_CONNECTIONDETAILS_HOST=tmodaauks-rqahk1
+TARGETDATABASE_CONNECTIONDETAILS_PORT=1521
+TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01_tgt
+
+# Target database unique name (for new database creation)
+TARGETDATABASE_DBUNIQUENAME=oradb01_tgt
+
+# Target Oracle Home (Exadata ODAA)
+TARGETDATABASE_ORACLEHOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
+
+# Target database environment
+TARGETDATABASE_ENVIRONMENTBASE=/u02/app/oracle
+
+# Target ASM disk groups
+TARGETDATABASE_DATADISKGROUP=+DATAC3
+TARGETDATABASE_RECODISKGROUP=+RECOC3
+
+# -------------------------------------------
+# OCI AUTHENTICATION
+# -------------------------------------------
+# Authentication type: API_KEY or INSTANCE_PRINCIPAL
+OCIAUTHENTICATION_TYPE=API_KEY
+
+# OCI User Principal configuration
+# Obtain these from OCI Console
+OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=<YOUR_TENANCY_OCID>
+OCIAUTHENTICATION_USERPRINCIPAL_USERID=<YOUR_USER_OCID>
+OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=<YOUR_FINGERPRINT>
+OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/odaa.pem
+
+# OCI Region (based on target FQDN)
+OCIAUTHENTICATION_USERPRINCIPAL_REGION=uk-london-1
+
+# -------------------------------------------
+# COMPARTMENT CONFIGURATION
+# -------------------------------------------
+# OCI Compartment OCID (REQUIRED)
+# OCI Console > Identity > Compartments
+OCI_COMPARTMENT_OCID=<YOUR_COMPARTMENT_OCID>
+
+# -------------------------------------------
+# OBJECT STORAGE CONFIGURATION
+# -------------------------------------------
+# Object Storage namespace (REQUIRED)
+# OCI Console > Object Storage > Bucket Details
+OBJECTSTORAGE_NAMESPACE=<OBJECT_STORAGE_NAMESPACE>
+
+# Bucket name for migration (will be created if doesn't exist)
+OBJECTSTORAGE_BUCKETNAME=zdm-migration-proddb
+
+# Object Storage region (same as target)
+OBJECTSTORAGE_REGION=uk-london-1
+
+# -------------------------------------------
+# DATA GUARD CONFIGURATION (Online Migration)
+# -------------------------------------------
+# Protection mode: MAXIMUM_PERFORMANCE or MAXIMUM_AVAILABILITY
+DATAGUARDCONFIG_PROTECTIONMODE=MAXIMUM_PERFORMANCE
+
+# Transport type: ASYNC or SYNC
+DATAGUARDCONFIG_TRANSPORTTYPE=ASYNC
+
+# Redo log shipping configuration
+DATAGUARDCONFIG_LOGSHIPPING=ASYNC
+
+# Standby redo log size (match source redo log size)
+DATAGUARDCONFIG_STANDBYREDOLOGSIZE=200M
+
+# -------------------------------------------
+# TDE WALLET CONFIGURATION
+# -------------------------------------------
+# TDE wallet location on source
+TDEWALLET_LOCATION=/u01/app/oracle/admin/oradb01/wallet/tde/
+
+# TDE wallet type
+TDEWALLET_TYPE=AUTOLOGIN
+
+# Migrate TDE wallet to target
+TDEWALLET_MIGRATETOTARGET=TRUE
+
+# -------------------------------------------
+# BACKUP CONFIGURATION
+# -------------------------------------------
+# Backup destination type: OBJECTSTORE or DBBACKUPSERVICE
+BACKUP_DESTINATION=OBJECTSTORE
+
+# RMAN channels for backup (adjust based on performance needs)
+RMAN_CHANNELS=4
+
+# Compression algorithm: BASIC, LOW, MEDIUM, HIGH
+RMAN_COMPRESSION=MEDIUM
+
+# Section size for backup pieces (MB)
+RMAN_SECTIONSIZE=512
+
+# -------------------------------------------
+# MIGRATION OPTIONS
+# -------------------------------------------
+# Skip application tablespace check
+SKIPAPDATACHK=FALSE
+
+# Include AWR data in migration
+INCLUDE_AWR=TRUE
+
+# Evaluate DataPump suitability
+EVALUATEDATAPUMP=TRUE
+
+# Delete backup from Object Storage after migration
+DELETEBACKUPAFTERRESTORE=FALSE
+
+# -------------------------------------------
+# SWITCHOVER CONFIGURATION
+# -------------------------------------------
+# Auto switchover after sync
+AUTOSWITCHOVER=FALSE
+
+# Pause point before switchover (for validation)
+PAUSEAFTER=ZDM_SWITCHOVER_SRC
+
+# -------------------------------------------
+# SSH CONFIGURATION
+# -------------------------------------------
+# Source SSH configuration
+SOURCE_SSH_USER=azureuser
+SOURCE_SSH_SUDOLOCATION=/usr/bin/sudo
+
+# Target SSH configuration  
+TARGET_SSH_USER=opc
+TARGET_SSH_SUDOLOCATION=/usr/bin/sudo
+
+# -------------------------------------------
+# PLATFORM SPECIFIC
+# -------------------------------------------
+# Target platform: ODAA (Oracle Database@Azure)
+TARGET_PLATFORM=ODAA
+
+# Exadata configuration
+EXADATA_ENABLED=TRUE
+
+# RAC configuration
+RAC_ENABLED=TRUE
+RAC_NODES=tmodaauks-rqahk1,tmodaauks-rqahk2
+
+# -------------------------------------------
+# LOGGING AND MONITORING
+# -------------------------------------------
+# ZDM log level: INFO, DEBUG, TRACE
+ZDMLOG_LEVEL=INFO
+
+# Enable detailed migration statistics
+ENABLE_STATISTICS=TRUE
+
+# -------------------------------------------
+# PLACEHOLDER REPLACEMENT GUIDE
+# -------------------------------------------
+# Replace the following placeholders before running migration:
+#
+# <TARGET_DATABASE_OCID>      - From OCI Console > Databases > Your Database
+# <YOUR_TENANCY_OCID>         - From OCI Console > Profile > Tenancy Details
+# <YOUR_USER_OCID>            - From OCI Console > Profile > User Settings
+# <YOUR_FINGERPRINT>          - From OCI Console > Profile > API Keys
+# <YOUR_COMPARTMENT_OCID>     - From OCI Console > Identity > Compartments
+# <OBJECT_STORAGE_NAMESPACE>  - From OCI Console > Object Storage
+#
+# Password files are created at runtime from environment variables.
+# See zdm_commands_PRODDB.sh for password setup instructions.
+# -------------------------------------------
+
+# ===========================================
+# END OF RESPONSE FILE
+# ===========================================

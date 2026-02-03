@@ -2,6 +2,7 @@
 
 ## Purpose
 This prompt takes completed questionnaire responses from Step 1, confirmed issue resolution from Step 2, and generates all required migration artifacts:
+- **README**: Task checklist and quick-start guide for the migration
 - **Runbook**: Step-by-step installation and configuration guide
 - **RSP File**: ZDM response file with all parameters
 - **ZDM CLI Commands**: Ready-to-execute migration commands
@@ -66,7 +67,38 @@ Before generating artifacts, verify:
 
 Based on the attached/provided questionnaire responses, generate the following artifacts:
 
-### Artifact 1: Installation Runbook
+### Artifact 1: README
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
+**Filename:** `README.md`
+
+Generate a README that provides:
+
+1. **Migration Overview**
+   - Source and target summary
+   - Migration method and expected downtime
+   - Key dates and contacts
+
+2. **Prerequisites Checklist**
+   - Items to complete before starting
+   - Required OCI OCIDs to obtain
+   - Password requirements
+
+3. **Generated Artifacts List**
+   - Description of each file in Step3
+   - How to use each artifact
+
+4. **Quick Start Guide**
+   - Step-by-step commands to execute the migration
+   - Common workflow for evaluation → migration → validation
+
+5. **Important Notes**
+   - Security considerations
+   - Rollback information
+   - Support contacts
+
+---
+
+### Artifact 2: Installation Runbook
 **Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 **Filename:** `ZDM-Migration-Runbook-<DB_NAME>.md`
 
@@ -114,7 +146,7 @@ Generate a comprehensive runbook that includes:
 
 ---
 
-### Artifact 2: RSP File
+### Artifact 3: RSP File
 **Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 **Filename:** `zdm_migrate_<DB_NAME>.rsp`
 
@@ -127,7 +159,7 @@ Generate a complete RSP file with:
 
 ---
 
-### Artifact 3: ZDM CLI Commands
+### Artifact 4: ZDM CLI Commands
 **Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 **Filename:** `zdm_commands_<DB_NAME>.sh`
 
@@ -448,9 +480,10 @@ cleanup_password_files() {
 After generation, confirm all files are saved to:
 `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
 
-1. **Runbook**: `ZDM-Migration-Runbook-<DB_NAME>.md`
-2. **RSP file**: `zdm_migrate_<DB_NAME>.rsp`
-3. **CLI commands**: `zdm_commands_<DB_NAME>.sh`
+1. **README**: `README.md`
+2. **Runbook**: `ZDM-Migration-Runbook-<DB_NAME>.md`
+3. **RSP file**: `zdm_migrate_<DB_NAME>.rsp`
+4. **CLI commands**: `zdm_commands_<DB_NAME>.sh`
 
 Review all generated artifacts before execution.
 
