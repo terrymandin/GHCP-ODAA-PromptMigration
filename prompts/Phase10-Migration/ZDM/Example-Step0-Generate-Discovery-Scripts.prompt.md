@@ -182,7 +182,17 @@ Artifacts/Phase10-Migration/ZDM/PRODDB/
 
 All generated scripts include:
 
-1. **Environment Variable Sourcing with Fallbacks** - Scripts use multiple approaches to ensure ZDM_HOME, ORACLE_HOME, JAVA_HOME, etc. are available even in non-interactive SSH sessions:
+1. **Unix Line Endings (LF only)** - Scripts use Unix-style line endings (`\n`) to ensure proper execution on Linux:
+   
+   > **⚠️ IMPORTANT:** If scripts fail with errors like `ssh_port_22:: command not found` or `syntax error near unexpected token`, the scripts have Windows CRLF line endings. Convert them before running:
+   > ```bash
+   > # Convert all scripts to Unix line endings
+   > sed -i 's/\r$//' *.sh
+   > # Or on Windows PowerShell before copying:
+   > (Get-Content script.sh -Raw) -replace "`r`n", "`n" | Set-Content -NoNewline script.sh
+   > ```
+
+2. **Environment Variable Sourcing with Fallbacks** - Scripts use multiple approaches to ensure ZDM_HOME, ORACLE_HOME, JAVA_HOME, etc. are available even in non-interactive SSH sessions:
    ```bash
    # Method 1: Accept explicit overrides (highest priority)
    [ -n "${ZDM_HOME_OVERRIDE:-}" ] && export ZDM_HOME="$ZDM_HOME_OVERRIDE"
@@ -203,15 +213,15 @@ All generated scripts include:
    fi
    ```
 
-2. **Continue on Failure** - Each discovery section is wrapped in error handling:
+3. **Continue on Failure** - Each discovery section is wrapped in error handling:
    ```bash
    # Section runs even if previous sections failed
    discover_section "ZDM Installation" || SECTION_ERRORS=$((SECTION_ERRORS + 1))
    ```
 
-3. **Resilient Orchestration** - The orchestration script continues even when individual server discoveries fail
+4. **Resilient Orchestration** - The orchestration script continues even when individual server discoveries fail
 
-4. **Artifacts Directory Output** - Results are collected to the Artifacts directory by default, not /tmp
+5. **Artifacts Directory Output** - Results are collected to the Artifacts directory by default, not /tmp
 
 ---
 

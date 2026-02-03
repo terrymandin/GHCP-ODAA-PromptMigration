@@ -471,8 +471,28 @@ check_required_passwords() {
 
 ## Script Requirements
 
+> **⚠️ CRITICAL: Unix Line Endings (LF only)**
+> 
+> All generated shell scripts **MUST** use Unix-style line endings (LF - `\n`) and NOT Windows-style (CRLF - `\r\n`).
+> 
+> Windows CRLF line endings will cause script execution failures on Linux with errors like:
+> ```
+> bash: line 359: ssh_port_22:: command not found
+> bash: line 360: syntax error near unexpected token `}'
+> ```
+> 
+> When creating files, ensure the tool or editor saves with LF endings. If scripts fail with syntax errors containing colons (`::`), convert line endings:
+> ```bash
+> # On Linux/Mac
+> sed -i 's/\r$//' script.sh
+> 
+> # Or using dos2unix
+> dos2unix script.sh
+> ```
+
 All scripts should include:
 - Shebang (`#!/bin/bash`)
+- **Unix line endings (LF only)** - Scripts will be executed on Linux; Windows CRLF endings cause parse errors
 - **Resilient error handling** - Do NOT use `set -e` globally; instead use individual error trapping so scripts continue running even when some checks fail
 - **Environment variable discovery with auto-detection** - Use a priority-based approach:
   1. **Environment variable** - If already set in the environment (e.g., `export ORACLE_HOME=...`), use it

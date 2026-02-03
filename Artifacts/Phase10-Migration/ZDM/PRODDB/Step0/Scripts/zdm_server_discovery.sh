@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 ################################################################################
 # ZDM Server Discovery Script
 # Project: PRODDB Migration to Oracle Database@Azure

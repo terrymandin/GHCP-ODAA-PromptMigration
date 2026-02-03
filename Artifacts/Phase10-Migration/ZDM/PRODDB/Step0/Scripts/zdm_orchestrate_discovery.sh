@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 ################################################################################
 # ZDM Discovery Orchestration Script
 # Project: PRODDB Migration to Oracle Database@Azure
@@ -16,7 +16,7 @@
 
 # Determine script directory and repository root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Navigate up 6 levels: Scripts → Step0 → PRODDB → ZDM → Phase10-Migration → Artifacts → RepoRoot
+# Navigate up 6 levels: Scripts â†’ Step0 â†’ PRODDB â†’ ZDM â†’ Phase10-Migration â†’ Artifacts â†’ RepoRoot
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"
 
 ################################################################################
@@ -83,9 +83,9 @@ log_error() {
 
 log_section() {
     echo ""
-    echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     echo -e "${BLUE}  $1${NC}"
-    echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
 }
 
 show_help() {
@@ -238,10 +238,10 @@ test_ssh_connectivity() {
     fi
     
     if ssh $SSH_OPTS -i "$key" "${user}@${host}" "echo 'SSH connection successful'" 2>/dev/null; then
-        log_info "✓ SSH to $name: SUCCESS"
+        log_info "âœ“ SSH to $name: SUCCESS"
         return 0
     else
-        log_error "✗ SSH to $name: FAILED"
+        log_error "âœ— SSH to $name: FAILED"
         return 1
     fi
 }
@@ -262,21 +262,21 @@ test_all_connectivity() {
     echo ""
     
     if [ $source_ok -eq 1 ]; then
-        echo -e "  Source ($SOURCE_HOST):     ${GREEN}✓ Connected${NC}"
+        echo -e "  Source ($SOURCE_HOST):     ${GREEN}âœ“ Connected${NC}"
     else
-        echo -e "  Source ($SOURCE_HOST):     ${RED}✗ Failed${NC}"
+        echo -e "  Source ($SOURCE_HOST):     ${RED}âœ— Failed${NC}"
     fi
     
     if [ $target_ok -eq 1 ]; then
-        echo -e "  Target ($TARGET_HOST):     ${GREEN}✓ Connected${NC}"
+        echo -e "  Target ($TARGET_HOST):     ${GREEN}âœ“ Connected${NC}"
     else
-        echo -e "  Target ($TARGET_HOST):     ${RED}✗ Failed${NC}"
+        echo -e "  Target ($TARGET_HOST):     ${RED}âœ— Failed${NC}"
     fi
     
     if [ $zdm_ok -eq 1 ]; then
-        echo -e "  ZDM Server ($ZDM_HOST):    ${GREEN}✓ Connected${NC}"
+        echo -e "  ZDM Server ($ZDM_HOST):    ${GREEN}âœ“ Connected${NC}"
     else
-        echo -e "  ZDM Server ($ZDM_HOST):    ${RED}✗ Failed${NC}"
+        echo -e "  ZDM Server ($ZDM_HOST):    ${RED}âœ— Failed${NC}"
     fi
     
     echo ""
@@ -415,10 +415,10 @@ done
 
 # Show banner
 echo ""
-echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║         ZDM Discovery Orchestration Script                       ║${NC}"
-echo -e "${CYAN}║         Project: PRODDB Migration to Oracle Database@Azure       ║${NC}"
-echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+echo -e "${CYAN}â•‘         ZDM Discovery Orchestration Script                       â•‘${NC}"
+echo -e "${CYAN}â•‘         Project: PRODDB Migration to Oracle Database@Azure       â•‘${NC}"
+echo -e "${CYAN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
 echo ""
 
 # Show configuration
@@ -482,27 +482,27 @@ echo ""
 echo -e "${CYAN}Results:${NC}"
 
 if [ "$SOURCE_RESULT" = "SUCCESS" ]; then
-    echo -e "  Source Discovery:     ${GREEN}✓ SUCCESS${NC}"
+    echo -e "  Source Discovery:     ${GREEN}âœ“ SUCCESS${NC}"
 elif [ "$SOURCE_RESULT" = "FAILED" ]; then
-    echo -e "  Source Discovery:     ${RED}✗ FAILED${NC}"
+    echo -e "  Source Discovery:     ${RED}âœ— FAILED${NC}"
 else
-    echo -e "  Source Discovery:     ${YELLOW}○ SKIPPED${NC}"
+    echo -e "  Source Discovery:     ${YELLOW}â—‹ SKIPPED${NC}"
 fi
 
 if [ "$TARGET_RESULT" = "SUCCESS" ]; then
-    echo -e "  Target Discovery:     ${GREEN}✓ SUCCESS${NC}"
+    echo -e "  Target Discovery:     ${GREEN}âœ“ SUCCESS${NC}"
 elif [ "$TARGET_RESULT" = "FAILED" ]; then
-    echo -e "  Target Discovery:     ${RED}✗ FAILED${NC}"
+    echo -e "  Target Discovery:     ${RED}âœ— FAILED${NC}"
 else
-    echo -e "  Target Discovery:     ${YELLOW}○ SKIPPED${NC}"
+    echo -e "  Target Discovery:     ${YELLOW}â—‹ SKIPPED${NC}"
 fi
 
 if [ "$ZDM_RESULT" = "SUCCESS" ]; then
-    echo -e "  ZDM Server Discovery: ${GREEN}✓ SUCCESS${NC}"
+    echo -e "  ZDM Server Discovery: ${GREEN}âœ“ SUCCESS${NC}"
 elif [ "$ZDM_RESULT" = "FAILED" ]; then
-    echo -e "  ZDM Server Discovery: ${RED}✗ FAILED${NC}"
+    echo -e "  ZDM Server Discovery: ${RED}âœ— FAILED${NC}"
 else
-    echo -e "  ZDM Server Discovery: ${YELLOW}○ SKIPPED${NC}"
+    echo -e "  ZDM Server Discovery: ${YELLOW}â—‹ SKIPPED${NC}"
 fi
 
 echo ""
