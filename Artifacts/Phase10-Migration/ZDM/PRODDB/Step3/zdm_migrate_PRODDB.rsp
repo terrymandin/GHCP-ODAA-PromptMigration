@@ -5,72 +5,68 @@
 # Generated: 2026-02-04
 # ===========================================
 #
-# IMPORTANT: This file contains environment variable placeholders (${VAR_NAME})
-# that MUST be substituted before use.
+# IMPORTANT: This RSP file contains environment variable placeholders
+# (e.g., ${TARGET_TENANCY_OCID}) that must be substituted before use.
 #
-# Option 1: Use envsubst
-#   export TARGET_DATABASE_OCID="ocid1.database..."
-#   envsubst < zdm_migrate_PRODDB.rsp > zdm_migrate_PRODDB_ready.rsp
+# Option 1: Use envsubst (recommended)
+#   source ~/zdm_oci_env.sh
+#   envsubst < zdm_migrate_PRODDB.rsp > zdm_migrate_PRODDB_resolved.rsp
 #
 # Option 2: Manual substitution
 #   Replace all ${VAR_NAME} with actual values
 #
-# Required environment variables:
-#   TARGET_DATABASE_OCID     - Target database OCID
-#   TARGET_TENANCY_OCID      - OCI tenancy OCID
-#   TARGET_USER_OCID         - OCI user OCID
-#   TARGET_FINGERPRINT       - OCI API key fingerprint
-#   TARGET_COMPARTMENT_OCID  - Target compartment OCID
-#
-# Optional environment variables (for OFFLINE_PHYSICAL only):
-#   TARGET_OBJECT_STORAGE_NAMESPACE - Object Storage namespace
-#
 # ===========================================
 
 # -------------------------------------------
-# Migration Method
+# MIGRATION METHOD
 # -------------------------------------------
-# ONLINE_PHYSICAL uses Data Guard for minimal downtime
+# ONLINE_PHYSICAL - Uses Data Guard for minimal downtime migration
+# OFFLINE_PHYSICAL - Uses RMAN backup/restore
 MIGRATION_METHOD=ONLINE_PHYSICAL
 
 # -------------------------------------------
-# Source Database Configuration
+# SOURCE DATABASE CONFIGURATION
 # -------------------------------------------
 SOURCEDATABASE_CONNECTIONDETAILS_HOST=proddb01.corp.example.com
 SOURCEDATABASE_CONNECTIONDETAILS_PORT=1521
 SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB.corp.example.com
-SOURCEDATABASE_ADMINUSERNAME=SYS
-SOURCEDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/source_sys_password.txt
+SOURCEDATABASE_DBNAME=PRODDB
+SOURCEDATABASE_DBUNIQUENAME=PRODDB_PRIMARY
 SOURCEDATABASE_ORACLEHOME=/u01/app/oracle/product/19.21.0/dbhome_1
-SOURCEDATABASE_UNIQUENAME=PRODDB_PRIMARY
 
-# Source SSH Configuration
+# Source database SYS password file
+# Created at runtime from SOURCE_SYS_PASSWORD environment variable
+SOURCEDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/source_sys_password.txt
+
+# Source SSH configuration
 SOURCEDATABASE_SSHUSER=oracle
 SOURCEDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm_migration_key
-SOURCEDATABASE_SUDOLOCATION=/usr/bin/sudo
 
 # -------------------------------------------
-# Target Database Configuration
+# TARGET DATABASE CONFIGURATION
 # -------------------------------------------
-# NOTE: Environment variable substitution required
+# NOTE: TARGET_DATABASE_OCID must be set in environment before using this file
 TARGETDATABASE_OCID=${TARGET_DATABASE_OCID}
 TARGETDATABASE_CONNECTIONDETAILS_HOST=proddb-oda.eastus.azure.example.com
 TARGETDATABASE_CONNECTIONDETAILS_PORT=1521
 TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB_AZURE.eastus.azure.example.com
-TARGETDATABASE_ADMINUSERNAME=SYS
-TARGETDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/target_sys_password.txt
+TARGETDATABASE_DBNAME=PRODDB
+TARGETDATABASE_DBUNIQUENAME=PRODDB_AZURE
 TARGETDATABASE_ORACLEHOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
-TARGETDATABASE_UNIQUENAME=PRODDB_AZURE
 
-# Target SSH Configuration
+# Target database SYS password file
+# Created at runtime from TARGET_SYS_PASSWORD environment variable
+TARGETDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/target_sys_password.txt
+
+# Target SSH configuration
 TARGETDATABASE_SSHUSER=oracle
 TARGETDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm_migration_key
-TARGETDATABASE_SUDOLOCATION=/usr/bin/sudo
 
 # -------------------------------------------
-# OCI Authentication
+# OCI AUTHENTICATION
 # -------------------------------------------
-# NOTE: Environment variable substitution required
+# These values must be set via environment variables before migration
+# See ~/zdm_oci_env.sh for configuration
 OCIAUTHENTICATION_TYPE=API_KEY
 OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=${TARGET_TENANCY_OCID}
 OCIAUTHENTICATION_USERPRINCIPAL_USERID=${TARGET_USER_OCID}
@@ -78,112 +74,88 @@ OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=${TARGET_FINGERPRINT}
 OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/oci_api_key.pem
 
 # -------------------------------------------
-# Compartment Configuration
+# COMPARTMENT CONFIGURATION
 # -------------------------------------------
-# NOTE: Environment variable substitution required
 OCI_COMPARTMENT_OCID=${TARGET_COMPARTMENT_OCID}
 
 # -------------------------------------------
-# Object Storage Configuration (OPTIONAL)
+# OBJECT STORAGE CONFIGURATION (OPTIONAL)
 # -------------------------------------------
-# NOTE: Object Storage is NOT required for ONLINE_PHYSICAL migrations
-#       to Oracle Database@Azure. ZDM uses direct Data Guard redo shipping.
-#       Uncomment only if you need backup staging for OFFLINE_PHYSICAL.
+# NOTE: For ONLINE_PHYSICAL migrations to Oracle Database@Azure,
+# Object Storage is NOT required. ZDM uses direct Data Guard redo shipping.
+# Only configure these if you specifically need backup staging.
 #
 # OBJECTSTORAGE_NAMESPACE=${TARGET_OBJECT_STORAGE_NAMESPACE}
 # OBJECTSTORAGE_BUCKETNAME=zdm-proddb-migration
 # OBJECTSTORAGE_REGION=us-ashburn-1
+# OBJECTSTORAGE_CREATEBUCKET=TRUE
 
 # -------------------------------------------
-# TDE Configuration
+# DATA GUARD CONFIGURATION (ONLINE_PHYSICAL)
 # -------------------------------------------
-# TDE is ENABLED on source database
-TDE_ENABLED=TRUE
-TDE_WALLET_LOCATION=/u01/app/oracle/admin/PRODDB/wallet/tde
-TDE_WALLET_PASSWORDFILE=/home/zdmuser/creds/tde_password.txt
+# Protection Mode: MAXIMUM_PERFORMANCE (async), MAXIMUM_AVAILABILITY (sync)
+DATAGUARDDCONFIG_PROTECTIONMODE=MAXIMUM_PERFORMANCE
+
+# Transport Type: ASYNC (asynchronous), SYNC (synchronous)
+DATAGUARDDCONFIG_TRANSPORTTYPE=ASYNC
+
+# Redo log transport settings
+DATAGUARDDCONFIG_REDOAPPLY=TRUE
 
 # -------------------------------------------
-# Data Guard Configuration (Online Migration)
+# RMAN CONFIGURATION
 # -------------------------------------------
-DATAGUARD_PROTECTIONMODE=MAXIMUM_PERFORMANCE
-DATAGUARD_TRANSPORTTYPE=ASYNC
-
-# Data Guard Redo Transport Configuration
-# FASTSYNC - Uses ASYNC but can switch to SYNC for final apply
-# ASYNC - Asynchronous redo shipping (recommended for WAN)
-DATAGUARD_REDOTRANSPORTMODE=ASYNC
-
-# Apply Mode
-# APPLY - Real-time apply
-# NONAPPLY - Delayed apply (not recommended for migration)
-DATAGUARD_APPLYMODE=APPLY
-
-# -------------------------------------------
-# RMAN Configuration
-# -------------------------------------------
+# Number of RMAN channels for backup/restore
 RMAN_CHANNELS=8
+
+# Compression level: BASIC, LOW, MEDIUM, HIGH
 RMAN_COMPRESSION=MEDIUM
+
+# Encryption algorithm for backups
 RMAN_ENCRYPTION=AES256
 
-# Parallelism settings
-RMAN_PARALLELISM=8
+# -------------------------------------------
+# TDE CONFIGURATION
+# -------------------------------------------
+# TDE is enabled on source database
+TDE_ENABLED=TRUE
+TDE_WALLET_LOCATION=/u01/app/oracle/admin/PRODDB/wallet/tde
+
+# TDE wallet password file
+# Created at runtime from SOURCE_TDE_WALLET_PASSWORD environment variable
+TDE_WALLET_PASSWORD_FILE=/home/zdmuser/creds/tde_password.txt
 
 # -------------------------------------------
-# Migration Control Options
+# PAUSE CONFIGURATION
 # -------------------------------------------
-# Pause before switchover for final validation
+# Migration will pause at this phase for validation before switchover
+# This allows manual verification of Data Guard sync status
 PAUSEAFTER=ZDM_CONFIGURE_DG_SRC
 
-# Auto switchover setting
-# NO - Manual control, requires resume command
-# YES - Automatic switchover (not recommended for production)
-AUTO_SWITCHOVER=NO
+# -------------------------------------------
+# SWITCHOVER CONFIGURATION
+# -------------------------------------------
+# Auto switchover: If TRUE, switchover happens automatically
+# Recommended: FALSE for manual validation before switchover
+SWITCHOVER_AUTO=FALSE
 
 # -------------------------------------------
-# Post-Migration Options
+# POST-MIGRATION OPTIONS
 # -------------------------------------------
-# Keep backups for rollback capability
+# Keep backup after migration (for rollback capability)
 DELETE_BACKUP_AFTER_MIGRATION=FALSE
 
-# Include performance data (AWR/baseline)
+# Include performance/AWR data
 INCLUDE_PERFORMANCE_DATA=TRUE
 
-# Evaluate Datapump feasibility
+# Evaluate DataPump feasibility
 EVALUATE_DATAPUMP=TRUE
 
 # -------------------------------------------
-# Network Configuration
+# ADDITIONAL OPTIONS
 # -------------------------------------------
-# Source network ports
-SOURCE_LISTENER_PORT=1521
-SOURCE_SSH_PORT=22
+# Skip application tablespace validation (if needed)
+# SKIP_TABLESPACE_CHECK=FALSE
 
-# Target network ports
-TARGET_LISTENER_PORT=1521
-TARGET_SSH_PORT=22
-
-# -------------------------------------------
-# Logging and Diagnostics
-# -------------------------------------------
-# Enable verbose logging for troubleshooting
-VERBOSE_LOGGING=TRUE
-
-# Keep job files after completion
-KEEP_JOB_FILES=TRUE
-
-# -------------------------------------------
-# Database Character Set (Verified Match)
-# -------------------------------------------
-# Source: AL32UTF8
-# Target: AL32UTF8
-# Character set conversion: NOT REQUIRED
-
-# -------------------------------------------
-# Database Link Handling
-# -------------------------------------------
-# Note: Database link SYS_HUB will need manual recreation post-migration
-# See runbook for details
-
-# ===========================================
-# END OF RSP FILE
-# ===========================================
+# Force migration even with warnings
+# IGNORE_PRECHECK_WARNING=FALSE

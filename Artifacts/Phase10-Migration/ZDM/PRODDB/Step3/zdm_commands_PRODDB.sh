@@ -1,827 +1,747 @@
 #!/bin/bash
 # ===========================================
-# ZDM CLI Commands Script
+# ZDM CLI Commands
 # Database: PRODDB
 # Migration Type: ONLINE_PHYSICAL (Data Guard)
 # Generated: 2026-02-04
 # ===========================================
 #
-# IMPORTANT: Login Instructions
-# =============================
-# 1. SSH to ZDM server as your admin user (e.g., azureuser, opc):
-#      ssh azureuser@zdm-jumpbox.corp.example.com
+# IMPORTANT: Login and Setup Instructions
+# ========================================
+# 1. SSH to ZDM server as the admin user:
+#    ssh azureuser@zdm-jumpbox.corp.example.com
+#
 # 2. Switch to zdmuser:
-#      sudo su - zdmuser
-# 3. Navigate to this script's directory
-# 4. Run init command on first use:
-#      ./zdm_commands_PRODDB.sh init
-# 5. Edit ~/zdm_oci_env.sh with actual OCID values
-# 6. Source the OCI environment:
-#      source ~/zdm_oci_env.sh
-# 7. Run commands as needed
+#    sudo su - zdmuser
 #
-# Usage:
-#   ./zdm_commands_PRODDB.sh <command> [options]
+# 3. Clone your fork if not already done:
+#    cd ~
+#    git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git
 #
-# Commands:
-#   init          - First-time setup (creates ~/creds dir and ~/zdm_oci_env.sh)
-#   eval          - Run evaluation (dry run)
-#   migrate       - Execute migration
-#   status <id>   - Query job status
-#   resume <id>   - Resume paused job
-#   abort <id>    - Abort job (emergency)
-#   create-creds  - Create password files from environment variables
-#   cleanup-creds - Clean up password files
-#   preflight     - Run preflight checks
-#   help          - Show this help message
+# 4. Navigate to the Step3 artifacts directory:
+#    cd ~/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+#
+# 5. Make this script executable:
+#    chmod +x zdm_commands_PRODDB.sh
+#
+# 6. First-time setup (creates ~/creds and ~/zdm_oci_env.sh):
+#    ./zdm_commands_PRODDB.sh init
+#
+# 7. Edit ~/zdm_oci_env.sh with your actual OCI OCIDs
+#
+# 8. Source the OCI environment file:
+#    source ~/zdm_oci_env.sh
+#
+# 9. Run the migration:
+#    ./zdm_commands_PRODDB.sh eval      # Evaluation first
+#    ./zdm_commands_PRODDB.sh migrate   # Actual migration
 #
 # ===========================================
 
-set -e
+set -e  # Exit on error
 
 # -------------------------------------------
-# Environment Variables (from discovery)
+# ENVIRONMENT VARIABLES (from discovery)
 # -------------------------------------------
 export ZDM_HOME="/opt/oracle/zdm21c"
 export PATH="$ZDM_HOME/bin:$PATH"
 
-# Source Database Configuration
+# Source Database
 export SOURCE_DB="PRODDB"
 export SOURCE_DB_UNIQUE_NAME="PRODDB_PRIMARY"
 export SOURCE_HOST="proddb01.corp.example.com"
 export SOURCE_PORT="1521"
 export SOURCE_SERVICE="PRODDB.corp.example.com"
 export SOURCE_ORACLE_HOME="/u01/app/oracle/product/19.21.0/dbhome_1"
-export SOURCE_SSH_USER="oracle"
+export SOURCE_USER="oracle"
 
-# Target Database Configuration
+# Target Database
 export TARGET_DB="PRODDB"
 export TARGET_DB_UNIQUE_NAME="PRODDB_AZURE"
 export TARGET_HOST="proddb-oda.eastus.azure.example.com"
 export TARGET_PORT="1521"
 export TARGET_SERVICE="PRODDB_AZURE.eastus.azure.example.com"
 export TARGET_ORACLE_HOME="/u02/app/oracle/product/19.0.0.0/dbhome_1"
-export TARGET_SSH_USER="oracle"
+export TARGET_USER="oracle"
 
-# ZDM Server Configuration
+# ZDM Configuration
 export ZDM_USER="zdmuser"
 export SSH_KEY="/home/zdmuser/.ssh/zdm_migration_key"
-export SUDO_LOCATION="/usr/bin/sudo"
+export OCI_KEY="/home/zdmuser/.oci/oci_api_key.pem"
 
-# OCI Configuration
-export OCI_API_KEY="/home/zdmuser/.oci/oci_api_key.pem"
-export OCI_REGION="us-ashburn-1"
-export OCI_ENV_FILE="${HOME}/zdm_oci_env.sh"
+# RSP File (relative to script location)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export RSP_FILE="${SCRIPT_DIR}/zdm_migrate_PRODDB.rsp"
 
-# Credential Files
+# Credentials directory
 export CREDS_DIR="${HOME}/creds"
-export SOURCE_SYS_PWD_FILE="${CREDS_DIR}/source_sys_password.txt"
-export TARGET_SYS_PWD_FILE="${CREDS_DIR}/target_sys_password.txt"
-export TDE_PWD_FILE="${CREDS_DIR}/tde_password.txt"
-
-# RSP File Location
-export RSP_FILE="$(dirname "$0")/zdm_migrate_PRODDB.rsp"
-export RSP_FILE_READY="$(dirname "$0")/zdm_migrate_PRODDB_ready.rsp"
 
 # TDE Configuration
 export TDE_ENABLED="true"
 export TDE_WALLET_LOCATION="/u01/app/oracle/admin/PRODDB/wallet/tde"
 
-# Migration Options
-export PAUSE_AFTER="ZDM_CONFIGURE_DG_SRC"
+# OCI Environment file
+export OCI_ENV_FILE="${HOME}/zdm_oci_env.sh"
 
 # -------------------------------------------
-# Color Codes for Output
+# OCI ENVIRONMENT VARIABLE VALIDATION
 # -------------------------------------------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# -------------------------------------------
-# Helper Functions
-# -------------------------------------------
-
-print_header() {
-    echo ""
-    echo "=========================================="
-    echo "$1"
-    echo "=========================================="
-    echo ""
-}
-
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
-
-print_error() {
-    echo -e "${RED}✗ $1${NC}"
-}
-
-print_warning() {
-    echo -e "${YELLOW}! $1${NC}"
-}
-
-print_info() {
-    echo -e "${BLUE}→ $1${NC}"
-}
-
-# -------------------------------------------
-# OCI Environment Variable Validation
-# -------------------------------------------
-
 validate_oci_environment() {
     local missing_vars=()
     local errors=0
     
-    print_header "VALIDATING OCI ENVIRONMENT VARIABLES"
+    echo ""
+    echo "=========================================="
+    echo "VALIDATING OCI ENVIRONMENT VARIABLES"
+    echo "=========================================="
+    echo ""
     
     # Check TARGET_TENANCY_OCID
     if [ -z "${TARGET_TENANCY_OCID:-}" ]; then
         missing_vars+=("TARGET_TENANCY_OCID")
         ((errors++))
-        print_error "TARGET_TENANCY_OCID is NOT set"
+        echo "  ✗ TARGET_TENANCY_OCID is NOT set"
     else
-        print_success "TARGET_TENANCY_OCID is set"
+        echo "  ✓ TARGET_TENANCY_OCID is set: ${TARGET_TENANCY_OCID:0:30}..."
     fi
     
     # Check TARGET_USER_OCID
     if [ -z "${TARGET_USER_OCID:-}" ]; then
         missing_vars+=("TARGET_USER_OCID")
         ((errors++))
-        print_error "TARGET_USER_OCID is NOT set"
+        echo "  ✗ TARGET_USER_OCID is NOT set"
     else
-        print_success "TARGET_USER_OCID is set"
+        echo "  ✓ TARGET_USER_OCID is set: ${TARGET_USER_OCID:0:30}..."
     fi
     
     # Check TARGET_FINGERPRINT
     if [ -z "${TARGET_FINGERPRINT:-}" ]; then
         missing_vars+=("TARGET_FINGERPRINT")
         ((errors++))
-        print_error "TARGET_FINGERPRINT is NOT set"
+        echo "  ✗ TARGET_FINGERPRINT is NOT set"
     else
-        print_success "TARGET_FINGERPRINT is set"
+        echo "  ✓ TARGET_FINGERPRINT is set: ${TARGET_FINGERPRINT}"
     fi
     
     # Check TARGET_COMPARTMENT_OCID
     if [ -z "${TARGET_COMPARTMENT_OCID:-}" ]; then
         missing_vars+=("TARGET_COMPARTMENT_OCID")
         ((errors++))
-        print_error "TARGET_COMPARTMENT_OCID is NOT set"
+        echo "  ✗ TARGET_COMPARTMENT_OCID is NOT set"
     else
-        print_success "TARGET_COMPARTMENT_OCID is set"
+        echo "  ✓ TARGET_COMPARTMENT_OCID is set: ${TARGET_COMPARTMENT_OCID:0:30}..."
     fi
     
     # Check TARGET_DATABASE_OCID
     if [ -z "${TARGET_DATABASE_OCID:-}" ]; then
         missing_vars+=("TARGET_DATABASE_OCID")
         ((errors++))
-        print_error "TARGET_DATABASE_OCID is NOT set"
+        echo "  ✗ TARGET_DATABASE_OCID is NOT set"
     else
-        print_success "TARGET_DATABASE_OCID is set"
+        echo "  ✓ TARGET_DATABASE_OCID is set: ${TARGET_DATABASE_OCID:0:30}..."
     fi
     
-    # Check TARGET_OBJECT_STORAGE_NAMESPACE (optional for ONLINE_PHYSICAL)
-    if [ -z "${TARGET_OBJECT_STORAGE_NAMESPACE:-}" ]; then
-        print_warning "TARGET_OBJECT_STORAGE_NAMESPACE is NOT set (optional for ONLINE_PHYSICAL)"
-    else
-        print_success "TARGET_OBJECT_STORAGE_NAMESPACE is set"
-    fi
+    echo ""
     
     if [ $errors -gt 0 ]; then
-        echo ""
-        print_error "The following OCI environment variables are not set:"
+        echo "ERROR: The following OCI environment variables are not set:"
         printf '  - %s\n' "${missing_vars[@]}"
         echo ""
-        echo "Please set these variables before running the migration script:"
-        printf '  export %s="<value>"\n' "${missing_vars[@]}"
+        echo "To set these variables:"
+        echo "  1. Edit ~/zdm_oci_env.sh with your actual OCI OCIDs"
+        echo "  2. Run: source ~/zdm_oci_env.sh"
         echo ""
-        echo "Obtain values from OCI Console:"
-        echo "  - TARGET_TENANCY_OCID: Profile > Tenancy Details"
-        echo "  - TARGET_USER_OCID: Profile > User Settings"
-        echo "  - TARGET_FINGERPRINT: Profile > API Keys"
-        echo "  - TARGET_COMPARTMENT_OCID: Identity > Compartments"
-        echo "  - TARGET_DATABASE_OCID: Databases > Your Database"
+        echo "Where to find these values:"
+        echo "  - TARGET_TENANCY_OCID: OCI Console > Profile > Tenancy Details"
+        echo "  - TARGET_USER_OCID: OCI Console > Profile > User Settings"
+        echo "  - TARGET_FINGERPRINT: OCI Console > Profile > API Keys"
+        echo "  - TARGET_COMPARTMENT_OCID: OCI Console > Identity > Compartments"
+        echo "  - TARGET_DATABASE_OCID: OCI Console > Databases > Your Database"
         return 1
     fi
     
-    print_success "All required OCI environment variables are set"
+    echo "✓ All required OCI environment variables are set"
     return 0
 }
 
 # -------------------------------------------
-# Password Environment Variable Validation
+# PASSWORD ENVIRONMENT VARIABLE VALIDATION
 # -------------------------------------------
-
 validate_password_environment() {
     local missing_vars=()
     local errors=0
     
-    print_header "VALIDATING PASSWORD ENVIRONMENT VARIABLES"
+    echo ""
+    echo "=========================================="
+    echo "VALIDATING PASSWORD ENVIRONMENT VARIABLES"
+    echo "=========================================="
+    echo ""
     
     # Check SOURCE_SYS_PASSWORD
     if [ -z "${SOURCE_SYS_PASSWORD:-}" ]; then
         missing_vars+=("SOURCE_SYS_PASSWORD")
         ((errors++))
-        print_error "SOURCE_SYS_PASSWORD is NOT set"
+        echo "  ✗ SOURCE_SYS_PASSWORD is NOT set"
     else
-        print_success "SOURCE_SYS_PASSWORD is set"
+        echo "  ✓ SOURCE_SYS_PASSWORD is set"
     fi
     
     # Check TARGET_SYS_PASSWORD
     if [ -z "${TARGET_SYS_PASSWORD:-}" ]; then
         missing_vars+=("TARGET_SYS_PASSWORD")
         ((errors++))
-        print_error "TARGET_SYS_PASSWORD is NOT set"
+        echo "  ✗ TARGET_SYS_PASSWORD is NOT set"
     else
-        print_success "TARGET_SYS_PASSWORD is set"
+        echo "  ✓ TARGET_SYS_PASSWORD is set"
     fi
     
     # Check SOURCE_TDE_WALLET_PASSWORD (only if TDE is enabled)
-    if [ "${TDE_ENABLED:-false}" = "true" ]; then
+    if [ "${TDE_ENABLED}" = "true" ]; then
         if [ -z "${SOURCE_TDE_WALLET_PASSWORD:-}" ]; then
             missing_vars+=("SOURCE_TDE_WALLET_PASSWORD")
             ((errors++))
-            print_error "SOURCE_TDE_WALLET_PASSWORD is NOT set (required - TDE is enabled)"
+            echo "  ✗ SOURCE_TDE_WALLET_PASSWORD is NOT set (TDE is enabled)"
         else
-            print_success "SOURCE_TDE_WALLET_PASSWORD is set"
+            echo "  ✓ SOURCE_TDE_WALLET_PASSWORD is set"
         fi
     fi
     
+    echo ""
+    
     if [ $errors -gt 0 ]; then
-        echo ""
-        print_error "The following password environment variables are not set:"
+        echo "ERROR: The following password environment variables are not set:"
         printf '  - %s\n' "${missing_vars[@]}"
         echo ""
-        echo "For secure password entry, use:"
-        echo '  read -sp "Enter Source SYS Password: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD'
-        echo '  read -sp "Enter Target SYS Password: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD'
-        if [ "${TDE_ENABLED:-false}" = "true" ]; then
-            echo '  read -sp "Enter TDE Wallet Password: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD'
+        echo "To set passwords securely (will not echo to screen):"
+        echo '  read -sp "Enter SOURCE SYS password: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD'
+        echo '  read -sp "Enter TARGET SYS password: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD'
+        if [ "${TDE_ENABLED}" = "true" ]; then
+            echo '  read -sp "Enter TDE wallet password: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD'
         fi
         return 1
     fi
     
-    print_success "All required password environment variables are set"
+    echo "✓ All required password environment variables are set"
     return 0
 }
 
 # -------------------------------------------
-# Create Password Files from Environment
+# INITIALIZATION FUNCTION
 # -------------------------------------------
+init() {
+    echo ""
+    echo "=========================================="
+    echo "INITIALIZING ZDM MIGRATION ENVIRONMENT"
+    echo "=========================================="
+    echo ""
+    
+    # Create credentials directory
+    echo "Creating credentials directory: ${CREDS_DIR}"
+    mkdir -p "${CREDS_DIR}"
+    chmod 700 "${CREDS_DIR}"
+    echo "  ✓ Created ${CREDS_DIR} with permissions 700"
+    
+    # Create OCI environment file template
+    if [ ! -f "${OCI_ENV_FILE}" ]; then
+        echo ""
+        echo "Creating OCI environment file template: ${OCI_ENV_FILE}"
+        cat > "${OCI_ENV_FILE}" << 'OCIEOF'
+#!/bin/bash
+# ===========================================
+# OCI Environment Variables for PRODDB Migration
+# Generated: 2026-02-04
+# ===========================================
+#
+# INSTRUCTIONS:
+# 1. Replace the placeholder values below with your actual OCI OCIDs
+# 2. Save this file
+# 3. Source it before running migration: source ~/zdm_oci_env.sh
+#
+# WHERE TO FIND THESE VALUES:
+# - TARGET_TENANCY_OCID: OCI Console > Profile > Tenancy Details
+# - TARGET_USER_OCID: OCI Console > Profile > User Settings  
+# - TARGET_FINGERPRINT: OCI Console > Profile > API Keys
+# - TARGET_COMPARTMENT_OCID: OCI Console > Identity > Compartments
+# - TARGET_DATABASE_OCID: OCI Console > Databases > Your Database
+# ===========================================
 
-create_password_files() {
-    print_header "CREATING PASSWORD FILES"
+# Target OCI Configuration (REQUIRED)
+export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789"
+export TARGET_USER_OCID="ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv"
+export TARGET_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+export TARGET_COMPARTMENT_OCID="ocid1.compartment.oc1..aaaa_REPLACE_WITH_YOUR_COMPARTMENT_OCID"
+export TARGET_DATABASE_OCID="ocid1.database.oc1.iad..aaaaaaaaproddbazure67890"
+
+# Object Storage Configuration (OPTIONAL for ONLINE_PHYSICAL to Oracle Database@Azure)
+# Uncomment and set only if you need Object Storage staging
+# export TARGET_OBJECT_STORAGE_NAMESPACE="examplecorp"
+
+# Source OCI Configuration (if source is also in OCI - usually not needed)
+# export SOURCE_TENANCY_OCID="ocid1.tenancy.oc1..aaaa..."
+# export SOURCE_COMPARTMENT_OCID="ocid1.compartment.oc1..aaaa..."
+# export SOURCE_DATABASE_OCID="ocid1.database.oc1..aaaa..."
+
+echo "OCI environment variables loaded for PRODDB migration"
+OCIEOF
+        chmod 600 "${OCI_ENV_FILE}"
+        echo "  ✓ Created ${OCI_ENV_FILE} with template values"
+        echo ""
+        echo "  ⚠️  IMPORTANT: Edit ${OCI_ENV_FILE} with your actual OCI OCIDs!"
+    else
+        echo "  ⚠️  ${OCI_ENV_FILE} already exists - not overwriting"
+    fi
+    
+    # Verify ZDM installation
+    echo ""
+    echo "Verifying ZDM installation..."
+    if [ -x "${ZDM_HOME}/bin/zdmcli" ]; then
+        echo "  ✓ ZDM CLI found at ${ZDM_HOME}/bin/zdmcli"
+        "${ZDM_HOME}/bin/zdmcli" -version 2>/dev/null || echo "  (version check skipped)"
+    else
+        echo "  ✗ ZDM CLI not found or not executable at ${ZDM_HOME}/bin/zdmcli"
+        echo "    Please verify ZDM_HOME is set correctly"
+    fi
+    
+    # Verify SSH key
+    echo ""
+    echo "Verifying SSH key..."
+    if [ -f "${SSH_KEY}" ]; then
+        echo "  ✓ SSH key found at ${SSH_KEY}"
+    else
+        echo "  ✗ SSH key not found at ${SSH_KEY}"
+        echo "    Please ensure the SSH key exists and is accessible"
+    fi
+    
+    # Verify OCI API key
+    echo ""
+    echo "Verifying OCI API key..."
+    if [ -f "${OCI_KEY}" ]; then
+        echo "  ✓ OCI API key found at ${OCI_KEY}"
+    else
+        echo "  ✗ OCI API key not found at ${OCI_KEY}"
+        echo "    Please ensure the OCI API key exists"
+    fi
+    
+    echo ""
+    echo "=========================================="
+    echo "INITIALIZATION COMPLETE"
+    echo "=========================================="
+    echo ""
+    echo "Next steps:"
+    echo "  1. Edit ${OCI_ENV_FILE} with your actual OCI OCIDs"
+    echo "  2. Source the environment: source ${OCI_ENV_FILE}"
+    echo "  3. Set password variables securely"
+    echo "  4. Run evaluation: ./zdm_commands_PRODDB.sh eval"
+    echo ""
+}
+
+# -------------------------------------------
+# CREATE PASSWORD FILES
+# -------------------------------------------
+create_creds() {
+    echo ""
+    echo "=========================================="
+    echo "CREATING PASSWORD FILES"
+    echo "=========================================="
+    echo ""
     
     # Validate password environment variables first
     validate_password_environment || return 1
     
-    # Create credentials directory
+    # Create credentials directory if not exists
     mkdir -p "${CREDS_DIR}"
     chmod 700 "${CREDS_DIR}"
     
-    # Create password files from environment variables
-    echo "${SOURCE_SYS_PASSWORD}" > "${SOURCE_SYS_PWD_FILE}"
-    print_success "Created ${SOURCE_SYS_PWD_FILE}"
+    # Create source SYS password file
+    echo "${SOURCE_SYS_PASSWORD}" > "${CREDS_DIR}/source_sys_password.txt"
+    chmod 600 "${CREDS_DIR}/source_sys_password.txt"
+    echo "  ✓ Created ${CREDS_DIR}/source_sys_password.txt"
     
-    echo "${TARGET_SYS_PASSWORD}" > "${TARGET_SYS_PWD_FILE}"
-    print_success "Created ${TARGET_SYS_PWD_FILE}"
+    # Create target SYS password file
+    echo "${TARGET_SYS_PASSWORD}" > "${CREDS_DIR}/target_sys_password.txt"
+    chmod 600 "${CREDS_DIR}/target_sys_password.txt"
+    echo "  ✓ Created ${CREDS_DIR}/target_sys_password.txt"
     
-    if [ "${TDE_ENABLED:-false}" = "true" ]; then
-        echo "${SOURCE_TDE_WALLET_PASSWORD}" > "${TDE_PWD_FILE}"
-        print_success "Created ${TDE_PWD_FILE}"
+    # Create TDE password file if TDE is enabled
+    if [ "${TDE_ENABLED}" = "true" ]; then
+        echo "${SOURCE_TDE_WALLET_PASSWORD}" > "${CREDS_DIR}/tde_password.txt"
+        chmod 600 "${CREDS_DIR}/tde_password.txt"
+        echo "  ✓ Created ${CREDS_DIR}/tde_password.txt"
     fi
     
-    # Secure the files
-    chmod 600 "${CREDS_DIR}"/*.txt
-    
     echo ""
-    print_success "Password files created in ${CREDS_DIR}"
+    echo "✓ Password files created in ${CREDS_DIR}"
     echo ""
-    print_warning "Remember to clean up password files after migration:"
-    echo "  ./zdm_commands_PRODDB.sh cleanup-creds"
-    
-    return 0
+    echo "  ⚠️  SECURITY: Remember to run 'cleanup-creds' after migration"
 }
 
 # -------------------------------------------
-# Clean Up Password Files
+# CLEANUP PASSWORD FILES
 # -------------------------------------------
-
-cleanup_password_files() {
-    print_header "CLEANING UP PASSWORD FILES"
+cleanup_creds() {
+    echo ""
+    echo "=========================================="
+    echo "CLEANING UP PASSWORD FILES"
+    echo "=========================================="
+    echo ""
     
     if [ -d "${CREDS_DIR}" ]; then
-        if [ -f "${SOURCE_SYS_PWD_FILE}" ]; then
-            rm -f "${SOURCE_SYS_PWD_FILE}"
-            print_success "Removed ${SOURCE_SYS_PWD_FILE}"
+        if [ -f "${CREDS_DIR}/source_sys_password.txt" ]; then
+            rm -f "${CREDS_DIR}/source_sys_password.txt"
+            echo "  ✓ Removed source_sys_password.txt"
         fi
-        
-        if [ -f "${TARGET_SYS_PWD_FILE}" ]; then
-            rm -f "${TARGET_SYS_PWD_FILE}"
-            print_success "Removed ${TARGET_SYS_PWD_FILE}"
+        if [ -f "${CREDS_DIR}/target_sys_password.txt" ]; then
+            rm -f "${CREDS_DIR}/target_sys_password.txt"
+            echo "  ✓ Removed target_sys_password.txt"
         fi
-        
-        if [ -f "${TDE_PWD_FILE}" ]; then
-            rm -f "${TDE_PWD_FILE}"
-            print_success "Removed ${TDE_PWD_FILE}"
+        if [ -f "${CREDS_DIR}/tde_password.txt" ]; then
+            rm -f "${CREDS_DIR}/tde_password.txt"
+            echo "  ✓ Removed tde_password.txt"
         fi
-        
-        print_success "Password files cleaned up"
+        echo ""
+        echo "✓ Password files cleaned up"
     else
-        print_info "Credentials directory does not exist: ${CREDS_DIR}"
+        echo "  No credentials directory found at ${CREDS_DIR}"
     fi
-    
-    return 0
 }
 
 # -------------------------------------------
-# First-Time Setup (init command)
+# GENERATE RSP FILE WITH SUBSTITUTED VARIABLES
 # -------------------------------------------
-
-init_environment() {
-    print_header "FIRST-TIME SETUP"
-    
-    echo "This command will:"
-    echo "  1. Create credentials directory (${CREDS_DIR})"
-    echo "  2. Create OCI environment file template (${OCI_ENV_FILE})"
+generate_rsp() {
     echo ""
-    
-    # Create credentials directory
-    if [ ! -d "${CREDS_DIR}" ]; then
-        mkdir -p "${CREDS_DIR}"
-        chmod 700 "${CREDS_DIR}"
-        print_success "Created credentials directory: ${CREDS_DIR}"
-    else
-        print_info "Credentials directory already exists: ${CREDS_DIR}"
-    fi
-    
-    # Create OCI environment file template
-    if [ ! -f "${OCI_ENV_FILE}" ]; then
-        cat > "${OCI_ENV_FILE}" << 'EOF'
-#!/bin/bash
-# ===========================================
-# OCI Environment Variables for ZDM Migration
-# Database: PRODDB
-# Generated: $(date +%Y-%m-%d)
-# ===========================================
-#
-# INSTRUCTIONS:
-# 1. Edit this file with your actual OCID values
-# 2. Save the file
-# 3. Source it before running migration commands:
-#      source ~/zdm_oci_env.sh
-#
-# HOW TO OBTAIN VALUES:
-# - TARGET_TENANCY_OCID: OCI Console > Profile > Tenancy Details
-# - TARGET_USER_OCID: OCI Console > Profile > User Settings
-# - TARGET_FINGERPRINT: OCI Console > Profile > API Keys
-# - TARGET_COMPARTMENT_OCID: OCI Console > Identity > Compartments
-# - TARGET_DATABASE_OCID: OCI Console > Databases > Your Database
-# - TARGET_OBJECT_STORAGE_NAMESPACE: OCI Console > Profile > Tenancy Details
-#   (or run: oci os ns get)
-#
-# ===========================================
-
-# Required OCI Configuration
-export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..____________________"
-export TARGET_USER_OCID="ocid1.user.oc1..____________________"
-export TARGET_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
-export TARGET_COMPARTMENT_OCID="ocid1.compartment.oc1..____________________"
-export TARGET_DATABASE_OCID="ocid1.database.oc1..____________________"
-
-# Optional for ONLINE_PHYSICAL to Oracle Database@Azure
-# (Object Storage is NOT required for ONLINE_PHYSICAL - uses direct Data Guard)
-# Uncomment and set only if you need Object Storage staging
-# export TARGET_OBJECT_STORAGE_NAMESPACE="your_namespace"
-
-# Confirmation message when sourced
-echo "OCI environment variables loaded from ~/zdm_oci_env.sh"
-EOF
-        chmod 600 "${OCI_ENV_FILE}"
-        print_success "Created OCI environment file template: ${OCI_ENV_FILE}"
-    else
-        print_info "OCI environment file already exists: ${OCI_ENV_FILE}"
-    fi
-    
+    echo "=========================================="
+    echo "GENERATING RSP FILE WITH SUBSTITUTED VALUES"
+    echo "=========================================="
     echo ""
-    print_header "NEXT STEPS"
-    echo "1. Edit ${OCI_ENV_FILE} with your actual OCID values:"
-    echo "     vi ${OCI_ENV_FILE}"
-    echo ""
-    echo "2. Source the OCI environment file:"
-    echo "     source ${OCI_ENV_FILE}"
-    echo ""
-    echo "3. Set password environment variables:"
-    echo "     read -sp 'Enter SOURCE_SYS_PASSWORD: ' SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD"
-    echo "     read -sp 'Enter TARGET_SYS_PASSWORD: ' TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD"
-    echo "     read -sp 'Enter SOURCE_TDE_WALLET_PASSWORD: ' SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD"
-    echo ""
-    echo "4. Create password files:"
-    echo "     ./zdm_commands_PRODDB.sh create-creds"
-    echo ""
-    echo "5. Run preflight checks:"
-    echo "     ./zdm_commands_PRODDB.sh preflight"
-    echo ""
-    
-    return 0
-}
-
-# -------------------------------------------
-# Generate RSP File with Substituted Variables
-# -------------------------------------------
-
-generate_rsp_file() {
-    print_header "GENERATING RSP FILE WITH SUBSTITUTIONS"
-    
-    if [ ! -f "${RSP_FILE}" ]; then
-        print_error "RSP template file not found: ${RSP_FILE}"
-        return 1
-    fi
     
     # Validate OCI environment first
     validate_oci_environment || return 1
     
-    # Use envsubst to replace environment variables
-    envsubst < "${RSP_FILE}" > "${RSP_FILE_READY}"
+    local template_rsp="${RSP_FILE}"
+    local generated_rsp="${CREDS_DIR}/zdm_migrate_PRODDB_resolved.rsp"
     
-    print_success "RSP file generated: ${RSP_FILE_READY}"
-    
-    # Verify substitution worked (check for remaining ${...} patterns)
-    if grep -q '\${' "${RSP_FILE_READY}"; then
-        print_warning "Some environment variables may not be substituted:"
-        grep '\${' "${RSP_FILE_READY}" | head -5
-        echo ""
-        print_warning "Please verify the generated RSP file before proceeding"
-    fi
-    
-    return 0
-}
-
-# -------------------------------------------
-# Verify Prerequisites
-# -------------------------------------------
-
-verify_prerequisites() {
-    print_header "VERIFYING PREREQUISITES"
-    local errors=0
-    
-    # Check ZDM_HOME
-    if [ ! -d "${ZDM_HOME}" ]; then
-        print_error "ZDM_HOME not found: ${ZDM_HOME}"
-        ((errors++))
-    else
-        print_success "ZDM_HOME exists: ${ZDM_HOME}"
-    fi
-    
-    # Check ZDM CLI
-    if [ ! -x "${ZDM_HOME}/bin/zdmcli" ]; then
-        print_error "ZDM CLI not executable: ${ZDM_HOME}/bin/zdmcli"
-        ((errors++))
-    else
-        print_success "ZDM CLI is executable"
-    fi
-    
-    # Check SSH key
-    if [ ! -f "${SSH_KEY}" ]; then
-        print_error "SSH key not found: ${SSH_KEY}"
-        ((errors++))
-    else
-        print_success "SSH key exists: ${SSH_KEY}"
-    fi
-    
-    # Check OCI API key
-    if [ ! -f "${OCI_API_KEY}" ]; then
-        print_error "OCI API key not found: ${OCI_API_KEY}"
-        ((errors++))
-    else
-        print_success "OCI API key exists: ${OCI_API_KEY}"
-    fi
-    
-    # Check RSP file
-    if [ ! -f "${RSP_FILE}" ]; then
-        print_error "RSP file not found: ${RSP_FILE}"
-        ((errors++))
-    else
-        print_success "RSP file exists: ${RSP_FILE}"
-    fi
-    
-    if [ $errors -gt 0 ]; then
-        print_error "Prerequisites check failed with $errors error(s)"
+    if [ ! -f "${template_rsp}" ]; then
+        echo "ERROR: Template RSP file not found: ${template_rsp}"
         return 1
     fi
     
-    print_success "All prerequisites verified"
-    return 0
+    # Use envsubst to substitute environment variables
+    envsubst < "${template_rsp}" > "${generated_rsp}"
+    chmod 600 "${generated_rsp}"
+    
+    echo "✓ RSP file generated: ${generated_rsp}"
+    echo ""
+    echo "Substituted values:"
+    grep -E "^TARGET|^OCI" "${generated_rsp}" | head -10
 }
 
 # -------------------------------------------
-# Run Evaluation (Dry Run)
+# EVALUATION COMMAND
 # -------------------------------------------
-
-run_evaluation() {
-    print_header "RUNNING ZDM EVALUATION (DRY RUN)"
-    
-    # Verify prerequisites
-    verify_prerequisites || return 1
-    
-    # Validate OCI environment
-    validate_oci_environment || return 1
-    
-    # Generate RSP file with substitutions
-    generate_rsp_file || return 1
-    
-    print_info "Starting evaluation..."
+eval_migration() {
+    echo ""
+    echo "=========================================="
+    echo "RUNNING ZDM MIGRATION EVALUATION"
+    echo "=========================================="
+    echo ""
+    echo "Source: ${SOURCE_DB} on ${SOURCE_HOST}"
+    echo "Target: ${TARGET_DB} on ${TARGET_HOST}"
     echo ""
     
-    ${ZDM_HOME}/bin/zdmcli migrate database \
-        -sourcesid ${SOURCE_DB} \
-        -sourcenode ${SOURCE_HOST} \
-        -srcauth zdmauth \
-        -srcarg1 user:${SOURCE_SSH_USER} \
-        -srcarg2 identity_file:${SSH_KEY} \
-        -srcarg3 sudo_location:${SUDO_LOCATION} \
-        -targetnode ${TARGET_HOST} \
-        -tgtauth zdmauth \
-        -tgtarg1 user:${TARGET_SSH_USER} \
-        -tgtarg2 identity_file:${SSH_KEY} \
-        -tgtarg3 sudo_location:${SUDO_LOCATION} \
-        -rsp ${RSP_FILE_READY} \
-        -eval
-    
-    local rc=$?
-    
-    echo ""
-    if [ $rc -eq 0 ]; then
-        print_success "Evaluation completed successfully"
-        echo ""
-        print_info "Review the evaluation results above"
-        print_info "If successful, proceed with: ./zdm_commands_PRODDB.sh migrate"
-    else
-        print_error "Evaluation failed with exit code: $rc"
-        print_info "Review the errors above and correct any issues before retrying"
-    fi
-    
-    return $rc
-}
-
-# -------------------------------------------
-# Execute Migration
-# -------------------------------------------
-
-run_migration() {
-    print_header "EXECUTING ZDM MIGRATION"
-    
-    # Verify prerequisites
-    verify_prerequisites || return 1
-    
-    # Validate OCI environment
+    # Validate environment
     validate_oci_environment || return 1
+    validate_password_environment || return 1
     
     # Check if password files exist
-    if [ ! -f "${SOURCE_SYS_PWD_FILE}" ] || [ ! -f "${TARGET_SYS_PWD_FILE}" ]; then
-        print_error "Password files not found. Run 'create-creds' first:"
-        echo "  ./zdm_commands_PRODDB.sh create-creds"
+    if [ ! -f "${CREDS_DIR}/source_sys_password.txt" ]; then
+        echo "ERROR: Password files not found. Run './zdm_commands_PRODDB.sh create-creds' first."
         return 1
     fi
     
-    # Generate RSP file with substitutions
-    generate_rsp_file || return 1
+    # Generate RSP with substituted values
+    generate_rsp || return 1
     
-    print_info "Starting migration..."
-    print_warning "Migration will pause at: ${PAUSE_AFTER}"
-    print_warning "Use 'resume <JOB_ID>' to continue after validation"
+    local resolved_rsp="${CREDS_DIR}/zdm_migrate_PRODDB_resolved.rsp"
+    
+    echo ""
+    echo "Executing ZDM evaluation..."
     echo ""
     
-    # Confirmation prompt
-    read -p "Are you sure you want to start the migration? (yes/no): " confirm
-    if [ "$confirm" != "yes" ]; then
-        print_info "Migration cancelled"
-        return 0
-    fi
-    
-    ${ZDM_HOME}/bin/zdmcli migrate database \
-        -sourcesid ${SOURCE_DB} \
-        -sourcenode ${SOURCE_HOST} \
+    "${ZDM_HOME}/bin/zdmcli" migrate database \
+        -sourcedb "${SOURCE_DB}" \
+        -sourcenode "${SOURCE_HOST}" \
         -srcauth zdmauth \
-        -srcarg1 user:${SOURCE_SSH_USER} \
-        -srcarg2 identity_file:${SSH_KEY} \
-        -srcarg3 sudo_location:${SUDO_LOCATION} \
-        -targetnode ${TARGET_HOST} \
+        -srcarg1 user:"${SOURCE_USER}" \
+        -srcarg2 identity_file:"${SSH_KEY}" \
+        -srcarg3 sudo_location:/usr/bin/sudo \
+        -targetnode "${TARGET_HOST}" \
         -tgtauth zdmauth \
-        -tgtarg1 user:${TARGET_SSH_USER} \
-        -tgtarg2 identity_file:${SSH_KEY} \
-        -tgtarg3 sudo_location:${SUDO_LOCATION} \
-        -rsp ${RSP_FILE_READY} \
-        -pauseafter ${PAUSE_AFTER}
-    
-    local rc=$?
+        -tgtarg1 user:"${TARGET_USER}" \
+        -tgtarg2 identity_file:"${SSH_KEY}" \
+        -tgtarg3 sudo_location:/usr/bin/sudo \
+        -rsp "${resolved_rsp}" \
+        -eval
     
     echo ""
-    if [ $rc -eq 0 ]; then
-        print_success "Migration job submitted successfully"
+    echo "Evaluation complete. Review the output above for any warnings or errors."
+}
+
+# -------------------------------------------
+# MIGRATION COMMAND
+# -------------------------------------------
+run_migration() {
+    echo ""
+    echo "=========================================="
+    echo "STARTING ZDM MIGRATION"
+    echo "=========================================="
+    echo ""
+    echo "Source: ${SOURCE_DB} on ${SOURCE_HOST}"
+    echo "Target: ${TARGET_DB} on ${TARGET_HOST}"
+    echo "Migration Type: ONLINE_PHYSICAL (Data Guard)"
+    echo "Pause Point: ZDM_CONFIGURE_DG_SRC"
+    echo ""
+    
+    # Validate environment
+    validate_oci_environment || return 1
+    validate_password_environment || return 1
+    
+    # Check if password files exist
+    if [ ! -f "${CREDS_DIR}/source_sys_password.txt" ]; then
+        echo "ERROR: Password files not found. Run './zdm_commands_PRODDB.sh create-creds' first."
+        return 1
+    fi
+    
+    # Generate RSP with substituted values
+    generate_rsp || return 1
+    
+    local resolved_rsp="${CREDS_DIR}/zdm_migrate_PRODDB_resolved.rsp"
+    
+    echo "⚠️  WARNING: This will start the actual migration process."
+    echo "    The migration will PAUSE at ZDM_CONFIGURE_DG_SRC for validation."
+    echo ""
+    read -p "Continue with migration? (yes/no): " confirm
+    
+    if [ "${confirm}" != "yes" ]; then
+        echo "Migration cancelled."
+        return 1
+    fi
+    
+    echo ""
+    echo "Executing ZDM migration..."
+    echo ""
+    
+    "${ZDM_HOME}/bin/zdmcli" migrate database \
+        -sourcedb "${SOURCE_DB}" \
+        -sourcenode "${SOURCE_HOST}" \
+        -srcauth zdmauth \
+        -srcarg1 user:"${SOURCE_USER}" \
+        -srcarg2 identity_file:"${SSH_KEY}" \
+        -srcarg3 sudo_location:/usr/bin/sudo \
+        -targetnode "${TARGET_HOST}" \
+        -tgtauth zdmauth \
+        -tgtarg1 user:"${TARGET_USER}" \
+        -tgtarg2 identity_file:"${SSH_KEY}" \
+        -tgtarg3 sudo_location:/usr/bin/sudo \
+        -rsp "${resolved_rsp}"
+    
+    echo ""
+    echo "Migration started. Use 'status <JOB_ID>' to monitor progress."
+}
+
+# -------------------------------------------
+# STATUS COMMAND
+# -------------------------------------------
+check_status() {
+    local job_id="$1"
+    
+    if [ -z "${job_id}" ]; then
+        echo "Usage: ./zdm_commands_PRODDB.sh status <JOB_ID>"
         echo ""
-        print_info "IMPORTANT: Save the Job ID from the output above!"
-        print_info "Monitor progress: ./zdm_commands_PRODDB.sh status <JOB_ID>"
-        print_info "Resume after pause: ./zdm_commands_PRODDB.sh resume <JOB_ID>"
-    else
-        print_error "Migration submission failed with exit code: $rc"
-    fi
-    
-    return $rc
-}
-
-# -------------------------------------------
-# Query Job Status
-# -------------------------------------------
-
-query_status() {
-    local job_id=$1
-    
-    if [ -z "${job_id}" ]; then
-        print_error "Job ID required. Usage: ./zdm_commands_PRODDB.sh status <JOB_ID>"
+        echo "To list all jobs:"
+        "${ZDM_HOME}/bin/zdmcli" query job -all
         return 1
     fi
     
-    print_header "QUERYING JOB STATUS: ${job_id}"
+    echo ""
+    echo "=========================================="
+    echo "ZDM JOB STATUS: ${job_id}"
+    echo "=========================================="
+    echo ""
     
-    ${ZDM_HOME}/bin/zdmcli query job -jobid ${job_id}
-    
-    return $?
+    "${ZDM_HOME}/bin/zdmcli" query job -jobid "${job_id}"
 }
 
 # -------------------------------------------
-# Resume Paused Job
+# DETAILED STATUS COMMAND
 # -------------------------------------------
+check_status_long() {
+    local job_id="$1"
+    
+    if [ -z "${job_id}" ]; then
+        echo "Usage: ./zdm_commands_PRODDB.sh status-long <JOB_ID>"
+        return 1
+    fi
+    
+    echo ""
+    echo "=========================================="
+    echo "ZDM JOB DETAILED STATUS: ${job_id}"
+    echo "=========================================="
+    echo ""
+    
+    "${ZDM_HOME}/bin/zdmcli" query job -jobid "${job_id}" -output long
+}
 
+# -------------------------------------------
+# RESUME COMMAND
+# -------------------------------------------
 resume_job() {
-    local job_id=$1
+    local job_id="$1"
     
     if [ -z "${job_id}" ]; then
-        print_error "Job ID required. Usage: ./zdm_commands_PRODDB.sh resume <JOB_ID>"
+        echo "Usage: ./zdm_commands_PRODDB.sh resume <JOB_ID>"
         return 1
     fi
     
-    print_header "RESUMING JOB: ${job_id}"
+    echo ""
+    echo "=========================================="
+    echo "RESUMING ZDM JOB: ${job_id}"
+    echo "=========================================="
+    echo ""
     
-    # Confirmation prompt
-    print_warning "This will resume the migration and may initiate SWITCHOVER"
-    read -p "Are you sure you want to resume job ${job_id}? (yes/no): " confirm
-    if [ "$confirm" != "yes" ]; then
-        print_info "Resume cancelled"
-        return 0
+    echo "⚠️  WARNING: Resuming may trigger the switchover phase."
+    echo "    Ensure you have validated the Data Guard sync status."
+    echo ""
+    read -p "Continue with resume? (yes/no): " confirm
+    
+    if [ "${confirm}" != "yes" ]; then
+        echo "Resume cancelled."
+        return 1
     fi
     
-    ${ZDM_HOME}/bin/zdmcli resume job -jobid ${job_id}
-    
-    local rc=$?
-    
-    if [ $rc -eq 0 ]; then
-        print_success "Job resumed successfully"
-        print_info "Monitor progress: ./zdm_commands_PRODDB.sh status ${job_id}"
-    else
-        print_error "Resume failed with exit code: $rc"
-    fi
-    
-    return $rc
+    "${ZDM_HOME}/bin/zdmcli" resume job -jobid "${job_id}"
 }
 
 # -------------------------------------------
-# Abort Job (Emergency)
+# ABORT COMMAND (EMERGENCY)
 # -------------------------------------------
-
 abort_job() {
-    local job_id=$1
+    local job_id="$1"
     
     if [ -z "${job_id}" ]; then
-        print_error "Job ID required. Usage: ./zdm_commands_PRODDB.sh abort <JOB_ID>"
+        echo "Usage: ./zdm_commands_PRODDB.sh abort <JOB_ID>"
         return 1
     fi
     
-    print_header "ABORTING JOB: ${job_id}"
+    echo ""
+    echo "=========================================="
+    echo "ABORTING ZDM JOB: ${job_id}"
+    echo "=========================================="
+    echo ""
     
-    print_error "WARNING: This will abort the migration job!"
-    print_warning "Data Guard configuration may need manual cleanup"
-    read -p "Are you SURE you want to abort job ${job_id}? (type ABORT to confirm): " confirm
-    if [ "$confirm" != "ABORT" ]; then
-        print_info "Abort cancelled"
-        return 0
+    echo "⚠️  WARNING: This will ABORT the migration job."
+    echo "    Use only in emergency situations."
+    echo ""
+    read -p "Are you sure you want to abort? (yes/no): " confirm
+    
+    if [ "${confirm}" != "yes" ]; then
+        echo "Abort cancelled."
+        return 1
     fi
     
-    ${ZDM_HOME}/bin/zdmcli abort job -jobid ${job_id}
-    
-    local rc=$?
-    
-    if [ $rc -eq 0 ]; then
-        print_success "Job aborted"
-        print_warning "Review cleanup requirements in the runbook"
-    else
-        print_error "Abort failed with exit code: $rc"
-    fi
-    
-    return $rc
+    "${ZDM_HOME}/bin/zdmcli" abort job -jobid "${job_id}"
 }
 
 # -------------------------------------------
-# List All Jobs
+# LIST ALL JOBS
 # -------------------------------------------
-
 list_jobs() {
-    print_header "LISTING ALL ZDM JOBS"
+    echo ""
+    echo "=========================================="
+    echo "ALL ZDM JOBS"
+    echo "=========================================="
+    echo ""
     
-    ${ZDM_HOME}/bin/zdmcli query jobs
-    
-    return $?
+    "${ZDM_HOME}/bin/zdmcli" query job -all
 }
 
 # -------------------------------------------
-# Show Help
+# HELP
 # -------------------------------------------
-
 show_help() {
     echo ""
-    echo "ZDM Migration Script for PRODDB"
-    echo "================================"
+    echo "ZDM Commands for PRODDB Migration"
+    echo "=================================="
     echo ""
     echo "Usage: ./zdm_commands_PRODDB.sh <command> [options]"
     echo ""
-    echo "IMPORTANT: Login Instructions"
-    echo "-----------------------------"
-    echo "1. SSH as admin user:    ssh azureuser@zdm-jumpbox.corp.example.com"
-    echo "2. Switch to zdmuser:    sudo su - zdmuser"
-    echo "3. Navigate to script:   cd /path/to/Step3"
-    echo "4. Run init (first use): ./zdm_commands_PRODDB.sh init"
+    echo "Setup Commands:"
+    echo "  init           Initialize environment (create ~/creds, ~/zdm_oci_env.sh)"
+    echo "  create-creds   Create password files from environment variables"
+    echo "  cleanup-creds  Remove password files (run after migration)"
     echo ""
-    echo "Commands:"
-    echo "  init            First-time setup (creates ~/creds and ~/zdm_oci_env.sh)"
-    echo "  eval            Run evaluation (dry run) - always run this first"
-    echo "  migrate         Execute migration"
-    echo "  status <id>     Query job status"
-    echo "  resume <id>     Resume paused job"
-    echo "  abort <id>      Abort job (emergency)"
-    echo "  list-jobs       List all ZDM jobs"
-    echo "  create-creds    Create password files from environment variables"
-    echo "  cleanup-creds   Clean up password files"
-    echo "  preflight       Verify prerequisites and OCI environment"
-    echo "  help            Show this help message"
+    echo "Migration Commands:"
+    echo "  eval           Run migration evaluation (dry run)"
+    echo "  migrate        Start the actual migration"
+    echo "  status <ID>    Check job status"
+    echo "  status-long <ID>  Check detailed job status"
+    echo "  resume <ID>    Resume a paused job"
+    echo "  abort <ID>     Abort a running job (emergency)"
+    echo "  jobs           List all jobs"
     echo ""
-    echo "Typical workflow:"
-    echo "  1. ./zdm_commands_PRODDB.sh init                   (first time only)"
-    echo "  2. vi ~/zdm_oci_env.sh                              (edit with actual OCIDs)"
-    echo "  3. source ~/zdm_oci_env.sh                          (load OCI env vars)"
-    echo "  4. Set password env vars (see below)"
-    echo "  5. ./zdm_commands_PRODDB.sh create-creds"
-    echo "  6. ./zdm_commands_PRODDB.sh preflight"
-    echo "  7. ./zdm_commands_PRODDB.sh eval"
-    echo "  8. ./zdm_commands_PRODDB.sh migrate"
-    echo "  9. ./zdm_commands_PRODDB.sh status <JOB_ID>"
-    echo "  10. (After validation) ./zdm_commands_PRODDB.sh resume <JOB_ID>"
-    echo "  11. ./zdm_commands_PRODDB.sh cleanup-creds"
-    echo ""
-    echo "Setting password environment variables (secure entry):"
-    echo "  read -sp 'Enter Source SYS Password: ' SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD"
-    echo "  read -sp 'Enter Target SYS Password: ' TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD"
-    echo "  read -sp 'Enter TDE Wallet Password: ' SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD"
+    echo "Before running migration:"
+    echo "  1. Run: ./zdm_commands_PRODDB.sh init"
+    echo "  2. Edit ~/zdm_oci_env.sh with your OCI OCIDs"
+    echo "  3. Run: source ~/zdm_oci_env.sh"
+    echo "  4. Set password environment variables"
+    echo "  5. Run: ./zdm_commands_PRODDB.sh create-creds"
+    echo "  6. Run: ./zdm_commands_PRODDB.sh eval"
     echo ""
 }
 
 # -------------------------------------------
-# Main Entry Point
+# MAIN COMMAND ROUTER
 # -------------------------------------------
-
-main() {
-    local command="${1:-help}"
-    local arg2="${2:-}"
-    
-    case "$command" in
-        init|setup)
-            init_environment
-            ;;
-        eval|evaluate)
-            run_evaluation
-            ;;
-        migrate|migration)
-            run_migration
-            ;;
-        status|query)
-            query_status "$arg2"
-            ;;
-        resume)
-            resume_job "$arg2"
-            ;;
-        abort)
-            abort_job "$arg2"
-            ;;
-        list-jobs|jobs)
-            list_jobs
-            ;;
-        create-creds|creds)
-            create_password_files
-            ;;
-        cleanup-creds|cleanup)
-            cleanup_password_files
-            ;;
-        preflight|verify)
-# Run main function with all arguments
-main "$@"
+case "${1:-help}" in
+    init)
+        init
+        ;;
+    create-creds)
+        create_creds
+        ;;
+    cleanup-creds)
+        cleanup_creds
+        ;;
+    generate-rsp)
+        generate_rsp
+        ;;
+    eval)
+        eval_migration
+        ;;
+    migrate)
+        run_migration
+        ;;
+    status)
+        check_status "$2"
+        ;;
+    status-long)
+        check_status_long "$2"
+        ;;
+    resume)
+        resume_job "$2"
+        ;;
+    abort)
+        abort_job "$2"
+        ;;
+    jobs)
+        list_jobs
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        echo "Unknown command: $1"
+        show_help
+        exit 1
+        ;;
+esac
