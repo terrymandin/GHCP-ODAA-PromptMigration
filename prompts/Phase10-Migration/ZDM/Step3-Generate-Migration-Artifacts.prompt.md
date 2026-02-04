@@ -63,6 +63,65 @@ Before generating artifacts, verify:
 
 ---
 
+## OCI Environment Variables
+
+> ⚠️ **IMPORTANT**: Generated scripts must use environment variables for OCI/Azure identifiers. Users must set these variables before running migration commands.
+
+### Required OCI Environment Variables
+
+The following environment variables must be set on the ZDM server before running migration:
+
+| Environment Variable | Description | How to Obtain |
+|---------------------|-------------|---------------|
+| `TARGET_TENANCY_OCID` | Target OCI tenancy identifier | OCI Console > Profile > Tenancy Details |
+| `TARGET_USER_OCID` | OCI user identifier for API authentication | OCI Console > Profile > User Settings |
+| `TARGET_FINGERPRINT` | API key fingerprint | OCI Console > Profile > API Keys |
+| `TARGET_COMPARTMENT_OCID` | Target compartment for resources | OCI Console > Identity > Compartments |
+| `TARGET_DATABASE_OCID` | Target database OCID | OCI Console > Databases > Your Database |
+
+### Optional OCI Environment Variables
+
+| Environment Variable | Description | When Required | How to Obtain |
+|---------------------|-------------|---------------|---------------|
+| `TARGET_OBJECT_STORAGE_NAMESPACE` | Object Storage namespace | **OFFLINE_PHYSICAL only** - Not required for ONLINE_PHYSICAL migrations to Oracle Database@Azure (uses direct Data Guard) | OCI Console > Profile > Tenancy Details, or `oci os ns get` |
+
+### Optional Source Environment Variables (if migrating from OCI source)
+
+| Environment Variable | Description | How to Obtain |
+|---------------------|-------------|---------------|
+| `SOURCE_TENANCY_OCID` | Source OCI tenancy (if applicable) | OCI Console > Profile > Tenancy Details |
+| `SOURCE_COMPARTMENT_OCID` | Source compartment (if applicable) | OCI Console > Identity > Compartments |
+| `SOURCE_DATABASE_OCID` | Source database OCID (if applicable) | OCI Console > Databases > Your Database |
+
+### Setting Environment Variables
+
+```bash
+# Set on ZDM server before running migration
+# Target OCI Configuration (REQUIRED)
+export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..aaaa..."
+export TARGET_USER_OCID="ocid1.user.oc1..aaaa..."
+export TARGET_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+export TARGET_COMPARTMENT_OCID="ocid1.compartment.oc1..aaaa..."
+export TARGET_DATABASE_OCID="ocid1.database.oc1..aaaa..."
+
+# Object Storage Configuration (OPTIONAL for ONLINE_PHYSICAL to Oracle Database@Azure)
+# Only required for OFFLINE_PHYSICAL migrations or when Object Storage staging is needed
+# export TARGET_OBJECT_STORAGE_NAMESPACE="your_namespace"
+
+# Source OCI Configuration (if applicable)
+# export SOURCE_TENANCY_OCID="ocid1.tenancy.oc1..aaaa..."
+# export SOURCE_COMPARTMENT_OCID="ocid1.compartment.oc1..aaaa..."
+# export SOURCE_DATABASE_OCID="ocid1.database.oc1..aaaa..."
+```
+
+### Generated Scripts Must Reference These Variables
+
+Generated RSP files and CLI scripts should use these environment variables:
+- RSP file: Include instructions to substitute variables before use
+- CLI scripts: Use `${TARGET_TENANCY_OCID}` syntax with validation
+
+---
+
 ## Artifact Generation Request
 
 Based on the attached/provided questionnaire responses, generate the following artifacts:
@@ -286,20 +345,29 @@ SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=[value]
 SOURCEDATABASE_ADMINPASSWORDFILE=[value]
 
 # Target Database Configuration
-TARGETDATABASE_OCID=[value]
+# NOTE: Use envsubst or manual substitution to replace ${TARGET_*} variables
+TARGETDATABASE_OCID=${TARGET_DATABASE_OCID}
 TARGETDATABASE_CONNECTIONDETAILS_HOST=[value]
 TARGETDATABASE_CONNECTIONDETAILS_PORT=[value]
 TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=[value]
 
 # OCI Authentication
 OCIAUTHENTICATION_TYPE=API_KEY
-OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=[value]
-OCIAUTHENTICATION_USERPRINCIPAL_USERID=[value]
-OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=[value]
+OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=${TARGET_TENANCY_OCID}
+OCIAUTHENTICATION_USERPRINCIPAL_USERID=${TARGET_USER_OCID}
+OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=${TARGET_FINGERPRINT}
 OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=[value]
+
+# Compartment Configuration
+OCI_COMPARTMENT_OCID=${TARGET_COMPARTMENT_OCID}
+
+# Object Storage Configuration
+OBJECTSTORAGE_NAMESPACE=${TARGET_OBJECT_STORAGE_NAMESPACE}
 
 # [Additional sections based on migration type]
 ```
+
+> **NOTE**: RSP files should include a header comment explaining that environment variables (e.g., `${TARGET_TENANCY_OCID}`) must be substituted before use. Include instructions to use `envsubst` or manual replacement.
 
 ---
 
@@ -313,7 +381,7 @@ OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=[value]
 # Generated: [DATE]
 # ===========================================
 
-# Environment Variables
+# Environment Variables (from discovery)
 export ZDM_HOME="[value]"
 export SOURCE_DB="[value]"
 export SOURCE_HOST="[value]"
@@ -321,8 +389,114 @@ export TARGET_HOST="[value]"
 export RSP_FILE="[path]"
 export SSH_KEY="[path]"
 
+# -------------------------------------------
+# OCI ENVIRONMENT VARIABLES (USER MUST SET)
+# -------------------------------------------
+# The following variables must be set before running:
+#   TARGET_TENANCY_OCID       - From OCI Console > Profile > Tenancy Details
+#   TARGET_USER_OCID          - From OCI Console > Profile > User Settings
+#   TARGET_FINGERPRINT        - From OCI Console > Profile > API Keys
+#   TARGET_COMPARTMENT_OCID   - From OCI Console > Identity > Compartments
+#   TARGET_DATABASE_OCID      - From OCI Console > Databases > Your Database
+#   TARGET_OBJECT_STORAGE_NAMESPACE - From OCI Console > Object Storage
+
+# OCI Environment Variable Validation Function
+validate_oci_environment() {
+    local missing_vars=()
+    local errors=0
+    
+    echo ""
+    echo "=========================================="
+    echo "VALIDATING OCI ENVIRONMENT VARIABLES"
+    echo "=========================================="
+    echo ""
+    
+    # Check TARGET_TENANCY_OCID
+    if [ -z "${TARGET_TENANCY_OCID:-}" ]; then
+        missing_vars+=("TARGET_TENANCY_OCID")
+        ((errors++))
+        echo "  ✗ TARGET_TENANCY_OCID is NOT set"
+    else
+        echo "  ✓ TARGET_TENANCY_OCID is set"
+    fi
+    
+    # Check TARGET_USER_OCID
+    if [ -z "${TARGET_USER_OCID:-}" ]; then
+        missing_vars+=("TARGET_USER_OCID")
+        ((errors++))
+        echo "  ✗ TARGET_USER_OCID is NOT set"
+    else
+        echo "  ✓ TARGET_USER_OCID is set"
+    fi
+    
+    # Check TARGET_FINGERPRINT
+    if [ -z "${TARGET_FINGERPRINT:-}" ]; then
+        missing_vars+=("TARGET_FINGERPRINT")
+        ((errors++))
+        echo "  ✗ TARGET_FINGERPRINT is NOT set"
+    else
+        echo "  ✓ TARGET_FINGERPRINT is set"
+    fi
+    
+    # Check TARGET_COMPARTMENT_OCID
+    if [ -z "${TARGET_COMPARTMENT_OCID:-}" ]; then
+        missing_vars+=("TARGET_COMPARTMENT_OCID")
+        ((errors++))
+        echo "  ✗ TARGET_COMPARTMENT_OCID is NOT set"
+    else
+        echo "  ✓ TARGET_COMPARTMENT_OCID is set"
+    fi
+    
+    # Check TARGET_DATABASE_OCID
+    if [ -z "${TARGET_DATABASE_OCID:-}" ]; then
+        missing_vars+=("TARGET_DATABASE_OCID")
+        ((errors++))
+        echo "  ✗ TARGET_DATABASE_OCID is NOT set"
+    else
+        echo "  ✓ TARGET_DATABASE_OCID is set"
+    fi
+    
+    # Check TARGET_OBJECT_STORAGE_NAMESPACE
+    if [ -z "${TARGET_OBJECT_STORAGE_NAMESPACE:-}" ]; then
+        missing_vars+=("TARGET_OBJECT_STORAGE_NAMESPACE")
+        ((errors++))
+        echo "  ✗ TARGET_OBJECT_STORAGE_NAMESPACE is NOT set"
+    else
+        echo "  ✓ TARGET_OBJECT_STORAGE_NAMESPACE is set"
+    fi
+    
+    if [ $errors -gt 0 ]; then
+        echo ""
+        echo "ERROR: The following OCI environment variables are not set:"
+        printf '  - %s\n' "${missing_vars[@]}"
+        echo ""
+        echo "Please set these variables before running the migration script:"
+        printf '  export %s="<value>"\n' "${missing_vars[@]}"
+        echo ""
+        echo "Obtain values from OCI Console - see Step3 prompt for details."
+        return 1
+    fi
+    
+    echo ""
+    echo "✓ All required OCI environment variables are set"
+    return 0
+}
+
+# Generate RSP file with substituted environment variables
+generate_rsp_file() {
+    local template_rsp="[path_to_template]"
+    local generated_rsp="${RSP_FILE}"
+    
+    echo "Generating RSP file with environment variable substitution..."
+    envsubst < "$template_rsp" > "$generated_rsp"
+    echo "RSP file generated: $generated_rsp"
+}
+
 # Evaluation Command
 echo "Running ZDM Evaluation..."
+validate_oci_environment || exit 1
+validate_password_environment || exit 1
+
 $ZDM_HOME/bin/zdmcli migrate database \
   -sourcedb $SOURCE_DB \
   [additional parameters] \
@@ -349,13 +523,15 @@ When generating artifacts, ensure:
 
 - [ ] All placeholder values are replaced with actual questionnaire responses
 - [ ] Commands use absolute paths from questionnaire
+- [ ] **OCI environment variable validation is included** - Scripts must check that `TARGET_TENANCY_OCID`, `TARGET_USER_OCID`, `TARGET_FINGERPRINT`, `TARGET_COMPARTMENT_OCID`, `TARGET_DATABASE_OCID`, and `TARGET_OBJECT_STORAGE_NAMESPACE` are set before executing
+- [ ] RSP files use `${TARGET_*}` syntax for OCI identifiers (to be substituted via envsubst)
 - [ ] **Password environment variable validation is included** - Scripts must check that `SOURCE_SYS_PASSWORD`, `TARGET_SYS_PASSWORD`, and `SOURCE_TDE_WALLET_PASSWORD` (if TDE enabled) are set before executing
 - [ ] Passwords are NEVER embedded in scripts or files - only referenced via environment variables
 - [ ] RSP file references password files that will be created from environment variables at runtime
 - [ ] RSP file matches migration type (online vs offline)
 - [ ] Runbook includes rollback procedures
 - [ ] CLI script has proper error handling
-- [ ] All OCIDs are properly formatted
+- [ ] All OCIDs reference environment variables with SOURCE/TARGET naming
 - [ ] Network ports match questionnaire values
 - [ ] TDE settings included if TDE is enabled
 - [ ] Data Guard settings included for online migration
@@ -364,7 +540,7 @@ When generating artifacts, ensure:
 
 ## Password Security Requirements
 
-> ⚠️ **SECURITY**: Generated scripts must validate password environment variables and must NEVER contain hardcoded passwords.
+> ⚠️ **SECURITY**: Generated scripts must validate password environment variables and must NEVER contain hardcoded passwords or OCI identifiers.
 
 ### Required Password Validation in Generated Scripts
 
@@ -494,11 +670,14 @@ Review all generated artifacts before execution.
 After generating artifacts:
 
 1. ✅ Review all generated files for accuracy
-2. 🔲 Create password files as instructed (at runtime)
-3. 🔲 Run evaluation command first: `./zdm_commands_<DB_NAME>.sh --eval`
-4. 🔲 Execute migration following the runbook
-5. 🔲 Monitor migration progress
-6. 🔲 Perform post-migration validation
+2. 🔲 Set OCI environment variables on ZDM server:
+   - `TARGET_TENANCY_OCID`, `TARGET_USER_OCID`, `TARGET_FINGERPRINT`
+   - `TARGET_COMPARTMENT_OCID`, `TARGET_DATABASE_OCID`, `TARGET_OBJECT_STORAGE_NAMESPACE`
+3. 🔲 Set password environment variables (at runtime)
+4. 🔲 Run evaluation command first: `./zdm_commands_<DB_NAME>.sh --eval`
+5. 🔲 Execute migration following the runbook
+6. 🔲 Monitor migration progress
+7. 🔲 Perform post-migration validation
 
 ---
 

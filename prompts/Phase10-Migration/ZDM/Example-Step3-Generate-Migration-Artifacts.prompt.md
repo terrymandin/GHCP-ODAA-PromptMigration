@@ -83,10 +83,14 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 - API Key Path: /home/zdmuser/.oci/oci_api_key.pem
 - Fingerprint: aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
 
-### Object Storage
-- Namespace: examplecorp
-- Bucket: zdm-proddb-migration
-- Region: us-ashburn-1
+### Object Storage (Optional for ONLINE_PHYSICAL to Oracle Database@Azure)
+> **Note:** For ONLINE_PHYSICAL migrations to Oracle Database@Azure, Object Storage is NOT required.
+> ZDM uses direct Data Guard redo shipping over the network. Only configure Object Storage
+> if you specifically need backup staging (e.g., for OFFLINE_PHYSICAL migrations).
+
+- Namespace: examplecorp (optional)
+- Bucket: zdm-proddb-migration (optional)
+- Region: us-ashburn-1 (optional)
 
 ### Migration Options
 - Protection Mode: MAXIMUM_PERFORMANCE

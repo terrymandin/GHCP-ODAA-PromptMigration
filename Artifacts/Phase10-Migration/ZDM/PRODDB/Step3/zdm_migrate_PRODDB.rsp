@@ -1,214 +1,189 @@
 # ===========================================
 # ZDM Response File
-# Database: PRODDB (oradb01)
-# Migration Type: ONLINE_PHYSICAL
-# Generated: 2026-02-03
+# Database: PRODDB
+# Migration Type: ONLINE_PHYSICAL (Data Guard)
+# Generated: 2026-02-04
+# ===========================================
+#
+# IMPORTANT: This file contains environment variable placeholders (${VAR_NAME})
+# that MUST be substituted before use.
+#
+# Option 1: Use envsubst
+#   export TARGET_DATABASE_OCID="ocid1.database..."
+#   envsubst < zdm_migrate_PRODDB.rsp > zdm_migrate_PRODDB_ready.rsp
+#
+# Option 2: Manual substitution
+#   Replace all ${VAR_NAME} with actual values
+#
+# Required environment variables:
+#   TARGET_DATABASE_OCID     - Target database OCID
+#   TARGET_TENANCY_OCID      - OCI tenancy OCID
+#   TARGET_USER_OCID         - OCI user OCID
+#   TARGET_FINGERPRINT       - OCI API key fingerprint
+#   TARGET_COMPARTMENT_OCID  - Target compartment OCID
+#
+# Optional environment variables (for OFFLINE_PHYSICAL only):
+#   TARGET_OBJECT_STORAGE_NAMESPACE - Object Storage namespace
+#
 # ===========================================
 
 # -------------------------------------------
-# MIGRATION METHOD
+# Migration Method
 # -------------------------------------------
-# ONLINE_PHYSICAL - Uses Data Guard for minimal downtime
-# OFFLINE_PHYSICAL - Uses backup/restore with extended downtime
+# ONLINE_PHYSICAL uses Data Guard for minimal downtime
 MIGRATION_METHOD=ONLINE_PHYSICAL
 
 # -------------------------------------------
-# SOURCE DATABASE CONFIGURATION
+# Source Database Configuration
 # -------------------------------------------
-# Source database unique name
-SOURCEDATABASE_ADMINUSERNAME=SYS
-
-# Source database connection details
-SOURCEDATABASE_CONNECTIONDETAILS_HOST=temandin-oravm-vm01
+SOURCEDATABASE_CONNECTIONDETAILS_HOST=proddb01.corp.example.com
 SOURCEDATABASE_CONNECTIONDETAILS_PORT=1521
-SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01
+SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB.corp.example.com
+SOURCEDATABASE_ADMINUSERNAME=SYS
+SOURCEDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/source_sys_password.txt
+SOURCEDATABASE_ORACLEHOME=/u01/app/oracle/product/19.21.0/dbhome_1
+SOURCEDATABASE_UNIQUENAME=PRODDB_PRIMARY
 
-# Source Oracle Home
-SOURCEDATABASE_ORACLEHOME=/u01/app/oracle/product/19.0.0/dbhome_1
-
-# Source database environment details
-SOURCEDATABASE_ENVIRONMENTBASE=/u01/app/oracle
-SOURCEDATABASE_DBID=1593802201
-
-# Password file location (discovered)
-SOURCEDATABASE_ADMINPASSWORDFILE=/u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
+# Source SSH Configuration
+SOURCEDATABASE_SSHUSER=oracle
+SOURCEDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm_migration_key
+SOURCEDATABASE_SUDOLOCATION=/usr/bin/sudo
 
 # -------------------------------------------
-# TARGET DATABASE CONFIGURATION
+# Target Database Configuration
 # -------------------------------------------
-# Target database OCID (REQUIRED - obtain from OCI Console)
-# OCI Console > Databases > Exadata DB Systems > Database Details
-TARGETDATABASE_OCID=<TARGET_DATABASE_OCID>
-
-# Target database connection details
-TARGETDATABASE_CONNECTIONDETAILS_HOST=tmodaauks-rqahk1
+# NOTE: Environment variable substitution required
+TARGETDATABASE_OCID=${TARGET_DATABASE_OCID}
+TARGETDATABASE_CONNECTIONDETAILS_HOST=proddb-oda.eastus.azure.example.com
 TARGETDATABASE_CONNECTIONDETAILS_PORT=1521
-TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01_tgt
-
-# Target database unique name (for new database creation)
-TARGETDATABASE_DBUNIQUENAME=oradb01_tgt
-
-# Target Oracle Home (Exadata ODAA)
+TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB_AZURE.eastus.azure.example.com
+TARGETDATABASE_ADMINUSERNAME=SYS
+TARGETDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/target_sys_password.txt
 TARGETDATABASE_ORACLEHOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
+TARGETDATABASE_UNIQUENAME=PRODDB_AZURE
 
-# Target database environment
-TARGETDATABASE_ENVIRONMENTBASE=/u02/app/oracle
-
-# Target ASM disk groups
-TARGETDATABASE_DATADISKGROUP=+DATAC3
-TARGETDATABASE_RECODISKGROUP=+RECOC3
+# Target SSH Configuration
+TARGETDATABASE_SSHUSER=oracle
+TARGETDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm_migration_key
+TARGETDATABASE_SUDOLOCATION=/usr/bin/sudo
 
 # -------------------------------------------
-# OCI AUTHENTICATION
+# OCI Authentication
 # -------------------------------------------
-# Authentication type: API_KEY or INSTANCE_PRINCIPAL
+# NOTE: Environment variable substitution required
 OCIAUTHENTICATION_TYPE=API_KEY
-
-# OCI User Principal configuration
-# Obtain these from OCI Console
-OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=<YOUR_TENANCY_OCID>
-OCIAUTHENTICATION_USERPRINCIPAL_USERID=<YOUR_USER_OCID>
-OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=<YOUR_FINGERPRINT>
-OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/odaa.pem
-
-# OCI Region (based on target FQDN)
-OCIAUTHENTICATION_USERPRINCIPAL_REGION=uk-london-1
+OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=${TARGET_TENANCY_OCID}
+OCIAUTHENTICATION_USERPRINCIPAL_USERID=${TARGET_USER_OCID}
+OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=${TARGET_FINGERPRINT}
+OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/oci_api_key.pem
 
 # -------------------------------------------
-# COMPARTMENT CONFIGURATION
+# Compartment Configuration
 # -------------------------------------------
-# OCI Compartment OCID (REQUIRED)
-# OCI Console > Identity > Compartments
-OCI_COMPARTMENT_OCID=<YOUR_COMPARTMENT_OCID>
-
-# -------------------------------------------
-# OBJECT STORAGE CONFIGURATION
-# -------------------------------------------
-# Object Storage namespace (REQUIRED)
-# OCI Console > Object Storage > Bucket Details
-OBJECTSTORAGE_NAMESPACE=<OBJECT_STORAGE_NAMESPACE>
-
-# Bucket name for migration (will be created if doesn't exist)
-OBJECTSTORAGE_BUCKETNAME=zdm-migration-proddb
-
-# Object Storage region (same as target)
-OBJECTSTORAGE_REGION=uk-london-1
+# NOTE: Environment variable substitution required
+OCI_COMPARTMENT_OCID=${TARGET_COMPARTMENT_OCID}
 
 # -------------------------------------------
-# DATA GUARD CONFIGURATION (Online Migration)
+# Object Storage Configuration (OPTIONAL)
 # -------------------------------------------
-# Protection mode: MAXIMUM_PERFORMANCE or MAXIMUM_AVAILABILITY
-DATAGUARDCONFIG_PROTECTIONMODE=MAXIMUM_PERFORMANCE
-
-# Transport type: ASYNC or SYNC
-DATAGUARDCONFIG_TRANSPORTTYPE=ASYNC
-
-# Redo log shipping configuration
-DATAGUARDCONFIG_LOGSHIPPING=ASYNC
-
-# Standby redo log size (match source redo log size)
-DATAGUARDCONFIG_STANDBYREDOLOGSIZE=200M
+# NOTE: Object Storage is NOT required for ONLINE_PHYSICAL migrations
+#       to Oracle Database@Azure. ZDM uses direct Data Guard redo shipping.
+#       Uncomment only if you need backup staging for OFFLINE_PHYSICAL.
+#
+# OBJECTSTORAGE_NAMESPACE=${TARGET_OBJECT_STORAGE_NAMESPACE}
+# OBJECTSTORAGE_BUCKETNAME=zdm-proddb-migration
+# OBJECTSTORAGE_REGION=us-ashburn-1
 
 # -------------------------------------------
-# TDE WALLET CONFIGURATION
+# TDE Configuration
 # -------------------------------------------
-# TDE wallet location on source
-TDEWALLET_LOCATION=/u01/app/oracle/admin/oradb01/wallet/tde/
-
-# TDE wallet type
-TDEWALLET_TYPE=AUTOLOGIN
-
-# Migrate TDE wallet to target
-TDEWALLET_MIGRATETOTARGET=TRUE
+# TDE is ENABLED on source database
+TDE_ENABLED=TRUE
+TDE_WALLET_LOCATION=/u01/app/oracle/admin/PRODDB/wallet/tde
+TDE_WALLET_PASSWORDFILE=/home/zdmuser/creds/tde_password.txt
 
 # -------------------------------------------
-# BACKUP CONFIGURATION
+# Data Guard Configuration (Online Migration)
 # -------------------------------------------
-# Backup destination type: OBJECTSTORE or DBBACKUPSERVICE
-BACKUP_DESTINATION=OBJECTSTORE
+DATAGUARD_PROTECTIONMODE=MAXIMUM_PERFORMANCE
+DATAGUARD_TRANSPORTTYPE=ASYNC
 
-# RMAN channels for backup (adjust based on performance needs)
-RMAN_CHANNELS=4
+# Data Guard Redo Transport Configuration
+# FASTSYNC - Uses ASYNC but can switch to SYNC for final apply
+# ASYNC - Asynchronous redo shipping (recommended for WAN)
+DATAGUARD_REDOTRANSPORTMODE=ASYNC
 
-# Compression algorithm: BASIC, LOW, MEDIUM, HIGH
+# Apply Mode
+# APPLY - Real-time apply
+# NONAPPLY - Delayed apply (not recommended for migration)
+DATAGUARD_APPLYMODE=APPLY
+
+# -------------------------------------------
+# RMAN Configuration
+# -------------------------------------------
+RMAN_CHANNELS=8
 RMAN_COMPRESSION=MEDIUM
+RMAN_ENCRYPTION=AES256
 
-# Section size for backup pieces (MB)
-RMAN_SECTIONSIZE=512
-
-# -------------------------------------------
-# MIGRATION OPTIONS
-# -------------------------------------------
-# Skip application tablespace check
-SKIPAPDATACHK=FALSE
-
-# Include AWR data in migration
-INCLUDE_AWR=TRUE
-
-# Evaluate DataPump suitability
-EVALUATEDATAPUMP=TRUE
-
-# Delete backup from Object Storage after migration
-DELETEBACKUPAFTERRESTORE=FALSE
+# Parallelism settings
+RMAN_PARALLELISM=8
 
 # -------------------------------------------
-# SWITCHOVER CONFIGURATION
+# Migration Control Options
 # -------------------------------------------
-# Auto switchover after sync
-AUTOSWITCHOVER=FALSE
+# Pause before switchover for final validation
+PAUSEAFTER=ZDM_CONFIGURE_DG_SRC
 
-# Pause point before switchover (for validation)
-PAUSEAFTER=ZDM_SWITCHOVER_SRC
-
-# -------------------------------------------
-# SSH CONFIGURATION
-# -------------------------------------------
-# Source SSH configuration
-SOURCE_SSH_USER=azureuser
-SOURCE_SSH_SUDOLOCATION=/usr/bin/sudo
-
-# Target SSH configuration  
-TARGET_SSH_USER=opc
-TARGET_SSH_SUDOLOCATION=/usr/bin/sudo
+# Auto switchover setting
+# NO - Manual control, requires resume command
+# YES - Automatic switchover (not recommended for production)
+AUTO_SWITCHOVER=NO
 
 # -------------------------------------------
-# PLATFORM SPECIFIC
+# Post-Migration Options
 # -------------------------------------------
-# Target platform: ODAA (Oracle Database@Azure)
-TARGET_PLATFORM=ODAA
+# Keep backups for rollback capability
+DELETE_BACKUP_AFTER_MIGRATION=FALSE
 
-# Exadata configuration
-EXADATA_ENABLED=TRUE
+# Include performance data (AWR/baseline)
+INCLUDE_PERFORMANCE_DATA=TRUE
 
-# RAC configuration
-RAC_ENABLED=TRUE
-RAC_NODES=tmodaauks-rqahk1,tmodaauks-rqahk2
-
-# -------------------------------------------
-# LOGGING AND MONITORING
-# -------------------------------------------
-# ZDM log level: INFO, DEBUG, TRACE
-ZDMLOG_LEVEL=INFO
-
-# Enable detailed migration statistics
-ENABLE_STATISTICS=TRUE
+# Evaluate Datapump feasibility
+EVALUATE_DATAPUMP=TRUE
 
 # -------------------------------------------
-# PLACEHOLDER REPLACEMENT GUIDE
+# Network Configuration
 # -------------------------------------------
-# Replace the following placeholders before running migration:
-#
-# <TARGET_DATABASE_OCID>      - From OCI Console > Databases > Your Database
-# <YOUR_TENANCY_OCID>         - From OCI Console > Profile > Tenancy Details
-# <YOUR_USER_OCID>            - From OCI Console > Profile > User Settings
-# <YOUR_FINGERPRINT>          - From OCI Console > Profile > API Keys
-# <YOUR_COMPARTMENT_OCID>     - From OCI Console > Identity > Compartments
-# <OBJECT_STORAGE_NAMESPACE>  - From OCI Console > Object Storage
-#
-# Password files are created at runtime from environment variables.
-# See zdm_commands_PRODDB.sh for password setup instructions.
+# Source network ports
+SOURCE_LISTENER_PORT=1521
+SOURCE_SSH_PORT=22
+
+# Target network ports
+TARGET_LISTENER_PORT=1521
+TARGET_SSH_PORT=22
+
 # -------------------------------------------
+# Logging and Diagnostics
+# -------------------------------------------
+# Enable verbose logging for troubleshooting
+VERBOSE_LOGGING=TRUE
+
+# Keep job files after completion
+KEEP_JOB_FILES=TRUE
+
+# -------------------------------------------
+# Database Character Set (Verified Match)
+# -------------------------------------------
+# Source: AL32UTF8
+# Target: AL32UTF8
+# Character set conversion: NOT REQUIRED
+
+# -------------------------------------------
+# Database Link Handling
+# -------------------------------------------
+# Note: Database link SYS_HUB will need manual recreation post-migration
+# See runbook for details
 
 # ===========================================
-# END OF RESPONSE FILE
+# END OF RSP FILE
 # ===========================================

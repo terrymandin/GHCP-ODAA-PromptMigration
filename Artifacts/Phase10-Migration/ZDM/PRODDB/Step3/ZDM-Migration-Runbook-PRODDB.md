@@ -1,30 +1,33 @@
 # ZDM Migration Runbook: PRODDB
 ## Migration: On-Premise to Oracle Database@Azure
 
+---
+
 ### Document Information
 
 | Field | Value |
 |-------|-------|
-| Source Database | ORADB01 (oradb01) on temandin-oravm-vm01 |
-| Target Database | Oracle Database@Azure Exadata (tmodaauks-rqahk1/rqahk2) |
-| Migration Type | ONLINE_PHYSICAL |
-| Migration Method | Data Guard Physical Standby |
-| ZDM Server | tm-vm-odaa-oracle-jumpbox (10.1.0.8) |
-| Created Date | 2026-02-03 |
-| Database Size | 1.92 GB |
+| **Source Database** | PRODDB (PRODDB_PRIMARY) |
+| **Source Host** | proddb01.corp.example.com |
+| **Target Database** | PRODDB (PRODDB_AZURE) |
+| **Target Host** | proddb-oda.eastus.azure.example.com |
+| **Migration Type** | ONLINE_PHYSICAL (Data Guard) |
+| **Maximum Downtime** | 15 minutes |
+| **Created Date** | 2026-02-04 |
+| **ZDM Version** | 21c |
 
 ---
 
 ## Table of Contents
 
-1. [Phase 1: Pre-Migration Verification](#phase-1-pre-migration-verification)
-2. [Phase 2: Source Database Configuration](#phase-2-source-database-configuration)
-3. [Phase 3: Target Database Configuration](#phase-3-target-database-configuration)
-4. [Phase 4: ZDM Server Configuration](#phase-4-zdm-server-configuration)
-5. [Phase 5: Migration Execution](#phase-5-migration-execution)
-6. [Phase 6: Post-Migration Validation](#phase-6-post-migration-validation)
-7. [Phase 7: Rollback Procedures](#phase-7-rollback-procedures)
-8. [Appendix A: Troubleshooting](#appendix-a-troubleshooting)
+1. [Pre-Migration Verification](#phase-1-pre-migration-verification)
+2. [Source Database Configuration](#phase-2-source-database-configuration)
+3. [Target Database Configuration](#phase-3-target-database-configuration)
+4. [ZDM Server Configuration](#phase-4-zdm-server-configuration)
+5. [Migration Execution](#phase-5-migration-execution)
+6. [Post-Migration Validation](#phase-6-post-migration-validation)
+7. [Rollback Procedures](#phase-7-rollback-procedures)
+8. [Troubleshooting](#appendix-a-troubleshooting)
 
 ---
 
@@ -32,369 +35,267 @@
 
 ### 1.1 Source Database Checks
 
-**Connect to source database server:**
-```bash
-ssh azureuser@temandin-oravm-vm01
-sudo su - oracle
-```
+Execute these commands on the **source database server** as `oracle` user.
 
-**Set environment:**
+#### 1.1.1 Verify Database Status
+
 ```bash
-export ORACLE_HOME=/u01/app/oracle/product/19.0.0/dbhome_1
-export ORACLE_SID=oradb01
+# SSH to source
+ssh oracle@proddb01.corp.example.com
+
+# Set environment
+export ORACLE_HOME=/u01/app/oracle/product/19.21.0/dbhome_1
+export ORACLE_SID=PRODDB
 export PATH=$ORACLE_HOME/bin:$PATH
 ```
 
-**Verify database status:**
 ```sql
-sqlplus / as sysdba << 'EOF'
--- Basic database info
-SELECT NAME, DB_UNIQUE_NAME, DBID, DATABASE_ROLE, OPEN_MODE, LOG_MODE
-FROM V$DATABASE;
+-- Connect to database
+sqlplus / as sysdba
 
--- Verify ARCHIVELOG mode
-SELECT LOG_MODE FROM V$DATABASE;
+-- Verify database is open
+SELECT NAME, OPEN_MODE, DATABASE_ROLE, LOG_MODE FROM V$DATABASE;
+-- Expected: PRODDB, READ WRITE, PRIMARY, ARCHIVELOG
 
 -- Verify Force Logging
 SELECT FORCE_LOGGING FROM V$DATABASE;
+-- Expected: YES
 
 -- Verify Supplemental Logging
 SELECT SUPPLEMENTAL_LOG_DATA_MIN, SUPPLEMENTAL_LOG_DATA_PK FROM V$DATABASE;
+-- Expected: YES, YES
 
 -- Check database size
 SELECT ROUND(SUM(BYTES)/1024/1024/1024, 2) AS SIZE_GB FROM DBA_DATA_FILES;
 
 -- Verify password file exists
 SELECT * FROM V$PWFILE_USERS;
-
--- Check TDE wallet status
-SELECT * FROM V$ENCRYPTION_WALLET;
-
--- Check for invalid objects
-SELECT COUNT(*) AS INVALID_OBJECTS FROM DBA_OBJECTS WHERE STATUS = 'INVALID';
-
--- Check database links
-SELECT OWNER, DB_LINK, USERNAME, HOST FROM DBA_DB_LINKS;
-EOF
 ```
 
-**Expected Results:**
+#### 1.1.2 Verify TDE Configuration
 
-| Check | Expected Value | Actual | Status |
-|-------|----------------|--------|--------|
-| LOG_MODE | ARCHIVELOG | | ⬜ |
-| FORCE_LOGGING | YES | | ⬜ |
-| SUPPLEMENTAL_LOG_DATA_MIN | YES | | ⬜ |
-| SUPPLEMENTAL_LOG_DATA_PK | YES | | ⬜ |
-| Password File Users | ≥1 (SYS) | | ⬜ |
-| Wallet Status | OPEN | | ⬜ |
-| Invalid Objects | 0 | | ⬜ |
+```sql
+-- Check TDE wallet status
+SELECT WRL_PARAMETER, STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;
+-- Expected: /u01/app/oracle/admin/PRODDB/wallet/tde, OPEN, AUTOLOGIN
 
----
+-- Check for encrypted tablespaces
+SELECT TABLESPACE_NAME, ENCRYPTED FROM DBA_TABLESPACES WHERE ENCRYPTED = 'YES';
+```
+
+#### 1.1.3 Verify Network Connectivity from Source
+
+```bash
+# Test connectivity to ZDM server
+ping -c 3 zdm-jumpbox.corp.example.com
+
+# Test connectivity to target
+ping -c 3 proddb-oda.eastus.azure.example.com
+
+# Test Oracle listener on target
+tnsping PRODDB_AZURE
+```
 
 ### 1.2 Target Database Checks
 
-**Connect to target node 1:**
-```bash
-ssh opc@tmodaauks-rqahk1
-sudo su - oracle
-```
+Execute these commands on the **target database server** as `oracle` user.
 
-**Set environment:**
 ```bash
+# SSH to target
+ssh oracle@proddb-oda.eastus.azure.example.com
+
+# Set environment
 export ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
-export GRID_HOME=/u01/app/19.0.0.0/grid
-export PATH=$ORACLE_HOME/bin:$GRID_HOME/bin:$PATH
+export ORACLE_SID=PRODDB
+export PATH=$ORACLE_HOME/bin:$PATH
 ```
 
-**Verify cluster status:**
-```bash
-# Check CRS status
-crsctl check crs
-
-# Check cluster nodes
-olsnodes -n
-
-# Check all resources
-crsctl stat res -t
-```
-
-**Verify ASM disk groups:**
 ```sql
-sqlplus / as sysasm << 'EOF'
-SET LINESIZE 200
-SELECT NAME, STATE, TYPE, TOTAL_MB, FREE_MB, 
-       ROUND(FREE_MB/TOTAL_MB*100,1) AS PCT_FREE 
-FROM V$ASM_DISKGROUP;
-EOF
+-- Connect to database
+sqlplus / as sysdba
+
+-- Verify target is accessible
+SELECT INSTANCE_NAME, STATUS FROM V$INSTANCE;
+
+-- Verify ASM diskgroups (for Exadata)
+SELECT NAME, STATE, TOTAL_MB, FREE_MB FROM V$ASM_DISKGROUP;
+
+-- Verify listener is running
+lsnrctl status
 ```
 
-**Expected ASM Configuration:**
+#### 1.2.2 Verify Target Storage
 
-| Disk Group | Expected State | Purpose |
-|------------|----------------|---------|
-| DATAC3 | MOUNTED | Data storage |
-| RECOC3 | MOUNTED | Recovery area |
-
-**Verify listener status:**
 ```bash
-lsnrctl status LISTENER
-lsnrctl status LISTENER_SCAN1
-```
+# Check ASM diskgroup space
+asmcmd lsdg
 
-**Check existing databases:**
-```bash
-cat /etc/oratab | grep -v '^#'
-srvctl status database -d migdb
-srvctl status database -d oradb01m 2>/dev/null || echo "oradb01m not registered"
+# Expected output should show DATA and RECO diskgroups with sufficient space
 ```
-
----
 
 ### 1.3 ZDM Server Checks
 
-**Connect to ZDM server:**
-```bash
-ssh azureuser@tm-vm-odaa-oracle-jumpbox
-```
+Execute these commands on the **ZDM server** as `zdmuser`.
 
-**Switch to zdmuser (recommended for ZDM operations):**
 ```bash
-sudo su - zdmuser
-```
+# SSH to ZDM server
+ssh zdmuser@zdm-jumpbox.corp.example.com
 
-**Set ZDM environment:**
-```bash
-export ZDM_HOME=/u01/app/zdmhome
+# Set ZDM environment
+export ZDM_HOME=/opt/oracle/zdm21c
 export PATH=$ZDM_HOME/bin:$PATH
 ```
 
-**Verify ZDM installation:**
+#### 1.3.1 Verify ZDM Installation
+
 ```bash
 # Check ZDM version
-$ZDM_HOME/bin/zdmcli -build
+$ZDM_HOME/bin/zdmcli -version
 
-# Check ZDM service status
-$ZDM_HOME/bin/zdmservice status
-
-# List existing jobs (if any)
-$ZDM_HOME/bin/zdmcli query job -listall
+# Verify ZDM service is running
+$ZDM_HOME/bin/zdmcli query job -jobid 0 2>&1 | head -5
+# This may show an error about job not found, but confirms ZDM is responding
 ```
 
-**Verify OCI CLI configuration:**
+#### 1.3.2 Verify OCI Configuration
+
 ```bash
-# Check OCI config exists
-cat ~/.oci/config
+# Check OCI CLI version
+oci --version
 
 # Test OCI connectivity
 oci os ns get
+# Expected: Returns namespace
 
-# Get Object Storage namespace
-oci os ns get --query 'data' --raw-output
+# Verify target database is accessible
+oci db database get --database-id ${TARGET_DATABASE_OCID} --query 'data.{name:"db-name",state:"lifecycle-state"}'
 ```
 
-**Verify SSH keys:**
+#### 1.3.3 Verify SSH Connectivity
+
 ```bash
-# List available SSH keys
-ls -la ~/.ssh/*.pem
+# Test SSH to source
+ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb01.corp.example.com "hostname"
 
-# Expected keys:
-# /home/zdmuser/.ssh/zdm.pem - Source connectivity
-# /home/zdmuser/.ssh/odaa.pem - Target connectivity
+# Test SSH to target
+ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb-oda.eastus.azure.example.com "hostname"
 ```
 
-**Check disk space:**
+#### 1.3.4 Verify Disk Space
+
 ```bash
-df -h /u01/app/zdmhome
-# Expected: At least 20 GB free
-```
+# Check ZDM home disk space
+df -h /opt/oracle/zdm21c
+# Recommended: At least 20GB free
 
----
+# Check credentials directory
+ls -la /home/zdmuser/creds/
+```
 
 ### 1.4 Network Connectivity Checks
 
-**From ZDM server, verify connectivity to source:**
 ```bash
-# SSH connectivity
-ssh -i ~/.ssh/zdm.pem azureuser@10.1.0.10 "hostname; echo 'SSH OK'"
+# From ZDM server, verify all network paths
+# Source Oracle port
+nc -zv proddb01.corp.example.com 1521
 
-# Oracle port connectivity
-nc -zv 10.1.0.10 1521
+# Target Oracle port
+nc -zv proddb-oda.eastus.azure.example.com 1521
 
-# TNS ping
-tnsping temandin-oravm-vm01:1521/oradb01
+# Source SSH port
+nc -zv proddb01.corp.example.com 22
+
+# Target SSH port
+nc -zv proddb-oda.eastus.azure.example.com 22
 ```
-
-**From ZDM server, verify connectivity to target:**
-```bash
-# SSH connectivity
-ssh -i ~/.ssh/odaa.pem opc@10.0.1.160 "hostname; echo 'SSH OK'"
-
-# Oracle port connectivity
-nc -zv 10.0.1.160 1521
-
-# TNS ping (scan address)
-tnsping tmodaauks-rqahk1:1521
-```
-
-**Network Connectivity Summary:**
-
-| Path | SSH (22) | Oracle (1521) | Status |
-|------|----------|---------------|--------|
-| ZDM → Source (10.1.0.10) | ✅ | ✅ | ⬜ Verified |
-| ZDM → Target (10.0.1.160) | ✅ | ✅ | ⬜ Verified |
 
 ---
 
 ## Phase 2: Source Database Configuration
 
-> **Note:** Based on discovery, the source database is already configured for online migration. The following steps verify the existing configuration.
+### 2.1 Enable Archive Log Mode
 
-### 2.1 Verify Archive Log Mode
+> **Note:** Skip this section if already in ARCHIVELOG mode (verified in 1.1.1).
 
-**Already enabled - verification only:**
 ```sql
-sqlplus / as sysdba << 'EOF'
-SELECT LOG_MODE FROM V$DATABASE;
--- Expected: ARCHIVELOG
-EOF
-```
-
-If NOT in ARCHIVELOG mode (not expected):
-```sql
--- Only if needed - requires database restart
+-- If not in ARCHIVELOG mode (requires downtime)
 SHUTDOWN IMMEDIATE;
 STARTUP MOUNT;
 ALTER DATABASE ARCHIVELOG;
 ALTER DATABASE OPEN;
+
+-- Verify
+SELECT LOG_MODE FROM V$DATABASE;
 ```
 
----
+### 2.2 Enable Force Logging
 
-### 2.2 Verify Force Logging
-
-**Already enabled - verification only:**
 ```sql
-sqlplus / as sysdba << 'EOF'
+-- If not already enabled
+ALTER DATABASE FORCE LOGGING;
+
+-- Verify
 SELECT FORCE_LOGGING FROM V$DATABASE;
 -- Expected: YES
-EOF
 ```
 
-If NOT enabled (not expected):
+### 2.3 Enable Supplemental Logging
+
 ```sql
-ALTER DATABASE FORCE LOGGING;
-```
-
----
-
-### 2.3 Verify Supplemental Logging
-
-**Already enabled - verification only:**
-```sql
-sqlplus / as sysdba << 'EOF'
-SELECT SUPPLEMENTAL_LOG_DATA_MIN, SUPPLEMENTAL_LOG_DATA_PK, 
-       SUPPLEMENTAL_LOG_DATA_UI, SUPPLEMENTAL_LOG_DATA_ALL
-FROM V$DATABASE;
--- Expected: MIN=YES, PK=YES
-EOF
-```
-
-If NOT enabled (not expected):
-```sql
+-- Enable minimal supplemental logging
 ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
-ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS;
-```
 
----
+-- Enable primary key supplemental logging
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS;
+
+-- Verify
+SELECT SUPPLEMENTAL_LOG_DATA_MIN, SUPPLEMENTAL_LOG_DATA_PK FROM V$DATABASE;
+-- Expected: YES, YES
+```
 
 ### 2.4 Configure TNS Entries
 
-**Add target database entry to tnsnames.ora:**
+Add entry for target database on source server:
+
 ```bash
-# On source server as oracle user
+# On source server, add to $ORACLE_HOME/network/admin/tnsnames.ora
 cat >> $ORACLE_HOME/network/admin/tnsnames.ora << 'EOF'
 
-# Target ODAA Database - for ZDM migration
-ORADB01_TGT =
+PRODDB_AZURE =
   (DESCRIPTION =
-    (ADDRESS = (PROTOCOL = TCP)(HOST = tmodaauks-rqahk1)(PORT = 1521))
-    (ADDRESS = (PROTOCOL = TCP)(HOST = tmodaauks-rqahk2)(PORT = 1521))
+    (ADDRESS = (PROTOCOL = TCP)(HOST = proddb-oda.eastus.azure.example.com)(PORT = 1521))
     (CONNECT_DATA =
       (SERVER = DEDICATED)
-      (SERVICE_NAME = oradb01_tgt)
+      (SERVICE_NAME = PRODDB_AZURE.eastus.azure.example.com)
     )
   )
 EOF
 ```
 
-**Verify TNS entry:**
-```bash
-tnsping ORADB01_TGT
-```
-
----
-
 ### 2.5 Configure SSH Key Authentication
 
-**On source server, authorize ZDM server's key:**
 ```bash
-# As oracle user on source
+# On source server as oracle user
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
-# Add ZDM server's public key (get from zdmuser@zdm-server)
-# The zdm.pem private key's corresponding public key should be added
+# Add ZDM server's public key to authorized_keys
 cat >> ~/.ssh/authorized_keys << 'EOF'
-# ZDM Server Key for migration
-<INSERT PUBLIC KEY HERE>
+<ZDM_PUBLIC_KEY_CONTENT>
 EOF
 
 chmod 600 ~/.ssh/authorized_keys
 ```
 
-**Test from ZDM server:**
+### 2.6 Create/Verify Password File
+
 ```bash
-# From ZDM server as zdmuser
-ssh -i ~/.ssh/zdm.pem oracle@10.1.0.10 "echo 'SSH OK'"
+# Verify password file exists
+ls -la $ORACLE_HOME/dbs/orapwPRODDB
+
+# If not exists, create it
+orapwd file=$ORACLE_HOME/dbs/orapwPRODDB password=<SYS_PASSWORD> entries=10 format=12.2
 ```
-
----
-
-### 2.6 Verify Password File
-
-```sql
-sqlplus / as sysdba << 'EOF'
--- Check password file users
-SELECT * FROM V$PWFILE_USERS;
-
--- Verify password file location
-!ls -la $ORACLE_HOME/dbs/orapw$ORACLE_SID
-EOF
-```
-
-Expected location: `/u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01`
-
----
-
-### 2.7 Verify TDE Wallet
-
-```sql
-sqlplus / as sysdba << 'EOF'
--- Check wallet status
-SELECT * FROM V$ENCRYPTION_WALLET;
-
--- Check wallet location
-SELECT * FROM V$ENCRYPTION_KEYS WHERE ROWNUM = 1;
-EOF
-```
-
-**Wallet Details:**
-- Location: `/u01/app/oracle/admin/oradb01/wallet/tde/`
-- Type: AUTOLOGIN
-- Status: OPEN
-
-> **Important:** TDE wallet password is required during migration even for AUTOLOGIN wallets.
 
 ---
 
@@ -402,90 +303,59 @@ EOF
 
 ### 3.1 Configure TNS Entries
 
-**On target nodes as oracle user:**
+Add entry for source database on target server:
+
 ```bash
-# On tmodaauks-rqahk1 (and rqahk2)
+# On target server, add to $ORACLE_HOME/network/admin/tnsnames.ora
 cat >> $ORACLE_HOME/network/admin/tnsnames.ora << 'EOF'
 
-# Source Database - for ZDM migration
-ORADB01_SRC =
+PRODDB_PRIMARY =
   (DESCRIPTION =
-    (ADDRESS = (PROTOCOL = TCP)(HOST = temandin-oravm-vm01)(PORT = 1521))
+    (ADDRESS = (PROTOCOL = TCP)(HOST = proddb01.corp.example.com)(PORT = 1521))
     (CONNECT_DATA =
       (SERVER = DEDICATED)
-      (SERVICE_NAME = oradb01)
+      (SERVICE_NAME = PRODDB.corp.example.com)
     )
   )
 EOF
 ```
 
----
-
 ### 3.2 Configure SSH Key Authentication
 
-**On target nodes, authorize ZDM server's key:**
 ```bash
-# As opc user, then switch to oracle
-sudo su - oracle
+# On target server as oracle user
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
-# Add ZDM server's public key
+# Add ZDM server's public key to authorized_keys
 cat >> ~/.ssh/authorized_keys << 'EOF'
-# ZDM Server Key for migration
-<INSERT PUBLIC KEY HERE>
+<ZDM_PUBLIC_KEY_CONTENT>
 EOF
 
 chmod 600 ~/.ssh/authorized_keys
 ```
 
-**Test from ZDM server:**
+### 3.3 Verify OCI Connectivity
+
 ```bash
-# From ZDM server as zdmuser
-ssh -i ~/.ssh/odaa.pem oracle@10.0.1.160 "echo 'SSH OK'"
+# On target server, verify OCI metadata
+curl -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v2/instance/
+
+# Verify database OCID is accessible
+oci db database get --database-id ${TARGET_DATABASE_OCID}
 ```
 
----
-
-### 3.3 Verify ASM Storage Availability
+### 3.4 Prepare for Data Guard
 
 ```sql
--- On target as oracle user, connect to ASM
-export ORACLE_SID=+ASM1
-sqlplus / as sysasm << 'EOF'
-SET LINESIZE 200
-SELECT NAME, TYPE, STATE, TOTAL_MB, FREE_MB,
-       ROUND(FREE_MB/TOTAL_MB*100,1) AS PCT_FREE
-FROM V$ASM_DISKGROUP
-WHERE NAME IN ('DATAC3','RECOC3');
-EOF
+-- On target, verify standby file management
+SHOW PARAMETER STANDBY_FILE_MANAGEMENT;
+-- Recommended: AUTO
+
+-- Verify DB_FILE_NAME_CONVERT and LOG_FILE_NAME_CONVERT if paths differ
+SHOW PARAMETER DB_FILE_NAME_CONVERT;
+SHOW PARAMETER LOG_FILE_NAME_CONVERT;
 ```
-
-**Required free space:**
-- DATAC3: At least 5 GB free (for 1.92 GB source)
-- RECOC3: At least 5 GB free (for recovery area)
-
----
-
-### 3.4 Prepare Target Database
-
-**Decision required:** Use existing database or create new?
-
-**Option A: If using existing oradb01m:**
-```bash
-# Check if oradb01m exists and is suitable
-srvctl status database -d oradb01m
-
-# If it contains data from previous attempt, remove it
-srvctl stop database -d oradb01m -force
-srvctl remove database -d oradb01m
-```
-
-**Option B: ZDM will create target database**
-
-ZDM can create the target database during migration. Ensure:
-- Target DB Unique Name is specified in RSP file
-- ASM disk groups have sufficient space
 
 ---
 
@@ -495,571 +365,526 @@ ZDM can create the target database during migration. Ensure:
 
 ```bash
 # As zdmuser on ZDM server
-export ZDM_HOME=/u01/app/zdmhome
+export ZDM_HOME=/opt/oracle/zdm21c
 export PATH=$ZDM_HOME/bin:$PATH
 
 # Check ZDM version
-$ZDM_HOME/bin/zdmcli -build
+$ZDM_HOME/bin/zdmcli -version
 
-# Expected output:
-# ZDM BUILD INFO
-# BUILD VERSION: 21.x.x.x.x
+# Check ZDM service status
+$ZDM_HOME/bin/zdmservice status
 ```
-
----
 
 ### 4.2 Configure OCI CLI
 
-**If OCI CLI not configured:**
 ```bash
 # Create OCI config directory
 mkdir -p ~/.oci
 chmod 700 ~/.oci
 
-# Create config file
+# Create/update OCI configuration file
 cat > ~/.oci/config << 'EOF'
 [DEFAULT]
-user=<YOUR_USER_OCID>
-fingerprint=<YOUR_FINGERPRINT>
-tenancy=<YOUR_TENANCY_OCID>
-region=uk-london-1
-key_file=/home/zdmuser/.oci/odaa.pem
+user=ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv
+fingerprint=aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
+tenancy=ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789
+region=us-ashburn-1
+key_file=/home/zdmuser/.oci/oci_api_key.pem
 EOF
 
 chmod 600 ~/.oci/config
-```
 
-**Test OCI connectivity:**
-```bash
+# Test OCI connectivity
 oci os ns get
-# Expected: Returns your Object Storage namespace
 ```
 
----
+### 4.3 Configure SSH Keys
 
-### 4.3 Set Up SSH Keys
-
-**Verify key permissions:**
 ```bash
-chmod 600 ~/.ssh/zdm.pem
-chmod 600 ~/.ssh/odaa.pem
+# Verify SSH key exists and has correct permissions
+ls -la /home/zdmuser/.ssh/zdm_migration_key
+# Should show -rw------- (600)
 
-# Test source connectivity
-ssh -i ~/.ssh/zdm.pem oracle@10.1.0.10 "hostname"
+# Test connectivity to source
+ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb01.corp.example.com "echo 'Source connection OK'"
 
-# Test target connectivity (as oracle, not opc)
-ssh -i ~/.ssh/odaa.pem oracle@10.0.1.160 "hostname"
+# Test connectivity to target
+ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb-oda.eastus.azure.example.com "echo 'Target connection OK'"
 ```
 
----
+### 4.4 Create Credential Files at Runtime
 
-### 4.4 Create Password Files (At Migration Time)
-
-> ⚠️ **SECURITY:** Create password files only when ready to migrate. Clean up after completion.
+> ⚠️ **SECURITY**: Run these commands immediately before migration. Clean up after completion.
 
 ```bash
+# Set password environment variables (securely)
+read -sp "Enter Source SYS Password: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD
+read -sp "Enter Target SYS Password: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD
+read -sp "Enter TDE Wallet Password: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
+
 # Create credentials directory
-mkdir -p ~/creds
-chmod 700 ~/creds
-
-# Set passwords as environment variables (interactive, secure)
-read -sp "Enter Source SYS Password: " SOURCE_SYS_PASSWORD; echo
-export SOURCE_SYS_PASSWORD
-
-read -sp "Enter Target SYS Password: " TARGET_SYS_PASSWORD; echo
-export TARGET_SYS_PASSWORD
-
-read -sp "Enter TDE Wallet Password: " SOURCE_TDE_WALLET_PASSWORD; echo
-export SOURCE_TDE_WALLET_PASSWORD
+mkdir -p /home/zdmuser/creds
+chmod 700 /home/zdmuser/creds
 
 # Create password files
-echo "$SOURCE_SYS_PASSWORD" > ~/creds/source_sys_password.txt
-echo "$TARGET_SYS_PASSWORD" > ~/creds/target_sys_password.txt
-echo "$SOURCE_TDE_WALLET_PASSWORD" > ~/creds/tde_password.txt
+echo "$SOURCE_SYS_PASSWORD" > /home/zdmuser/creds/source_sys_password.txt
+echo "$TARGET_SYS_PASSWORD" > /home/zdmuser/creds/target_sys_password.txt
+echo "$SOURCE_TDE_WALLET_PASSWORD" > /home/zdmuser/creds/tde_password.txt
 
-chmod 600 ~/creds/*.txt
+# Secure password files
+chmod 600 /home/zdmuser/creds/*.txt
+
+# Verify files exist
+ls -la /home/zdmuser/creds/
 ```
 
----
-
-### 4.5 Test ZDM Connectivity
+### 4.5 Set OCI Environment Variables
 
 ```bash
-# Verify ZDM can reach source
-$ZDM_HOME/bin/zdmcli query networkconfig \
-  -srcnode 10.1.0.10 \
-  -srcauth zdmauth \
-  -srcsshkeypath /home/zdmuser/.ssh/zdm.pem
+# Create environment file (do not include passwords!)
+cat > /home/zdmuser/zdm_oci_env.sh << 'EOF'
+# OCI Environment Variables for PRODDB Migration
+export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789"
+export TARGET_USER_OCID="ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv"
+export TARGET_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+export TARGET_COMPARTMENT_OCID="<Your Compartment OCID>"
+export TARGET_DATABASE_OCID="ocid1.database.oc1.iad..aaaaaaaaproddbazure67890"
 
-# Verify ZDM can reach target  
-$ZDM_HOME/bin/zdmcli query networkconfig \
-  -tgtnode 10.0.1.160 \
-  -tgtauth zdmauth \
-  -tgtsshkeypath /home/zdmuser/.ssh/odaa.pem
+# Object Storage (OPTIONAL for ONLINE_PHYSICAL)
+# export TARGET_OBJECT_STORAGE_NAMESPACE="examplecorp"
+EOF
+
+chmod 600 /home/zdmuser/zdm_oci_env.sh
+
+# Source the environment
+source /home/zdmuser/zdm_oci_env.sh
+```
+
+### 4.6 Test Connectivity
+
+```bash
+# Verify ZDM can reach OCI
+oci db database get --database-id ${TARGET_DATABASE_OCID} --query 'data.{name:"db-name",state:"lifecycle-state"}'
+
+# Verify network connectivity
+nc -zv proddb01.corp.example.com 1521
+nc -zv proddb-oda.eastus.azure.example.com 1521
 ```
 
 ---
 
 ## Phase 5: Migration Execution
 
-### 5.1 Run Pre-Migration Evaluation
+### 5.1 Run Evaluation (Dry Run)
 
-**Execute evaluation (dry run):**
+Always run evaluation first to identify potential issues.
+
 ```bash
-# Ensure RSP file is updated with OCI details
-cd ~/step3  # or wherever artifacts are located
+# Navigate to Step3 directory
+cd /path/to/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+
+# Source environment
+source /home/zdmuser/zdm_oci_env.sh
 
 # Run evaluation
+./zdm_commands_PRODDB.sh eval
+
+# Or run directly with ZDM CLI:
 $ZDM_HOME/bin/zdmcli migrate database \
-  -rsp zdm_migrate_PRODDB.rsp \
-  -sourcedb oradb01 \
-  -sourcenode temandin-oravm-vm01 \
+  -sourcesid PRODDB \
+  -sourcenode proddb01.corp.example.com \
   -srcauth zdmauth \
-  -srcarg1 user:azureuser \
-  -srcarg2 identity_file:/home/zdmuser/.ssh/zdm.pem \
+  -srcarg1 user:oracle \
+  -srcarg2 identity_file:/home/zdmuser/.ssh/zdm_migration_key \
   -srcarg3 sudo_location:/usr/bin/sudo \
-  -targetnode tmodaauks-rqahk1 \
+  -targetnode proddb-oda.eastus.azure.example.com \
   -tgtauth zdmauth \
-  -tgtarg1 user:opc \
-  -tgtarg2 identity_file:/home/zdmuser/.ssh/odaa.pem \
+  -tgtarg1 user:oracle \
+  -tgtarg2 identity_file:/home/zdmuser/.ssh/zdm_migration_key \
   -tgtarg3 sudo_location:/usr/bin/sudo \
-  -tdekeyloc /u01/app/oracle/admin/oradb01/wallet/tde/ \
-  -taboraliasname tde_password \
-  -sourcesyswallet /home/zdmuser/creds/source_sys_password.txt \
+  -rsp /path/to/zdm_migrate_PRODDB.rsp \
   -eval
 ```
 
-**Review evaluation results:**
-```bash
-# Note the JOB_ID from output
-$ZDM_HOME/bin/zdmcli query job -jobid <EVAL_JOB_ID>
-```
-
----
+**Review Evaluation Output:**
+- Check for errors or warnings
+- Review estimated migration time
+- Verify all prerequisites pass
 
 ### 5.2 Execute Migration
 
-**Start the migration:**
+After successful evaluation, execute the actual migration:
+
 ```bash
-$ZDM_HOME/bin/zdmcli migrate database \
-  -rsp zdm_migrate_PRODDB.rsp \
-  -sourcedb oradb01 \
-  -sourcenode temandin-oravm-vm01 \
-  -srcauth zdmauth \
-  -srcarg1 user:azureuser \
-  -srcarg2 identity_file:/home/zdmuser/.ssh/zdm.pem \
-  -srcarg3 sudo_location:/usr/bin/sudo \
-  -targetnode tmodaauks-rqahk1 \
-  -tgtauth zdmauth \
-  -tgtarg1 user:opc \
-  -tgtarg2 identity_file:/home/zdmuser/.ssh/odaa.pem \
-  -tgtarg3 sudo_location:/usr/bin/sudo \
-  -tdekeyloc /u01/app/oracle/admin/oradb01/wallet/tde/ \
-  -taboraliasname tde_password \
-  -sourcesyswallet /home/zdmuser/creds/source_sys_password.txt \
-  -targetsyswallet /home/zdmuser/creds/target_sys_password.txt \
-  -tdepassword /home/zdmuser/creds/tde_password.txt \
-  -pauseafter ZDM_SWITCHOVER_SRC
+# Source environment and set passwords
+source /home/zdmuser/zdm_oci_env.sh
+
+# Set password environment variables
+read -sp "Enter Source SYS Password: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD
+read -sp "Enter Target SYS Password: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD
+read -sp "Enter TDE Wallet Password: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
+
+# Create password files
+./zdm_commands_PRODDB.sh create-creds
+
+# Execute migration
+./zdm_commands_PRODDB.sh migrate
 ```
 
-**Record the Job ID:** _______________
+**Expected Output:**
+- Job ID will be returned (save this!)
+- Initial phases will begin execution
 
----
+### 5.3 Monitor Progress
 
-### 5.3 Monitor Migration Progress
+Open a separate terminal to monitor migration progress:
 
-**Check job status:**
 ```bash
-# Replace <JOB_ID> with actual job ID
+# Query job status (replace <JOB_ID> with actual job ID)
 $ZDM_HOME/bin/zdmcli query job -jobid <JOB_ID>
+
+# Watch progress in real-time
+watch -n 30 "$ZDM_HOME/bin/zdmcli query job -jobid <JOB_ID>"
+
+# Check ZDM logs for detailed progress
+tail -f $ZDM_HOME/zdm/zdm_<JOB_ID>/log/zdm.log
 ```
 
-**Monitor Data Guard lag (during redo apply):**
-```sql
--- On target database
-SELECT NAME, VALUE, UNIT FROM V$DATAGUARD_STATS;
-SELECT THREAD#, SEQUENCE#, APPLIED FROM V$ARCHIVED_LOG 
-WHERE APPLIED='YES' ORDER BY SEQUENCE# DESC FETCH FIRST 5 ROWS ONLY;
+**Migration Phases for ONLINE_PHYSICAL:**
+
+| Phase | Description | Duration (Estimated) |
+|-------|-------------|---------------------|
+| ZDM_VALIDATE_SRC | Validate source database | 5-10 min |
+| ZDM_VALIDATE_TGT | Validate target database | 5-10 min |
+| ZDM_SETUP_SRC | Configure source for Data Guard | 10-15 min |
+| ZDM_SETUP_TGT | Configure target for Data Guard | 10-15 min |
+| ZDM_CONFIGURE_DG_SRC | Set up Data Guard on source | 15-30 min |
+| ZDM_TRANSFER_DATA | Initial data transfer | Varies (size dependent) |
+| ZDM_SYNC_DATA | Synchronize redo data | Continuous |
+| **PAUSE POINT** | **ZDM_CONFIGURE_DG_SRC** | **Manual resume required** |
+| ZDM_SWITCHOVER_SRC | Perform switchover | 10-15 min |
+| ZDM_SWITCHOVER_TGT | Complete switchover on target | 5-10 min |
+| ZDM_POST_MIGRATION | Post-migration cleanup | 5-10 min |
+
+### 5.4 Resume After Pause Point
+
+The migration is configured to pause at `ZDM_CONFIGURE_DG_SRC` for validation.
+
+**Before resuming:**
+1. Verify Data Guard is configured correctly
+2. Check redo apply lag
+3. Confirm application downtime window is approved
+
+```bash
+# Check current sync status
+ssh oracle@proddb-oda.eastus.azure.example.com "sqlplus -s / as sysdba <<EOF
+SELECT SEQUENCE#, FIRST_TIME, NEXT_TIME, APPLIED FROM V\\\$ARCHIVED_LOG ORDER BY SEQUENCE# DESC FETCH FIRST 10 ROWS ONLY;
+EOF"
+
+# Check Data Guard status
+ssh oracle@proddb-oda.eastus.azure.example.com "sqlplus -s / as sysdba <<EOF
+SELECT DATABASE_ROLE, PROTECTION_MODE, OPEN_MODE FROM V\\\$DATABASE;
+SELECT DEST_ID, STATUS, ERROR FROM V\\\$ARCHIVE_DEST_STATUS WHERE DEST_ID <= 2;
+EOF"
 ```
 
-**Check migration phases:**
+**Resume migration:**
 
-| Phase | Description | Expected Duration |
-|-------|-------------|-------------------|
-| ZDM_VALIDATE_SRC | Source validation | 2-5 min |
-| ZDM_VALIDATE_TGT | Target validation | 2-5 min |
-| ZDM_SETUP_SRC | Source configuration | 5-10 min |
-| ZDM_SETUP_TGT | Target configuration | 5-10 min |
-| ZDM_BACKUP_SRC | Database backup | 10-20 min (for 1.92 GB) |
-| ZDM_RESTORE_TGT | Restore on target | 10-20 min |
-| ZDM_CONFIGURE_DG_SRC | Data Guard setup | 5-10 min |
-| ZDM_SWITCHOVER_SRC | **PAUSED** | Waiting for resume |
+```bash
+# Resume from pause point
+./zdm_commands_PRODDB.sh resume <JOB_ID>
 
----
-
-### 5.4 Pause/Resume Procedures
-
-**When migration pauses at ZDM_SWITCHOVER_SRC:**
-
-1. **Verify redo lag is minimal:**
-   ```sql
-   -- On target
-   SELECT ARCHIVED_SEQ#, APPLIED_SEQ# FROM V$ARCHIVE_DEST_STATUS 
-   WHERE DEST_ID=1;
-   ```
-
-2. **Notify stakeholders** - switchover is about to happen
-
-3. **Stop applications** connecting to source database
-
-4. **Resume migration:**
-   ```bash
-   $ZDM_HOME/bin/zdmcli resume job -jobid <JOB_ID>
-   ```
-
----
-
-### 5.5 Switchover Process
-
-ZDM performs switchover automatically when resumed:
-
-1. Final redo log apply
-2. Role transition (Primary → Standby on source)
-3. Role transition (Standby → Primary on target)
-4. Database open on target
-
-**Verify switchover completed:**
-```sql
--- On target database
-SELECT DATABASE_ROLE, OPEN_MODE FROM V$DATABASE;
--- Expected: PRIMARY, READ WRITE
+# Or directly:
+$ZDM_HOME/bin/zdmcli resume job -jobid <JOB_ID>
 ```
+
+### 5.5 Switchover Execution
+
+The switchover will occur automatically after resume. Monitor closely:
+
+```bash
+# Watch job progress during switchover
+watch -n 10 "$ZDM_HOME/bin/zdmcli query job -jobid <JOB_ID>"
+
+# Monitor target database role change
+ssh oracle@proddb-oda.eastus.azure.example.com "sqlplus -s / as sysdba <<EOF
+SELECT NAME, DATABASE_ROLE, OPEN_MODE FROM V\\\$DATABASE;
+EOF"
+```
+
+**Switchover Completed When:**
+- Target database role changes to PRIMARY
+- Source database role changes to PHYSICAL STANDBY (or DISABLED)
+- Job status shows SUCCEEDED
 
 ---
 
 ## Phase 6: Post-Migration Validation
 
-### 6.1 Database Validation
+### 6.1 Verify Database Status
 
-**On target database:**
 ```sql
-sqlplus / as sysdba << 'EOF'
--- Verify database role
-SELECT DATABASE_ROLE, OPEN_MODE, LOG_MODE FROM V$DATABASE;
+-- On target database
+sqlplus / as sysdba
 
--- Check database size matches source
-SELECT ROUND(SUM(BYTES)/1024/1024/1024, 2) AS SIZE_GB FROM DBA_DATA_FILES;
+-- Verify database is PRIMARY and READ WRITE
+SELECT NAME, DATABASE_ROLE, OPEN_MODE FROM V$DATABASE;
+-- Expected: PRODDB, PRIMARY, READ WRITE
 
--- Verify no invalid objects
-SELECT COUNT(*) FROM DBA_OBJECTS WHERE STATUS = 'INVALID';
+-- Verify all datafiles are online
+SELECT FILE#, STATUS, NAME FROM V$DATAFILE;
+-- All should show ONLINE
 
--- Check tablespaces
-SELECT TABLESPACE_NAME, STATUS FROM DBA_TABLESPACES;
-
--- Verify user accounts
-SELECT USERNAME, ACCOUNT_STATUS FROM DBA_USERS 
-WHERE ORACLE_MAINTAINED = 'N';
-EOF
+-- Check instance status
+SELECT INSTANCE_NAME, STATUS, HOST_NAME FROM V$INSTANCE;
 ```
-
----
 
 ### 6.2 Data Verification
 
-**Run data validation queries:**
 ```sql
--- Compare row counts of key tables (customize for your schema)
-SELECT 'TABLE_NAME' AS TABLE_NAME, COUNT(*) AS ROW_COUNT 
-FROM SCHEMA.TABLE_NAME
-UNION ALL
-SELECT 'TABLE_NAME2', COUNT(*) FROM SCHEMA.TABLE_NAME2;
+-- Compare row counts for key tables (use application-specific tables)
+SELECT COUNT(*) FROM <SCHEMA>.<TABLE>;
 
--- Verify recent data
-SELECT MAX(LAST_UPDATE_DATE) FROM KEY_TRANSACTION_TABLE;
+-- Verify data checksums (if documented before migration)
+SELECT ORA_HASH(column_value) FROM <TABLE>;
+
+-- Check for invalid objects
+SELECT OWNER, OBJECT_TYPE, OBJECT_NAME, STATUS 
+FROM DBA_OBJECTS 
+WHERE STATUS = 'INVALID';
 ```
-
----
 
 ### 6.3 Application Connectivity Tests
 
-**Update application connection strings:**
-```
-# New connection string for ODAA
-jdbc:oracle:thin:@//tmodaauks-rqahk1:1521/oradb01_tgt
-```
-
-**Test connectivity from application servers:**
 ```bash
-# From app server
-sqlplus user/password@tmodaauks-rqahk1:1521/oradb01_tgt
-```
+# Test connection using new connection string
+sqlplus app_user/password@proddb-oda.eastus.azure.example.com:1521/PRODDB_AZURE.eastus.azure.example.com
 
----
+# Test JDBC connection (example)
+java -jar connectivity_test.jar "jdbc:oracle:thin:@proddb-oda.eastus.azure.example.com:1521/PRODDB_AZURE.eastus.azure.example.com"
+```
 
 ### 6.4 Performance Validation
 
-**Compare performance baselines:**
 ```sql
--- Check AWR data was migrated (if INCLUDE_AWR=YES)
-SELECT SNAP_ID, BEGIN_INTERVAL_TIME 
-FROM DBA_HIST_SNAPSHOT 
-ORDER BY SNAP_ID DESC 
-FETCH FIRST 10 ROWS ONLY;
+-- Collect AWR snapshot for baseline comparison
+EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT;
 
--- Run a quick performance check
-SELECT VALUE FROM V$SYSSTAT WHERE NAME = 'db block gets';
+-- Check current performance metrics
+SELECT METRIC_NAME, VALUE FROM V$SYSMETRIC WHERE METRIC_NAME LIKE '%Response Time%';
+
+-- Verify temp tablespace
+SELECT TABLESPACE_NAME, BYTES/1024/1024 MB_ALLOCATED FROM DBA_TEMP_FILES;
 ```
 
----
+### 6.5 TDE Wallet Validation
 
-### 6.5 Post-Migration Cleanup
+```sql
+-- Verify TDE wallet is open
+SELECT WRL_PARAMETER, STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;
+-- Expected: OPEN, AUTOLOGIN
 
-**Clean up password files:**
+-- Verify encrypted tablespaces are accessible
+SELECT TABLESPACE_NAME, ENCRYPTED FROM DBA_TABLESPACES;
+```
+
+### 6.6 Clean Up Credentials
+
+> ⚠️ **SECURITY**: Always clean up password files after successful migration.
+
 ```bash
 # On ZDM server
-rm -f ~/creds/*.txt
-rmdir ~/creds
-```
+rm -f /home/zdmuser/creds/source_sys_password.txt
+rm -f /home/zdmuser/creds/target_sys_password.txt
+rm -f /home/zdmuser/creds/tde_password.txt
 
-**Clean up Data Guard configuration (if no longer needed):**
-```bash
-# After successful migration and validation period
-# Remove Data Guard from source
-dgmgrl sys/password@oradb01
-DGMGRL> REMOVE DATABASE oradb01;
-```
-
----
-
-### 6.6 Database Link Recreation
-
-**If SYS_HUB database link is needed:**
-```sql
--- On target database
-CREATE DATABASE LINK SYS_HUB
-CONNECT TO SEEDDATA IDENTIFIED BY "<password>"
-USING 'tns_alias_for_remote_db';
-
--- Test the link
-SELECT * FROM DUAL@SYS_HUB;
+# Verify cleanup
+ls -la /home/zdmuser/creds/
 ```
 
 ---
 
 ## Phase 7: Rollback Procedures
 
-### 7.1 Before Switchover
+### 7.1 Before Switchover (Data Guard Still Configured)
 
-If issues occur before switchover, abort the job:
+If issues occur before switchover, the source remains PRIMARY:
+
 ```bash
+# Abort ZDM job
 $ZDM_HOME/bin/zdmcli abort job -jobid <JOB_ID>
+
+# On source, remove Data Guard configuration
+sqlplus / as sysdba <<EOF
+ALTER SYSTEM SET LOG_ARCHIVE_DEST_2='' SCOPE=BOTH;
+ALTER SYSTEM SET FAL_SERVER='' SCOPE=BOTH;
+EOF
+
+# Remove standby database from target (if needed)
+# This can be done from OCI Console or using DBCA
 ```
-
-The source database remains unchanged and applications continue normally.
-
----
 
 ### 7.2 After Switchover
 
-If rollback is required after switchover:
+After switchover completes, rollback requires failback procedure:
 
-**Step 1: Stop applications on new target**
-
-**Step 2: Failback to original source**
 ```bash
-# On target (now primary), initiate failover
-dgmgrl sys/password@oradb01_tgt
-DGMGRL> FAILOVER TO oradb01;
+# Step 1: Stop applications on new primary (target)
+
+# Step 2: On target, convert to standby
+# This requires Data Guard Broker or manual commands
+# Contact DBA team for assistance
+
+# Step 3: On source, convert back to primary
+# Reinstate old primary
+
+# Step 4: Perform switchover back to source
 ```
 
-**Step 3: Restart applications on original source**
-
-**Step 4: Remove failed target configuration**
-```sql
--- Clean up on original source
-ALTER DATABASE DROP STANDBY LOGFILE GROUP n;
-```
-
----
+> **Note:** Post-switchover rollback is complex and may require Oracle Support assistance. Always test switchover in non-production first.
 
 ### 7.3 Emergency Contacts
 
-| Situation | Contact | Phone |
-|-----------|---------|-------|
-| Database Emergency | DBA On-call | _______________ |
-| Network Issues | Network Team | _______________ |
-| Oracle Support | MOS SR | _______________ |
-| Application Issues | App Team | _______________ |
+| Role | Contact | Notes |
+|------|---------|-------|
+| DBA Lead | dba-lead@example.com | Primary escalation |
+| Oracle Support | My Oracle Support | SR for critical issues |
+| Network Team | network-team@example.com | Connectivity issues |
+| Application Team | app-team@example.com | Application restart |
 
 ---
 
 ## Appendix A: Troubleshooting
 
-### Common Issues and Solutions
+### A.1 Common Issues and Solutions
+
+#### Issue: SSH Authentication Failed
+
+**Symptom:** ZDM cannot connect to source or target via SSH.
+
+**Solution:**
+```bash
+# Verify SSH key permissions
+chmod 600 /home/zdmuser/.ssh/zdm_migration_key
+
+# Test SSH manually with verbose output
+ssh -vv -i /home/zdmuser/.ssh/zdm_migration_key oracle@<host>
+
+# Check target's authorized_keys
+ssh oracle@<host> "cat ~/.ssh/authorized_keys"
+```
 
 #### Issue: OCI Authentication Failed
 
-**Symptoms:**
-```
-Error: OCI API authentication failed
-```
+**Symptom:** OCI CLI commands fail with authentication error.
 
 **Solution:**
 ```bash
-# Verify OCI config
+# Verify OCI config exists
 cat ~/.oci/config
 
-# Test OCI connectivity
-oci os ns get
+# Check fingerprint matches
+oci setup repair-file-permissions
 
-# Check API key fingerprint matches
-oci iam user api-key list --user-id <user-ocid>
+# Test with explicit config
+oci os ns get --config-file ~/.oci/config --profile DEFAULT
 ```
 
----
+#### Issue: Data Guard Sync Lag
 
-#### Issue: SSH Connection Failed
-
-**Symptoms:**
-```
-Error: Cannot connect to source/target node
-```
-
-**Solution:**
-```bash
-# Test SSH manually
-ssh -v -i ~/.ssh/zdm.pem oracle@10.1.0.10
-
-# Check key permissions
-ls -la ~/.ssh/*.pem
-# Should be: -rw------- (600)
-
-# Verify authorized_keys on remote host
-cat /home/oracle/.ssh/authorized_keys
-```
-
----
-
-#### Issue: TNS Connection Failed
-
-**Symptoms:**
-```
-ORA-12541: TNS:no listener
-ORA-12545: Connect failed because target host or object does not exist
-```
-
-**Solution:**
-```bash
-# Test port connectivity
-nc -zv 10.1.0.10 1521
-
-# Check listener status on source/target
-lsnrctl status
-
-# Verify tnsnames.ora
-cat $ORACLE_HOME/network/admin/tnsnames.ora
-```
-
----
-
-#### Issue: Insufficient Disk Space
-
-**Symptoms:**
-```
-Error: Insufficient space in /u01/app/zdmhome
-```
-
-**Solution:**
-```bash
-# Check current usage
-df -h /u01/app/zdmhome
-
-# Clean old ZDM jobs
-$ZDM_HOME/bin/zdmcli query job -listall
-# Identify old completed jobs and remove their directories
-
-# Expand storage if LVM
-sudo lvextend -L +20G /dev/mapper/vg_zdm-lv_zdm
-sudo xfs_growfs /u01/app/zdmhome
-```
-
----
-
-#### Issue: Data Guard Lag Too High
-
-**Symptoms:**
-```
-Redo apply lag > 60 seconds
-```
+**Symptom:** Large apply lag on standby.
 
 **Solution:**
 ```sql
--- Check archive log status
-SELECT THREAD#, SEQUENCE#, APPLIED FROM V$ARCHIVED_LOG 
-WHERE APPLIED='NO' ORDER BY SEQUENCE#;
+-- Check apply lag
+SELECT NAME, VALUE FROM V$DATAGUARD_STATS WHERE NAME = 'apply lag';
 
--- Check Data Guard stats
-SELECT NAME, VALUE FROM V$DATAGUARD_STATS;
+-- Check for gaps
+SELECT * FROM V$ARCHIVE_GAP;
 
--- Verify network throughput between source and target
+-- Increase parallel recovery
+ALTER SYSTEM SET RECOVERY_PARALLELISM=8;
 ```
 
----
+#### Issue: TDE Wallet Not Opening on Target
 
-#### Issue: Job Stuck in Phase
+**Symptom:** Encrypted data inaccessible after migration.
 
-**Symptoms:**
+**Solution:**
+```sql
+-- Check wallet status
+SELECT * FROM V$ENCRYPTION_WALLET;
+
+-- Open wallet manually
+ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY "<password>";
+
+-- Set up auto-login if needed
+ADMINISTER KEY MANAGEMENT CREATE AUTO_LOGIN KEYSTORE FROM KEYSTORE '<wallet_path>' IDENTIFIED BY "<password>";
 ```
-Job status shows same phase for extended period
-```
+
+#### Issue: Migration Job Stuck
+
+**Symptom:** Job appears to hang at a phase.
 
 **Solution:**
 ```bash
-# Check detailed job phase
+# Check job status
 $ZDM_HOME/bin/zdmcli query job -jobid <JOB_ID>
 
 # Check ZDM logs
-tail -100 $ZDM_HOME/zdm/log/zdm.log
+tail -100 $ZDM_HOME/zdm/zdm_<JOB_ID>/log/zdm.log
 
-# If safe to retry
-$ZDM_HOME/bin/zdmcli resume job -jobid <JOB_ID>
+# If truly stuck, abort and retry
+$ZDM_HOME/bin/zdmcli abort job -jobid <JOB_ID>
+```
+
+### A.2 Log File Locations
+
+| Component | Log Location |
+|-----------|-------------|
+| ZDM Job Logs | `$ZDM_HOME/zdm/zdm_<JOB_ID>/log/` |
+| ZDM Service Logs | `$ZDM_HOME/logs/` |
+| Source Alert Log | `$ORACLE_BASE/diag/rdbms/proddb/PRODDB/trace/alert_PRODDB.log` |
+| Target Alert Log | `$ORACLE_BASE/diag/rdbms/proddb/PRODDB/trace/alert_PRODDB.log` |
+| Data Guard Broker | `$ORACLE_BASE/diag/rdbms/*/drc*.log` |
+
+### A.3 Useful Commands Reference
+
+```bash
+# ZDM Commands
+$ZDM_HOME/bin/zdmcli query job -jobid <JOB_ID>        # Query job status
+$ZDM_HOME/bin/zdmcli resume job -jobid <JOB_ID>       # Resume paused job
+$ZDM_HOME/bin/zdmcli abort job -jobid <JOB_ID>        # Abort job
+$ZDM_HOME/bin/zdmcli query jobs                        # List all jobs
+
+# Data Guard Commands (on target)
+dgmgrl sys/<password>@PRODDB_AZURE
+DGMGRL> show configuration;
+DGMGRL> show database PRODDB_AZURE;
+
+# OCI Commands
+oci db database get --database-id <OCID>
+oci db database list --compartment-id <OCID>
 ```
 
 ---
 
-## Appendix B: Command Reference
+## Appendix B: Migration Timeline
 
-### ZDM CLI Commands
+| Phase | Estimated Duration | Notes |
+|-------|-------------------|-------|
+| Phase 1: Pre-Migration Verification | 1-2 hours | Run day before migration |
+| Phase 2-4: Configuration | 2-4 hours | Run day before migration |
+| Phase 5.1: Evaluation | 30 minutes | Day of migration |
+| Phase 5.2: Migration Start | 1-2 hours | Initial sync |
+| Phase 5.3: Data Transfer | Varies | Depends on database size |
+| Phase 5.4: Switchover | 15-30 minutes | Planned downtime window |
+| Phase 6: Validation | 1-2 hours | Post-switchover |
 
-| Command | Purpose |
-|---------|---------|
-| `zdmcli migrate database -eval` | Evaluate migration (dry run) |
-| `zdmcli migrate database` | Execute migration |
-| `zdmcli query job -jobid <ID>` | Check job status |
-| `zdmcli query job -listall` | List all jobs |
-| `zdmcli resume job -jobid <ID>` | Resume paused job |
-| `zdmcli abort job -jobid <ID>` | Abort running job |
-| `zdmcli suspend job -jobid <ID>` | Suspend running job |
-
----
-
-## Appendix C: File Locations Reference
-
-| File | Location |
-|------|----------|
-| ZDM Home | /u01/app/zdmhome |
-| ZDM CLI | /u01/app/zdmhome/bin/zdmcli |
-| ZDM Logs | /u01/app/zdmhome/zdm/log/ |
-| OCI Config | /home/zdmuser/.oci/config |
-| SSH Keys | /home/zdmuser/.ssh/ |
-| RSP File | ~/step3/zdm_migrate_PRODDB.rsp |
-| Source Oracle Home | /u01/app/oracle/product/19.0.0/dbhome_1 |
-| Target Oracle Home | /u02/app/oracle/product/19.0.0.0/dbhome_1 |
-| Target Grid Home | /u01/app/19.0.0.0/grid |
-| Source TDE Wallet | /u01/app/oracle/admin/oradb01/wallet/tde/ |
-| Source Password File | /u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01 |
+**Total Estimated Time:** 6-12 hours (excluding data transfer time)
+**Downtime Window:** ≤ 15 minutes (during switchover only)
 
 ---
 
 *Generated by ZDM Migration Planning - Step 3*
-*Date: 2026-02-03*
+*Date: 2026-02-04*
