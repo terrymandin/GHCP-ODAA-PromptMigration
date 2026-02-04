@@ -26,27 +26,27 @@ Copy and use this prompt with your discovery files:
 ```
 @Step1-Discovery-Questionnaire.prompt.md
 
-Please analyze the discovery results for our PRODDB migration and generate:
+Please analyze the discovery results for our <DATABASE> migration and generate:
 1. A summary of discovered configurations
 2. A questionnaire for manual decisions with recommended defaults
 
 ## Attached Discovery Files
 
 ### Source Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
 
 ### Target Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
 
 ### ZDM Server Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
 
-**Note:** Replace `<hostname>` and `<timestamp>` with the actual values from your discovery files.
-Use the most recent discovery files if multiple exist (highest timestamp).
+## Output Directory
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
 ```
+
+> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---
 

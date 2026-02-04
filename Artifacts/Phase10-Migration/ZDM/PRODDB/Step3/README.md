@@ -1,14 +1,20 @@
-# ZDM Migration Artifacts: PRODDB
+# ZDM Migration Artifacts: ORADB01
+
+> **Configuration values extracted from:**
+> - Source: `zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json`
+> - Target: `zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json`
+> - ZDM Server: `zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260203_085856.json`
+> - Questionnaire: `Migration-Questionnaire-PRODDB.md`
 
 ## Migration Overview
 
-| Field | Value |
-|-------|-------|
-| **Source Database** | PRODDB on proddb01.corp.example.com (Oracle 19.21.0) |
-| **Target Database** | PRODDB_AZURE on Oracle Database@Azure (Oracle 19.0.0) |
-| **Migration Method** | ONLINE_PHYSICAL (Data Guard) |
-| **Expected Downtime** | Maximum 15 minutes during switchover |
-| **ZDM Server** | zdm-jumpbox.corp.example.com |
+| Field | Value | Source |
+|-------|-------|--------|
+| **Source Database** | ORADB01 on temandin-oravm-vm01 (Oracle 19.0.0) | discovery: db_name, hostname |
+| **Target Database** | oradb01_tgt on tmodaauks-rqahk1 (Oracle 19.0.0) | discovery: hostname |
+| **Migration Method** | ONLINE_PHYSICAL (Data Guard) | questionnaire: Section A.1 |
+| **Expected Downtime** | Maximum 15 minutes during switchover | questionnaire: Section A.2 |
+| **ZDM Server** | tm-vm-odaa-oracle-jumpbox | discovery: hostname |
 
 ---
 
@@ -25,7 +31,7 @@ Complete these items before starting the migration:
 | 3 | Obtain TARGET_FINGERPRINT from OCI Console | 🔲 |
 | 4 | Obtain TARGET_COMPARTMENT_OCID from OCI Console | 🔲 |
 | 5 | Obtain TARGET_DATABASE_OCID from OCI Console | 🔲 |
-| 6 | Configure OCI API key at /home/zdmuser/.oci/oci_api_key.pem | 🔲 |
+| 6 | Configure OCI API key at /home/zdmuser/.oci/odaa.pem | 🔲 |
 
 ### Password Requirements
 
@@ -33,18 +39,18 @@ Complete these items before starting the migration:
 |---|---------------------|-------------|--------|
 | 1 | SOURCE_SYS_PASSWORD | Source Oracle SYS password | 🔲 |
 | 2 | TARGET_SYS_PASSWORD | Target Oracle SYS password | 🔲 |
-| 3 | SOURCE_TDE_WALLET_PASSWORD | TDE wallet password | 🔲 |
+| 3 | SOURCE_TDE_WALLET_PASSWORD | TDE wallet password (TDE detected on source) | 🔲 |
 
 > ⚠️ **SECURITY**: Never commit passwords to source control. Set these environment variables at runtime.
 
-### Network Verification
+### Network Verification (from discovery)
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | SSH connectivity from ZDM to source (port 22) | ✅ Verified |
-| 2 | SSH connectivity from ZDM to target (port 22) | ✅ Verified |
-| 3 | Oracle connectivity from ZDM to source (port 1521) | ✅ Verified |
-| 4 | Oracle connectivity from ZDM to target (port 1521) | ✅ Verified |
+| 1 | SSH connectivity from ZDM to source (port 22) | ✅ OPEN |
+| 2 | SSH connectivity from ZDM to target (port 22) | ✅ OPEN |
+| 3 | Oracle connectivity from ZDM to source (port 1521) | ✅ OPEN |
+| 4 | Oracle connectivity from ZDM to target (port 1521) | ✅ OPEN |
 
 ---
 
@@ -64,8 +70,8 @@ Complete these items before starting the migration:
 ### Step 1: SSH to ZDM Server
 
 ```bash
-# SSH as the admin user, then switch to zdmuser
-ssh azureuser@zdm-jumpbox.corp.example.com
+# SSH as the admin user (azureuser from discovery), then switch to zdmuser
+ssh azureuser@tm-vm-odaa-oracle-jumpbox
 sudo su - zdmuser
 ```
 

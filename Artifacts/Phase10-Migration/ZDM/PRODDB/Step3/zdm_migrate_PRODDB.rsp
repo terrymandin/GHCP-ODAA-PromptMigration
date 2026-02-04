@@ -1,9 +1,15 @@
 # ===========================================
 # ZDM Response File
-# Database: PRODDB
+# Database: ORADB01
 # Migration Type: ONLINE_PHYSICAL (Data Guard)
 # Generated: 2026-02-04
 # ===========================================
+#
+# Configuration values extracted from:
+# - Source: zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json
+# - Target: zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json
+# - ZDM Server: zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260203_085856.json
+# - Questionnaire: Migration-Questionnaire-PRODDB.md
 #
 # IMPORTANT: This RSP file contains environment variable placeholders
 # (e.g., ${TARGET_TENANCY_OCID}) that must be substituted before use.
@@ -22,45 +28,48 @@
 # -------------------------------------------
 # ONLINE_PHYSICAL - Uses Data Guard for minimal downtime migration
 # OFFLINE_PHYSICAL - Uses RMAN backup/restore
+# Value from: Questionnaire Section A.1
 MIGRATION_METHOD=ONLINE_PHYSICAL
 
 # -------------------------------------------
 # SOURCE DATABASE CONFIGURATION
+# Values from: zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json
 # -------------------------------------------
-SOURCEDATABASE_CONNECTIONDETAILS_HOST=proddb01.corp.example.com
+SOURCEDATABASE_CONNECTIONDETAILS_HOST=temandin-oravm-vm01
 SOURCEDATABASE_CONNECTIONDETAILS_PORT=1521
-SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB.corp.example.com
-SOURCEDATABASE_DBNAME=PRODDB
-SOURCEDATABASE_DBUNIQUENAME=PRODDB_PRIMARY
-SOURCEDATABASE_ORACLEHOME=/u01/app/oracle/product/19.21.0/dbhome_1
+SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01
+SOURCEDATABASE_DBNAME=ORADB01
+SOURCEDATABASE_DBUNIQUENAME=oradb01
+SOURCEDATABASE_ORACLEHOME=/u01/app/oracle/product/19.0.0/dbhome_1
 
 # Source database SYS password file
 # Created at runtime from SOURCE_SYS_PASSWORD environment variable
 SOURCEDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/source_sys_password.txt
 
-# Source SSH configuration
+# Source SSH configuration (from Questionnaire Section E)
 SOURCEDATABASE_SSHUSER=oracle
-SOURCEDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm_migration_key
+SOURCEDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm.pem
 
 # -------------------------------------------
 # TARGET DATABASE CONFIGURATION
+# Values from: zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json
 # -------------------------------------------
 # NOTE: TARGET_DATABASE_OCID must be set in environment before using this file
 TARGETDATABASE_OCID=${TARGET_DATABASE_OCID}
-TARGETDATABASE_CONNECTIONDETAILS_HOST=proddb-oda.eastus.azure.example.com
+TARGETDATABASE_CONNECTIONDETAILS_HOST=tmodaauks-rqahk1
 TARGETDATABASE_CONNECTIONDETAILS_PORT=1521
-TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB_AZURE.eastus.azure.example.com
-TARGETDATABASE_DBNAME=PRODDB
-TARGETDATABASE_DBUNIQUENAME=PRODDB_AZURE
+TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01_tgt
+TARGETDATABASE_DBNAME=ORADB01
+TARGETDATABASE_DBUNIQUENAME=oradb01_tgt
 TARGETDATABASE_ORACLEHOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
 
 # Target database SYS password file
 # Created at runtime from TARGET_SYS_PASSWORD environment variable
 TARGETDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/target_sys_password.txt
 
-# Target SSH configuration
-TARGETDATABASE_SSHUSER=oracle
-TARGETDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/zdm_migration_key
+# Target SSH configuration (from Questionnaire Section E)
+TARGETDATABASE_SSHUSER=opc
+TARGETDATABASE_SSHKEYFILE=/home/zdmuser/.ssh/odaa.pem
 
 # -------------------------------------------
 # OCI AUTHENTICATION
@@ -71,7 +80,7 @@ OCIAUTHENTICATION_TYPE=API_KEY
 OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=${TARGET_TENANCY_OCID}
 OCIAUTHENTICATION_USERPRINCIPAL_USERID=${TARGET_USER_OCID}
 OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=${TARGET_FINGERPRINT}
-OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/oci_api_key.pem
+OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/odaa.pem
 
 # -------------------------------------------
 # COMPARTMENT CONFIGURATION
@@ -116,10 +125,11 @@ RMAN_ENCRYPTION=AES256
 
 # -------------------------------------------
 # TDE CONFIGURATION
+# Values from: zdm_source_discovery (TDE wallet detected with status OPEN)
 # -------------------------------------------
 # TDE is enabled on source database
 TDE_ENABLED=TRUE
-TDE_WALLET_LOCATION=/u01/app/oracle/admin/PRODDB/wallet/tde
+TDE_WALLET_LOCATION=/u01/app/oracle/admin/oradb01/wallet/tde
 
 # TDE wallet password file
 # Created at runtime from SOURCE_TDE_WALLET_PASSWORD environment variable

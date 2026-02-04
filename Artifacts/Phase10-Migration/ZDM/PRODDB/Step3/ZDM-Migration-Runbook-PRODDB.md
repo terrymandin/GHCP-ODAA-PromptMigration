@@ -1,19 +1,25 @@
-# ZDM Migration Runbook: PRODDB
+# ZDM Migration Runbook: ORADB01
 ## Migration: On-Premise to Oracle Database@Azure
+
+> **Configuration values extracted from:**
+> - Source: `zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json`
+> - Target: `zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json`
+> - ZDM Server: `zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260203_085856.json`
+> - Questionnaire: `Migration-Questionnaire-PRODDB.md`
 
 ---
 
 ### Document Information
 
-| Field | Value |
-|-------|-------|
-| **Source Database** | PRODDB (PRODDB_PRIMARY) on proddb01.corp.example.com |
-| **Target Database** | PRODDB_AZURE on proddb-oda.eastus.azure.example.com |
-| **Migration Type** | ONLINE_PHYSICAL (Data Guard) |
-| **Maximum Downtime** | 15 minutes |
-| **Created Date** | 2026-02-04 |
-| **ZDM Home** | /opt/oracle/zdm21c |
-| **ZDM Server** | zdm-jumpbox.corp.example.com |
+| Field | Value | Source |
+|-------|-------|--------|
+| **Source Database** | ORADB01 (oradb01) on temandin-oravm-vm01 | discovery: db_name, db_unique_name, hostname |
+| **Target Database** | oradb01_tgt on tmodaauks-rqahk1 | discovery: hostname, questionnaire |
+| **Migration Type** | ONLINE_PHYSICAL (Data Guard) | questionnaire: Section A.1 |
+| **Maximum Downtime** | 15 minutes | questionnaire: Section A.2 |
+| **Created Date** | 2026-02-04 | |
+| **ZDM Home** | /u01/app/zdmhome | discovery: zdm_home |
+| **ZDM Server** | tm-vm-odaa-oracle-jumpbox | discovery: hostname |
 
 ---
 
@@ -37,8 +43,8 @@
 Connect to the source database server and verify the prerequisites:
 
 ```bash
-# SSH to source server
-ssh oracle@proddb01.corp.example.com
+# SSH to source server (from discovery: hostname, questionnaire: Source Admin User)
+ssh oracle@temandin-oravm-vm01
 ```
 
 #### 1.1.1 Verify Database Status
@@ -51,10 +57,10 @@ sqlplus / as sysdba
 SELECT NAME, OPEN_MODE, LOG_MODE, FORCE_LOGGING, DATABASE_ROLE 
 FROM V$DATABASE;
 
--- Expected output:
+-- Expected output (based on discovery):
 -- NAME     OPEN_MODE            LOG_MODE     FORCE_LOGGING  DATABASE_ROLE
 -- -------- -------------------- ------------ -------------- ---------------
--- PRODDB   READ WRITE           ARCHIVELOG   YES            PRIMARY
+-- ORADB01  READ WRITE           ARCHIVELOG   YES            PRIMARY
 ```
 
 #### 1.1.2 Verify Supplemental Logging
@@ -83,17 +89,18 @@ SELECT * FROM V$ENCRYPTION_WALLET;
 #### 1.1.4 Verify Password File
 
 ```bash
-# Check password file exists
-ls -la /u01/app/oracle/product/19.21.0/dbhome_1/dbs/orapwPRODDB
+# Check password file exists (from discovery: password_file_location)
+ls -la /u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
 
 # Verify content
-orapwd describe file=/u01/app/oracle/product/19.21.0/dbhome_1/dbs/orapwPRODDB
+orapwd describe file=/u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
 ```
 
 #### 1.1.5 Verify Database Size
 
 ```sql
 -- Check database size for estimation
+-- Discovery shows: data_files_size_gb = 1.92 GB
 SELECT SUM(BYTES)/1024/1024/1024 AS SIZE_GB FROM DBA_DATA_FILES;
 SELECT SUM(BYTES)/1024/1024/1024 AS SIZE_GB FROM DBA_TEMP_FILES;
 ```
@@ -103,14 +110,14 @@ SELECT SUM(BYTES)/1024/1024/1024 AS SIZE_GB FROM DBA_TEMP_FILES;
 Connect to the target Oracle Database@Azure environment:
 
 ```bash
-# SSH to target server
-ssh oracle@proddb-oda.eastus.azure.example.com
+# SSH to target server (from discovery: target hostname, questionnaire: Target Admin User)
+ssh opc@tmodaauks-rqahk1
 ```
 
 #### 1.2.1 Verify Oracle Home
 
 ```bash
-# Set environment
+# Set environment (from discovery: oracle_home)
 export ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
 export PATH=$ORACLE_HOME/bin:$PATH
 
@@ -131,7 +138,8 @@ netstat -tlnp | grep 1521
 #### 1.2.3 Verify ASM Storage
 
 ```bash
-# Check ASM disk groups (if applicable)
+# Check ASM disk groups (from discovery: grid_home)
+# Target has +DATAC3 and +RECOC3 disk groups
 export ORACLE_SID=+ASM1
 asmcmd lsdg
 
@@ -145,8 +153,8 @@ asmcmd lsdg
 Connect to the ZDM server:
 
 ```bash
-# SSH as admin user
-ssh azureuser@zdm-jumpbox.corp.example.com
+# SSH as admin user (from discovery: current_user on ZDM server)
+ssh azureuser@tm-vm-odaa-oracle-jumpbox
 
 # Switch to zdmuser
 sudo su - zdmuser
@@ -155,8 +163,8 @@ sudo su - zdmuser
 #### 1.3.1 Verify ZDM Installation
 
 ```bash
-# Set ZDM environment
-export ZDM_HOME=/opt/oracle/zdm21c
+# Set ZDM environment (from discovery: zdm_home)
+export ZDM_HOME=/u01/app/zdmhome
 export PATH=$ZDM_HOME/bin:$PATH
 
 # Check ZDM version
@@ -169,7 +177,7 @@ $ZDM_HOME/bin/zdmservice status
 #### 1.3.2 Verify OCI CLI
 
 ```bash
-# Check OCI CLI version
+# Check OCI CLI version (discovery shows: 3.73.1)
 oci --version
 
 # Test OCI connectivity
@@ -179,32 +187,33 @@ oci os ns get
 #### 1.3.3 Verify SSH Keys
 
 ```bash
-# Check SSH key exists
-ls -la /home/zdmuser/.ssh/zdm_migration_key
+# Check SSH key exists (from questionnaire: Source SSH Key Path)
+ls -la /home/zdmuser/.ssh/zdm.pem
 
-# Test SSH to source
-ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb01.corp.example.com "hostname"
+# Test SSH to source (from discovery: source hostname)
+ssh -i /home/zdmuser/.ssh/zdm.pem oracle@temandin-oravm-vm01 "hostname"
 
-# Test SSH to target
-ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb-oda.eastus.azure.example.com "hostname"
+# Test SSH to target (from discovery: target hostname)
+ssh -i /home/zdmuser/.ssh/odaa.pem opc@tmodaauks-rqahk1 "hostname"
 ```
 
 ### 1.4 Network Connectivity Checks
 
 ```bash
 # From ZDM server, test connectivity
+# (Discovery shows ports are OPEN)
 
 # Test Oracle port to source
-nc -zv proddb01.corp.example.com 1521
+nc -zv temandin-oravm-vm01 1521
 
 # Test Oracle port to target
-nc -zv proddb-oda.eastus.azure.example.com 1521
+nc -zv tmodaauks-rqahk1 1521
 
 # Test SSH to source
-nc -zv proddb01.corp.example.com 22
+nc -zv temandin-oravm-vm01 22
 
 # Test SSH to target
-nc -zv proddb-oda.eastus.azure.example.com 22
+nc -zv tmodaauks-rqahk1 22
 ```
 
 ---
@@ -361,8 +370,8 @@ asmcmd lsdg
 ### 4.1 Login to ZDM Server
 
 ```bash
-# SSH as the admin user (azureuser)
-ssh azureuser@zdm-jumpbox.corp.example.com
+# SSH as the admin user (from discovery: current_user on ZDM server)
+ssh azureuser@tm-vm-odaa-oracle-jumpbox
 
 # Switch to zdmuser
 sudo su - zdmuser
@@ -404,11 +413,10 @@ Then edit the file with your actual OCI values:
 vi ~/zdm_oci_env.sh
 ```
 
-Set the following values:
+Set the following values (obtain from OCI Console):
 
 ```bash
 # Target OCI Configuration (REQUIRED)
-export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789"
 export TARGET_USER_OCID="ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv"
 export TARGET_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
 export TARGET_COMPARTMENT_OCID="<your-compartment-ocid>"
@@ -448,8 +456,8 @@ read -sp "Enter TDE wallet password: " SOURCE_TDE_WALLET_PASSWORD; echo; export 
 ### 4.8 Verify ZDM Installation
 
 ```bash
-# Verify ZDM is working
-export ZDM_HOME=/opt/oracle/zdm21c
+# Verify ZDM is working (from discovery: zdm_home)
+export ZDM_HOME=/u01/app/zdmhome
 $ZDM_HOME/bin/zdmcli -version
 
 # Check ZDM service status
@@ -459,11 +467,11 @@ $ZDM_HOME/bin/zdmservice status
 ### 4.9 Test Connectivity
 
 ```bash
-# Test SSH to source
-ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb01.corp.example.com "hostname"
+# Test SSH to source (using discovered hostnames and SSH keys from questionnaire)
+ssh -i /home/zdmuser/.ssh/zdm.pem oracle@temandin-oravm-vm01 "hostname"
 
 # Test SSH to target
-ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb-oda.eastus.azure.example.com "hostname"
+ssh -i /home/zdmuser/.ssh/odaa.pem opc@tmodaauks-rqahk1 "hostname"
 ```
 
 ---

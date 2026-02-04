@@ -1,20 +1,28 @@
-# Example: Step 2 - Fix Issues for PRODDB
+# Example: Step 2 - Fix Issues for <DATABASE>
 
 ## Example Prompt
 
 ```
 @Step2-Fix-Issues.prompt.md
 
-Please help me resolve the issues identified in the Discovery Summary for our PRODDB migration.
+Please help me resolve the issues identified in the Discovery Summary for our <DATABASE> migration.
 
 ## Attached Files
 
-### Discovery Summary (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Discovery-Summary-PRODDB.md
+### Step1 Outputs
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
 
-### Migration Questionnaire (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Migration-Questionnaire-PRODDB.md
+### Discovery Files (from Step0 - for reference)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
+
+## Output Directory
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/
 ```
+
+> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---
 

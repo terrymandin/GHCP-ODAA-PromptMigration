@@ -19,121 +19,81 @@ Copy and use this prompt to generate migration artifacts:
 ```
 @Step3-Generate-Migration-Artifacts.prompt.md
 
-Generate all migration artifacts for the PRODDB migration to Oracle Database@Azure.
+Generate all migration artifacts for the <DATABASE> migration to Oracle Database@Azure.
 
-## Migration Questionnaire (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Migration-Questionnaire-PRODDB.md
+## Step1 Outputs (Questionnaire and Summary)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
 
-## Issue Resolution Log (from Step2)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/Issue-Resolution-Log-PRODDB.md
+## Step2 Outputs (Issue Resolution Log)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/
 
 ## Discovery Files (from Step0)
-
-### Source Database Discovery
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
-
-### Target Database Discovery
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
-
-### ZDM Server Discovery
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
-
-**Note:** Replace `<hostname>` and `<timestamp>` with actual values from your discovery files.
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3/
 
-## Key Parameters from Questionnaire
+> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> When referencing directories, GitHub Copilot will read all files in those directories.
 
-### Migration Type
-- Online Physical Migration (Data Guard)
-- Maximum 15 minutes downtime during switchover
+## Additional Parameters (Optional Overrides)
 
-### Source Database
-- Database Name: PRODDB
-- Unique Name: PRODDB_PRIMARY
-- Host: proddb01.corp.example.com
-- Port: 1521
-- Service: PRODDB.corp.example.com
-- Oracle Home: /u01/app/oracle/product/19.21.0/dbhome_1
-- OS User: oracle
-- TDE Enabled: Yes
-- TDE Wallet: /u01/app/oracle/admin/PRODDB/wallet/tde
+> **Note:** Most parameters should be extracted from the attached questionnaire and discovery files.
+> Only include parameters here if they need to override or supplement the discovered values.
 
-### Target Database (Oracle Database@Azure)
-- Database Name: PRODDB
-- Unique Name: PRODDB_AZURE
-- Database OCID: ocid1.database.oc1.iad..aaaaaaaaproddbazure67890
-- Host: proddb-oda.eastus.azure.example.com
-- Port: 1521
-- Service: PRODDB_AZURE.eastus.azure.example.com
-- Oracle Home: /u02/app/oracle/product/19.0.0.0/dbhome_1
-- OS User: oracle
-
-### ZDM Server
-- ZDM Home: /opt/oracle/zdm21c
-- Host: zdm-jumpbox.corp.example.com
-- OS User: zdmuser
-- SSH Key: /home/zdmuser/.ssh/zdm_migration_key
-
-### OCI Configuration
-- Tenancy OCID: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789
-- User OCID: ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv
-- Region: us-ashburn-1
-- API Key Path: /home/zdmuser/.oci/oci_api_key.pem
-- Fingerprint: aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
-
-### Object Storage (Optional for ONLINE_PHYSICAL to Oracle Database@Azure)
-> **Note:** For ONLINE_PHYSICAL migrations to Oracle Database@Azure, Object Storage is NOT required.
-> ZDM uses direct Data Guard redo shipping over the network. Only configure Object Storage
-> if you specifically need backup staging (e.g., for OFFLINE_PHYSICAL migrations).
-
-- Namespace: examplecorp (optional)
-- Bucket: zdm-proddb-migration (optional)
-- Region: us-ashburn-1 (optional)
-
-### Migration Options
+### Migration Options (from Questionnaire Section D)
 - Protection Mode: MAXIMUM_PERFORMANCE
 - Transport Type: ASYNC
-- RMAN Channels: 8
-- Compression: MEDIUM
-- Encryption: AES256
 - Pause After: ZDM_CONFIGURE_DG_SRC
 - Auto Switchover: No
 
 ### Credential Files (created at runtime from environment variables)
 
-> ⚠️ **SECURITY**: Password files are created at migration runtime from environment variables. Passwords should NEVER be committed to source control.
+> ⚠️ **SECURITY**: ZDM requires password file paths in the response file (.rsp) - it cannot read 
+> passwords directly from environment variables. The secure workflow is:
+> 1. Set passwords as environment variables on the ZDM server (never committed to git)
+> 2. Create temporary password files from environment variables just before migration
+> 3. ZDM reads from these files during migration
+> 4. Delete the files immediately after migration completes
+>
+> This approach ensures passwords are never stored in the repository while meeting ZDM's requirements.
 
 **Required Password Environment Variables (set on ZDM server before running):**
 - `SOURCE_SYS_PASSWORD` - Source Oracle SYS password
 - `TARGET_SYS_PASSWORD` - Target Oracle SYS password  
-- `SOURCE_TDE_WALLET_PASSWORD` - TDE wallet password (since TDE is enabled)
+- `SOURCE_TDE_WALLET_PASSWORD` - TDE wallet password (if TDE is enabled on source)
 
-**Password files created by script (at runtime):**
-- Source SYS Password: /home/zdmuser/creds/source_sys_password.txt
-- Target SYS Password: /home/zdmuser/creds/target_sys_password.txt
-- TDE Wallet Password: /home/zdmuser/creds/tde_password.txt
+**Temporary password files (created at runtime, deleted after migration):**
+- Source SYS Password: ~/creds/source_sys_password.txt
+- Target SYS Password: ~/creds/target_sys_password.txt
+- TDE Wallet Password: ~/creds/tde_password.txt (if TDE enabled)
 ```
 
 ---
 
 ## Expected Generated Artifacts
 
+> **Note:** The values shown below are examples. The generated artifacts will use values 
+> extracted from the discovery JSON files and questionnaire for your specific migration.
+
 ### 1. README: `README.md`
 
 ```markdown
-# PRODDB Migration to Oracle Database@Azure
+# <DB_NAME> Migration to Oracle Database@Azure
 
 ## Migration Overview
 
-| Field | Value |
-|-------|-------|
-| **Source Database** | PRODDB on proddb01.corp.example.com |
-| **Target Environment** | Oracle Database@Azure |
-| **Migration Method** | ONLINE_PHYSICAL (Minimal Downtime) |
-| **Expected Downtime** | ~15 minutes (switchover only) |
-| **Generated Date** | 2026-01-28 |
+> Values extracted from discovery files and questionnaire
+
+| Field | Value | Source |
+|-------|-------|--------|
+| **Source Database** | `<DB_NAME>` on `<SOURCE_HOST>` | Discovery: db_name, hostname |
+| **Target Environment** | Oracle Database@Azure (`<TARGET_HOST>`) | Discovery: target hostname |
+| **Migration Method** | ONLINE_PHYSICAL (Minimal Downtime) | Questionnaire: Section A.1 |
+| **Expected Downtime** | ~15 minutes (switchover only) | Questionnaire: Section A.2 |
+| **ZDM Server** | `<ZDM_SERVER>` | Discovery: zdm hostname |
 
 ---
 
@@ -144,9 +104,8 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 | 1 | All Critical issues from Step 2 resolved | 🔲 |
 | 2 | All OCI OCIDs populated in ~/zdm_oci_env.sh | 🔲 |
 | 3 | OCI CLI configured for zdmuser | 🔲 |
-| 4 | Object Storage bucket created | 🔲 |
-| 5 | TDE wallet password available | 🔲 |
-| 6 | SSH connectivity verified | 🔲 |
+| 4 | TDE wallet password available (if TDE enabled) | 🔲 |
+| 5 | SSH connectivity verified | 🔲 |
 
 ---
 
@@ -155,9 +114,9 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 | File | Description |
 |------|-------------|
 | README.md | This file - task checklist and quick-start guide |
-| ZDM-Migration-Runbook-PRODDB.md | Comprehensive step-by-step migration guide |
-| zdm_migrate_PRODDB.rsp | ZDM response file with migration parameters |
-| zdm_commands_PRODDB.sh | Shell script with all ZDM CLI commands |
+| ZDM-Migration-Runbook-`<DB_NAME>`.md | Comprehensive step-by-step migration guide |
+| zdm_migrate_`<DB_NAME>`.rsp | ZDM response file with migration parameters |
+| zdm_commands_`<DB_NAME>`.sh | Shell script with all ZDM CLI commands |
 
 ---
 
@@ -165,8 +124,8 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 
 ### Step 1: Log into ZDM Server
 ```bash
-# SSH as your admin user (azureuser in this example)
-ssh azureuser@zdm-jumpbox.corp.example.com
+# SSH as your admin user (extracted from discovery)
+ssh <ADMIN_USER>@<ZDM_SERVER>
 
 # Switch to zdmuser
 sudo su - zdmuser
@@ -175,10 +134,10 @@ sudo su - zdmuser
 ### Step 2: First-Time Setup (run once)
 ```bash
 # Navigate to your cloned fork's artifacts directory
-cd /path/to/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+cd ~/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3
 
 # Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
-./zdm_commands_PRODDB.sh init
+./zdm_commands_<DB_NAME>.sh init
 ```
 
 ### Step 3: Configure OCI Environment
@@ -192,34 +151,29 @@ source ~/zdm_oci_env.sh
 
 ### Step 4: Set Up Passwords
 ```bash
-./zdm_commands_PRODDB.sh create-creds
+./zdm_commands_<DB_NAME>.sh create-creds
 ```
 
-### Step 5: Run Pre-Flight Checks
+### Step 5: Run Evaluation (Dry Run)
 ```bash
-./zdm_commands_PRODDB.sh preflight
+./zdm_commands_<DB_NAME>.sh eval
+./zdm_commands_<DB_NAME>.sh status <JOB_ID>
 ```
 
-### Step 6: Run Evaluation (Dry Run)
+### Step 6: Execute Migration
 ```bash
-./zdm_commands_PRODDB.sh eval
-./zdm_commands_PRODDB.sh query <JOB_ID>
+./zdm_commands_<DB_NAME>.sh migrate
+./zdm_commands_<DB_NAME>.sh status <JOB_ID>
 ```
 
-### Step 4: Execute Migration
+### Step 7: Resume After Validation
 ```bash
-./zdm_commands_PRODDB.sh migrate
-./zdm_commands_PRODDB.sh query <JOB_ID>
+./zdm_commands_<DB_NAME>.sh resume <JOB_ID>
 ```
 
-### Step 5: Resume After Validation
+### Step 8: Cleanup
 ```bash
-./zdm_commands_PRODDB.sh resume <JOB_ID>
-```
-
-### Step 6: Cleanup
-```bash
-./zdm_commands_PRODDB.sh cleanup
+./zdm_commands_<DB_NAME>.sh cleanup-creds
 ```
 
 ---
@@ -228,13 +182,13 @@ source ~/zdm_oci_env.sh
 
 | Command | Description |
 |---------|-------------|
-| `./zdm_commands_PRODDB.sh setup` | Interactive password setup |
-| `./zdm_commands_PRODDB.sh preflight` | Run pre-flight checks |
-| `./zdm_commands_PRODDB.sh eval` | Run evaluation (dry run) |
-| `./zdm_commands_PRODDB.sh migrate` | Start actual migration |
-| `./zdm_commands_PRODDB.sh query <ID>` | Query job status |
-| `./zdm_commands_PRODDB.sh resume <ID>` | Resume paused job |
-| `./zdm_commands_PRODDB.sh cleanup` | Remove password files |
+| `./zdm_commands_<DB_NAME>.sh setup` | Interactive password setup |
+| `./zdm_commands_<DB_NAME>.sh preflight` | Run pre-flight checks |
+| `./zdm_commands_<DB_NAME>.sh eval` | Run evaluation (dry run) |
+| `./zdm_commands_<DB_NAME>.sh migrate` | Start actual migration |
+| `./zdm_commands_<DB_NAME>.sh query <ID>` | Query job status |
+| `./zdm_commands_<DB_NAME>.sh resume <ID>` | Resume paused job |
+| `./zdm_commands_<DB_NAME>.sh cleanup` | Remove password files |
 
 ---
 
@@ -243,81 +197,85 @@ source ~/zdm_oci_env.sh
 
 ---
 
-### 2. RSP File: `zdm_migrate_PRODDB.rsp`
+### 2. RSP File: `zdm_migrate_<DB_NAME>.rsp`
+
+> **Note:** Values are extracted from discovery files. OCI identifiers use environment variable 
+> placeholders (e.g., `${TARGET_TENANCY_OCID}`) that must be substituted before use.
 
 ```properties
 # ===========================================
 # ZDM Response File
-# Database: PRODDB
-# Migration Type: ONLINE_PHYSICAL
-# Generated: 2026-01-28
+# Database: <DB_NAME> (from discovery: db_name)
+# Migration Type: ONLINE_PHYSICAL (from questionnaire)
+# Generated: <DATE>
+# ===========================================
+#
+# Values extracted from:
+# - Source Discovery: <source discovery JSON file>
+# - Target Discovery: <target discovery JSON file>
+# - ZDM Server Discovery: <server discovery JSON file>
+# - Migration Questionnaire: <questionnaire file>
+#
 # ===========================================
 
-# Migration Type
+# Migration Type (from Questionnaire Section A.1)
 MIGRATION_METHOD=ONLINE_PHYSICAL
 
 # ===========================================
 # SOURCE DATABASE CONFIGURATION
+# Values from: source discovery JSON
 # ===========================================
-SOURCEDATABASE_CONNECTIONDETAILS_HOST=proddb01.corp.example.com
+SOURCEDATABASE_CONNECTIONDETAILS_HOST=<SOURCE_HOST>
 SOURCEDATABASE_CONNECTIONDETAILS_PORT=1521
-SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB.corp.example.com
+SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=<db_name_lower>
 SOURCEDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/source_sys_password.txt
-SOURCEDATABASE_SABORACLEUSER=oracle
+SOURCEDATABASE_ORACLEHOME=<SOURCE_ORACLE_HOME>
 
 # ===========================================
 # TARGET DATABASE CONFIGURATION
-# Oracle Database@Azure
+# Values from: target discovery JSON
 # ===========================================
-TARGETDATABASE_OCID=ocid1.database.oc1.iad..aaaaaaaaproddbazure67890
-TARGETDATABASE_CONNECTIONDETAILS_HOST=proddb-oda.eastus.azure.example.com
+TARGETDATABASE_OCID=${TARGET_DATABASE_OCID}
+TARGETDATABASE_CONNECTIONDETAILS_HOST=<TARGET_HOST>
 TARGETDATABASE_CONNECTIONDETAILS_PORT=1521
-TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=PRODDB_AZURE.eastus.azure.example.com
 TARGETDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/target_sys_password.txt
+TARGETDATABASE_ORACLEHOME=<TARGET_ORACLE_HOME>
 
 # ===========================================
 # OCI AUTHENTICATION
+# Values from environment variables (set in ~/zdm_oci_env.sh)
 # ===========================================
 OCIAUTHENTICATION_TYPE=API_KEY
-OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789
-OCIAUTHENTICATION_USERPRINCIPAL_USERID=ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv
-OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
+OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=${TARGET_TENANCY_OCID}
+OCIAUTHENTICATION_USERPRINCIPAL_USERID=${TARGET_USER_OCID}
+OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=${TARGET_FINGERPRINT}
 OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/oci_api_key.pem
 
 # ===========================================
 # DATA GUARD CONFIGURATION
+# Values from Questionnaire Section D.1
 # ===========================================
 DATAGUARDCONFIGURATION_CREATESTANDBY=TRUE
 DATAGUARDCONFIGURATION_PROTECTIONMODE=MAXIMUM_PERFORMANCE
 DATAGUARDCONFIGURATION_TRANSPORTTYPE=ASYNC
 
 # ===========================================
-# BACKUP / OBJECT STORAGE CONFIGURATION
-# ===========================================
-BACKUPOBJECTSTORESETTINGS_OBJECTSTORAGENAMESPACE=examplecorp
-BACKUPOBJECTSTORESETTINGS_BUCKETNAME=zdm-proddb-migration
-BACKUPOBJECTSTORESETTINGS_REGION=us-ashburn-1
-
-# ===========================================
-# RMAN CONFIGURATION
-# ===========================================
-RMANSETTINGS_CHANNELS=8
-RMANSETTINGS_COMPRESSION=MEDIUM
-RMANSETTINGS_ENCRYPTIONALGORITHM=AES256
-
-# ===========================================
 # TDE CONFIGURATION
+# Values from: source discovery (if TDE wallet detected)
 # ===========================================
-TDESETTINGS_SOURCEWALLET=/u01/app/oracle/admin/PRODDB/wallet/tde
+TDE_ENABLED=TRUE
+TDESETTINGS_SOURCEWALLET=<TDE_WALLET_LOCATION>
 TDESETTINGS_TDEPASSWORDFILE=/home/zdmuser/creds/tde_password.txt
 
 # ===========================================
-# ADVISOR SETTINGS
+# PAUSE CONFIGURATION
+# Value from Questionnaire Section D.3
 # ===========================================
-ADVISORSETTINGS_INCLUDEPERFORMANCEDATA=TRUE
+PAUSEAFTER=ZDM_CONFIGURE_DG_SRC
 
 # ===========================================
 # POST-MIGRATION ACTIONS
+# Values from Questionnaire Section D.2
 # ===========================================
 POSTMIGRATIONACTIONS_SWITCHOVER=FALSE
 POSTMIGRATIONACTIONS_DELETEBACKUP=FALSE
@@ -325,23 +283,57 @@ POSTMIGRATIONACTIONS_DELETEBACKUP=FALSE
 
 ---
 
-### 3. CLI Commands Script: `zdm_commands_PRODDB.sh`
+### 3. CLI Commands Script: `zdm_commands_<DB_NAME>.sh`
+
+> **Note:** All configuration values are extracted from discovery files and questionnaire.
+> Variable names use `ZDM_MIG_` prefix to avoid conflicts with user environment variables.
 
 ```bash
 #!/bin/bash
 # ===========================================
-# ZDM CLI Commands for PRODDB Migration
+# ZDM CLI Commands for <DB_NAME> Migration
 # Migration Type: Online Physical
-# Generated: 2026-01-28
+# Generated: <DATE>
 # ===========================================
+#
+# Configuration values extracted from:
+# - Source: <source discovery JSON>
+# - Target: <target discovery JSON>
+# - ZDM Server: <server discovery JSON>
+# - Questionnaire: <questionnaire file>
+#
+# ===========================================
+
+# -------------------------------------------
+# MIGRATION CONFIGURATION VARIABLES
+# NOTE: These use ZDM_MIG_ prefix to avoid conflicts with
+# user environment variables from Step 0 discovery scripts
+# -------------------------------------------
+export ZDM_HOME="<ZDM_HOME>"  # From ZDM server discovery
+
+# Source Database Configuration (from source discovery)
+export ZDM_MIG_SOURCE_DB="<DB_NAME>"
+export ZDM_MIG_SOURCE_DB_UNIQUE_NAME="<db_unique_name>"
+export ZDM_MIG_SOURCE_HOST="<SOURCE_HOST>"
+export ZDM_MIG_SOURCE_PORT="1521"
+export ZDM_MIG_SOURCE_ORACLE_HOME="<SOURCE_ORACLE_HOME>"
+export ZDM_MIG_SOURCE_SSH_USER="oracle"
+
+# Target Database Configuration (from target discovery)
+export ZDM_MIG_TARGET_HOST="<TARGET_HOST>"
+export ZDM_MIG_TARGET_PORT="1521"
+export ZDM_MIG_TARGET_ORACLE_HOME="<TARGET_ORACLE_HOME>"
+export ZDM_MIG_TARGET_SSH_USER="opc"  # From questionnaire
+
+# TDE Configuration (from source discovery - if TDE wallet detected)
+export TDE_ENABLED="true"
+export TDE_WALLET_LOCATION="<TDE_WALLET_LOCATION>"
 
 # ===========================================
 # PASSWORD ENVIRONMENT VARIABLE VALIDATION
 # ===========================================
 # This script requires password environment variables to be set.
 # NEVER hardcode passwords in this script.
-
-TDE_ENABLED=true  # Set based on questionnaire
 
 validate_password_environment() {
     local missing_vars=()
@@ -432,25 +424,25 @@ cleanup_password_files() {
 # ENVIRONMENT CONFIGURATION
 # ===========================================
 
-export ZDM_HOME="/opt/oracle/zdm21c"
+export ZDM_HOME="<ZDM_HOME>"
 export PATH=$ZDM_HOME/bin:$PATH
 
-# Source Database
-export SOURCE_DB="PRODDB_PRIMARY"
-export SOURCE_HOST="proddb01.corp.example.com"
+# Source Database (from source discovery)
+export SOURCE_DB="<DB_NAME>_PRIMARY"
+export SOURCE_HOST="<SOURCE_HOST>"
 export SOURCE_USER="oracle"
 
 # Target Database (Oracle Database@Azure)
-export TARGET_HOST="proddb-oda.eastus.azure.example.com"
+export TARGET_HOST="<TARGET_HOST>"
 export TARGET_USER="oracle"
-export TARGET_HOME="/u02/app/oracle/product/19.0.0.0/dbhome_1"
+export TARGET_HOME="<TARGET_ORACLE_HOME>"
 
 # Authentication
 export SSH_KEY="/home/zdmuser/.ssh/zdm_migration_key"
-export RSP_FILE="/home/zdmuser/migrations/PRODDB/zdm_migrate_PRODDB.rsp"
+export RSP_FILE="/home/zdmuser/migrations/<DATABASE>/zdm_migrate_<DB_NAME>.rsp"
 
-# OCI
-export OCI_BACKUP_USER="ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv"
+# OCI (from environment variables in ~/zdm_oci_env.sh)
+export OCI_BACKUP_USER="${TARGET_USER_OCID}"
 
 # ===========================================
 # HELPER FUNCTIONS
@@ -477,7 +469,7 @@ check_zdm_service() {
 # ===========================================
 
 run_evaluation() {
-    log "Starting ZDM Migration Evaluation for PRODDB..."
+    log "Starting ZDM Migration Evaluation for <DB_NAME>..."
     
     $ZDM_HOME/bin/zdmcli migrate database \
         -sourcedb $SOURCE_DB \
@@ -507,7 +499,7 @@ run_evaluation() {
 # ===========================================
 
 run_migration() {
-    log "Starting Online Physical Migration for PRODDB..."
+    log "Starting Online Physical Migration for <DB_NAME>..."
     log "This will configure Data Guard between source and target"
     log "Migration will PAUSE after ZDM_CONFIGURE_DG_SRC phase"
     
@@ -594,7 +586,7 @@ watch_job() {
     log "Monitoring job $JOB_ID (Ctrl+C to stop)..."
     while true; do
         clear
-        echo "=== ZDM Job Monitor: PRODDB Migration ==="
+        echo "=== ZDM Job Monitor: <DB_NAME> Migration ==="
         echo "Job ID: $JOB_ID"
         echo "Time: $(date)"
         echo ""
@@ -612,11 +604,11 @@ watch_job() {
 show_usage() {
     cat << EOF
 
-PRODDB Migration Commands
+<DB_NAME> Migration Commands
 =========================
 
 Step 1: Source the script
-  source zdm_commands_PRODDB.sh
+  source zdm_commands_<DB_NAME>.sh
 
 Step 2: Verify ZDM service
   check_zdm_service
@@ -640,7 +632,7 @@ EOF
 
 # Display usage when sourced
 if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
-    log "PRODDB migration commands loaded. Type 'show_usage' for help."
+    log "<DB_NAME> migration commands loaded. Type 'show_usage' for help."
 else
     show_usage
 fi
@@ -648,23 +640,23 @@ fi
 
 ---
 
-### 4. Migration Runbook: `ZDM-Migration-Runbook-PRODDB.md`
+### 4. Migration Runbook: `ZDM-Migration-Runbook-<DB_NAME>.md`
 
 The runbook will be a comprehensive document including:
 
 ```markdown
-# ZDM Migration Runbook: PRODDB
+# ZDM Migration Runbook: <DB_NAME>
 ## Migration: On-Premise to Oracle Database@Azure
 
 ### Document Information
 | Field | Value |
 |-------|-------|
-| Source Database | PRODDB_PRIMARY (proddb01.corp.example.com) |
-| Target Database | PRODDB_AZURE (proddb-oda.eastus.azure.example.com) |
+| Source Database | `<DB_NAME>` (`<SOURCE_HOST>`) |
+| Target Database | `<DB_NAME>_AZURE` (`<TARGET_HOST>`) |
 | Migration Type | Online Physical (Data Guard) |
-| Database Size | 2,450 GB |
-| Created Date | 2026-01-28 |
-| Created By | Generated via ZDM Step 2 Prompt |
+| Database Size | (from discovery) |
+| Created Date | (generated) |
+| Created By | Generated via ZDM Step 3 Prompt |
 
 ---
 
@@ -677,7 +669,7 @@ sqlplus / as sysdba
 
 -- Verify database identification
 SELECT name, db_unique_name, database_role, open_mode FROM v$database;
--- Expected: PRODDB, PRODDB_PRIMARY, PRIMARY, READ WRITE
+-- Expected: <DB_NAME>, <DB_UNIQUE_NAME>, PRIMARY, READ WRITE
 
 -- Verify archive log mode
 SELECT log_mode FROM v$database;
@@ -695,11 +687,11 @@ SELECT supplemental_log_data_min, supplemental_log_data_pk,
 ### 1.2 Network Connectivity Verification
 
 # From ZDM server, test all connections
-nc -zv proddb01.corp.example.com 22
-nc -zv proddb01.corp.example.com 1521
-nc -zv proddb-oda.eastus.azure.example.com 22
-nc -zv proddb-oda.eastus.azure.example.com 1521
-nc -zv objectstorage.us-ashburn-1.oraclecloud.com 443
+nc -zv <SOURCE_HOST> 22
+nc -zv <SOURCE_HOST> 1521
+nc -zv <TARGET_HOST> 22
+nc -zv <TARGET_HOST> 1521
+nc -zv objectstorage.<region>.oraclecloud.com 443
 
 [... continues with all phases ...]
 ```
@@ -713,15 +705,15 @@ After artifacts are generated:
 ### 1. Commit Artifacts to GitHub
 ```bash
 # From VS Code terminal
-git add Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
-git commit -m "Add Step3 migration artifacts for PRODDB"
+git add Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3/
+git commit -m "Add Step3 migration artifacts for <DB_NAME>"
 git push
 ```
 
 ### 2. Log into ZDM Server and Pull Changes
 ```bash
-# SSH as admin user (azureuser in this example)
-ssh azureuser@zdm-jumpbox.corp.example.com
+# SSH as admin user (from discovery)
+ssh <ADMIN_USER>@<ZDM_SERVER>
 
 # Switch to zdmuser
 sudo su - zdmuser
@@ -734,13 +726,13 @@ git pull
 ### 3. Run First-Time Setup
 ```bash
 # Navigate to Step3 artifacts
-cd Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+cd Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3
 
 # Make script executable
-chmod +x zdm_commands_PRODDB.sh
+chmod +x zdm_commands_<DB_NAME>.sh
 
 # Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
-./zdm_commands_PRODDB.sh init
+./zdm_commands_<DB_NAME>.sh init
 ```
 
 ### 4. Configure OCI Environment Variables
@@ -771,33 +763,33 @@ read -sp "Enter SOURCE_TDE_WALLET_PASSWORD: " SOURCE_TDE_WALLET_PASSWORD; echo; 
 ### 6. Create Password Files and Run Migration
 ```bash
 # Create password files from environment variables
-./zdm_commands_PRODDB.sh create-creds
+./zdm_commands_<DB_NAME>.sh create-creds
 
 # Run preflight checks
-./zdm_commands_PRODDB.sh preflight
+./zdm_commands_<DB_NAME>.sh preflight
 
 # Run evaluation (dry run)
-./zdm_commands_PRODDB.sh eval
+./zdm_commands_<DB_NAME>.sh eval
 
 # After migration is complete, clean up password files
-./zdm_commands_PRODDB.sh cleanup-creds
+./zdm_commands_<DB_NAME>.sh cleanup-creds
 ```
 
 ### 7. Estimated Timeline
 | Phase | Duration |
 |-------|----------|
-| Initial Backup & Transfer | 6-8 hours (2.45TB @ 1Gbps) |
-| Restore on Target | 3-4 hours |
-| Data Guard Sync | 30-60 minutes (catch-up) |
+| Initial Backup & Transfer | (depends on database size and network bandwidth) |
+| Restore on Target | (depends on database size) |
+| Data Guard Sync | (depends on lag) |
 | Switchover | 10-15 minutes |
-| **Total** | **~12-14 hours** |
+| **Total** | (estimate based on discovery) |
 
 ---
 
 ## Tips
 
 1. **Review all artifacts** before running on ZDM server
-2. **Run `./zdm_commands_PRODDB.sh init`** on first use to set up the environment
+2. **Run `./zdm_commands_<DB_NAME>.sh init`** on first use to set up the environment
 3. **Edit `~/zdm_oci_env.sh`** with actual OCID values from OCI Console
 4. **Source `~/zdm_oci_env.sh`** before every session
 5. **Set password environment variables** on ZDM server at runtime - never save passwords in the repository

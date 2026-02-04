@@ -1,15 +1,21 @@
 #!/bin/bash
 # ===========================================
 # ZDM CLI Commands
-# Database: PRODDB
+# Database: ORADB01
 # Migration Type: ONLINE_PHYSICAL (Data Guard)
 # Generated: 2026-02-04
 # ===========================================
 #
+# Configuration values extracted from:
+# - Source: zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json
+# - Target: zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json
+# - ZDM Server: zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260203_085856.json
+# - Questionnaire: Migration-Questionnaire-PRODDB.md
+#
 # IMPORTANT: Login and Setup Instructions
 # ========================================
 # 1. SSH to ZDM server as the admin user:
-#    ssh azureuser@zdm-jumpbox.corp.example.com
+#    ssh azureuser@tm-vm-odaa-oracle-jumpbox
 #
 # 2. Switch to zdmuser:
 #    sudo su - zdmuser
@@ -41,33 +47,42 @@
 set -e  # Exit on error
 
 # -------------------------------------------
-# ENVIRONMENT VARIABLES (from discovery)
+# MIGRATION CONFIGURATION VARIABLES
 # -------------------------------------------
-export ZDM_HOME="/opt/oracle/zdm21c"
+# NOTE: These variables use ZDM_MIG_ prefix to avoid conflicts with
+# user environment variables from Step 0 discovery scripts
+# (e.g., SOURCE_HOST, TARGET_HOST, SOURCE_USER, etc.)
+#
+# Values extracted from discovery files:
+# - Source: zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json
+# - Target: zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json
+# - ZDM Server: zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260203_085856.json
+# -------------------------------------------
+export ZDM_HOME="/u01/app/zdmhome"  # From ZDM server discovery: zdm_home
 export PATH="$ZDM_HOME/bin:$PATH"
 
-# Source Database
-export SOURCE_DB="PRODDB"
-export SOURCE_DB_UNIQUE_NAME="PRODDB_PRIMARY"
-export SOURCE_HOST="proddb01.corp.example.com"
-export SOURCE_PORT="1521"
-export SOURCE_SERVICE="PRODDB.corp.example.com"
-export SOURCE_ORACLE_HOME="/u01/app/oracle/product/19.21.0/dbhome_1"
-export SOURCE_USER="oracle"
+# Source Database Configuration (from zdm_source_discovery_temandin-oravm-vm01_20260203_135749.json)
+export ZDM_MIG_SOURCE_DB="ORADB01"                    # discovery: db_name
+export ZDM_MIG_SOURCE_DB_UNIQUE_NAME="oradb01"        # discovery: db_unique_name
+export ZDM_MIG_SOURCE_HOST="temandin-oravm-vm01"      # discovery: hostname
+export ZDM_MIG_SOURCE_PORT="1521"                     # discovery: listener port
+export ZDM_MIG_SOURCE_SERVICE="oradb01"               # discovery: service name
+export ZDM_MIG_SOURCE_ORACLE_HOME="/u01/app/oracle/product/19.0.0/dbhome_1"  # discovery: oracle_home
+export ZDM_MIG_SOURCE_SSH_USER="oracle"               # questionnaire: Source Admin User
 
-# Target Database
-export TARGET_DB="PRODDB"
-export TARGET_DB_UNIQUE_NAME="PRODDB_AZURE"
-export TARGET_HOST="proddb-oda.eastus.azure.example.com"
-export TARGET_PORT="1521"
-export TARGET_SERVICE="PRODDB_AZURE.eastus.azure.example.com"
-export TARGET_ORACLE_HOME="/u02/app/oracle/product/19.0.0.0/dbhome_1"
-export TARGET_USER="oracle"
+# Target Database Configuration (from zdm_target_discovery_tmodaauks-rqahk1_20260203_135834.json)
+export ZDM_MIG_TARGET_DB="ORADB01"                    # target db name (same as source for migration)
+export ZDM_MIG_TARGET_DB_UNIQUE_NAME="oradb01_tgt"    # questionnaire: target unique name
+export ZDM_MIG_TARGET_HOST="tmodaauks-rqahk1"         # discovery: hostname
+export ZDM_MIG_TARGET_PORT="1521"                     # discovery: listener port
+export ZDM_MIG_TARGET_SERVICE="oradb01_tgt"           # target service name
+export ZDM_MIG_TARGET_ORACLE_HOME="/u02/app/oracle/product/19.0.0.0/dbhome_1"  # discovery: oracle_home
+export ZDM_MIG_TARGET_SSH_USER="opc"                  # questionnaire: Target Admin User
 
-# ZDM Configuration
-export ZDM_USER="zdmuser"
-export SSH_KEY="/home/zdmuser/.ssh/zdm_migration_key"
-export OCI_KEY="/home/zdmuser/.oci/oci_api_key.pem"
+# ZDM Runtime Configuration (from zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260203_085856.json)
+export ZDM_MIG_ZDM_USER="zdmuser"                     # zdm software owner
+export ZDM_MIG_SSH_KEY="/home/zdmuser/.ssh/zdm.pem"   # questionnaire: Source SSH Key Path
+export ZDM_MIG_OCI_KEY="/home/zdmuser/.oci/odaa.pem"  # discovered OCI key
 
 # RSP File (relative to script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -76,9 +91,9 @@ export RSP_FILE="${SCRIPT_DIR}/zdm_migrate_PRODDB.rsp"
 # Credentials directory
 export CREDS_DIR="${HOME}/creds"
 
-# TDE Configuration
+# TDE Configuration (from zdm_source_discovery - TDE wallet detected as OPEN)
 export TDE_ENABLED="true"
-export TDE_WALLET_LOCATION="/u01/app/oracle/admin/PRODDB/wallet/tde"
+export TDE_WALLET_LOCATION="/u01/app/oracle/admin/oradb01/wallet/tde"  # discovery: wallet location
 
 # OCI Environment file
 export OCI_ENV_FILE="${HOME}/zdm_oci_env.sh"
@@ -305,20 +320,20 @@ OCIEOF
     # Verify SSH key
     echo ""
     echo "Verifying SSH key..."
-    if [ -f "${SSH_KEY}" ]; then
-        echo "  ✓ SSH key found at ${SSH_KEY}"
+    if [ -f "${ZDM_MIG_SSH_KEY}" ]; then
+        echo "  ✓ SSH key found at ${ZDM_MIG_SSH_KEY}"
     else
-        echo "  ✗ SSH key not found at ${SSH_KEY}"
+        echo "  ✗ SSH key not found at ${ZDM_MIG_SSH_KEY}"
         echo "    Please ensure the SSH key exists and is accessible"
     fi
     
     # Verify OCI API key
     echo ""
     echo "Verifying OCI API key..."
-    if [ -f "${OCI_KEY}" ]; then
-        echo "  ✓ OCI API key found at ${OCI_KEY}"
+    if [ -f "${ZDM_MIG_OCI_KEY}" ]; then
+        echo "  ✓ OCI API key found at ${ZDM_MIG_OCI_KEY}"
     else
-        echo "  ✗ OCI API key not found at ${OCI_KEY}"
+        echo "  ✗ OCI API key not found at ${ZDM_MIG_OCI_KEY}"
         echo "    Please ensure the OCI API key exists"
     fi
     
@@ -445,8 +460,8 @@ eval_migration() {
     echo "RUNNING ZDM MIGRATION EVALUATION"
     echo "=========================================="
     echo ""
-    echo "Source: ${SOURCE_DB} on ${SOURCE_HOST}"
-    echo "Target: ${TARGET_DB} on ${TARGET_HOST}"
+    echo "Source: ${ZDM_MIG_SOURCE_DB} on ${ZDM_MIG_SOURCE_HOST}"
+    echo "Target: ${ZDM_MIG_TARGET_DB} on ${ZDM_MIG_TARGET_HOST}"
     echo ""
     
     # Validate environment
@@ -469,16 +484,16 @@ eval_migration() {
     echo ""
     
     "${ZDM_HOME}/bin/zdmcli" migrate database \
-        -sourcedb "${SOURCE_DB}" \
-        -sourcenode "${SOURCE_HOST}" \
+        -sourcedb "${ZDM_MIG_SOURCE_DB}" \
+        -sourcenode "${ZDM_MIG_SOURCE_HOST}" \
         -srcauth zdmauth \
-        -srcarg1 user:"${SOURCE_USER}" \
-        -srcarg2 identity_file:"${SSH_KEY}" \
+        -srcarg1 user:"${ZDM_MIG_SOURCE_SSH_USER}" \
+        -srcarg2 identity_file:"${ZDM_MIG_SSH_KEY}" \
         -srcarg3 sudo_location:/usr/bin/sudo \
-        -targetnode "${TARGET_HOST}" \
+        -targetnode "${ZDM_MIG_TARGET_HOST}" \
         -tgtauth zdmauth \
-        -tgtarg1 user:"${TARGET_USER}" \
-        -tgtarg2 identity_file:"${SSH_KEY}" \
+        -tgtarg1 user:"${ZDM_MIG_TARGET_SSH_USER}" \
+        -tgtarg2 identity_file:"${ZDM_MIG_SSH_KEY}" \
         -tgtarg3 sudo_location:/usr/bin/sudo \
         -rsp "${resolved_rsp}" \
         -eval
@@ -496,8 +511,8 @@ run_migration() {
     echo "STARTING ZDM MIGRATION"
     echo "=========================================="
     echo ""
-    echo "Source: ${SOURCE_DB} on ${SOURCE_HOST}"
-    echo "Target: ${TARGET_DB} on ${TARGET_HOST}"
+    echo "Source: ${ZDM_MIG_SOURCE_DB} on ${ZDM_MIG_SOURCE_HOST}"
+    echo "Target: ${ZDM_MIG_TARGET_DB} on ${ZDM_MIG_TARGET_HOST}"
     echo "Migration Type: ONLINE_PHYSICAL (Data Guard)"
     echo "Pause Point: ZDM_CONFIGURE_DG_SRC"
     echo ""
@@ -532,16 +547,16 @@ run_migration() {
     echo ""
     
     "${ZDM_HOME}/bin/zdmcli" migrate database \
-        -sourcedb "${SOURCE_DB}" \
-        -sourcenode "${SOURCE_HOST}" \
+        -sourcedb "${ZDM_MIG_SOURCE_DB}" \
+        -sourcenode "${ZDM_MIG_SOURCE_HOST}" \
         -srcauth zdmauth \
-        -srcarg1 user:"${SOURCE_USER}" \
-        -srcarg2 identity_file:"${SSH_KEY}" \
+        -srcarg1 user:"${ZDM_MIG_SOURCE_SSH_USER}" \
+        -srcarg2 identity_file:"${ZDM_MIG_SSH_KEY}" \
         -srcarg3 sudo_location:/usr/bin/sudo \
-        -targetnode "${TARGET_HOST}" \
+        -targetnode "${ZDM_MIG_TARGET_HOST}" \
         -tgtauth zdmauth \
-        -tgtarg1 user:"${TARGET_USER}" \
-        -tgtarg2 identity_file:"${SSH_KEY}" \
+        -tgtarg1 user:"${ZDM_MIG_TARGET_SSH_USER}" \
+        -tgtarg2 identity_file:"${ZDM_MIG_SSH_KEY}" \
         -tgtarg3 sudo_location:/usr/bin/sudo \
         -rsp "${resolved_rsp}"
     
