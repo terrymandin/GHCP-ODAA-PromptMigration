@@ -9,6 +9,16 @@ This prompt takes completed questionnaire responses from Step 1, confirmed issue
 
 ---
 
+## Key Context for Generated Artifacts
+
+When generating artifacts, remember these user workflow requirements:
+- Users SSH as `ZDM_ADMIN_USER` (e.g., `azureuser`, `opc`) - NOT directly as `zdmuser`
+- Users must `sudo su - zdmuser` after login to access ZDM tools
+- The `~/creds` directory does not exist by default and must be created
+- OCI environment variables must be sourced from a file (e.g., `~/zdm_oci_env.sh`)
+
+---
+
 ## Instructions
 
 ### Prerequisites
@@ -182,10 +192,12 @@ Generate a comprehensive runbook that includes:
    - Prepare for Data Guard (online migration)
 
 4. **ZDM Server Configuration**
+   - Login instructions (SSH as ZDM_ADMIN_USER, sudo to zdmuser)
+   - Clone repository and navigate to artifacts
+   - Create credentials directory (~/creds)
+   - Create OCI environment file (~/zdm_oci_env.sh)
+   - Set password environment variables securely
    - Verify ZDM installation
-   - Configure OCI CLI
-   - Set up SSH keys
-   - Create credential files
    - Test connectivity
 
 5. **Migration Execution Steps**
@@ -223,12 +235,24 @@ Generate a complete RSP file with:
 **Filename:** `zdm_commands_<DB_NAME>.sh`
 
 Generate a shell script containing:
+- **`init` command**: First-time setup that:
+  - Creates `~/creds` directory with proper permissions (chmod 700)
+  - Generates `~/zdm_oci_env.sh` template file for OCI environment variables
+  - Validates prerequisites
+- **`create-creds` command**: Creates password files from environment variables
+- **`cleanup-creds` command**: Securely removes password files after migration
 - Environment variable definitions
 - Evaluation command
 - Migration command (with all parameters)
 - Job monitoring commands
 - Resume commands
 - Abort command (for emergency use)
+
+**Important:** The script must include clear instructions at the top explaining:
+1. Users must SSH as `ZDM_ADMIN_USER` (from Step0 questionnaire) and `sudo su - zdmuser`
+2. Users must run `./zdm_commands_<DB_NAME>.sh init` on first use
+3. Users must populate `~/zdm_oci_env.sh` with actual OCI OCIDs
+4. Users must source `~/zdm_oci_env.sh` before running migration commands
 
 ---
 
@@ -289,7 +313,20 @@ Generate a shell script containing:
 ---
 
 ## Phase 4: ZDM Server Configuration
-[Similar structure]
+### 4.1 Login to ZDM Server
+[SSH as ZDM_ADMIN_USER, then sudo to zdmuser]
+
+### 4.2 Clone Repository and Navigate to Artifacts
+[Clone the fork, cd to Step3 artifacts directory]
+
+### 4.3 Create Credentials Directory
+[mkdir -p ~/creds with chmod 700]
+
+### 4.4 Create OCI Environment File
+[Create ~/zdm_oci_env.sh with export statements for OCI identifiers]
+
+### 4.5 Set Password Environment Variables
+[Securely enter passwords at runtime]
 
 ---
 
@@ -379,6 +416,20 @@ OBJECTSTORAGE_NAMESPACE=${TARGET_OBJECT_STORAGE_NAMESPACE}
 # ZDM CLI Commands
 # Database: [DATABASE_NAME]
 # Generated: [DATE]
+# ===========================================
+#
+# IMPORTANT: Login and Setup Instructions
+# ========================================
+# 1. SSH to ZDM server as ZDM_ADMIN_USER (e.g., azureuser, opc)
+# 2. Switch to zdmuser: sudo su - zdmuser
+# 3. Clone your fork if not already done
+# 4. Navigate to the Step3 artifacts directory
+# 5. Source the OCI environment file: source ~/zdm_oci_env.sh
+# 6. Run this script: ./zdm_commands_[DB_NAME].sh <command>
+#
+# First-time setup:
+#   ./zdm_commands_[DB_NAME].sh init
+#
 # ===========================================
 
 # Environment Variables (from discovery)

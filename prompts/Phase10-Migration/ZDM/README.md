@@ -150,8 +150,9 @@ Each step has a corresponding example file showing a completed prompt for a fict
 - Discovery output files (from Step 0)
 
 **Output Location**: `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
+- `README.md` - Quick-start guide and checklist
 - `zdm_migrate_<DB_NAME>.rsp` - ZDM response file
-- `zdm_commands_<DB_NAME>.sh` - CLI commands script
+- `zdm_commands_<DB_NAME>.sh` - CLI commands script with `init`, `create-creds`, and migration commands
 - `ZDM-Migration-Runbook-<DB_NAME>.md` - Step-by-step runbook
 
 **Usage**:
@@ -159,8 +160,135 @@ Each step has a corresponding example file showing a completed prompt for a fict
 2. Provide completed questionnaire from `Step1/`
 3. Artifacts are saved to `Step3/`
 4. Review generated artifacts
-5. Create password files as instructed
-6. Follow the runbook to execute migration
+5. Commit and push to GitHub
+6. Pull changes on ZDM jumpbox
+7. Follow the runbook to execute migration
+
+---
+
+## End-to-End Workflow
+
+The complete workflow alternates between your local VS Code environment and the ZDM server. This swimlane diagram shows where each action occurs:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              ZDM MIGRATION WORKFLOW                                          │
+├────────────────────────────────────┬────────────────────────────────────────────────────────┤
+│         💻 VS CODE (Local)         │              🖥️ ZDM SERVER                             │
+├────────────────────────────────────┼────────────────────────────────────────────────────────┤
+│                                    │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 1. Fork & Clone Repo         │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 2. Run Step0 Prompt          │  │                                                        │
+│  │    → Generate discovery      │  │                                                        │
+│  │      scripts                 │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 3. git commit & push         │──┼───────────────────┐                                    │
+│  └──────────────────────────────┘  │                   ▼                                    │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 4. SSH as admin user (azureuser/opc)           │    │
+│                                    │  │    sudo su - zdmuser                           │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 5. git clone <fork-url>                        │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 6. Run discovery scripts                       │    │
+│                                    │  │    (source, target, ZDM servers)               │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                   ┌────────────────┼──│ 7. git commit & push artifacts                 │    │
+│                   ▼                │  └────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 8. git pull                  │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 9. Run Step1 Prompt          │  │                                                        │
+│  │    → Analyze discovery       │  │                                                        │
+│  │    → Generate questionnaire  │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 10. Complete questionnaire   │  │                                                        │
+│  │     (manual decisions)       │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 11. Run Step2 Prompt         │  │                                                        │
+│  │     → Identify issues        │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 │                  │                                                        │
+│     ┌───────────┴───────────┐      │                                                        │
+│     │  ITERATE UNTIL FIXED  │◄─────┼──────────────────────────────────────────┐             │
+│     │  ┌─────────────────┐  │      │                                          │             │
+│     │  │ Fix issues      │──┼──────┼───► Re-run discovery on servers ─────────┤             │
+│     │  │ Re-run Step1/2  │◄─┼──────┼──── git commit/push artifacts ◄──────────┘             │
+│     │  └─────────────────┘  │      │                                                        │
+│     └───────────┬───────────┘      │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 12. Run Step3 Prompt         │  │                                                        │
+│  │     → Generate RSP, CLI,     │  │                                                        │
+│  │       Runbook                │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 13. git commit & push        │──┼───────────────────┐                                    │
+│  └──────────────────────────────┘  │                   ▼                                    │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 14. git pull                                   │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 15. ./zdm_commands.sh init                     │    │
+│                                    │  │     → Creates ~/creds, ~/zdm_oci_env.sh        │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 16. Edit ~/zdm_oci_env.sh with OCIDs           │    │
+│                                    │  │     source ~/zdm_oci_env.sh                    │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 17. Set passwords & create-creds               │    │
+│                                    │  └──────────────────────┬─────────────────────────┘    │
+│                                    │                         ▼                              │
+│                                    │  ┌────────────────────────────────────────────────┐    │
+│                                    │  │ 18. Follow Runbook                             │    │
+│                                    │  │     → eval → migrate → resume → cleanup        │    │
+│                                    │  └────────────────────────────────────────────────┘    │
+│                                    │                                                        │
+└────────────────────────────────────┴────────────────────────────────────────────────────────┘
+```
+
+### Quick Reference: Where Does Each Step Run?
+
+| Phase | Location | Actions |
+|-------|----------|---------|
+| **Setup** | VS Code | Fork repo, clone, run Step0 prompt |
+| **Discovery** | ZDM Server | Clone fork, run discovery scripts, commit artifacts |
+| **Analysis** | VS Code | Pull, run Step1/2 prompts, complete questionnaire |
+| **Iteration** | Both | Fix issues on servers, re-run discovery, update Step1/2 |
+| **Generation** | VS Code | Run Step3 prompt, commit artifacts |
+| **Migration** | ZDM Server | Pull, init, configure, execute migration |
+
+### Important: ZDM Server Login
+
+When working on the ZDM server, you must:
+1. **SSH as your admin user** (e.g., `azureuser`, `opc`) - NOT directly as `zdmuser`
+2. **Switch to zdmuser**: `sudo su - zdmuser`
+3. **First-time setup**: Run `./zdm_commands_<DB_NAME>.sh init` to create required directories and files
+```
+
+---
 
 ## Artifacts Directory Structure
 

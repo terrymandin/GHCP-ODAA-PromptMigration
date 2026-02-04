@@ -6,10 +6,25 @@
 # Generated: 2026-02-04
 # ===========================================
 #
+# IMPORTANT: Login Instructions
+# =============================
+# 1. SSH to ZDM server as your admin user (e.g., azureuser, opc):
+#      ssh azureuser@zdm-jumpbox.corp.example.com
+# 2. Switch to zdmuser:
+#      sudo su - zdmuser
+# 3. Navigate to this script's directory
+# 4. Run init command on first use:
+#      ./zdm_commands_PRODDB.sh init
+# 5. Edit ~/zdm_oci_env.sh with actual OCID values
+# 6. Source the OCI environment:
+#      source ~/zdm_oci_env.sh
+# 7. Run commands as needed
+#
 # Usage:
 #   ./zdm_commands_PRODDB.sh <command> [options]
 #
 # Commands:
+#   init          - First-time setup (creates ~/creds dir and ~/zdm_oci_env.sh)
 #   eval          - Run evaluation (dry run)
 #   migrate       - Execute migration
 #   status <id>   - Query job status
@@ -17,6 +32,7 @@
 #   abort <id>    - Abort job (emergency)
 #   create-creds  - Create password files from environment variables
 #   cleanup-creds - Clean up password files
+#   preflight     - Run preflight checks
 #   help          - Show this help message
 #
 # ===========================================
@@ -55,9 +71,10 @@ export SUDO_LOCATION="/usr/bin/sudo"
 # OCI Configuration
 export OCI_API_KEY="/home/zdmuser/.oci/oci_api_key.pem"
 export OCI_REGION="us-ashburn-1"
+export OCI_ENV_FILE="${HOME}/zdm_oci_env.sh"
 
 # Credential Files
-export CREDS_DIR="/home/zdmuser/creds"
+export CREDS_DIR="${HOME}/creds"
 export SOURCE_SYS_PWD_FILE="${CREDS_DIR}/source_sys_password.txt"
 export TARGET_SYS_PWD_FILE="${CREDS_DIR}/target_sys_password.txt"
 export TDE_PWD_FILE="${CREDS_DIR}/tde_password.txt"
@@ -315,6 +332,98 @@ cleanup_password_files() {
     else
         print_info "Credentials directory does not exist: ${CREDS_DIR}"
     fi
+    
+    return 0
+}
+
+# -------------------------------------------
+# First-Time Setup (init command)
+# -------------------------------------------
+
+init_environment() {
+    print_header "FIRST-TIME SETUP"
+    
+    echo "This command will:"
+    echo "  1. Create credentials directory (${CREDS_DIR})"
+    echo "  2. Create OCI environment file template (${OCI_ENV_FILE})"
+    echo ""
+    
+    # Create credentials directory
+    if [ ! -d "${CREDS_DIR}" ]; then
+        mkdir -p "${CREDS_DIR}"
+        chmod 700 "${CREDS_DIR}"
+        print_success "Created credentials directory: ${CREDS_DIR}"
+    else
+        print_info "Credentials directory already exists: ${CREDS_DIR}"
+    fi
+    
+    # Create OCI environment file template
+    if [ ! -f "${OCI_ENV_FILE}" ]; then
+        cat > "${OCI_ENV_FILE}" << 'EOF'
+#!/bin/bash
+# ===========================================
+# OCI Environment Variables for ZDM Migration
+# Database: PRODDB
+# Generated: $(date +%Y-%m-%d)
+# ===========================================
+#
+# INSTRUCTIONS:
+# 1. Edit this file with your actual OCID values
+# 2. Save the file
+# 3. Source it before running migration commands:
+#      source ~/zdm_oci_env.sh
+#
+# HOW TO OBTAIN VALUES:
+# - TARGET_TENANCY_OCID: OCI Console > Profile > Tenancy Details
+# - TARGET_USER_OCID: OCI Console > Profile > User Settings
+# - TARGET_FINGERPRINT: OCI Console > Profile > API Keys
+# - TARGET_COMPARTMENT_OCID: OCI Console > Identity > Compartments
+# - TARGET_DATABASE_OCID: OCI Console > Databases > Your Database
+# - TARGET_OBJECT_STORAGE_NAMESPACE: OCI Console > Profile > Tenancy Details
+#   (or run: oci os ns get)
+#
+# ===========================================
+
+# Required OCI Configuration
+export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..____________________"
+export TARGET_USER_OCID="ocid1.user.oc1..____________________"
+export TARGET_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+export TARGET_COMPARTMENT_OCID="ocid1.compartment.oc1..____________________"
+export TARGET_DATABASE_OCID="ocid1.database.oc1..____________________"
+
+# Optional for ONLINE_PHYSICAL to Oracle Database@Azure
+# (Object Storage is NOT required for ONLINE_PHYSICAL - uses direct Data Guard)
+# Uncomment and set only if you need Object Storage staging
+# export TARGET_OBJECT_STORAGE_NAMESPACE="your_namespace"
+
+# Confirmation message when sourced
+echo "OCI environment variables loaded from ~/zdm_oci_env.sh"
+EOF
+        chmod 600 "${OCI_ENV_FILE}"
+        print_success "Created OCI environment file template: ${OCI_ENV_FILE}"
+    else
+        print_info "OCI environment file already exists: ${OCI_ENV_FILE}"
+    fi
+    
+    echo ""
+    print_header "NEXT STEPS"
+    echo "1. Edit ${OCI_ENV_FILE} with your actual OCID values:"
+    echo "     vi ${OCI_ENV_FILE}"
+    echo ""
+    echo "2. Source the OCI environment file:"
+    echo "     source ${OCI_ENV_FILE}"
+    echo ""
+    echo "3. Set password environment variables:"
+    echo "     read -sp 'Enter SOURCE_SYS_PASSWORD: ' SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD"
+    echo "     read -sp 'Enter TARGET_SYS_PASSWORD: ' TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD"
+    echo "     read -sp 'Enter SOURCE_TDE_WALLET_PASSWORD: ' SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD"
+    echo ""
+    echo "4. Create password files:"
+    echo "     ./zdm_commands_PRODDB.sh create-creds"
+    echo ""
+    echo "5. Run preflight checks:"
+    echo "     ./zdm_commands_PRODDB.sh preflight"
+    echo ""
     
     return 0
 }
@@ -637,7 +746,15 @@ show_help() {
     echo ""
     echo "Usage: ./zdm_commands_PRODDB.sh <command> [options]"
     echo ""
+    echo "IMPORTANT: Login Instructions"
+    echo "-----------------------------"
+    echo "1. SSH as admin user:    ssh azureuser@zdm-jumpbox.corp.example.com"
+    echo "2. Switch to zdmuser:    sudo su - zdmuser"
+    echo "3. Navigate to script:   cd /path/to/Step3"
+    echo "4. Run init (first use): ./zdm_commands_PRODDB.sh init"
+    echo ""
     echo "Commands:"
+    echo "  init            First-time setup (creates ~/creds and ~/zdm_oci_env.sh)"
     echo "  eval            Run evaluation (dry run) - always run this first"
     echo "  migrate         Execute migration"
     echo "  status <id>     Query job status"
@@ -646,32 +763,26 @@ show_help() {
     echo "  list-jobs       List all ZDM jobs"
     echo "  create-creds    Create password files from environment variables"
     echo "  cleanup-creds   Clean up password files"
-    echo "  verify          Verify prerequisites only"
+    echo "  preflight       Verify prerequisites and OCI environment"
     echo "  help            Show this help message"
     echo ""
-    echo "Before running migration, set these environment variables:"
+    echo "Typical workflow:"
+    echo "  1. ./zdm_commands_PRODDB.sh init                   (first time only)"
+    echo "  2. vi ~/zdm_oci_env.sh                              (edit with actual OCIDs)"
+    echo "  3. source ~/zdm_oci_env.sh                          (load OCI env vars)"
+    echo "  4. Set password env vars (see below)"
+    echo "  5. ./zdm_commands_PRODDB.sh create-creds"
+    echo "  6. ./zdm_commands_PRODDB.sh preflight"
+    echo "  7. ./zdm_commands_PRODDB.sh eval"
+    echo "  8. ./zdm_commands_PRODDB.sh migrate"
+    echo "  9. ./zdm_commands_PRODDB.sh status <JOB_ID>"
+    echo "  10. (After validation) ./zdm_commands_PRODDB.sh resume <JOB_ID>"
+    echo "  11. ./zdm_commands_PRODDB.sh cleanup-creds"
     echo ""
-    echo "  # OCI Configuration (REQUIRED)"
-    echo "  export TARGET_TENANCY_OCID='ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789'"
-    echo "  export TARGET_USER_OCID='ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv'"
-    echo "  export TARGET_FINGERPRINT='aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99'"
-    echo "  export TARGET_COMPARTMENT_OCID='<Your Compartment OCID>'"
-    echo "  export TARGET_DATABASE_OCID='ocid1.database.oc1.iad..aaaaaaaaproddbazure67890'"
-    echo ""
-    echo "  # Passwords (set securely at runtime)"
+    echo "Setting password environment variables (secure entry):"
     echo "  read -sp 'Enter Source SYS Password: ' SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD"
     echo "  read -sp 'Enter Target SYS Password: ' TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD"
     echo "  read -sp 'Enter TDE Wallet Password: ' SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD"
-    echo ""
-    echo "Typical workflow:"
-    echo "  1. Set OCI environment variables"
-    echo "  2. Set password environment variables"
-    echo "  3. ./zdm_commands_PRODDB.sh create-creds"
-    echo "  4. ./zdm_commands_PRODDB.sh eval"
-    echo "  5. ./zdm_commands_PRODDB.sh migrate"
-    echo "  6. ./zdm_commands_PRODDB.sh status <JOB_ID>"
-    echo "  7. (After validation) ./zdm_commands_PRODDB.sh resume <JOB_ID>"
-    echo "  8. ./zdm_commands_PRODDB.sh cleanup-creds"
     echo ""
 }
 
@@ -684,6 +795,9 @@ main() {
     local arg2="${2:-}"
     
     case "$command" in
+        init|setup)
+            init_environment
+            ;;
         eval|evaluate)
             run_evaluation
             ;;
@@ -708,22 +822,6 @@ main() {
         cleanup-creds|cleanup)
             cleanup_password_files
             ;;
-        verify)
-            verify_prerequisites
-            validate_oci_environment
-            ;;
-        help|-h|--help)
-            show_help
-            ;;
-        *)
-            print_error "Unknown command: $command"
-            show_help
-            exit 1
-            ;;
-    esac
-    
-    exit $?
-}
-
+        preflight|verify)
 # Run main function with all arguments
 main "$@"

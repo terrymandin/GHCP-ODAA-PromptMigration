@@ -142,7 +142,7 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 | # | Task | Status |
 |---|------|--------|
 | 1 | All Critical issues from Step 2 resolved | 🔲 |
-| 2 | All OCI OCIDs populated in RSP file | 🔲 |
+| 2 | All OCI OCIDs populated in ~/zdm_oci_env.sh | 🔲 |
 | 3 | OCI CLI configured for zdmuser | 🔲 |
 | 4 | Object Storage bucket created | 🔲 |
 | 5 | TDE wallet password available | 🔲 |
@@ -163,17 +163,44 @@ Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 
 ## Quick Start Guide
 
-### Step 1: Set Up Passwords (on ZDM server)
+### Step 1: Log into ZDM Server
 ```bash
-./zdm_commands_PRODDB.sh setup
+# SSH as your admin user (azureuser in this example)
+ssh azureuser@zdm-jumpbox.corp.example.com
+
+# Switch to zdmuser
+sudo su - zdmuser
 ```
 
-### Step 2: Run Pre-Flight Checks
+### Step 2: First-Time Setup (run once)
+```bash
+# Navigate to your cloned fork's artifacts directory
+cd /path/to/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+
+# Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
+./zdm_commands_PRODDB.sh init
+```
+
+### Step 3: Configure OCI Environment
+```bash
+# Edit the generated OCI environment file with actual values
+vi ~/zdm_oci_env.sh
+
+# Source the OCI environment variables
+source ~/zdm_oci_env.sh
+```
+
+### Step 4: Set Up Passwords
+```bash
+./zdm_commands_PRODDB.sh create-creds
+```
+
+### Step 5: Run Pre-Flight Checks
 ```bash
 ./zdm_commands_PRODDB.sh preflight
 ```
 
-### Step 3: Run Evaluation (Dry Run)
+### Step 6: Run Evaluation (Dry Run)
 ```bash
 ./zdm_commands_PRODDB.sh eval
 ./zdm_commands_PRODDB.sh query <JOB_ID>
@@ -683,7 +710,54 @@ nc -zv objectstorage.us-ashburn-1.oraclecloud.com 443
 
 After artifacts are generated:
 
-### 1. Set Password Environment Variables (on ZDM server)
+### 1. Commit Artifacts to GitHub
+```bash
+# From VS Code terminal
+git add Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
+git commit -m "Add Step3 migration artifacts for PRODDB"
+git push
+```
+
+### 2. Log into ZDM Server and Pull Changes
+```bash
+# SSH as admin user (azureuser in this example)
+ssh azureuser@zdm-jumpbox.corp.example.com
+
+# Switch to zdmuser
+sudo su - zdmuser
+
+# Navigate to your fork clone and pull changes
+cd /home/zdmuser/GHCP-ODAA-PromptMigration
+git pull
+```
+
+### 3. Run First-Time Setup
+```bash
+# Navigate to Step3 artifacts
+cd Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+
+# Make script executable
+chmod +x zdm_commands_PRODDB.sh
+
+# Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
+./zdm_commands_PRODDB.sh init
+```
+
+### 4. Configure OCI Environment Variables
+```bash
+# Edit the generated OCI environment file with actual OCID values
+vi ~/zdm_oci_env.sh
+
+# The file will look like:
+# export TARGET_TENANCY_OCID="ocid1.tenancy.oc1..____________________"
+# export TARGET_USER_OCID="ocid1.user.oc1..____________________"
+# ... etc.
+
+# Source the OCI environment variables
+source ~/zdm_oci_env.sh
+```
+
+### 5. Set Password Environment Variables (at runtime)
 
 > ⚠️ **SECURITY**: Set passwords securely at runtime. Never save passwords to files in the repository.
 
@@ -694,32 +768,22 @@ read -sp "Enter TARGET_SYS_PASSWORD: " TARGET_SYS_PASSWORD; echo; export TARGET_
 read -sp "Enter SOURCE_TDE_WALLET_PASSWORD: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
 ```
 
-### 2. Copy Artifacts to ZDM Server
+### 6. Create Password Files and Run Migration
 ```bash
-scp Artifacts/Phase10-Migration/ZDM/PRODDB/* zdmuser@zdm-jumpbox.corp.example.com:/home/zdmuser/migrations/PRODDB/
-```
+# Create password files from environment variables
+./zdm_commands_PRODDB.sh create-creds
 
-### 3. Quick Start Commands
-```bash
-# On ZDM server
+# Run preflight checks
+./zdm_commands_PRODDB.sh preflight
 
-# First, set password environment variables (see step 1 above)
-
-cd /home/zdmuser/migrations/PRODDB
-source zdm_commands_PRODDB.sh
-
-# Script will validate password environment variables automatically
-# Then create password files from environment variables
-create_password_files
-
-check_zdm_service
-run_evaluation
+# Run evaluation (dry run)
+./zdm_commands_PRODDB.sh eval
 
 # After migration is complete, clean up password files
-cleanup_password_files
+./zdm_commands_PRODDB.sh cleanup-creds
 ```
 
-### 4. Estimated Timeline
+### 7. Estimated Timeline
 | Phase | Duration |
 |-------|----------|
 | Initial Backup & Transfer | 6-8 hours (2.45TB @ 1Gbps) |
@@ -732,9 +796,11 @@ cleanup_password_files
 
 ## Tips
 
-1. **Review all artifacts** before copying to ZDM server
-2. **Test RSP file syntax** with a dry-run evaluation first
-3. **Set password environment variables** on ZDM server at runtime - never save passwords in the repository
+1. **Review all artifacts** before running on ZDM server
+2. **Run `./zdm_commands_PRODDB.sh init`** on first use to set up the environment
+3. **Edit `~/zdm_oci_env.sh`** with actual OCID values from OCI Console
+4. **Source `~/zdm_oci_env.sh`** before every session
+5. **Set password environment variables** on ZDM server at runtime - never save passwords in the repository
 4. **Password files are created automatically** by the `create_password_files` function from environment variables
 5. **Clean up password files** after migration using `cleanup_password_files`
 6. **Follow the runbook** step by step - don't skip verification steps

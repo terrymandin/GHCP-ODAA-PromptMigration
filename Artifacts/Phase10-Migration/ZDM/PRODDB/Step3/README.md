@@ -93,32 +93,56 @@ read -sp "Enter TDE Wallet Password: " SOURCE_TDE_WALLET_PASSWORD; echo; export 
 
 ## Quick Start Guide
 
-### Step 1: Set Up Environment
+### Step 1: Log into ZDM Server
 
 ```bash
-# SSH to ZDM server
-ssh zdmuser@zdm-jumpbox.corp.example.com
+# SSH as your admin user (azureuser in this example - NOT directly as zdmuser)
+ssh azureuser@zdm-jumpbox.corp.example.com
 
-# Navigate to migration scripts
-cd ~/creds
+# Switch to zdmuser
+sudo su - zdmuser
+```
 
-# Set OCI environment variables (edit with your values)
-source /home/zdmuser/zdm_oci_env.sh
+### Step 2: First-Time Setup (run once)
 
+```bash
+# Navigate to Step3 artifacts in your cloned fork
+cd /path/to/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+
+# Make script executable
+chmod +x zdm_commands_PRODDB.sh
+
+# Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
+./zdm_commands_PRODDB.sh init
+```
+
+### Step 3: Configure OCI Environment
+
+```bash
+# Edit the generated OCI environment file with actual OCID values
+vi ~/zdm_oci_env.sh
+
+# Source the OCI environment variables
+source ~/zdm_oci_env.sh
+```
+
+### Step 4: Set Password Environment Variables
+
+```bash
 # Set password environment variables (securely)
 read -sp "Enter Source SYS Password: " SOURCE_SYS_PASSWORD; echo; export SOURCE_SYS_PASSWORD
 read -sp "Enter Target SYS Password: " TARGET_SYS_PASSWORD; echo; export TARGET_SYS_PASSWORD
 read -sp "Enter TDE Wallet Password: " SOURCE_TDE_WALLET_PASSWORD; echo; export SOURCE_TDE_WALLET_PASSWORD
+
+# Create password files from environment variables
+./zdm_commands_PRODDB.sh create-creds
 ```
 
-### Step 2: Run Evaluation (Dry Run)
+### Step 5: Run Evaluation (Dry Run)
 
 ```bash
-# Navigate to Step3 artifacts
-cd /path/to/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
-
-# Make script executable
-chmod +x zdm_commands_PRODDB.sh
+# Run preflight checks
+./zdm_commands_PRODDB.sh preflight
 
 # Run evaluation
 ./zdm_commands_PRODDB.sh eval
@@ -126,7 +150,7 @@ chmod +x zdm_commands_PRODDB.sh
 
 Review evaluation results before proceeding.
 
-### Step 3: Execute Migration
+### Step 6: Execute Migration
 
 ```bash
 # Start migration
@@ -136,7 +160,7 @@ Review evaluation results before proceeding.
 ./zdm_commands_PRODDB.sh status <JOB_ID>
 ```
 
-### Step 4: Post-Migration Validation
+### Step 7: Post-Migration Validation
 
 Follow the validation steps in the runbook:
 - Verify Data Guard configuration
@@ -144,11 +168,18 @@ Follow the validation steps in the runbook:
 - Validate application connections
 - Run data verification queries
 
-### Step 5: Switchover (When Ready)
+### Step 8: Switchover (When Ready)
 
 ```bash
 # Resume migration after pause point for switchover
 ./zdm_commands_PRODDB.sh resume <JOB_ID>
+```
+
+### Step 9: Cleanup
+
+```bash
+# Clean up password files after migration
+./zdm_commands_PRODDB.sh cleanup-creds
 ```
 
 ---

@@ -135,11 +135,14 @@ asmcmd lsdg
 
 ### 1.3 ZDM Server Checks
 
-Execute these commands on the **ZDM server** as `zdmuser`.
+Execute these commands on the **ZDM server**.
 
 ```bash
-# SSH to ZDM server
-ssh zdmuser@zdm-jumpbox.corp.example.com
+# SSH to ZDM server as your admin user (azureuser in this example)
+ssh azureuser@zdm-jumpbox.corp.example.com
+
+# Switch to zdmuser
+sudo su - zdmuser
 
 # Set ZDM environment
 export ZDM_HOME=/opt/oracle/zdm21c
@@ -157,10 +160,29 @@ $ZDM_HOME/bin/zdmcli query job -jobid 0 2>&1 | head -5
 # This may show an error about job not found, but confirms ZDM is responding
 ```
 
-#### 1.3.2 Verify OCI Configuration
+#### 1.3.2 First-Time Setup (run once)
 
 ```bash
-# Check OCI CLI version
+# Navigate to Step3 artifacts in your cloned fork
+cd /path/to/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
+
+# Make script executable
+chmod +x zdm_commands_PRODDB.sh
+
+# Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
+./zdm_commands_PRODDB.sh init
+```
+
+#### 1.3.3 Configure OCI Environment
+
+```bash
+# Edit the generated OCI environment file with actual OCID values
+vi ~/zdm_oci_env.sh
+
+# Then source the environment variables
+source ~/zdm_oci_env.sh
+
+# Verify OCI CLI version
 oci --version
 
 # Test OCI connectivity
@@ -171,7 +193,7 @@ oci os ns get
 oci db database get --database-id ${TARGET_DATABASE_OCID} --query 'data.{name:"db-name",state:"lifecycle-state"}'
 ```
 
-#### 1.3.3 Verify SSH Connectivity
+#### 1.3.4 Verify SSH Connectivity
 
 ```bash
 # Test SSH to source
@@ -181,15 +203,15 @@ ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb01.corp.example.com "ho
 ssh -i /home/zdmuser/.ssh/zdm_migration_key oracle@proddb-oda.eastus.azure.example.com "hostname"
 ```
 
-#### 1.3.4 Verify Disk Space
+#### 1.3.5 Verify Disk Space
 
 ```bash
 # Check ZDM home disk space
 df -h /opt/oracle/zdm21c
 # Recommended: At least 20GB free
 
-# Check credentials directory
-ls -la /home/zdmuser/creds/
+# Check credentials directory exists (created by init command)
+ls -la ~/creds/
 ```
 
 ### 1.4 Network Connectivity Checks
