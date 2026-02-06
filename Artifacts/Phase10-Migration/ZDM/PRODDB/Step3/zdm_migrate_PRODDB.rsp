@@ -1,0 +1,222 @@
+#################################################################################
+# ZDM Response File: PRODDB Migration
+# Database: ORADB01 → ORADB01_ODA
+# Type: ONLINE_PHYSICAL (Physical Migration with Minimal Downtime)
+# Generated: February 5, 2026
+#################################################################################
+
+#--------------------------------------------------------------------------------
+# MIGRATION TYPE AND METHOD
+#--------------------------------------------------------------------------------
+
+# Migration method: ONLINE_PHYSICAL (Data Guard based, minimal downtime)
+MIGRATION_METHOD=ONLINE_PHYSICAL
+
+# Platform type: EXACS (Oracle Exadata Cloud Service / Database@Azure)
+PLATFORM_TYPE=EXACS
+
+#--------------------------------------------------------------------------------
+# SOURCE DATABASE CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Source database unique name
+SOURCEDB_UNIQUENAME=oradb01
+
+# Source database ORACLE_HOME
+SOURCEDB_ORACLEHOME=/u01/app/oracle/product/19.0.0/dbhome_1
+
+# Source host
+SOURCENODE_HOST=temandin-oravm-vm01
+
+# Source host port (SSH)
+SOURCENODE_SSHPORT=22
+
+# Source Oracle listener port
+SOURCEDB_PORT=1521
+
+# SSH private key for source access
+SOURCENODE_SSHPRIVATEKEY=/home/zdmuser/.ssh/zdm.pem
+
+# SSH user for source (use admin user with sudo capability)
+SOURCENODE_USER=oracle
+
+# Source password file location
+SOURCEDB_PWDFILE=/u01/app/oracle/product/19.0.0/dbhome_1/dbs/orapworadb01
+
+# Source database is CDB? (NO for non-CDB, YES for CDB)
+SOURCEDB_IS_CDB=NO
+
+# Source redo log size (MB) - for reference
+SOURCEDB_REDO_SIZE_MB=200
+
+#--------------------------------------------------------------------------------
+# TARGET DATABASE CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Target database unique name (must be unique on target)
+TARGETDB_UNIQUENAME=oradb01_oda
+
+# Target database display name (for OCI/Azure console)
+TARGETDB_DISPLAYNAME=oradb01_oda
+
+# Target database ORACLE_HOME
+TARGETDB_ORACLEHOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
+
+# Target hosts (for RAC, first node is primary)
+TARGETNODE_HOST=tmodaauks-rqahk1
+
+# Target host port (SSH)
+TARGETNODE_SSHPORT=22
+
+# Target Oracle listener port
+TARGETDB_PORT=1521
+
+# SSH private key for target access
+TARGETNODE_SSHPRIVATEKEY=/home/zdmuser/.ssh/odaa.pem
+
+# SSH user for target (OPC user with sudo to oracle)
+TARGETNODE_USER=opc
+
+# Target database is RAC?
+TARGETDB_IS_RAC=TRUE
+
+# Target ASM disk group for data files
+TARGETDB_ASMDISKS_DATADG=+DATAC3
+
+# Target ASM disk group for redo/FRA
+TARGETDB_ASMDISKS_RECODG=+RECOC3
+
+#--------------------------------------------------------------------------------
+# OCI AUTHENTICATION (Using Environment Variables)
+# Note: Set these environment variables before running ZDM:
+#   - TARGET_TENANCY_OCID
+#   - TARGET_USER_OCID  
+#   - TARGET_FINGERPRINT
+#   - TARGET_COMPARTMENT_OCID
+#   - TARGET_DATABASE_OCID
+#--------------------------------------------------------------------------------
+
+# OCI API private key path
+OCIAPIKEY_PRIVATEKEYPATH=/home/zdmuser/.oci/oci_api_key.pem
+
+# OCI Region
+OCIREGION=uk-south-1
+
+#--------------------------------------------------------------------------------
+# DATA GUARD CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Data Guard operation type: SWITCHOVER (keep source as standby) or FAILOVER
+DATAGUARD_OPERATION=SWITCHOVER
+
+# Data Guard protection mode: MAXIMUM_PERFORMANCE, MAXIMUM_AVAILABILITY
+DATAGUARD_PROTECTION_MODE=MAXIMUM_PERFORMANCE
+
+# Redo transport mode: ASYNC (for MAXIMUM_PERFORMANCE), SYNC (for MAXIMUM_AVAILABILITY)
+DATAGUARD_REDO_TRANSPORT=ASYNC
+
+# Data Guard broker enabled
+DATAGUARD_BROKER=TRUE
+
+# Standby file management
+DATAGUARD_STANDBY_FILE_MGMT=AUTO
+
+#--------------------------------------------------------------------------------
+# TDE (TRANSPARENT DATA ENCRYPTION) CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Source TDE wallet location
+SOURCETDE_WALLETPATH=/u01/app/oracle/admin/oradb01/wallet/tde/
+
+# Target TDE wallet location (auto-managed on Exadata)
+TARGETTDE_WALLETPATH=/var/opt/oracle/dbaas_acfs/oradb01_oda/wallet/tde
+
+# TDE wallet type: AUTOLOGIN, PASSWORD, or AUTOLOGIN_LOCAL
+TDE_WALLET_TYPE=AUTOLOGIN
+
+# TDE password file reference (created by zdm_commands script)
+TDE_PASSWORD_FILE=/home/zdmuser/creds/tde_password.txt
+
+#--------------------------------------------------------------------------------
+# PAUSE AND CHECKPOINT CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Pause at phase: ZDM_SWITCHOVER_SRC (before switchover)
+# Other options: ZDM_VALIDATE_SRC, ZDM_PREPARE_SRC, ZDM_CLONE_TGT
+ZDM_PAUSE_AT_PHASE=ZDM_SWITCHOVER_SRC
+
+# Resume operations allowed
+ZDM_ALLOW_RESUME=TRUE
+
+# Skip cleanup on failure (for debugging)
+ZDM_SKIP_CLEANUP_ON_FAILURE=FALSE
+
+#--------------------------------------------------------------------------------
+# PERFORMANCE CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Parallelism for RMAN operations
+RMAN_PARALLELISM=4
+
+# Compression for redo transport: ENABLE, DISABLE
+COMPRESSION=ENABLE
+
+# Section size for RMAN backup (MB)
+RMAN_SECTION_SIZE_MB=256
+
+#--------------------------------------------------------------------------------
+# NETWORK CONFIGURATION  
+#--------------------------------------------------------------------------------
+
+# Use SCAN for RAC target
+USE_SCAN=TRUE
+
+# Target SCAN name (if USE_SCAN=TRUE)
+TARGET_SCAN_NAME=tmodaauks-rqahk-scan.odaaprisubnt.valoiaodaamain.oraclevcn.com
+
+# Target SCAN port
+TARGET_SCAN_PORT=1521
+
+#--------------------------------------------------------------------------------
+# PASSWORD FILE REFERENCES
+# Note: These files are created by zdm_commands_PRODDB.sh create-creds
+#--------------------------------------------------------------------------------
+
+# Source SYS password file
+SOURCESYS_PASSWORD_FILE=/home/zdmuser/creds/source_sys_password.txt
+
+# Target SYS password file  
+TARGETSYS_PASSWORD_FILE=/home/zdmuser/creds/target_sys_password.txt
+
+#--------------------------------------------------------------------------------
+# ADVANCED OPTIONS
+#--------------------------------------------------------------------------------
+
+# Skip pre-migration advisor
+SKIP_PREMIGRATION_ADVISOR=FALSE
+
+# Skip fallback setup (keep source as standby after switchover)
+SKIP_FALLBACK=FALSE
+
+# Cleanup source after successful migration
+CLEANUP_SOURCE_AFTER_MIGRATION=FALSE
+
+# Log level: INFO, DEBUG, TRACE
+LOG_LEVEL=INFO
+
+#--------------------------------------------------------------------------------
+# POST-MIGRATION CONFIGURATION
+#--------------------------------------------------------------------------------
+
+# Reconfigure database links after migration
+RECONFIGURE_DBLINKS=FALSE
+
+# Reconfigure scheduler jobs
+RECONFIGURE_SCHEDULER_JOBS=TRUE
+
+# Update statistics after migration
+UPDATE_STATISTICS=TRUE
+
+#################################################################################
+# END OF RESPONSE FILE
+#################################################################################
