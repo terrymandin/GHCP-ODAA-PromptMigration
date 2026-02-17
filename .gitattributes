@@ -1,0 +1,43 @@
+# Auto-detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts must always use Unix-style LF line endings
+# This prevents CRLF issues when scripts are executed on Linux servers
+*.sh text eol=lf
+
+# Other script types that should use LF
+*.bash text eol=lf
+*.zsh text eol=lf
+*.ksh text eol=lf
+
+# SQL scripts - also use LF for consistency with Oracle tooling
+*.sql text eol=lf
+
+# Python scripts
+*.py text eol=lf
+
+# Configuration files often used on Linux
+*.conf text eol=lf
+*.cfg text eol=lf
+*.properties text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+
+# Oracle response files
+*.rsp text eol=lf
+
+# Markdown files - can use either, but LF preferred
+*.md text eol=lf
+
+# Binary files - do not modify
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary

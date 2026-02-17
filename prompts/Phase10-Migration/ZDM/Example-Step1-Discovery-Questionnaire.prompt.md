@@ -1,367 +1,391 @@
-# Example: Completed Discovery Questionnaire for PRODDB Migration
+# Example: Discovery Analysis and Migration Planning for PRODDB
 
-This example demonstrates a fully completed Step 1 questionnaire for a production Oracle database migration to Oracle Database@Azure using online physical migration.
+This example demonstrates Step 1 for a production Oracle database migration to Oracle Database@Azure.
+
+## What Step 1 Does
+
+Step 1 takes the discovery output from Step 0 and generates:
+1. **Discovery Summary** - Auto-populated analysis of all discovered configurations
+2. **Migration Planning Questionnaire** - Only the items requiring manual input, with recommended defaults
+
+---
 
 ## Prerequisites
 
-Before using this example:
-- Run `Step0-Generate-Discovery-Scripts.prompt.md` to generate discovery scripts
-- Execute scripts on all servers and collect outputs
-- Have OCI/Azure console access for OCIDs
+Before running Step 1:
+- ✅ Run `Step0-Generate-Discovery-Scripts.prompt.md` to generate discovery scripts
+- ✅ Execute scripts on all servers and collect outputs to `Step0/Discovery/`
+- ✅ Have OCI/Azure console access for OCIDs (needed to complete the questionnaire)
 
 ---
 
 ## Example Prompt
 
-Copy and use this prompt with your completed questionnaire:
+Copy and use this prompt with your discovery files:
 
 ```
 @Step1-Discovery-Questionnaire.prompt.md
 
-I have completed the discovery questionnaire for our PRODDB migration.
+Please analyze the discovery results for our <DATABASE> migration and generate:
+1. A summary of discovered configurations
+2. A questionnaire for manual decisions with recommended defaults
 
 ## Attached Discovery Files
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_source_discovery_proddb01_20260128_140532.json
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_target_discovery_proddb-oda_20260128_141022.json
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.txt
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Discovery/zdm_server_discovery_zdm-jumpbox_20260128_141545.json
 
-## Completed Questionnaire
+### Source Database Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
 
-[See completed questionnaire below]
+### Target Database Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
+
+### ZDM Server Discovery (from Step0)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
+
+## Output Directory
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
 ```
 
----
-
-## Completed Questionnaire Example
-
-### SECTION 1: Migration Strategy
-
-#### 1.1 Migration Type (Required)
-```
-Migration Method: [X] ONLINE_PHYSICAL  [ ] OFFLINE_PHYSICAL
-
-Justification: Production database requiring minimal downtime. Business can 
-tolerate only 15 minutes of downtime during switchover window.
-```
-
-#### 1.2 Migration Timeline
-```
-Planned Migration Date: 2026-02-15
-Maintenance Window Start: 02:00 AM PST
-Maintenance Window End: 06:00 AM PST
-Maximum Acceptable Downtime: 15 minutes
-```
+> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---
 
-### SECTION 2: Source Database Information
+## Example Output: Discovery Summary
 
-#### 2.1 Database Identification 🔍
-*Auto-populated from: zdm_source_discovery output*
+This is an example of what Step 1 generates in `Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/Discovery-Summary-PRODDB.md`:
 
-```
-Database Name (DB_NAME):        PRODDB
-Database Unique Name:           PRODDB_PRIMARY
-Database SID:                   PRODDB
-Database ID (DBID):             2847563921
-Database Version:               19.21.0.0.0
-Database Role:                  PRIMARY
-```
+```markdown
+# Discovery Summary: PRODDB Migration
 
-#### 2.2 Database Configuration 🔍
-```
-Database Size (GB):             2,450
-Character Set:                  AL32UTF8
-National Character Set:         AL16UTF16
-Open Mode:                      READ WRITE
-Log Mode:                       [X] ARCHIVELOG  [ ] NOARCHIVELOG
-Force Logging:                  [X] YES  [ ] NO
-```
-
-#### 2.3 Container Database Information 🔍
-```
-Is CDB:                         [X] YES  [ ] NO
-PDB Names (comma-separated):    PRODPDB1, PRODPDB2, PRODPDB3
-```
-
-#### 2.4 TDE Configuration 🔍
-```
-TDE Enabled:                    [X] YES  [ ] NO
-TDE Wallet Type:                [X] FILE  [ ] HSM  [ ] OKV
-TDE Wallet Location:            /u01/app/oracle/admin/PRODDB/wallet/tde
-```
-
-#### 2.5 TDE Credentials 🔐
-```
-TDE Wallet Password:            ********** (stored in /home/zdmuser/creds/tde_password.txt)
-```
-
-#### 2.6 Supplemental Logging 🔍
-*Required for Online Migration*
-
-```
-Supplemental Log Data Min:      [X] YES  [ ] NO
-Supplemental Log Data PK:       [X] YES  [ ] NO
-Supplemental Log Data UI:       [X] YES  [ ] NO
-```
-
-#### 2.7 Source Host Information 🔍
-```
-Hostname:                       proddb01.corp.example.com
-IP Address:                     10.100.50.25
-Operating System:               Oracle Linux Server
-OS Version:                     8.7
-```
-
-#### 2.8 Source Oracle Installation 🔍
-```
-Oracle Home Path:               /u01/app/oracle/product/19.21.0/dbhome_1
-Oracle Base Path:               /u01/app/oracle
-Oracle OS User:                 oracle
-Oracle OS Group:                oinstall
-Listener Port:                  1521
-Service Name:                   PRODDB.corp.example.com
-```
-
-#### 2.9 Source Credentials 🔐
-```
-SYS Password:                   ********** (stored in /home/zdmuser/creds/source_sys_password.txt)
-Password File Location:         /u01/app/oracle/product/19.21.0/dbhome_1/dbs/orapwPRODDB
-```
+## Generated
+- Date: 2026-01-30
+- Source Files Analyzed:
+  - zdm_source_discovery_proddb01_20260130_140532.json
+  - zdm_target_discovery_odadb-node1_20260130_141022.json
+  - zdm_server_discovery_zdm-jumpbox_20260130_141545.json
 
 ---
 
-### SECTION 3: Target Database Information (Oracle Database@Azure)
+## Executive Summary
 
-#### 3.1 Azure/OCI Identifiers (Required - from Azure/OCI Console)
-```
-OCI Tenancy OCID:               ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz123456789
-OCI User OCID:                  ocid1.user.oc1..aaaaaaaaxyz987654321abcdefghijklmnopqrstuv
-OCI Compartment OCID:           ocid1.compartment.oc1..aaaaaaaacompabcdef123456789xyz
-OCI Region:                     us-ashburn-1
-Target DB System OCID:          ocid1.dbsystem.oc1.iad..aaaaaaaaproddbsystem12345
-Target Database OCID:           ocid1.database.oc1.iad..aaaaaaaaproddbazure67890
-```
-
-#### 3.2 Database Identification 🔍
-*Auto-populated from: zdm_target_discovery output*
-
-```
-Database Name (DB_NAME):        PRODDB
-Database Unique Name:           PRODDB_AZURE
-Database Version:               19.21.0.0.0
-```
-
-#### 3.3 Target Host Information 🔍
-```
-Hostname:                       proddb-oda.eastus.azure.example.com
-IP Address:                     10.200.100.50
-SCAN Name (if RAC):             proddb-scan.eastus.azure.example.com
-Operating System:               Oracle Linux Server 8.8
-```
-
-#### 3.4 Target Oracle Installation 🔍
-```
-Oracle Home Path:               /u02/app/oracle/product/19.0.0.0/dbhome_1
-Oracle Base Path:               /u02/app/oracle
-Oracle OS User:                 oracle
-Listener Port:                  1521
-Service Name:                   PRODDB_AZURE.eastus.azure.example.com
-```
-
-#### 3.5 Target Credentials 🔐
-```
-SYS Password:                   ********** (stored in /home/zdmuser/creds/target_sys_password.txt)
-```
+| Component | Status | Key Findings |
+|-----------|--------|--------------|
+| Source Database | ✅ Ready | ORADB01, 19c, 1.88GB, ARCHIVELOG, TDE enabled |
+| Target Environment | ✅ Ready | ODAA Exadata, 19c, sufficient capacity |
+| ZDM Server | ✅ Ready | ZDM 21.4 installed, service running |
+| Network | ⚠️ Verify | Connectivity tests needed |
 
 ---
 
-### SECTION 4: ZDM Server Information
+## Migration Method Recommendation
 
-#### 4.1 ZDM Host Information 🔍
-*Auto-populated from: zdm_server_discovery output*
+**Recommended:** ONLINE_PHYSICAL ✓
 
-```
-Hostname:                       zdm-jumpbox.corp.example.com
-IP Address:                     10.100.50.100
-Operating System:               Oracle Linux Server 8.6
-```
+**Justification:**
+- Source database is in ARCHIVELOG mode ✅
+- Force Logging is enabled ✅
+- TDE is configured with AUTOLOGIN wallet ✅
+- Database size (1.88 GB) is small - migration will be quick
+- Minimal downtime is typically preferred for production databases
 
-#### 4.2 ZDM Installation 🔍
-```
-ZDM Home Path:                  /opt/oracle/zdm21c
-ZDM Version:                    21.4.0.0.0
-ZDM Service Status:             [X] Running  [ ] Stopped
-ZDM OS User:                    zdmuser
-ZDM OS Group:                   zdmgroup
-```
-
-#### 4.3 OCI CLI Configuration 🔍
-```
-OCI CLI Installed:              [X] YES  [ ] NO
-OCI CLI Version:                3.37.0
-OCI Config Path:                /home/zdmuser/.oci/config
-OCI Private Key Path:           /home/zdmuser/.oci/oci_api_key.pem
-API Key Fingerprint:            aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
-```
-
-#### 4.4 SSH Configuration
-```
-SSH Private Key Path:           /home/zdmuser/.ssh/zdm_migration_key
-SSH Public Key Path:            /home/zdmuser/.ssh/zdm_migration_key.pub
-```
+**Alternative Consideration:**
+Given the small database size (1.88 GB), OFFLINE_PHYSICAL could also work well if a maintenance window of 1-2 hours is acceptable. However, ONLINE_PHYSICAL is recommended for production readiness and minimal risk.
 
 ---
 
-### SECTION 5: Network Configuration
+## Source Database Details
 
-#### 5.1 Connectivity Matrix
-*Test each connection and record results*
+### Database Identification
+| Property | Value |
+|----------|-------|
+| Database Name | ORADB01 |
+| Database Unique Name | oradb01 |
+| Database SID | oradb01 |
+| DBID | 1593802201 |
+| Version | 19.0.0.0.0 |
+| Role | PRIMARY |
+| Platform | Linux x86 64-bit |
 
-| From | To | Port | Protocol | Status |
-|------|-----|------|----------|--------|
-| ZDM Server | Source DB | 22 | SSH | [X] OK [ ] FAIL |
-| ZDM Server | Source DB | 1521 | Oracle | [X] OK [ ] FAIL |
-| ZDM Server | Target DB | 22 | SSH | [X] OK [ ] FAIL |
-| ZDM Server | Target DB | 1521 | Oracle | [X] OK [ ] FAIL |
-| ZDM Server | OCI OSS | 443 | HTTPS | [X] OK [ ] FAIL |
-| Source DB | Target DB | 1521 | Oracle | [X] OK [ ] FAIL |
+### Database Size and Configuration
+| Property | Value |
+|----------|-------|
+| Total Size | 1.88 GB |
+| Character Set | AL32UTF8 |
+| National Character Set | AL16UTF16 |
+| Open Mode | READ WRITE |
+| CDB | NO (Non-CDB) |
 
-#### 5.2 Network Path
-```
-ExpressRoute/VPN Configured:    [X] YES  [ ] NO
-Network Path Description:       Azure ExpressRoute with 1Gbps dedicated circuit
-Estimated Bandwidth (Mbps):     1000
-```
+### Migration Readiness
+| Requirement | Current State | Required | Status |
+|-------------|---------------|----------|--------|
+| ARCHIVELOG Mode | YES | YES | ✅ |
+| Force Logging | YES | YES | ✅ |
+| Supplemental Logging (MIN) | NO | YES (Online) | ⚠️ Action Required |
+| Supplemental Logging (PK) | NO | YES (Online) | ⚠️ Action Required |
+| Supplemental Logging (UI) | NO | YES (Online) | ⚠️ Action Required |
+| TDE Enabled | YES | Optional | ✅ |
+| TDE Wallet Type | AUTOLOGIN | Supported | ✅ |
 
----
-
-### SECTION 6: Backup and Storage Configuration
-
-#### 6.1 Object Storage Settings
-```
-Object Storage Namespace:       examplecorp
-Bucket Name:                    zdm-proddb-migration
-Bucket Region:                  us-ashburn-1
-Bucket Already Exists:          [X] YES  [ ] NO
-```
-
-#### 6.2 RMAN Settings
-```
-Parallel Channels:              8 (optimized for 1Gbps network)
-Compression Level:              [ ] LOW  [X] MEDIUM  [ ] HIGH
-Encryption Algorithm:           [ ] AES128  [ ] AES192  [X] AES256
-```
-
-#### 6.3 Backup Location
-```
-Backup Method:                  [X] Object Storage  [ ] NFS  [ ] Local
-NFS Mount Path (if NFS):        N/A
-Local Path (if Local):          N/A
-```
+### Source Host
+| Property | Value |
+|----------|-------|
+| Hostname | temandin-oravm-vm01 |
+| IP Address | 10.1.0.10 |
+| OS | Oracle Linux Server 7.9 |
+| Oracle Home | /u01/app/oracle/product/19.0.0/dbhome_1 |
+| Listener Port | 1521 |
 
 ---
 
-### SECTION 7: Migration Options
+## Target Environment Details
 
-#### 7.1 Data Guard Configuration (Online Migration Only)
-```
-Protection Mode:                [X] MAXIMUM_PERFORMANCE  [ ] MAXIMUM_AVAILABILITY
-Transport Type:                 [X] ASYNC  [ ] SYNC
-```
+### Target Host
+| Property | Value |
+|----------|-------|
+| Hostname | tmodaauks-rqahk1 |
+| IP Address | 10.0.1.160 |
+| Platform | Oracle Database@Azure (Exadata) |
+| OS | Oracle Linux Server 8.10 |
+| Oracle Home | /u02/app/oracle/product/19.0.0.0/dbhome_1 |
+| Version | 19.0.0.0.0 |
 
-#### 7.2 Post-Migration Actions
-```
-Auto Switchover:                [ ] YES  [X] NO  (manual switchover for controlled cutover)
-Delete Backup After Migration:  [ ] YES  [X] NO  (retain for 7 days post-migration)
-Include Performance Data:       [X] YES  [ ] NO
-```
-
-#### 7.3 Pause Points
-```
-Pause After Phase:              [X] ZDM_CONFIGURE_DG_SRC
-                                [ ] ZDM_SWITCHOVER_SRC
-                                [ ] None (run to completion)
-```
-
----
-
-### SECTION 8: Validation Checklist
-
-#### 8.1 Pre-requisites Verification
-
+### Target Readiness
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| Source DB in ARCHIVELOG mode | [X] | Verified via discovery |
-| Force Logging enabled | [X] | Verified via discovery |
-| Supplemental Logging enabled | [X] | MIN, PK, UI enabled |
-| TDE wallet accessible | [X] | Wallet open and auto-login configured |
-| SSH keys configured | [X] | Keys deployed to all servers |
-| OCI CLI working | [X] | Tested with oci iam region list |
-| Network connectivity verified | [X] | All ports tested successfully |
-| Sufficient OSS storage | [X] | 5TB available in bucket |
-| ZDM service running | [X] | Service status verified |
+| Oracle Version Match | ✅ | Both 19c |
+| Platform Compatible | ✅ | Linux x86-64 |
+| Exadata Storage | ✅ | Available |
 
 ---
 
-### SECTION 9: Additional Notes
+## ZDM Server Details
 
+### Server Information
+| Property | Value |
+|----------|-------|
+| Hostname | tm-vm-odaa-oracle-jumpbox |
+| IP Address | 10.1.0.8 |
+| OS | Oracle Linux Server 9.5 |
+
+### ZDM Installation
+| Property | Value |
+|----------|-------|
+| ZDM Home | /u01/app/zdmhome |
+| ZDM Base | /u01/app/zdmbase |
+| ZDM User | zdmuser |
+| Service Status | ✅ Running |
+
+### OCI CLI Status
+| Property | Value |
+|----------|-------|
+| Installed | ❌ NOT INSTALLED |
+
+---
+
+## Required Actions Before Migration
+
+### Critical (Must Fix Before Migration)
+
+| # | Action | Command/Steps | Priority |
+|---|--------|---------------|----------|
+| 1 | Enable Supplemental Logging | See SQL below | HIGH |
+| 2 | Install OCI CLI on ZDM Server | `dnf install python3-oci-cli` | HIGH |
+| 3 | Verify Network Connectivity | Test SSH/Oracle ports | HIGH |
+
+**Enable Supplemental Logging (run on source):**
+```sql
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (UNIQUE INDEX) COLUMNS;
 ```
-Special Considerations:
-- Database has 3 PDBs with different SLA requirements
-- PRODPDB1 contains financial data - extra validation required
-- Application team needs 2-hour notice before switchover
-- Rollback window: 4 hours post-switchover
 
-Known Issues or Constraints:
-- Source server maintenance every Sunday 3-5 AM - avoid migration during this window
-- Target database time zone set to UTC (source is PST) - application team aware
+### Recommended
 
-Rollback Plan:
-- Before switchover: Abort ZDM job, no data loss, source remains primary
-- After switchover: Reinstate source as primary using Data Guard switchover
-- RPO: Zero (synchronous shipping before switchover)
-- RTO: 30 minutes for rollback procedure
+| # | Action | Notes |
+|---|--------|-------|
+| 1 | Create OCI Object Storage bucket | For migration backups |
+| 2 | Test OCI API connectivity | After OCI CLI install |
+| 3 | Configure SSH key authentication | Between all servers |
+
+---
+
+## Discovered Values Reference
+
+These values are auto-populated and will be used in Step 2:
+
+### Source Database
+- DB_NAME: ORADB01
+- DB_UNIQUE_NAME: oradb01
+- DBID: 1593802201
+- ORACLE_HOME: /u01/app/oracle/product/19.0.0/dbhome_1
+- TDE_WALLET_LOCATION: /u01/app/oracle/admin/oradb01/wallet/tde/
+
+### Target Environment  
+- TARGET_HOST: 10.0.1.160
+- TARGET_ORACLE_HOME: /u02/app/oracle/product/19.0.0.0/dbhome_1
+
+### ZDM Server
+- ZDM_HOST: 10.1.0.8
+- ZDM_HOME: /u01/app/zdmhome
 ```
 
 ---
 
-### SECTION 10: Questionnaire Completion
+## Example Output: Migration Planning Questionnaire
 
-```
-Completed By:                   John Smith (DBA Team Lead)
-Completion Date:                2026-01-28
-Reviewed By:                    Sarah Johnson (Database Architect)
-Review Date:                    2026-01-29
-```
+This is an example of what Step 1 generates in `Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/Migration-Questionnaire-PRODDB.md`:
+
+```markdown
+# Migration Planning Questionnaire: PRODDB
+
+## Instructions
+
+Please complete the following questions. Recommended defaults are provided based on
+the discovery analysis. After completing, save this file and proceed to Step 2.
+
+**Discovery Summary:** See `Step0/Discovery/Discovery-Summary-PRODDB.md` for full details.
+
+---
+
+## Section A: Migration Strategy
+
+### A.1 Migration Method
+
+**Recommended:** ONLINE_PHYSICAL ✓
+
+Based on discovery analysis:
+- Source is in ARCHIVELOG mode with Force Logging enabled
+- TDE is configured properly
+- Database size (1.88 GB) allows for quick synchronization
+- Online migration provides minimal downtime
+
+| Option | Description | Your Selection |
+|--------|-------------|----------------|
+| ONLINE_PHYSICAL | Minimal downtime (~15 min), uses Data Guard | [X] Recommended |
+| OFFLINE_PHYSICAL | Longer downtime, simpler setup | [ ] |
+
+**Your Selection:** _________________ (default: ONLINE_PHYSICAL)
+
+### A.2 Migration Timeline
+
+| Field | Recommended | Your Value |
+|-------|-------------|------------|
+| Planned Migration Date | _________________ | _________________ |
+| Maintenance Window Start | _________________ | _________________ |
+| Maintenance Window End | _________________ | _________________ |
+| Maximum Acceptable Downtime | 15-30 minutes | _________________ |
+
+---
+
+## Section B: OCI/Azure Identifiers (Required)
+
+These values must be obtained from the OCI Console. They are NOT discoverable automatically.
+
+| Field | Where to Find | Your Value |
+|-------|---------------|------------|
+| OCI Tenancy OCID | OCI Console > Profile > Tenancy | _________________________ |
+| OCI User OCID | OCI Console > Profile > User Settings | _________________________ |
+| OCI Compartment OCID | OCI Console > Identity > Compartments | _________________________ |
+| OCI Region | e.g., uk-london-1, us-ashburn-1 | _________________________ |
+| Target DB System OCID | OCI Console > Oracle Database > Exadata | _________________________ |
+| Target Database OCID | OCI Console > Oracle Database > Databases | _________________________ |
+
+---
+
+## Section C: Object Storage Configuration
+
+| Field | Recommended | Your Value |
+|-------|-------------|------------|
+| Object Storage Namespace | (from OCI Console) | _________________________ |
+| Bucket Name | zdm-migration-proddb | _________________________ |
+| Bucket Region | (same as target) | _________________________ |
+| Create New Bucket? | YES | [ ] YES [ ] NO |
+
+---
+
+## Section D: Migration Options
+
+### D.1 Data Guard Configuration (for Online Migration)
+
+**Recommended:** MAXIMUM_PERFORMANCE with ASYNC
+
+| Option | Recommended | Your Selection |
+|--------|-------------|----------------|
+| Protection Mode | MAXIMUM_PERFORMANCE | [ ] MAX_PERF [ ] MAX_AVAIL |
+| Transport Type | ASYNC | [ ] ASYNC [ ] SYNC |
+
+**Why MAX_PERF + ASYNC?** Best performance with acceptable RPO for most migrations.
+
+### D.2 Post-Migration Options
+
+| Option | Recommended | Reason | Your Selection |
+|--------|-------------|--------|----------------|
+| Auto Switchover | NO | Manual control for production | [ ] YES [ ] NO |
+| Delete Backup After | NO | Keep for rollback option | [ ] YES [ ] NO |
+| Include Perf Data | YES | Helps optimize target | [ ] YES [ ] NO |
+
+### D.3 Pause Points
+
+**Recommended:** Pause before switchover (ZDM_SWITCHOVER_SRC)
+
+[ ] ZDM_CONFIGURE_DG_SRC - Pause after Data Guard setup
+[X] ZDM_SWITCHOVER_SRC - Pause before switchover (Recommended for production)
+[ ] None - Run to completion
+
+**Why pause before switchover?** Allows validation and coordination with application team.
+
+---
+
+## Section E: RMAN Backup Settings
+
+| Setting | Recommended | Your Value |
+|---------|-------------|------------|
+| Parallel Channels | 4 (small database) | _________________ |
+| Compression | MEDIUM | [ ] LOW [X] MEDIUM [ ] HIGH |
+| Encryption | AES256 | [ ] AES128 [ ] AES192 [X] AES256 |
+
+---
+
+## Section F: Confirmation
+
+Before proceeding to Step 2, please confirm:
+
+[ ] I have reviewed the Discovery Summary
+[ ] I have completed all OCI/Azure identifiers in Section B  
+[ ] I have verified network connectivity between all servers
+[ ] I understand the supplemental logging must be enabled before migration
+
+**Completed By:** _________________________
+**Date:** _________________________
 
 ---
 
 ## Next Steps
 
-With this completed questionnaire:
+After completing this questionnaire:
 
-1. **Save the questionnaire** - Keep for audit and documentation
-2. **Run Step 2 prompt** with:
-   ```
-   @Step2-Generate-Migration-Artifacts.prompt.md
-   
-   Generate migration artifacts for PRODDB using the completed questionnaire above.
-   
-   Output Directory: Artifacts/Phase10-Migration/ZDM/PRODDB/
-   ```
-3. **Review generated artifacts** before execution
-4. **Create password files** in `/home/zdmuser/creds/` as referenced
+1. **Save this file** to `Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/`
+2. **Complete required actions** from the Discovery Summary
+3. **Run Step 2 prompt**: `Step2-Generate-Migration-Artifacts.prompt.md`
+```
 
 ---
 
-## Tips for Completing Your Questionnaire
+## Summary: What Gets Created
 
-1. **Discovery outputs are your friend** - Most 🔍 fields come directly from scripts
-2. **Double-check OCIDs** - Copy directly from Azure/OCI console to avoid typos
-3. **Test network connectivity** - Run nc/telnet tests for all port combinations
-4. **Secure credentials** - Never embed passwords; always use file references
-5. **Document everything** - The "Additional Notes" section is crucial for troubleshooting
+When you run Step 1 with discovery files attached:
+
+| Output File | Location | Purpose |
+|-------------|----------|---------|
+| Discovery-Summary-PRODDB.md | `Step0/Discovery/` | Auto-populated analysis of all discoveries |
+| Migration-Questionnaire-PRODDB.md | `Step1/` | Manual items only, with recommendations |
+
+---
+
+## Tips
+
+1. **Let the AI do the work** - Discovery summary is fully auto-populated
+2. **Focus on manual items** - The questionnaire only asks what can't be discovered
+3. **Use the recommendations** - They're based on analysis of your specific environment
+4. **Complete Section B** - OCI OCIDs are required and can only come from the console
+5. **Review the required actions** - Complete them before running Step 2
