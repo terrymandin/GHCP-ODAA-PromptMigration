@@ -1,0 +1,19 @@
+{
+  "discovery_type": "zdm_server",
+  "timestamp": "2026-02-23T23:22:32Z",
+  "project": "PRODDB Migration to Oracle Database@Azure",
+  "zdm_server": "zdm-jumpbox.corp.example.com",
+  "hostname": "tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net",
+  "current_user": "azureuser",
+  "os_version": "Oracle Linux Server 9.5",
+  "disk_space_sufficient": "false",
+  "zdm_home": "/u01/app/zdmhome",
+  "zdm_cli_found": "true",
+  "zdm_service_running": "false",
+  "java_home": "/u01/app/zdmhome/jdk",
+  "oci_cli_installed": "true",
+  "source_ping": "SUCCESS",
+  "source_latency_ms": "1.278",
+  "target_ping": "FAILED",
+  "zdm_log_dir": "/u01/app/zdmhome/log"
+}

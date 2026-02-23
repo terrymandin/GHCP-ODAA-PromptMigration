@@ -1,0 +1,25 @@
+{
+  "discovery_type": "zdm_server",
+  "discovery_timestamp": "2026-02-02T17:57:22-05:00",
+  "hostname": "tm-vm-odaa-oracle-jumpbox",
+  "zdm_home": "/u01/app/zdmhome",
+  "java_home": "/u01/app/zdmhome/jdk",
+  "zdm_user": "zdmuser",
+  "zdm": {
+    "installed": true,
+    "service_status": " Running: 	true"
+  },
+  "connectivity": {
+    "source_host": "10.1.0.10",
+    "source_ping": "success",
+    "target_host": "10.0.1.160",
+    "target_ping": "failed"
+  },
+  "disk_space": {
+    "root_available_gb": "24"
+  },
+  "output_files": {
+    "text_report": "./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260202_175706.txt",
+    "json_summary": "./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260202_175706.json"
+  }
+}
