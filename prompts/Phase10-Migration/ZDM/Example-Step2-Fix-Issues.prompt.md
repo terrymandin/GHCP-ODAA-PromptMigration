@@ -1,27 +1,29 @@
-# Example: Step 2 - Fix Issues for <DATABASE>
+# Example: Step 2 - Fix Issues for <DATABASE_NAME>
+
+> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
 
 ## Example Prompt
 
 ```
 @Step2-Fix-Issues.prompt.md
 
-Please help me resolve the issues identified in the Discovery Summary for our <DATABASE> migration.
+Please help me resolve the issues identified in the Discovery Summary for our PRODDB migration.
 
 ## Attached Files
 
 ### Step1 Outputs
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/
 
 ### Discovery Files (from Step0 - for reference)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/
 ```
 
-> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> **Note:** Replace `PRODDB` with your database name (e.g., PRODDB, HRDB, etc.).
 > When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---

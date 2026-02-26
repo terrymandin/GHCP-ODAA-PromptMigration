@@ -1,4 +1,6 @@
-# Example: Discovery Analysis and Migration Planning for PRODDB
+# Example: Discovery Analysis and Migration Planning for <DATABASE_NAME>
+
+> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
 
 This example demonstrates Step 1 for a production Oracle database migration to Oracle Database@Azure.
 
@@ -26,26 +28,26 @@ Copy and use this prompt with your discovery files:
 ```
 @Step1-Discovery-Questionnaire.prompt.md
 
-Please analyze the discovery results for our <DATABASE> migration and generate:
+Please analyze the discovery results for our PRODDB migration and generate:
 1. A summary of discovered configurations
 2. A questionnaire for manual decisions with recommended defaults
 
 ## Attached Discovery Files
 
 ### Source Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/
 
 ### Target Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/
 
 ### ZDM Server Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
+#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/
 ```
 
-> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> **Note:** Replace `PRODDB` with your database name (e.g., PRODDB, HRDB, etc.).
 > When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---

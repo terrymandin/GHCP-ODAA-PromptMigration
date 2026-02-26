@@ -1,5 +1,7 @@
 # ZDM Migration Step 2: Fix Issues
 
+> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
+
 ## Purpose
 This prompt helps address blockers and critical actions identified in the Discovery Summary before proceeding to migration artifact generation. **Iteration may be required** until all issues are resolved.
 
@@ -21,15 +23,15 @@ Attach the Discovery Summary and run this prompt to get remediation guidance:
 ```
 @Step2-Fix-Issues.prompt.md
 
-Please help me resolve the issues identified in the Discovery Summary for our <DATABASE> migration.
+Please help me resolve the issues identified in the Discovery Summary for our <DATABASE_NAME> migration.
 
 ## Attached Files
 
 ### Discovery Summary (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/Discovery-Summary-<DATABASE>.md
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Discovery-Summary-<DATABASE_NAME>.md
 
 ### Migration Questionnaire (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/Migration-Questionnaire-<DATABASE>.md
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Migration-Questionnaire-<DATABASE_NAME>.md
 ```
 
 ---
@@ -95,10 +97,10 @@ For each issue, generate:
 
 ### Part 3: Create Issue Resolution Log
 
-Create a file `Issue-Resolution-Log-<DATABASE>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/` tracking:
+Create a file `Issue-Resolution-Log-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/` tracking:
 
 ```markdown
-# Issue Resolution Log: <DATABASE>
+# Issue Resolution Log: <DATABASE_NAME>
 
 ## Summary
 | Issue | Status | Date Resolved | Verified By |
@@ -235,7 +237,7 @@ ssh -i iaas.pem temandin@10.1.0.10 'ORACLE_USER=oracle bash -s' < zdm_source_dis
 ```
 
 Save updated discovery outputs to:
-`Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/Verification/`
+`Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification/`
 
 ---
 

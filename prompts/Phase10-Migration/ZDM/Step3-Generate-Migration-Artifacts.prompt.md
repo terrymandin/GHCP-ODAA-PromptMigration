@@ -1,5 +1,7 @@
 # ZDM Migration Step 3: Generate Migration Artifacts
 
+> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
+
 ## Purpose
 This prompt takes completed questionnaire responses from Step 1, confirmed issue resolution from Step 2, and generates all required migration artifacts:
 - **README**: Task checklist and quick-start guide for the migration
@@ -29,8 +31,8 @@ When generating artifacts, remember these user workflow requirements:
 
 ### Input Required
 Provide the completed artifacts from previous steps:
-- Migration Questionnaire from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step1/`
-- Issue Resolution Log from `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step2/`
+- Migration Questionnaire from `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/`
+- Issue Resolution Log from `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/`
 - Discovery output files from Step0 (or verification files from Step2)
 
 ### How to Use This Prompt
@@ -38,24 +40,24 @@ Provide the completed artifacts from previous steps:
 ```
 @Step3-Generate-Migration-Artifacts.prompt.md
 
-Generate all migration artifacts for the <DATABASE> migration to Oracle Database@Azure.
+Generate all migration artifacts for the <DATABASE_NAME> migration to Oracle Database@Azure.
 
 ## Migration Questionnaire (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/Migration-Questionnaire-<DATABASE>.md
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Migration-Questionnaire-<DATABASE_NAME>.md
 
 ## Issue Resolution Log (from Step2)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/Issue-Resolution-Log-<DATABASE>.md
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Issue-Resolution-Log-<DATABASE_NAME>.md
 
 ## Discovery Files (from Step0 or Step2 verification)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/
 ```
 
-**Note:** Replace `<DATABASE>`, `<hostname>`, and `<timestamp>` with actual values from your environment.
+**Note:** Replace `<DATABASE_NAME>`, `<hostname>`, and `<timestamp>` with actual values from your environment.
 
 ---
 
@@ -137,7 +139,7 @@ Generated RSP files and CLI scripts should use these environment variables:
 Based on the attached/provided questionnaire responses, generate the following artifacts:
 
 ### Artifact 1: README
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
 **Filename:** `README.md`
 
 Generate a README that provides:
@@ -168,8 +170,8 @@ Generate a README that provides:
 ---
 
 ### Artifact 2: Installation Runbook
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
-**Filename:** `ZDM-Migration-Runbook-<DB_NAME>.md`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
+**Filename:** `ZDM-Migration-Runbook-<DATABASE_NAME>.md`
 
 Generate a comprehensive runbook that includes:
 
@@ -218,8 +220,8 @@ Generate a comprehensive runbook that includes:
 ---
 
 ### Artifact 3: RSP File
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
-**Filename:** `zdm_migrate_<DB_NAME>.rsp`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
+**Filename:** `zdm_migrate_<DATABASE_NAME>.rsp`
 
 Generate a complete RSP file with:
 - All placeholder values replaced with actual questionnaire responses
@@ -231,8 +233,8 @@ Generate a complete RSP file with:
 ---
 
 ### Artifact 4: ZDM CLI Commands
-**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
-**Filename:** `zdm_commands_<DB_NAME>.sh`
+**Output Location:** `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
+**Filename:** `zdm_commands_<DATABASE_NAME>.sh`
 
 Generate a shell script containing:
 - **`init` command**: First-time setup that:
@@ -250,7 +252,7 @@ Generate a shell script containing:
 
 **Important:** The script must include clear instructions at the top explaining:
 1. Users must SSH as `ZDM_ADMIN_USER` (from Step0 questionnaire) and `sudo su - zdmuser`
-2. Users must run `./zdm_commands_<DB_NAME>.sh init` on first use
+2. Users must run `./zdm_commands_<DATABASE_NAME>.sh init` on first use
 3. Users must populate `~/zdm_oci_env.sh` with actual OCI OCIDs
 4. Users must source `~/zdm_oci_env.sh` before running migration commands
 
@@ -425,10 +427,10 @@ OBJECTSTORAGE_NAMESPACE=${TARGET_OBJECT_STORAGE_NAMESPACE}
 # 3. Clone your fork if not already done
 # 4. Navigate to the Step3 artifacts directory
 # 5. Source the OCI environment file: source ~/zdm_oci_env.sh
-# 6. Run this script: ./zdm_commands_[DB_NAME].sh <command>
+# 6. Run this script: ./zdm_commands_[DATABASE].sh <command>
 #
 # First-time setup:
-#   ./zdm_commands_[DB_NAME].sh init
+#   ./zdm_commands_[DATABASE].sh init
 #
 # ===========================================
 
@@ -595,7 +597,7 @@ When generating artifacts, ensure:
 
 ### Required Password Validation in Generated Scripts
 
-All generated CLI command scripts (`zdm_commands_<DB_NAME>.sh`) must include a password validation function that runs before any migration operation:
+All generated CLI command scripts (`zdm_commands_<DATABASE_NAME>.sh`) must include a password validation function that runs before any migration operation:
 
 ```bash
 # ===========================================
@@ -705,12 +707,12 @@ cleanup_password_files() {
 ## Output Confirmation
 
 After generation, confirm all files are saved to:
-`Artifacts/Phase10-Migration/ZDM/<DB_NAME>/Step3/`
+`Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
 
 1. **README**: `README.md`
-2. **Runbook**: `ZDM-Migration-Runbook-<DB_NAME>.md`
-3. **RSP file**: `zdm_migrate_<DB_NAME>.rsp`
-4. **CLI commands**: `zdm_commands_<DB_NAME>.sh`
+2. **Runbook**: `ZDM-Migration-Runbook-<DATABASE_NAME>.md`
+3. **RSP file**: `zdm_migrate_<DATABASE_NAME>.rsp`
+4. **CLI commands**: `zdm_commands_<DATABASE_NAME>.sh`
 
 Review all generated artifacts before execution.
 
@@ -725,7 +727,7 @@ After generating artifacts:
    - `TARGET_TENANCY_OCID`, `TARGET_USER_OCID`, `TARGET_FINGERPRINT`
    - `TARGET_COMPARTMENT_OCID`, `TARGET_DATABASE_OCID`, `TARGET_OBJECT_STORAGE_NAMESPACE`
 3. 🔲 Set password environment variables (at runtime)
-4. 🔲 Run evaluation command first: `./zdm_commands_<DB_NAME>.sh --eval`
+4. 🔲 Run evaluation command first: `./zdm_commands_<DATABASE_NAME>.sh --eval`
 5. 🔲 Execute migration following the runbook
 6. 🔲 Monitor migration progress
 7. 🔲 Perform post-migration validation
@@ -733,3 +735,5 @@ After generating artifacts:
 ---
 
 *Generated by ZDM Migration Planning - Step 3*
+
+

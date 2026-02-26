@@ -1,504 +1,624 @@
 #!/bin/bash
-################################################################################
+# =============================================================================
 # ZDM Target Database Discovery Script
-# Project: PRODDB Migration to Oracle Database@Azure
-# Target: proddb-oda.eastus.azure.example.com (Oracle Database@Azure)
+# =============================================================================
+# Project  : PRODDB Migration to Oracle Database@Azure
+# Target   : proddb-oda.eastus.azure.example.com (Oracle Database@Azure)
+# Generated: 2026-02-26
 #
-# Purpose: Discover target database configuration and environment details
-# Execution: Run via SSH as ADMIN_USER (opc) with sudo privileges
-################################################################################
+# USAGE:
+#   ./zdm_target_discovery.sh
+#
+# SSH as TARGET_ADMIN_USER (opc); SQL runs as oracle via sudo.
+# Set ORACLE_HOME_OVERRIDE / ORACLE_SID_OVERRIDE to force specific values.
+# =============================================================================
 
-# Configuration - User defaults
+# NO set -e  — continue even when individual checks fail
+SECTION_ERRORS=0
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+HOSTNAME_SHORT=$(hostname -s 2>/dev/null || hostname)
+OUTPUT_FILE="./zdm_target_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
+JSON_FILE="./zdm_target_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
+
+# ---------------------------------------------------------------------------
+# Oracle user (can be overridden)
+# ---------------------------------------------------------------------------
 ORACLE_USER="${ORACLE_USER:-oracle}"
 
-# Color codes for terminal output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# ---------------------------------------------------------------------------
+# Environment bootstrap (3-tier priority)
+# ---------------------------------------------------------------------------
+# Tier 1: explicit overrides
+[ -n "${ORACLE_HOME_OVERRIDE:-}" ]  && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
+[ -n "${ORACLE_SID_OVERRIDE:-}"  ]  && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
+[ -n "${GRID_HOME_OVERRIDE:-}"   ]  && export GRID_HOME="$GRID_HOME_OVERRIDE"
 
-# Timestamp for output files
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-HOSTNAME=$(hostname -f 2>/dev/null || hostname)
+# Tier 2: extract export statements from shell profiles (bypasses interactive guards)
+for _profile in /etc/profile /etc/profile.d/*.sh ~/.bash_profile ~/.bashrc; do
+    [ -f "$_profile" ] || continue
+    eval "$(grep -E '^export[[:space:]]+(ORACLE_HOME|ORACLE_SID|ORACLE_BASE|GRID_HOME|TNS_ADMIN|PATH)=' \
+           "$_profile" 2>/dev/null)" 2>/dev/null || true
+done
 
-# Output files in current working directory
-OUTPUT_TXT="./zdm_target_discovery_${HOSTNAME}_${TIMESTAMP}.txt"
-OUTPUT_JSON="./zdm_target_discovery_${HOSTNAME}_${TIMESTAMP}.json"
-
-# Initialize JSON output
-json_data="{}"
-
-################################################################################
-# Utility Functions
-################################################################################
-
-log_section() {
-    local title="$1"
-    echo "" | tee -a "$OUTPUT_TXT"
-    echo "========================================" | tee -a "$OUTPUT_TXT"
-    echo "$title" | tee -a "$OUTPUT_TXT"
-    echo "========================================" | tee -a "$OUTPUT_TXT"
-    echo -e "${BLUE}▶ $title${NC}"
-}
-
-log_info() {
-    echo "$1" | tee -a "$OUTPUT_TXT"
-    echo -e "${GREEN}  $1${NC}"
-}
-
-log_warn() {
-    echo "WARNING: $1" | tee -a "$OUTPUT_TXT"
-    echo -e "${YELLOW}  ⚠ WARNING: $1${NC}"
-}
-
-log_error() {
-    echo "ERROR: $1" | tee -a "$OUTPUT_TXT"
-    echo -e "${RED}  ✗ ERROR: $1${NC}"
-}
-
-add_json_field() {
-    local key="$1"
-    local value="$2"
-    # Escape quotes in value
-    value="${value//\"/\\\"}"
-    json_data=$(echo "$json_data" | jq --arg k "$key" --arg v "$value" '. + {($k): $v}')
-}
-
-################################################################################
-# Oracle Environment Auto-Detection
-################################################################################
-
+# Tier 3: auto-detect for Oracle Database@Azure / Exadata / ODA
 detect_oracle_env() {
-    log_section "Oracle Environment Detection"
-    
-    # If already set, use existing values
-    if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-        log_info "Using existing ORACLE_HOME: $ORACLE_HOME"
-        log_info "Using existing ORACLE_SID: $ORACLE_SID"
-        return 0
-    fi
-    
-    # Method 1: Parse /etc/oratab (most reliable)
+    if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then return 0; fi
+
+    # /etc/oratab
     if [ -f /etc/oratab ]; then
-        log_info "Checking /etc/oratab..."
-        local oratab_entry
+        local entry
         if [ -n "${ORACLE_SID:-}" ]; then
-            oratab_entry=$(grep "^${ORACLE_SID}:" /etc/oratab 2>/dev/null | head -1)
+            entry=$(grep -v '^#' /etc/oratab | grep "^${ORACLE_SID}:" | head -1)
         else
-            oratab_entry=$(grep -v '^#' /etc/oratab | grep -v '^$' | head -1)
+            entry=$(grep -v '^#' /etc/oratab | grep ':' | grep -v '^$' | head -1)
         fi
-        if [ -n "$oratab_entry" ]; then
-            export ORACLE_SID="${ORACLE_SID:-$(echo "$oratab_entry" | cut -d: -f1)}"
-            export ORACLE_HOME="${ORACLE_HOME:-$(echo "$oratab_entry" | cut -d: -f2)}"
-            log_info "Found from /etc/oratab - SID: $ORACLE_SID, HOME: $ORACLE_HOME"
+        if [ -n "$entry" ]; then
+            export ORACLE_SID="${ORACLE_SID:-$(echo "$entry" | cut -d: -f1)}"
+            export ORACLE_HOME="${ORACLE_HOME:-$(echo "$entry" | cut -d: -f2)}"
         fi
     fi
-    
-    # Method 2: Check running pmon process
+
+    # pmon
     if [ -z "${ORACLE_SID:-}" ]; then
-        log_info "Checking running pmon processes..."
         local pmon_sid
-        pmon_sid=$(ps -ef | grep 'ora_pmon_' | grep -v grep | head -1 | sed 's/.*ora_pmon_//')
-        if [ -n "$pmon_sid" ]; then
-            export ORACLE_SID="$pmon_sid"
-            log_info "Found from pmon process - SID: $ORACLE_SID"
-        fi
+        pmon_sid=$(ps -ef 2>/dev/null | grep 'ora_pmon_' | grep -v grep | head -1 | sed 's/.*ora_pmon_//')
+        [ -n "$pmon_sid" ] && export ORACLE_SID="$pmon_sid"
     fi
-    
-    # Method 3: Search common Oracle installation paths
+
+    # Common Oracle Database@Azure / Exadata paths
     if [ -z "${ORACLE_HOME:-}" ]; then
-        log_info "Searching common Oracle installation paths..."
-        for path in /u01/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1 /oracle/product/*/dbhome_1; do
-            if [ -d "$path" ] && [ -f "$path/bin/sqlplus" ]; then
-                export ORACLE_HOME="$path"
-                log_info "Found ORACLE_HOME: $ORACLE_HOME"
+        for _path in /u01/app/oracle/product/*/dbhome_1 \
+                     /u02/app/oracle/product/*/dbhome_1 \
+                     /u01/app/oracle/product/*/dbhome_2 \
+                     /opt/oracle/product/*/dbhome_1; do
+            if [ -d "$_path" ] && [ -f "$_path/bin/sqlplus" ]; then
+                export ORACLE_HOME="$_path"
                 break
             fi
         done
     fi
-    
-    # Apply explicit overrides if provided (highest priority)
-    [ -n "${ORACLE_HOME_OVERRIDE:-}" ] && export ORACLE_HOME="$ORACLE_HOME_OVERRIDE"
-    [ -n "${ORACLE_SID_OVERRIDE:-}" ] && export ORACLE_SID="$ORACLE_SID_OVERRIDE"
-    
-    # Set ORACLE_BASE if not already set
-    if [ -n "${ORACLE_HOME:-}" ] && [ -z "${ORACLE_BASE:-}" ]; then
-        export ORACLE_BASE=$(dirname $(dirname "$ORACLE_HOME"))
+
+    # Grid Infrastructure (ASM)
+    if [ -z "${GRID_HOME:-}" ]; then
+        for _gpath in /u01/app/grid/product/*/grid \
+                      /u01/app/*/grid /u01/app/grid /u01/grid; do
+            if [ -d "$_gpath" ] && [ -f "$_gpath/bin/crsctl" ]; then
+                export GRID_HOME="$_gpath"
+                break
+            fi
+        done
     fi
-    
-    # Verify detection
-    if [ -z "${ORACLE_HOME:-}" ] || [ -z "${ORACLE_SID:-}" ]; then
-        log_error "Failed to detect Oracle environment"
-        log_error "Please set ORACLE_HOME and ORACLE_SID environment variables"
-        return 1
+
+    if [ -n "${ORACLE_HOME:-}" ]; then
+        export PATH="$ORACLE_HOME/bin:${GRID_HOME:+$GRID_HOME/bin:}$PATH"
+        export LD_LIBRARY_PATH="${ORACLE_HOME}/lib:${LD_LIBRARY_PATH:-}"
     fi
-    
-    log_info "✓ Oracle environment detected successfully"
-    log_info "  ORACLE_HOME: $ORACLE_HOME"
-    log_info "  ORACLE_SID: $ORACLE_SID"
-    log_info "  ORACLE_BASE: ${ORACLE_BASE:-not set}"
-    
-    return 0
+}
+detect_oracle_env
+
+# ---------------------------------------------------------------------------
+# Colour helpers
+# ---------------------------------------------------------------------------
+RED='\033[0;31m'; YELLOW='\033[1;33m'; GREEN='\033[0;32m'
+CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
+log_info()    { echo -e "${GREEN}[INFO ] $*${RESET}";  }
+log_warn()    { echo -e "${YELLOW}[WARN ] $*${RESET}"; }
+log_error()   { echo -e "${RED}[ERROR] $*${RESET}";   }
+log_section() {
+    local bar="============================================================"
+    echo "" | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}${BOLD}${bar}${RESET}"  | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}${BOLD}  $*${RESET}"    | tee -a "$OUTPUT_FILE"
+    echo -e "${CYAN}${BOLD}${bar}${RESET}"  | tee -a "$OUTPUT_FILE"
+    echo "" | tee -a "$OUTPUT_FILE"
 }
 
-################################################################################
-# SQL Execution Function
-################################################################################
-
+# ---------------------------------------------------------------------------
+# SQL helper
+# ---------------------------------------------------------------------------
 run_sql() {
     local sql_query="$1"
-    if [ -n "${ORACLE_HOME:-}" ] && [ -n "${ORACLE_SID:-}" ]; then
-        local sqlplus_cmd="$ORACLE_HOME/bin/sqlplus -s / as sysdba"
-        local sql_script=$(cat <<EOSQL
-SET PAGESIZE 1000
-SET LINESIZE 200
+    if [ -z "${ORACLE_HOME:-}" ] || [ -z "${ORACLE_SID:-}" ]; then
+        echo "ERROR: ORACLE_HOME or ORACLE_SID not set — skipping SQL"
+        return 1
+    fi
+    local sqlplus_cmd="$ORACLE_HOME/bin/sqlplus -s / as sysdba"
+    local sql_script
+    sql_script=$(cat <<EOSQL
+SET PAGESIZE 5000
+SET LINESIZE 220
 SET FEEDBACK OFF
 SET HEADING ON
 SET ECHO OFF
+SET TRIMSPOOL ON
 $sql_query
+EXIT
 EOSQL
 )
-        # Execute as oracle user - use sudo if current user is not oracle
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            echo "$sql_script" | $sqlplus_cmd 2>&1
-        else
-            echo "$sql_script" | sudo -u "$ORACLE_USER" -E ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" $sqlplus_cmd 2>&1
-        fi
+    if [ "$(id -un)" = "$ORACLE_USER" ]; then
+        echo "$sql_script" | $sqlplus_cmd 2>&1
     else
-        echo "ERROR: ORACLE_HOME or ORACLE_SID not set"
-        return 1
+        echo "$sql_script" | sudo -u "$ORACLE_USER" \
+            env ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" \
+            LD_LIBRARY_PATH="${ORACLE_HOME}/lib" PATH="$ORACLE_HOME/bin:$PATH" \
+            $sqlplus_cmd 2>&1
     fi
 }
 
 run_sql_value() {
-    local sql_query="$1"
-    local result
-    result=$(run_sql "$sql_query" | grep -v "^$" | tail -1)
-    echo "$result"
+    run_sql "SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+$1" 2>/dev/null | grep -v '^$' | head -1 | xargs
 }
 
-################################################################################
-# Main Discovery Functions
-################################################################################
-
-gather_os_info() {
-    log_section "Operating System Information"
-    
-    log_info "Hostname: $(hostname -f 2>/dev/null || hostname)"
-    add_json_field "hostname" "$(hostname -f 2>/dev/null || hostname)"
-    
-    log_info "IP Addresses:"
-    ip addr show | grep 'inet ' | awk '{print "  " $2}' | tee -a "$OUTPUT_TXT"
-    
-    log_info "OS Version:"
-    if [ -f /etc/os-release ]; then
-        cat /etc/os-release | tee -a "$OUTPUT_TXT"
-        os_version=$(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)
-        add_json_field "os_version" "$os_version"
-    elif [ -f /etc/oracle-release ]; then
-        cat /etc/oracle-release | tee -a "$OUTPUT_TXT"
-        add_json_field "os_version" "$(cat /etc/oracle-release)"
-    fi
-    
-    log_info "Disk Space:"
-    df -h | tee -a "$OUTPUT_TXT"
-    
-    log_info "Memory:"
-    free -h | tee -a "$OUTPUT_TXT"
-}
-
-gather_oracle_info() {
-    log_section "Oracle Environment"
-    
-    log_info "ORACLE_HOME: ${ORACLE_HOME:-not set}"
-    log_info "ORACLE_SID: ${ORACLE_SID:-not set}"
-    log_info "ORACLE_BASE: ${ORACLE_BASE:-not set}"
-    
-    add_json_field "oracle_home" "${ORACLE_HOME:-}"
-    add_json_field "oracle_sid" "${ORACLE_SID:-}"
-    add_json_field "oracle_base" "${ORACLE_BASE:-}"
-    
-    if [ -n "${ORACLE_HOME:-}" ] && [ -f "$ORACLE_HOME/bin/sqlplus" ]; then
-        log_info "Oracle Version:"
-        local oracle_version
-        oracle_version=$(run_sql_value "SELECT banner FROM v\$version WHERE ROWNUM = 1;")
-        log_info "$oracle_version"
-        add_json_field "oracle_version" "$oracle_version"
-    fi
-}
-
-gather_database_config() {
-    log_section "Database Configuration"
-    
-    # Database name and DB unique name
-    local db_name=$(run_sql_value "SELECT name FROM v\$database;")
-    local db_unique_name=$(run_sql_value "SELECT db_unique_name FROM v\$database;")
-    
-    log_info "Database Name: $db_name"
-    log_info "DB Unique Name: $db_unique_name"
-    
-    add_json_field "db_name" "$db_name"
-    add_json_field "db_unique_name" "$db_unique_name"
-    
-    # Database role and open mode
-    local db_role=$(run_sql_value "SELECT database_role FROM v\$database;")
-    local open_mode=$(run_sql_value "SELECT open_mode FROM v\$database;")
-    
-    log_info "Database Role: $db_role"
-    log_info "Open Mode: $open_mode"
-    
-    add_json_field "db_role" "$db_role"
-    add_json_field "open_mode" "$open_mode"
-    
-    # Character set
-    local charset=$(run_sql_value "SELECT value FROM nls_database_parameters WHERE parameter = 'NLS_CHARACTERSET';")
-    
-    log_info "Character Set: $charset"
-    add_json_field "character_set" "$charset"
-}
-
-gather_storage_info() {
-    log_section "Available Storage"
-    
-    log_info "Tablespaces and Space:"
-    run_sql "SELECT tablespace_name, ROUND(SUM(bytes)/1024/1024/1024, 2) AS allocated_gb, ROUND(SUM(maxbytes)/1024/1024/1024, 2) AS max_gb, COUNT(*) AS files FROM dba_data_files GROUP BY tablespace_name ORDER BY tablespace_name;" | tee -a "$OUTPUT_TXT"
-    
-    # Check if ASM is in use
-    log_info "ASM Configuration:"
-    if command -v asmcmd &> /dev/null; then
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            asmcmd lsdg 2>&1 | tee -a "$OUTPUT_TXT"
+# ---------------------------------------------------------------------------
+# ASM helper — runs asmcmd as grid/oracle user
+# ---------------------------------------------------------------------------
+run_asmcmd() {
+    local cmd="$1"
+    local grid_user="${GRID_USER:-oracle}"
+    if [ -n "${GRID_HOME:-}" ] && [ -f "$GRID_HOME/bin/asmcmd" ]; then
+        if [ "$(id -un)" = "$grid_user" ]; then
+            echo "$cmd" | ORACLE_HOME="$GRID_HOME" "$GRID_HOME/bin/asmcmd" 2>&1
         else
-            sudo -u "$ORACLE_USER" asmcmd lsdg 2>&1 | tee -a "$OUTPUT_TXT"
+            echo "$cmd" | sudo -u "$grid_user" \
+                env ORACLE_HOME="$GRID_HOME" \
+                LD_LIBRARY_PATH="$GRID_HOME/lib" \
+                PATH="$GRID_HOME/bin:$PATH" \
+                "$GRID_HOME/bin/asmcmd" 2>&1
         fi
     else
-        log_info "ASM command not available"
+        echo "GRID_HOME not set or asmcmd not found"
     fi
 }
 
-gather_exadata_storage() {
-    log_section "Exadata Storage Capacity"
-    
-    log_info "Checking Exadata storage..."
-    
-    # Check for Exadata-specific views
-    local is_exadata=$(run_sql_value "SELECT COUNT(*) FROM dba_tables WHERE owner = 'SYS' AND table_name = 'V\$CELL';")
-    
-    if [ "$is_exadata" -gt 0 ]; then
-        log_info "Exadata environment detected"
-        add_json_field "is_exadata" "true"
-        
-        log_info "Cell Disk Space:"
-        run_sql "SELECT name, total_size/1024/1024/1024 AS total_gb, free_size/1024/1024/1024 AS free_gb FROM v\$cell ORDER BY name;" | tee -a "$OUTPUT_TXT"
-        
-        log_info "Flash Cache Statistics:"
-        run_sql "SELECT name, flash_cache_size/1024/1024/1024 AS flash_cache_gb FROM v\$cell ORDER BY name;" | tee -a "$OUTPUT_TXT"
-    else
-        log_info "Not an Exadata environment"
-        add_json_field "is_exadata" "false"
+run_section() {
+    local name="$1"; local fn="$2"
+    log_section "$name"
+    if ! $fn 2>&1 | tee -a "$OUTPUT_FILE"; then
+        log_warn "Section '$name' reported errors (continuing)"
+        SECTION_ERRORS=$((SECTION_ERRORS + 1))
     fi
 }
 
-gather_cdb_info() {
-    log_section "Container Database Information"
-    
-    local cdb=$(run_sql_value "SELECT cdb FROM v\$database;")
-    log_info "CDB: $cdb"
-    add_json_field "cdb" "$cdb"
-    
-    if [ "$cdb" = "YES" ]; then
-        log_info "Pre-configured PDBs:"
-        run_sql "SELECT con_id, name, open_mode, restricted, open_time, total_size/1024/1024/1024 AS size_gb FROM v\$pdbs ORDER BY name;" | tee -a "$OUTPUT_TXT"
-        
-        log_info "PDB Tablespaces:"
-        run_sql "SELECT t.con_id, p.name AS pdb_name, t.tablespace_name, t.status FROM cdb_tablespaces t JOIN v\$pdbs p ON t.con_id = p.con_id WHERE t.con_id > 2 ORDER BY t.con_id, t.tablespace_name;" | tee -a "$OUTPUT_TXT"
-    fi
+# ===========================================================================
+# DISCOVERY SECTIONS
+# ===========================================================================
+
+section_os_info() {
+    echo "Hostname     : $(hostname -f 2>/dev/null || hostname)"
+    echo "Short name   : $(hostname -s 2>/dev/null || hostname)"
+    echo "Date/Time    : $(date)"
+    echo "Uptime       : $(uptime)"
+    echo ""
+    echo "--- IP Addresses ---"
+    ip addr show 2>/dev/null || ifconfig 2>/dev/null || echo "N/A"
+    echo ""
+    echo "--- OS Version ---"
+    cat /etc/os-release 2>/dev/null || cat /etc/redhat-release 2>/dev/null || uname -a
+    echo ""
+    echo "--- Kernel ---"
+    uname -r
+    echo ""
+    echo "--- Memory ---"
+    free -h 2>/dev/null
+    echo ""
+    echo "--- CPU ---"
+    nproc 2>/dev/null && grep 'model name' /proc/cpuinfo 2>/dev/null | head -1
 }
 
-gather_tde_info() {
-    log_section "TDE Configuration"
-    
-    log_info "Wallet Status:"
-    run_sql "SELECT * FROM v\$encryption_wallet;" | tee -a "$OUTPUT_TXT"
-}
-
-gather_network_config() {
-    log_section "Network Configuration"
-    
-    # Listener status
-    log_info "Listener Status:"
+section_oracle_env() {
+    echo "ORACLE_HOME  : ${ORACLE_HOME:-NOT SET}"
+    echo "ORACLE_SID   : ${ORACLE_SID:-NOT SET}"
+    echo "ORACLE_BASE  : ${ORACLE_BASE:-NOT SET}"
+    echo "GRID_HOME    : ${GRID_HOME:-NOT SET}"
+    echo ""
     if [ -n "${ORACLE_HOME:-}" ]; then
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            $ORACLE_HOME/bin/lsnrctl status 2>&1 | tee -a "$OUTPUT_TXT"
-        else
-            sudo -u "$ORACLE_USER" $ORACLE_HOME/bin/lsnrctl status 2>&1 | tee -a "$OUTPUT_TXT"
-        fi
+        echo "--- Oracle Version ---"
+        "$ORACLE_HOME/bin/sqlplus" -V 2>&1
     fi
-    
-    # Check for SCAN listener (RAC)
-    log_info "SCAN Listener Configuration:"
+    echo ""
+    echo "--- /etc/oratab ---"
+    cat /etc/oratab 2>/dev/null || echo "Not found"
+    echo ""
+    echo "--- Running Oracle Processes ---"
+    ps -ef 2>/dev/null | grep -E '[o]ra_pmon|[o]cr_|[o]has' | awk '{print $1, $NF}'
+}
+
+section_db_config() {
+    echo "--- Database Identity ---"
+    run_sql "
+SELECT name, db_unique_name, dbid, log_mode, open_mode,
+       force_logging, flashback_on, database_role, platform_name
+FROM   v\$database;"
+
+    echo ""
+    echo "--- Key Parameters ---"
+    run_sql "
+SELECT name, value FROM v\$parameter
+WHERE name IN ('db_name','db_unique_name','enable_pluggable_database',
+               'db_block_size','compatible','memory_target',
+               'pga_aggregate_target','sga_target','undo_tablespace',
+               'archive_dest_1','log_archive_config')
+ORDER BY name;"
+
+    echo ""
+    echo "--- Database Size ---"
+    run_sql "
+SELECT 'Data Files (GB)'  AS component,
+       ROUND(SUM(bytes)/1024/1024/1024,2) AS size_gb
+FROM   dba_data_files
+UNION ALL
+SELECT 'Temp Files (GB)',ROUND(SUM(bytes)/1024/1024/1024,2) FROM dba_temp_files
+UNION ALL
+SELECT 'Redo Logs (MB)',ROUND(SUM(bytes)/1024/1024,2) FROM v\$log;"
+
+    echo ""
+    echo "--- Character Sets ---"
+    run_sql "
+SELECT parameter, value FROM nls_database_parameters
+WHERE parameter IN ('NLS_CHARACTERSET','NLS_NCHAR_CHARACTERSET')
+ORDER BY parameter;"
+}
+
+section_cdb_pdb() {
+    echo "--- CDB Status ---"
+    local cdb_flag
+    cdb_flag=$(run_sql_value "SELECT cdb FROM v\$database;")
+    echo "CDB: $cdb_flag"
+    echo ""
+    if [ "$cdb_flag" = "YES" ]; then
+        echo "--- PDB List ---"
+        run_sql "SELECT con_id, name, open_mode, restricted, guid FROM v\$pdbs ORDER BY con_id;"
+        echo ""
+        echo "--- PDB Sizes ---"
+        run_sql "
+SELECT p.name AS pdb_name,
+       ROUND(SUM(df.bytes)/1024/1024/1024,2) AS size_gb
+FROM   v\$pdbs p
+JOIN   cdb_data_files df ON df.con_id = p.con_id
+GROUP  BY p.name ORDER BY p.name;"
+        echo ""
+        echo "--- PDB Services ---"
+        run_sql "
+SELECT con_id, name, network_name FROM cdb_services
+ORDER BY con_id, name;"
+    else
+        echo "Not a CDB — standard database"
+    fi
+}
+
+section_tde() {
+    echo "--- TDE / Wallet Status ---"
+    run_sql "
+SELECT wrl_type, wrl_parameter, status, wallet_type, con_id
+FROM   v\$encryption_wallet ORDER BY con_id;"
+
+    echo ""
+    echo "--- Encrypted Tablespaces ---"
+    run_sql "SELECT tablespace_name, encrypted FROM dba_tablespaces WHERE encrypted='YES' ORDER BY 1;"
+}
+
+section_network_config() {
+    local tns_admin="${TNS_ADMIN:-${ORACLE_HOME}/network/admin}"
+    echo "--- Listener Status ---"
     if [ -n "${ORACLE_HOME:-}" ]; then
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            $ORACLE_HOME/bin/srvctl config scan 2>&1 | tee -a "$OUTPUT_TXT" || log_info "Not a RAC environment"
-        else
-            sudo -u "$ORACLE_USER" $ORACLE_HOME/bin/srvctl config scan 2>&1 | tee -a "$OUTPUT_TXT" || log_info "Not a RAC environment"
-        fi
+        "$ORACLE_HOME/bin/lsnrctl" status 2>&1 || echo "lsnrctl not available"
     fi
-    
-    # tnsnames.ora
-    log_info "tnsnames.ora:"
-    if [ -f "$ORACLE_HOME/network/admin/tnsnames.ora" ]; then
-        cat "$ORACLE_HOME/network/admin/tnsnames.ora" | tee -a "$OUTPUT_TXT"
-    else
-        log_warn "tnsnames.ora not found"
+
+    echo ""
+    echo "--- SCAN Listener (RAC) ---"
+    if [ -n "${GRID_HOME:-}" ]; then
+        sudo -u oracle env ORACLE_HOME="$GRID_HOME" "$GRID_HOME/bin/srvctl" status scan_listener 2>&1 || \
+        sudo -u grid   env ORACLE_HOME="$GRID_HOME" "$GRID_HOME/bin/srvctl" status scan_listener 2>&1 || \
+        echo "SCAN listener check failed or not RAC"
     fi
+
+    echo ""
+    echo "--- tnsnames.ora ---"
+    cat "$tns_admin/tnsnames.ora" 2>/dev/null || echo "Not found at $tns_admin"
+    # Also check Grid TNS admin
+    if [ -n "${GRID_HOME:-}" ]; then
+        cat "$GRID_HOME/network/admin/tnsnames.ora" 2>/dev/null | head -40 || true
+    fi
+
+    echo ""
+    echo "--- Open Ports (Oracle-related) ---"
+    ss -tlnp 2>/dev/null | grep -E '1521|1522|5500|6200' || \
+    netstat -tlnp 2>/dev/null | grep -E '1521|1522|5500|6200' || echo "N/A"
 }
 
-gather_network_security() {
-    log_section "Network Security Group Rules"
-    
-    log_info "Firewall Status:"
-    if command -v firewall-cmd &> /dev/null; then
-        sudo firewall-cmd --list-all 2>&1 | tee -a "$OUTPUT_TXT"
+section_oci_azure_integration() {
+    echo "--- OCI CLI ---"
+    oci --version 2>&1 || echo "OCI CLI not installed or not in PATH"
+
+    echo ""
+    echo "--- OCI Config ---"
+    if [ -f ~/.oci/config ]; then
+        echo "File exists: ~/.oci/config"
+        grep -E '^\[|^region|^tenancy|^user|^fingerprint' ~/.oci/config 2>/dev/null
     else
-        log_info "firewall-cmd not available"
+        echo "~/.oci/config not found"
     fi
-    
-    log_info "Active Network Connections:"
-    netstat -tuln 2>&1 | grep LISTEN | tee -a "$OUTPUT_TXT"
-    
-    log_info "IPTables Rules (if applicable):"
-    sudo iptables -L -n 2>&1 | tee -a "$OUTPUT_TXT" || log_info "iptables not available or not permitted"
+
+    echo ""
+    echo "--- OCI Connectivity Test ---"
+    oci iam region list --output table 2>&1 | head -20 || echo "OCI connectivity test failed"
+
+    echo ""
+    echo "--- Azure Instance Metadata (IMDS) ---"
+    curl -s -H "Metadata:true" \
+        "http://169.254.169.254/metadata/instance?api-version=2021-02-01" \
+        --connect-timeout 5 2>&1 | python3 -m json.tool 2>/dev/null || \
+    echo "Azure IMDS not reachable (may not be Azure VM or curl not available)"
+
+    echo ""
+    echo "--- OCI Instance Metadata ---"
+    curl -s http://169.254.169.254/opc/v1/instance/ \
+        --connect-timeout 5 2>&1 || echo "OCI IMDS not reachable"
 }
 
-gather_oci_integration() {
-    log_section "OCI/Azure Integration"
-    
-    # OCI CLI version
-    log_info "OCI CLI Version:"
-    if command -v oci &> /dev/null; then
-        oci --version 2>&1 | tee -a "$OUTPUT_TXT"
-        add_json_field "oci_cli_installed" "true"
-        
-        log_info "OCI Configuration:"
-        if [ -f ~/.oci/config ]; then
-            log_info "OCI config file exists"
-            # Show config but mask sensitive data
-            grep -E "^\[|^user|^tenancy|^region" ~/.oci/config 2>&1 | tee -a "$OUTPUT_TXT"
-        else
-            log_warn "OCI config file not found"
-        fi
-        
-        log_info "OCI Connectivity Test:"
-        oci iam region list 2>&1 | head -10 | tee -a "$OUTPUT_TXT" || log_warn "OCI connectivity test failed"
-    else
-        log_warn "OCI CLI not installed"
-        add_json_field "oci_cli_installed" "false"
+section_grid_infrastructure() {
+    if [ -z "${GRID_HOME:-}" ]; then
+        echo "GRID_HOME not set — skipping Grid Infrastructure checks"
+        return 0
     fi
-    
-    # Instance metadata (OCI)
-    log_info "OCI Instance Metadata:"
-    curl -s -H "Authorization: Bearer Oracle" -m 5 http://169.254.169.254/opc/v2/instance/ 2>&1 | tee -a "$OUTPUT_TXT" || log_info "Not an OCI instance or metadata service unavailable"
-    
-    # Azure metadata
-    log_info "Azure Instance Metadata:"
-    curl -s -H "Metadata:true" -m 5 "http://169.254.169.254/metadata/instance?api-version=2021-02-01" 2>&1 | tee -a "$OUTPUT_TXT" || log_info "Not an Azure instance or metadata service unavailable"
+
+    echo "--- CRS/HAS Status ---"
+    sudo "$GRID_HOME/bin/crsctl" check crs 2>&1 || \
+    sudo "$GRID_HOME/bin/crsctl" check has 2>&1 || echo "CRS/HAS check failed"
+
+    echo ""
+    echo "--- Cluster Nodes ---"
+    sudo "$GRID_HOME/bin/olsnodes" -n 2>&1 || echo "olsnodes not available"
+
+    echo ""
+    echo "--- RAC Database Status ---"
+    sudo -u oracle env ORACLE_HOME="$GRID_HOME" \
+        "$GRID_HOME/bin/srvctl" status database -d "${ORACLE_SID:-}" 2>&1 || \
+    echo "srvctl status check failed"
+
+    echo ""
+    echo "--- SCAN Addresses ---"
+    sudo -u oracle env ORACLE_HOME="$GRID_HOME" \
+        "$GRID_HOME/bin/srvctl" config scan 2>&1 || echo "SCAN config check failed"
 }
 
-gather_grid_infrastructure() {
-    log_section "Grid Infrastructure"
-    
-    log_info "Checking for Grid Infrastructure..."
-    
-    if command -v crsctl &> /dev/null; then
-        log_info "CRS Status:"
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            crsctl check crs 2>&1 | tee -a "$OUTPUT_TXT"
-            crsctl status resource -t 2>&1 | tee -a "$OUTPUT_TXT"
-        else
-            sudo -u "$ORACLE_USER" crsctl check crs 2>&1 | tee -a "$OUTPUT_TXT"
-            sudo -u "$ORACLE_USER" crsctl status resource -t 2>&1 | tee -a "$OUTPUT_TXT"
-        fi
-        add_json_field "grid_infrastructure" "true"
-    else
-        log_info "Grid Infrastructure not detected"
-        add_json_field "grid_infrastructure" "false"
-    fi
-}
+section_auth() {
+    echo "--- SSH Directory ---"
+    ls -la ~/.ssh/ 2>/dev/null || echo "No .ssh directory for current user"
 
-gather_authentication() {
-    log_section "Authentication"
-    
-    # SSH directory
-    log_info "SSH Directory:"
+    echo ""
+    echo "--- Oracle User SSH Directory ---"
     local oracle_home_dir
-    if [ "$(whoami)" = "$ORACLE_USER" ]; then
-        oracle_home_dir="$HOME"
+    oracle_home_dir=$(eval echo "~$ORACLE_USER" 2>/dev/null)
+    if sudo test -d "$oracle_home_dir/.ssh" 2>/dev/null; then
+        sudo -u "$ORACLE_USER" ls -la "$oracle_home_dir/.ssh/" 2>/dev/null || echo "Cannot list"
     else
-        oracle_home_dir=$(eval echo ~"$ORACLE_USER")
+        echo "Oracle user SSH dir not found (not a blocker — sudo pattern used)"
     fi
-    
-    if [ -d "$oracle_home_dir/.ssh" ]; then
-        if [ "$(whoami)" = "$ORACLE_USER" ]; then
-            ls -la "$oracle_home_dir/.ssh" 2>&1 | tee -a "$OUTPUT_TXT"
+
+    echo ""
+    echo "--- sudoers for oracle (relevant entries) ---"
+    sudo grep -E 'oracle|opc|azureuser' /etc/sudoers /etc/sudoers.d/* 2>/dev/null | \
+        grep -v '^#' | head -20 || echo "Cannot read sudoers"
+}
+
+# -----------------------------------------------------------------------
+# ADDITIONAL TARGET DISCOVERY (user-requested)
+# -----------------------------------------------------------------------
+
+section_exadata_storage() {
+    echo "--- ASM Disk Groups (Exadata Storage) ---"
+    run_asmcmd "lsdg --discovery"
+    echo ""
+    run_sql "
+SELECT group_number, name, type, total_mb, free_mb,
+       ROUND((total_mb - free_mb)/total_mb * 100, 1) AS pct_used,
+       state, offline_disks
+FROM   v\$asm_diskgroup
+ORDER  BY name;" 2>/dev/null
+
+    echo ""
+    echo "--- ASM Disks Summary ---"
+    run_sql "
+SELECT dg.name AS disk_group,
+       COUNT(d.disk_number) AS disk_count,
+       SUM(d.total_mb) AS total_mb,
+       SUM(d.free_mb) AS free_mb
+FROM   v\$asm_disk d JOIN v\$asm_diskgroup dg ON d.group_number = dg.group_number
+WHERE  dg.state = 'MOUNTED'
+GROUP  BY dg.name ORDER BY dg.name;" 2>/dev/null
+
+    echo ""
+    echo "--- Exadata Cell / Smart Scan (if applicable) ---"
+    if [ -f /etc/oracle/cell/network-config/cellinit.ora ]; then
+        echo "Exadata cell config found:"
+        cat /etc/oracle/cell/network-config/cellinit.ora
+    else
+        echo "Not configured as Exadata cell (may be ODA or BM Exadata VM)"
+    fi
+
+    echo ""
+    echo "--- Datafile Locations (ASM) ---"
+    run_sql "
+SELECT tablespace_name,
+       SUBSTR(file_name,1,50) AS file_name_prefix,
+       ROUND(bytes/1024/1024/1024,2) AS size_gb,
+       autoextensible
+FROM   dba_data_files ORDER BY tablespace_name FETCH FIRST 30 ROWS ONLY;"
+
+    echo ""
+    echo "--- Available Tablespace Space ---"
+    run_sql "
+SELECT t.tablespace_name,
+       t.status, t.contents, t.bigfile,
+       ROUND(SUM(df.bytes)/1024/1024/1024,2) AS allocated_gb,
+       ROUND(NVL(fs.free_gb,0),2) AS free_gb
+FROM   dba_tablespaces t
+LEFT JOIN dba_data_files df ON df.tablespace_name = t.tablespace_name
+LEFT JOIN (
+    SELECT tablespace_name, ROUND(SUM(bytes)/1024/1024/1024,2) AS free_gb
+    FROM   dba_free_space GROUP BY tablespace_name
+) fs ON fs.tablespace_name = t.tablespace_name
+GROUP  BY t.tablespace_name, t.status, t.contents, t.bigfile, fs.free_gb
+ORDER  BY t.tablespace_name;"
+}
+
+section_preconfigured_pdbs() {
+    echo "--- Pre-configured PDBs on Target ---"
+    run_sql "
+SELECT con_id, name, open_mode, restricted, create_scn,
+       to_char(creation_time,'YYYY-MM-DD HH24:MI:SS') AS created
+FROM   v\$pdbs ORDER BY con_id;"
+
+    echo ""
+    echo "--- PDB Options and Features ---"
+    run_sql "
+SELECT con_id, comp_name, status
+FROM   cdb_registry
+ORDER  BY con_id, comp_name;" 2>/dev/null || echo "cdb_registry not accessible (may need SYSDBA to CDB root)"
+
+    echo ""
+    echo "--- Default Services per PDB ---"
+    run_sql "
+SELECT con_id, name, network_name, pdb
+FROM   cdb_services WHERE con_id > 2 ORDER BY con_id, name;" 2>/dev/null
+
+    echo ""
+    echo "--- PDB Tablespaces (per PDB) ---"
+    run_sql "
+SELECT con_id, tablespace_name, status, contents, bigfile
+FROM   cdb_tablespaces WHERE con_id > 2 ORDER BY con_id, tablespace_name;" 2>/dev/null
+}
+
+section_nsg_rules() {
+    echo "--- Azure Network Security Groups (via Azure CLI) ---"
+    if command -v az >/dev/null 2>&1; then
+        echo "Azure CLI available: $(az --version 2>&1 | head -1)"
+        echo ""
+        echo "Listing NSG rules affecting this VM:"
+        VM_NAME=$(curl -s -H "Metadata:true" \
+            "http://169.254.169.254/metadata/instance/compute/name?api-version=2021-02-01&format=text" \
+            --connect-timeout 5 2>/dev/null) || VM_NAME="unknown"
+        RG=$(curl -s -H "Metadata:true" \
+            "http://169.254.169.254/metadata/instance/compute/resourceGroupName?api-version=2021-02-01&format=text" \
+            --connect-timeout 5 2>/dev/null) || RG="unknown"
+        echo "VM Name: $VM_NAME  Resource Group: $RG"
+        if [ "$VM_NAME" != "unknown" ] && [ "$RG" != "unknown" ]; then
+            az network nic list-effective-nsg \
+                --resource-group "$RG" --vm-name "$VM_NAME" \
+                --output table 2>&1 | head -60 || echo "Unable to list NSG rules (check Azure login)"
         else
-            sudo -u "$ORACLE_USER" ls -la "$oracle_home_dir/.ssh" 2>&1 | tee -a "$OUTPUT_TXT"
+            echo "Unable to determine VM name/resource group automatically"
+            echo "Manual command to run with appropriate credentials:"
+            echo "  az network nic list-effective-nsg --resource-group <RG> --vm-name <VM>"
         fi
     else
-        log_warn "SSH directory not found for oracle user"
+        echo "Azure CLI (az) not installed on this host"
+        echo "To check NSG rules, run from Azure Cloud Shell or a machine with az CLI:"
+        echo "  az network nsg list --resource-group <RG> --output table"
+        echo "  az network nsg rule list --nsg-name <NSG_NAME> --resource-group <RG> --output table"
+    fi
+
+    echo ""
+    echo "--- OCI Security Lists / NSGs (via OCI CLI) ---"
+    if command -v oci >/dev/null 2>&1; then
+        echo "OCI CLI available: $(oci --version 2>&1)"
+        echo "Manual command to check:"
+        echo "  oci network nsg list --compartment-id <COMPARTMENT_OCID> --output table"
+        echo "  oci network security-list list --compartment-id <COMPARTMENT_OCID> --output table"
+        oci network nsg list --all --output table 2>&1 | head -30 || \
+            echo "Unable to list OCI NSGs without compartment OCID"
+    else
+        echo "OCI CLI not installed"
+    fi
+
+    echo ""
+    echo "--- iptables / firewalld Rules (host-level) ---"
+    if command -v firewall-cmd >/dev/null 2>&1; then
+        firewall-cmd --list-all 2>&1 || echo "firewalld not running"
+    else
+        iptables -L -n --line-numbers 2>/dev/null | head -60 || echo "iptables not accessible"
     fi
 }
 
-################################################################################
-# Main Execution
-################################################################################
+# ===========================================================================
+# JSON SUMMARY
+# ===========================================================================
 
-main() {
-    echo "========================================" | tee "$OUTPUT_TXT"
-    echo "ZDM Target Database Discovery" | tee -a "$OUTPUT_TXT"
-    echo "Project: PRODDB Migration to Oracle Database@Azure" | tee -a "$OUTPUT_TXT"
-    echo "Target: proddb-oda.eastus.azure.example.com" | tee -a "$OUTPUT_TXT"
-    echo "Timestamp: $(date)" | tee -a "$OUTPUT_TXT"
-    echo "========================================" | tee -a "$OUTPUT_TXT"
-    
-    # Initialize JSON
-    json_data=$(jq -n '{}')
-    add_json_field "discovery_type" "target"
-    add_json_field "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    add_json_field "project" "PRODDB Migration to Oracle Database@Azure"
-    add_json_field "target_host" "proddb-oda.eastus.azure.example.com"
-    
-    # Detect Oracle environment first
-    if ! detect_oracle_env; then
-        log_error "Failed to detect Oracle environment. Cannot proceed with database queries."
-        echo "$json_data" | jq '.' > "$OUTPUT_JSON"
-        exit 1
-    fi
-    
-    # Run all discovery functions with error handling
-    gather_os_info || log_error "Failed to gather OS info"
-    gather_oracle_info || log_error "Failed to gather Oracle info"
-    gather_database_config || log_error "Failed to gather database config"
-    gather_storage_info || log_error "Failed to gather storage info"
-    gather_exadata_storage || log_error "Failed to gather Exadata storage info"
-    gather_cdb_info || log_error "Failed to gather CDB info"
-    gather_tde_info || log_error "Failed to gather TDE info"
-    gather_network_config || log_error "Failed to gather network config"
-    gather_network_security || log_error "Failed to gather network security info"
-    gather_oci_integration || log_error "Failed to gather OCI integration info"
-    gather_grid_infrastructure || log_error "Failed to gather Grid Infrastructure info"
-    gather_authentication || log_error "Failed to gather authentication info"
-    
-    # Write JSON output
-    echo "$json_data" | jq '.' > "$OUTPUT_JSON"
-    
-    log_section "Discovery Complete"
-    log_info "Text report: $OUTPUT_TXT"
-    log_info "JSON summary: $OUTPUT_JSON"
-    
-    echo -e "\n${GREEN}✓ Target database discovery completed successfully${NC}"
+generate_json_summary() {
+    local db_name db_unique hostname db_version db_role cdb_flag
+    db_name=$(run_sql_value "SELECT name FROM v\$database;")
+    db_unique=$(run_sql_value "SELECT db_unique_name FROM v\$database;")
+    hostname=$(hostname -f 2>/dev/null || hostname)
+    db_version=$(run_sql_value "SELECT version FROM v\$instance;")
+    db_role=$(run_sql_value "SELECT database_role FROM v\$database;")
+    cdb_flag=$(run_sql_value "SELECT cdb FROM v\$database;")
+
+    cat > "$JSON_FILE" <<EOJSON
+{
+  "discovery_type"   : "target_database",
+  "project"          : "PRODDB Migration to Oracle Database@Azure",
+  "generated_at"     : "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "hostname"         : "${hostname}",
+  "oracle_home"      : "${ORACLE_HOME:-unknown}",
+  "oracle_sid"       : "${ORACLE_SID:-unknown}",
+  "grid_home"        : "${GRID_HOME:-unknown}",
+  "db_name"          : "${db_name:-unknown}",
+  "db_unique_name"   : "${db_unique:-unknown}",
+  "db_version"       : "${db_version:-unknown}",
+  "database_role"    : "${db_role:-unknown}",
+  "cdb"              : "${cdb_flag:-unknown}",
+  "section_errors"   : ${SECTION_ERRORS},
+  "output_text_file" : "${OUTPUT_FILE}"
+}
+EOJSON
+    echo "JSON summary written to: $JSON_FILE"
 }
 
-# Run main function
-main
+# ===========================================================================
+# MAIN
+# ===========================================================================
+
+{
+echo "============================================================"
+echo "  ZDM TARGET DATABASE DISCOVERY"
+echo "  Project : PRODDB Migration to Oracle Database@Azure"
+echo "  Host    : $(hostname -f 2>/dev/null || hostname)"
+echo "  Started : $(date)"
+echo "  Run by  : $(id)"
+echo "  ORACLE_HOME  : ${ORACLE_HOME:-NOT SET}"
+echo "  ORACLE_SID   : ${ORACLE_SID:-NOT SET}"
+echo "  GRID_HOME    : ${GRID_HOME:-NOT SET}"
+echo "============================================================"
+} | tee "$OUTPUT_FILE"
+
+run_section "1. OS INFORMATION"                        section_os_info
+run_section "2. ORACLE ENVIRONMENT"                    section_oracle_env
+run_section "3. DATABASE CONFIGURATION"                section_db_config
+run_section "4. CONTAINER DATABASE (CDB/PDB)"          section_cdb_pdb
+run_section "5. TDE CONFIGURATION"                     section_tde
+run_section "6. NETWORK CONFIGURATION"                 section_network_config
+run_section "7. OCI / AZURE INTEGRATION"               section_oci_azure_integration
+run_section "8. GRID INFRASTRUCTURE (RAC/ASM)"         section_grid_infrastructure
+run_section "9. AUTHENTICATION"                        section_auth
+run_section "10. EXADATA STORAGE CAPACITY"             section_exadata_storage
+run_section "11. PRE-CONFIGURED PDBs"                  section_preconfigured_pdbs
+run_section "12. NETWORK SECURITY GROUP RULES"         section_nsg_rules
+
+generate_json_summary
+
+{
+echo ""
+echo "============================================================"
+echo "  DISCOVERY COMPLETE"
+echo "  Sections with errors : $SECTION_ERRORS"
+echo "  Text report : $OUTPUT_FILE"
+echo "  JSON summary: $JSON_FILE"
+echo "  Finished    : $(date)"
+echo "============================================================"
+} | tee -a "$OUTPUT_FILE"
+
+exit 0

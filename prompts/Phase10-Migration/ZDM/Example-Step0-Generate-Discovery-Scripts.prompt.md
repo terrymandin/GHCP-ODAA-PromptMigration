@@ -1,4 +1,5 @@
-# Example: Generate Discovery Scripts for PRODDB Migration
+
+# Example: Generate Discovery Scripts for a Migration Project
 
 This example demonstrates how to use Step 0 to generate fresh discovery scripts for a production Oracle database migration to Oracle Database@Azure.
 
@@ -11,6 +12,9 @@ Before using this example:
 - Ensure SSH access is available between servers
 
 ---
+
+**Note:** Only the "Project Name" is required. All other fields (such as source/target hostnames, database name, etc.) are auto-detected or optional. You may leave them blank unless you need to override the defaults.
+
 
 ## Example Prompt
 
