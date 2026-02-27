@@ -1,0 +1,29 @@
+{
+  "discovery_type": "zdm_server",
+  "project": "ORADB Migration to Oracle Database@Azure",
+  "zdm_host": "zdm-jumpbox.corp.example.com",
+  "run_host": "tm-vm-odaa-oracle-jumpbox",
+  "run_user": "azureuser",
+  "zdm_user": "zdmuser",
+  "source_host": "10.1.0.11",
+  "target_host": "10.0.1.160",
+  "timestamp": "2026-02-27T12:08:11-05:00",
+  "zdm": {
+    "zdm_home": "/u01/app/zdmhome",
+    "installed": true
+  },
+  "java": {
+    "java_home": "/u01/app/zdmhome/jdk",
+    "version": "java version "1.8.0_451""
+  },
+  "storage": {
+    "available_gb": "23.2",
+    "minimum_required_gb": 50
+  },
+  "connectivity": {
+    "source_ping": "SKIPPED",
+    "target_ping": "SKIPPED"
+  },
+  "oci_cli_version": "3.73.1",
+  "section_errors": 0
+}

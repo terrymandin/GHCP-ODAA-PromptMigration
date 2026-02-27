@@ -1,0 +1,31 @@
+{
+  "discovery_type": "source",
+  "project": "ORADB Migration to Oracle Database@Azure",
+  "source_host": "proddb01.corp.example.com",
+  "run_host": "tm-oracle-iaas",
+  "run_user": "azureuser",
+  "timestamp": "2026-02-27T17:07:19+0000",
+  "oracle_home": "/u01/app/oracle/product/12.2.0/dbhome_1",
+  "oracle_sid": "oradb",
+  "database": {
+    "name": "ORADB1",
+    "unique_name": "oradb1",
+    "role": "PRIMARY",
+    "open_mode": "READ WRITE",
+    "log_mode": "NOARCHIVELOG",
+    "force_logging": "NO",
+    "is_cdb": "YES",
+    "charset": "AL32UTF8",
+    "ncharset": "AL16UTF16",
+    "size_gb": "1.9",
+    "compatible": "12.2.0"
+  },
+  "supplemental_logging": {
+    "min": "NO",
+    "all": "NO"
+  },
+  "tde": {
+    "wallet_status": "NOT_AVAILABLE"
+  },
+  "section_errors": 0
+}

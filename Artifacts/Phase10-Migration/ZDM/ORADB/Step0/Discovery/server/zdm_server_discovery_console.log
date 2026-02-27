@@ -1,0 +1,357 @@
+================================================================
+  ZDM SERVER DISCOVERY REPORT
+================================================================
+  Project    : ORADB Migration to Oracle Database@Azure
+  ZDM Host   : zdm-jumpbox.corp.example.com
+  Run Host   : tm-vm-odaa-oracle-jumpbox
+  Run User   : azureuser
+  ZDM User   : zdmuser
+  Source Host: 10.1.0.11
+  Target Host: 10.0.1.160
+  Timestamp  : Fri Feb 27 12:07:40 PM EST 2026
+  ZDM_HOME   : /u01/app/zdmhome
+  JAVA_HOME  : /u01/app/zdmhome/jdk
+================================================================
+
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  OS INFORMATION[0m
+[0;36m[1m================================================================[0m
+
+--- Hostname & IPs ---
+tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+127.0.0.1/8
+10.1.0.8/24
+
+--- OS Version ---
+Oracle Linux Server release 9.5
+
+--- Kernel ---
+5.15.0-307.178.5.el9uek.x86_64
+
+--- CPU ---
+model name	: Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz
+CPU Count: 2
+
+--- Memory ---
+               total        used        free      shared  buff/cache   available
+Mem:           7.4Gi       2.4Gi       3.5Gi        73Mi       1.8Gi       5.0Gi
+Swap:          2.0Gi       0.0Ki       2.0Gi
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  DISK SPACE FOR ZDM OPERATIONS (ADDITIONAL)[0m
+[0;36m[1m================================================================[0m
+
+--- Filesystem Usage ---
+Filesystem                  Size  Used Avail Use% Mounted on
+devtmpfs                    4.0M     0  4.0M   0% /dev
+tmpfs                       3.8G     0  3.8G   0% /dev/shm
+tmpfs                       1.5G   74M  1.5G   5% /run
+/dev/mapper/rootvg-rootlv    39G   15G   24G  40% /
+/dev/sda2                   736M  388M  349M  53% /boot
+/dev/mapper/rootvg-crashlv   10G  104M  9.9G   2% /var/crash
+/dev/sda5                    99M  6.3M   93M   7% /boot/efi
+/dev/sdb1                    16G   28K   15G   1% /mnt
+tmpfs                       760M     0  760M   0% /run/user/1000
+
+--- ZDM Minimum Disk Requirement Check (50GB) ---
+  /u01/app/zdmhome — available: 23.2 GB
+    STATUS: WARNING — less than 50GB available
+  /home/zdmuser — available: 23.2 GB
+    STATUS: WARNING — less than 50GB available
+  /var/log — available: 23.2 GB
+    STATUS: WARNING — less than 50GB available
+  /tmp — available: 23.2 GB
+    STATUS: WARNING — less than 50GB available
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  ZDM INSTALLATION[0m
+[0;36m[1m================================================================[0m
+
+--- ZDM_HOME ---
+  ZDM_HOME: /u01/app/zdmhome
+
+--- zdmcli Executable ---
+-rwxr-xr-x. 1 zdmuser zdm 6658 Jan 19 16:37 /u01/app/zdmhome/bin/zdmcli
+
+--- ZDM Directory Contents ---
+total 44
+drwxrwsr-x. 50 zdmuser zdm  4096 Jan 23 18:06 .
+drwxr-xr-x.  5 root    root   52 Jan 19 16:17 ..
+drwx--S---.  2 zdmuser zdm    40 Jul 24  2025 awscerts
+drwxr-sr-x.  2 zdmuser zdm  4096 Jan 19 16:37 bin
+drwxrws---.  3 zdmuser zdm    17 Jan 19 16:37 cfgtoollogs
+drwxr-sr-x.  9 zdmuser zdm    98 Jul 24  2025 crs
+drwxr-sr-x.  3 zdmuser zdm    18 Oct 11  2021 css
+drwxr-sr-x.  3 zdmuser zdm    20 Oct 11  2021 cv
+drwxr-sr-x.  3 zdmuser zdm    20 Oct 11  2021 diagnostics
+-rw-r--r--.  1 zdmuser zdm   852 Aug 18  2015 env.ora
+drwxrwsr-x.  3 zdmuser zdm    18 Jul 22  2025 evm
+drwxr-sr-x.  3 zdmuser zdm    18 Jul 24  2025 has
+drwxr-sr-x.  3 zdmuser zdm    19 Oct 11  2021 hs
+drwxrwsr-x.  8 zdmuser zdm   116 Jan 19 16:37 install
+drwxr-sr-x.  4 zdmuser zdm  4096 Oct 11  2021 instantclient
+drwxr-s---.  4 zdmuser zdm    66 Jan 19 16:37 inventory
+drwxr-sr-x.  3 zdmuser zdm    17 Oct 11  2021 jdbc
+drwxr-sr-x.  7 zdmuser zdm  4096 Oct 11  2021 jdk
+drwxr-sr-x.  2 zdmuser zdm  4096 Jul 24  2025 jlib
+drwxr-sr-x.  4 zdmuser zdm    34 Oct 11  2021 ldap
+drwxr-sr-x.  4 zdmuser zdm  4096 Jul 24  2025 lib
+drwxr-s--T.  3 zdmuser zdm    39 Jan 23 18:06 log
+drwx--S---.  2 zdmuser zdm    37 Jul 24  2025 misc
+drwx--S---.  3 zdmuser zdm   157 Jan 19 16:37 mysql
+drwxr-sr-x.  6 zdmuser zdm    55 Oct 11  2021 network
+drwxr-sr-x.  5 zdmuser zdm    46 Oct 11  2021 nls
+drwxr-sr-x.  7 zdmuser zdm    65 Oct 11  2021 opmn
+drwxr-sr-x.  4 zdmuser zdm    34 Oct 11  2021 oracore
+-rw-r--r--.  1 zdmuser zdm    57 Jan 19 16:37 oraInst.loc
+drwxr-sr-x.  3 zdmuser zdm    16 Oct 11  2021 ord
+drwxr-sr-x.  3 zdmuser zdm    19 Oct 11  2021 oss
+drwxr-sr-x.  8 zdmuser zdm  4096 Oct 11  2021 oui
+drwxr-sr-x.  4 zdmuser zdm    33 Oct 11  2021 owm
+drwxr-sr-x.  5 zdmuser zdm    39 Oct 11  2021 perl
+drwxr-sr-x.  6 zdmuser zdm    78 Oct 11  2021 plsql
+drwxr-sr-x.  3 zdmuser zdm    18 Oct 11  2021 precomp
+drwxrwsr-x.  2 zdmuser zdm     6 Jul 22  2025 pylib
+drwxr-sr-x.  5 zdmuser zdm    42 Jul 21  2025 qos
+drwxr-sr-x.  3 zdmuser zdm    18 Jul 24  2025 racg
+drwxr-sr-x.  5 zdmuser zdm    41 Oct 11  2021 rdbms
+drwxr-sr-x.  3 zdmuser zdm    21 Oct 11  2021 relnotes
+drwxrwsr-x.  9 zdmuser zdm  4096 Jul 24  2025 rhp
+drwxr-sr-x.  3 zdmuser zdm    18 Oct 11  2021 slax
+drwxr-sr-x.  6 zdmuser zdm    53 Oct 11  2021 sqlplus
+drwxr-sr-x.  6 zdmuser zdm    54 Oct 11  2021 srvm
+drwxr-sr-x.  4 zdmuser zdm    31 Oct 11  2021 suptools
+drwxr-sr-x.  3 zdmuser zdm    17 Jul 21  2025 tomcat
+drwxr-sr-x.  3 zdmuser zdm    17 Oct 11  2021 ucp
+drwxr-sr-x.  4 zdmuser zdm    31 Oct 11  2021 usm
+drwxr-sr-x.  2 zdmuser zdm     6 Oct 11  2021 utl
+drwxr-sr-x.  3 zdmuser zdm    18 Jul 21  2025 wlm
+drwxr-s---.  3 zdmuser zdm    18 Oct 11  2021 xdk
+
+--- ZDM Response File Templates ---
+-rwxr-xr-x. 1 zdmuser zdm 133186 Jul 24  2025 /u01/app/zdmhome/rhp/zdm/template/zdm_logical_template.rsp
+-rwxr-xr-x. 1 zdmuser zdm  28750 Mar 21  2025 /u01/app/zdmhome/rhp/zdm/template/zdm_template.rsp
+-rwxr-xr-x. 1 zdmuser zdm  29119 Jun 20  2024 /u01/app/zdmhome/rhp/zdm/template/zdm_xtts_template.rsp
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  ZDM SERVICE STATUS[0m
+[0;36m[1m================================================================[0m
+
+--- ZDM Service Status ---
+
+---------------------------------------
+	Service Status
+---------------------------------------
+
+ Running: 	true
+ Tranferport: 	
+ Conn String: 	jdbc:mysql://localhost:8899/
+ RMI port: 	8897
+ HTTP port: 	8898
+ Wallet path: 	/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/security
+
+
+--- zdmcli invocation (installation check) ---
+Usage: zdmcli <command> <object> [<options>]
+    commands: migrate
+    objects: database
+
+For detailed help on each command and object and its options use:
+  zdmcli <command> <object> -help
+
+--- ZDM User Process Check ---
+zdmuser   179085       1  0 Feb23 ?        00:00:00 /bin/sh /u01/app/zdmhome/mysql/server/bin/mysqld_safe --defaults-file=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/conf/my.cnf
+zdmuser   179535  179085  0 Feb23 ?        00:15:05 /u01/app/zdmhome/mysql/server/bin/mysqld --defaults-file=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/conf/my.cnf --basedir=/u01/app/zdmhome/mysql/server --datadir=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/mysql/data --plugin-dir=/u01/app/zdmhome/mysql/server/lib/plugin --user=zdmuser --log-error=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/mysql/metadata/mysql-error.log --open-files-limit=256 --pid-file=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/mysql/metadata/mysqld.pid --socket=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/mysql/metadata/mysql.sock --port=8899
+zdmuser   179622       1  0 Feb23 ?        00:04:35 /u01/app/zdmhome/jdk/bin/java -server -Xms2048M -Xmx4096M -Djava.awt.headless=true -Ddisable.checkForUpdate=true -Djava.util.logging.config.file=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/conf/logging.properties -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager -DTRACING.ENABLED=true -DTRACING.LEVEL=2 -Doracle.wlm.dbwlmlogger.logging.level=FINEST -Duse_scan_IP=true -Djava.rmi.server.hostname=localhost -Doracle.http.port=8898 -Doracle.jmx.port=8897 -Doracle.tls.enabled=false -Doracle.jwc.tls.http.enabled=false -Doracle.rhp.storagebase=/u01/app/zdmbase -Djava.security.manager -Djava.security.policy=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/conf/catalina.policy -Djava.security.egd=file:/dev/urandom -Doracle.jwc.wallet.path=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/security -Doracle.jmx.login.credstore=WALLET -Doracle.rest.enabled=false -Doracle.jmx.enabled=true -Dcatalina.home=/u01/app/zdmhome/tomcat -Dcatalina.base=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp -Djava.io.tmpdir=/u01/app/zdmbase/crsdata/tm-vm-odaa-oracle-jumpbox/rhp/temp -Doracle.home=/u01/app/zdmhome -Doracle.jwc.mode=STANDALONE -classpath /u01/app/zdmhome/jlib/cryptoj.jar:/u01/app/zdmhome/jlib/oraclepki.jar:/u01/app/zdmhome/jlib/osdt_core.jar:/u01/app/zdmhome/jlib/osdt_cert.jar:/u01/app/zdmhome/tomcat/lib/tomcat-juli.jar:/u01/app/zdmhome/tomcat/lib/bootstrap.jar:/u01/app/zdmhome/jlib/jwc-logging.jar org.apache.catalina.startup.Bootstrap start
+root      277628  277605  0 12:02 pts/1    00:00:00 sudo su - zdmuser
+root      277630  277628  0 12:02 pts/1    00:00:00 su - zdmuser
+zdmuser   277631  277630  0 12:02 pts/1    00:00:00 -bash
+zdmuser   277785  277631  0 12:07 pts/1    00:00:00 /bin/bash ./zdm_orchestrate_discovery.sh
+zdmuser   277936  277785  1 12:07 pts/1    00:00:00 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o BatchMode=yes -o ServerAliveInterval=60 -o ServerAliveCountMax=5 -i /home/zdmuser/.ssh/zdm.pem azureuser@10.1.0.8 bash -l -c '             cd "/tmp/zdm_oradb_discovery_277785" || exit 1             chmod +x "zdm_server_discovery.sh"             export ORACLE_USER='oracle'; export ZDM_USER='zdmuser'; export ZDM_HOME_OVERRIDE='';                    export JAVA_HOME_OVERRIDE='';                    export SOURCE_HOST='10.1.0.11';                    export TARGET_HOST='10.0.1.160';                    export ZDM_USER='zdmuser'             ./zdm_server_discovery.sh             echo "EXIT_CODE:$?"         '
+zdmuser   277937  277785  0 12:07 pts/1    00:00:00 tee -a /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Discovery/server/zdm_server_discovery_console.log
+azureus+  277942  277941  0 12:07 ?        00:00:00 bash -l -c              cd "/tmp/zdm_oradb_discovery_277785" || exit 1             chmod +x "zdm_server_discovery.sh"             export ORACLE_USER=oracle; export ZDM_USER=zdmuser; export ZDM_HOME_OVERRIDE=;                    export JAVA_HOME_OVERRIDE=;                    export SOURCE_HOST=10.1.0.11;                    export TARGET_HOST=10.0.1.160;                    export ZDM_USER=zdmuser             ./zdm_server_discovery.sh             echo "EXIT_CODE:$?"         
+azureus+  277977  277942  0 12:07 ?        00:00:00 /bin/bash ./zdm_server_discovery.sh
+azureus+  278118  277977  0 12:07 ?        00:00:00 /bin/bash ./zdm_server_discovery.sh
+azureus+  278119  277977  0 12:07 ?        00:00:00 /bin/bash ./zdm_server_discovery.sh
+azureus+  278121  278119  0 12:07 ?        00:00:00 tee -a ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260227_120740.txt
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  ACTIVE ZDM MIGRATION JOBS[0m
+[0;36m[1m================================================================[0m
+
+--- zdmcli query jobid (list all jobs) ---
+PRCG-1028 : Invalid object specified: jobid
+No active jobs or zdmcli not responding
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  JAVA CONFIGURATION[0m
+[0;36m[1m================================================================[0m
+
+JAVA_HOME: /u01/app/zdmhome/jdk
+
+--- Java Version ---
+java version "1.8.0_451"
+Java(TM) SE Runtime Environment (build 1.8.0_451-b10)
+Java HotSpot(TM) 64-Bit Server VM (build 25.451-b10, mixed mode)
+
+--- ZDM Bundled JDK Check ---
+-rwxr-xr-x. 1 zdmuser zdm 8016 Jul 24  2025 /u01/app/zdmhome/jdk/bin/java
+java version "1.8.0_451"
+Java(TM) SE Runtime Environment (build 1.8.0_451-b10)
+Java HotSpot(TM) 64-Bit Server VM (build 25.451-b10, mixed mode)
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  OCI CLI CONFIGURATION[0m
+[0;36m[1m================================================================[0m
+
+--- OCI CLI Version ---
+3.73.1
+
+--- OCI Version (as zdmuser) ---
+3.73.1
+
+--- OCI Config Location ---
+No ~/.oci/config for current user
+
+--- OCI API Key Files ---
+No .pem files in ~/.oci/
+
+--- OCI Connectivity Test ---
+ERROR: Could not find config file at /home/azureuser/.oci/config
+Do you want to create a new config file? [Y/n]: OCI connectivity: FAILED or not configured
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  SSH CONFIGURATION[0m
+[0;36m[1m================================================================[0m
+
+--- SSH Keys (current user: azureuser) ---
+total 16
+drwx------.  2 azureuser azureuser   71 Dec 18 18:00 .
+drwx------. 10 azureuser azureuser 4096 Feb 23 18:22 ..
+-rw-------.  1 azureuser azureuser  572 Dec 18 11:48 authorized_keys
+-rw-------.  1 azureuser azureuser  736 Dec 18 18:00 known_hosts
+-rw-r--r--.  1 azureuser azureuser  172 Dec 18 18:00 known_hosts.old
+
+--- SSH Keys (zdmuser) ---
+total 40
+drwx------. 2 zdmuser zdm  167 Feb 27 12:07 .
+drwx------. 7 zdmuser zdm 4096 Feb 26 21:12 ..
+-rw-------. 1 zdmuser zdm 1679 Jan 28 12:22 iaas.pem
+-rw-------. 1 zdmuser zdm  419 Jan 30 15:18 id_ed25519
+-rw-r--r--. 1 zdmuser zdm  104 Jan 30 15:18 id_ed25519.pub
+-rw-------. 1 zdmuser zdm 2459 Jan 21 17:23 id_rsa
+-rw-r--r--. 1 zdmuser zdm  587 Jan 21 17:23 id_rsa.pub
+-rw-------. 1 zdmuser zdm 3451 Feb 27 12:07 known_hosts
+-rw-------. 1 zdmuser zdm 3280 Feb 27 12:07 known_hosts.old
+-rw-------. 1 zdmuser zdm 2455 Jan 28 12:22 odaa.pem
+-rw-------. 1 zdmuser zdm 2455 Jan 29 16:06 zdm.pem
+
+--- SSH Config ---
+No ~/.ssh/config
+
+--- SSH Known Hosts (relevant entries) ---
+No matching entries in known_hosts
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  ZDM LOG DIRECTORY[0m
+[0;36m[1m================================================================[0m
+
+./zdm_server_discovery.sh: line 402: local: can only be used in a function
+--- ZDM Log Directory: /u01/app/zdmhome/zdm/log ---
+Log directory not found or not accessible
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  CREDENTIAL FILES SEARCH[0m
+[0;36m[1m================================================================[0m
+
+--- Searching for ZDM credential files ---
+
+--- Searching for OCI key files ---
+/home/azureuser/key.pem
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  NETWORK CONFIGURATION[0m
+[0;36m[1m================================================================[0m
+
+--- IP Addresses ---
+127.0.0.1/8
+::1/128
+10.1.0.8/24
+fe80::6245:bdff:fed2:961c/64
+
+--- Routing Table ---
+default via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+10.1.0.0/24 dev eth0 proto kernel scope link src 10.1.0.8 metric 100 
+168.63.129.16 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+169.254.169.254 via 10.1.0.1 dev eth0 proto dhcp src 10.1.0.8 metric 100 
+
+--- DNS Configuration ---
+# Generated by NetworkManager
+search s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+nameserver 168.63.129.16
+
+--- /etc/hosts (relevant entries) ---
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  NETWORK LATENCY TO SOURCE AND TARGET (ADDITIONAL)[0m
+[0;36m[1m================================================================[0m
+
+================================================================
+  CONNECTIVITY TO SOURCE: 10.1.0.11
+================================================================
+
+--- Ping (ICMP) ---
+PING 10.1.0.11 (10.1.0.11) 56(84) bytes of data.
+64 bytes from 10.1.0.11: icmp_seq=1 ttl=64 time=0.978 ms
+64 bytes from 10.1.0.11: icmp_seq=2 ttl=64 time=0.892 ms
+64 bytes from 10.1.0.11: icmp_seq=3 ttl=64 time=0.934 ms
+64 bytes from 10.1.0.11: icmp_seq=4 ttl=64 time=0.873 ms
+64 bytes from 10.1.0.11: icmp_seq=5 ttl=64 time=0.984 ms
+
+--- 10.1.0.11 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4051ms
+rtt min/avg/max/mdev = 0.873/0.932/0.984/0.044 ms
+
+--- Port Tests (TCP) ---
+  10.1.0.11:22 — OPEN
+  10.1.0.11:1521 — OPEN
+
+--- Traceroute to Source ---
+
+================================================================
+  CONNECTIVITY TO TARGET: 10.0.1.160
+================================================================
+
+--- Ping (ICMP) ---
+PING 10.0.1.160 (10.0.1.160) 56(84) bytes of data.
+
+--- 10.0.1.160 ping statistics ---
+5 packets transmitted, 0 received, 100% packet loss, time 4075ms
+
+ICMP ping failed (may be blocked by firewall)
+
+--- Port Tests (TCP) ---
+  10.0.1.160:22 — OPEN
+  10.0.1.160:1521 — OPEN
+
+--- Traceroute to Target ---
+
+[0;36m[1m================================================================[0m
+[0;36m[1m  DISCOVERY COMPLETE[0m
+[0;36m[1m================================================================[0m
+
+  Output file : ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260227_120740.txt
+  JSON file   : ./zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260227_120740.json
+  Completed   : Fri Feb 27 12:08:11 PM EST 2026
+  Section errors: 0 (non-critical; some checks may have failed)
+
+  SUCCESS: All sections completed without errors.
+
+  ZDM_HOME  : /u01/app/zdmhome
+  JAVA_HOME : /u01/app/zdmhome/jdk
+  Source ping: SKIPPED
+  Target ping: SKIPPED
+EXIT_CODE:0
