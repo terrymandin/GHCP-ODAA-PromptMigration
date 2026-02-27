@@ -1,0 +1,5 @@
+# Discovery output files are collected here after running zdm_orchestrate_discovery.sh
+#
+# Expected files after running discovery:
+#   zdm_target_discovery_<hostname>_<timestamp>.txt
+#   zdm_target_discovery_<hostname>_<timestamp>.json
