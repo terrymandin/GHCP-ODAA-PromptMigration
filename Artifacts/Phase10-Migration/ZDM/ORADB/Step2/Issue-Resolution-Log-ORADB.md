@@ -3,44 +3,44 @@
 | Field | Value |
 |---|---|
 | **Project** | ORADB |
-| **Document** | Issue Resolution Log |
+| **Document** | Issue Resolution Log (Step 2) |
 | **Generated** | 2026-02-27 |
-| **Based On** | Discovery Summary dated 2026-02-27 |
-| **Migration Method** | ONLINE_PHYSICAL (recommended) — pending ARCHIVELOG enablement |
+| **Based on Discovery** | 2026-02-27 21:36 UTC |
+| **Migration Target** | Oracle Database@Azure — Exadata X11M, uk-london-1 |
 
 ---
 
 ## Summary
 
-| # | Issue | Category | Priority | Status | Date Resolved | Verified By |
-|---|-------|----------|----------|--------|---------------|-------------|
-| ACTION-01 | Enable ARCHIVELOG Mode on Source | ❌ Blocker | CRITICAL | 🔲 Pending | | |
-| ACTION-02 | Enable Force Logging on Source | ❌ Blocker | CRITICAL | 🔲 Pending | | |
-| ACTION-03 | Enable Supplemental Logging on Source | ❌ Blocker | CRITICAL | 🔲 Pending | | |
-| ACTION-04 | Configure TDE Master Key on Target | ⚠️ Required | HIGH | 🔲 Pending | | |
-| ACTION-05 | Discover OCI Object Storage Namespace | ⚠️ Required | HIGH | 🔲 Pending | | |
-| ACTION-06 | Create OCI Object Storage Bucket | ⚠️ Required | HIGH | 🔲 Pending | | |
-| ACTION-07 | Initialize ZDM Credential Store | ⚠️ Required | HIGH | 🔲 Pending | | |
-| ACTION-08 | Configure Archive Log Destination | ⚡ Recommended | MEDIUM | 🔲 Pending | | |
-| ACTION-09 | Configure RMAN on Source | ⚡ Recommended | MEDIUM | 🔲 Pending | | |
-| ACTION-10 | Verify SSH Key Access (zdmuser → source/target) | ⚡ Recommended | MEDIUM | 🔲 Pending | | |
-| ACTION-11 | Verify Oracle User SSH Access from ZDM | ⚡ Recommended | MEDIUM | 🔲 Pending | | |
-| ACTION-12 | Update zdm-env.md with Missing Values | ⚠️ Required | MEDIUM | 🔲 Pending | | |
+| # | Issue | Category | Status | Date Resolved | Verified By |
+|---|-------|----------|--------|---------------|-------------|
+| ACTION-01 | Enable ARCHIVELOG mode on source | ❌ Blocker | 🔲 Pending | | |
+| ACTION-02 | Enable Force Logging on source | ❌ Blocker | 🔲 Pending | | |
+| ACTION-03 | Enable Supplemental Logging on source | ❌ Blocker | 🔲 Pending | | |
+| ACTION-04 | Configure TDE Master Key on target CDB | ❌ Blocker | 🔲 Pending | | |
+| ACTION-05 | Discover OCI Object Storage Namespace | ❌ Blocker | 🔲 Pending | | |
+| ACTION-06 | Create OCI Object Storage Bucket | ❌ Blocker | 🔲 Pending | | |
+| ACTION-07 | Initialize ZDM Credential Store | ❌ Blocker | 🔲 Pending | | |
+| ACTION-08 | Configure Archive Log destination (disk) | ⚠️ Required | 🔲 Pending | | |
+| ACTION-09 | Configure RMAN on source (pre-migration backup) | ⚠️ Required | 🔲 Pending | | |
+| ACTION-10 | Verify zdmuser SSH key access to source + target | ⚠️ Required | 🔲 Pending | | |
+| ACTION-11 | Verify oracle sudo access via admin SSH user | ⚠️ Required | 🔲 Pending | | |
+| ACTION-12 | Update zdm-env.md with OSS namespace + bucket | ⚠️ Required | 🔲 Pending | | |
+| R-07 | Review/remove offline DBs on target /u02 | ⚠️ Required | 🔲 Pending | | |
 
-> **Completion Rule:** All CRITICAL and HIGH items must be ✅ Resolved before proceeding to Step 3.
+**Status key:** 🔲 Pending | 🔄 In Progress | ✅ Resolved | ❌ Failed / Blocked
 
 ---
 
-## Remediation Scripts (Quick Reference)
+## Remediation Scripts
 
-| Script | Purpose | Run As | Run Where |
-|--------|---------|--------|-----------|
-| `Scripts/fix_01_source_archivelog.sh` | Enable ARCHIVELOG + Force Logging + Supplemental Logging | azureuser (sudo to oracle) | ZDM Server → SSH to Source |
-| `Scripts/fix_02_target_tde_master_key.sh` | Create TDE Master Key on target CDB | opc (sudo to oracle) | ZDM Server → SSH to Target |
-| `Scripts/fix_03_oci_oss_setup.sh` | Discover OSS namespace + create migration bucket | zdmuser | ZDM Server |
-| `Scripts/fix_04_zdm_cred_store.sh` | Initialize ZDM credential store | zdmuser | ZDM Server |
-| `Scripts/fix_05_rman_archive_config.sh` | Configure RMAN + archive destination on source | azureuser (sudo to oracle) | ZDM Server → SSH to Source |
-| `Scripts/fix_06_verify_ssh.sh` | Verify all SSH connections required by ZDM | zdmuser | ZDM Server |
+The following scripts were generated for this step:
+
+| Script | Server | Resolves |
+|--------|--------|---------|
+| [Scripts/fix_source_ORADB.sh](Scripts/fix_source_ORADB.sh) | Source (10.1.0.11) — run from ZDM server | ACTION-01, 02, 03, 08, 09 |
+| [Scripts/fix_target_ORADB.sh](Scripts/fix_target_ORADB.sh) | Target (10.0.1.160) — run from ZDM server | ACTION-04 |
+| [Scripts/fix_zdm_server_ORADB.sh](Scripts/fix_zdm_server_ORADB.sh) | ZDM server (10.1.0.8) — run locally | ACTION-05, 06, 07, 10, 11 |
 
 ---
 
@@ -50,422 +50,252 @@
 
 ### ACTION-01: Enable ARCHIVELOG Mode on Source
 
-**Category:** ❌ Blocker
-**Status:** 🔲 Pending
-**Priority:** CRITICAL
-**Server:** Source Database (`10.1.0.11` / `tm-oracle-iaas`)
-**Run As:** `azureuser` → `sudo -u oracle` → `sqlplus / as sysdba`
+**Category:** ❌ Blocker  
+**Risk:** R-01 (Critical)  
+**Status:** 🔲 Pending  
+**Server:** Source (tm-oracle-iaas / 10.1.0.11)
 
-**Problem:**
-The source database `oradb1` (SID: `oradb`) is in `NOARCHIVELOG` mode. ZDM's ONLINE_PHYSICAL migration method requires the source to be in ARCHIVELOG mode so that redo log archives can be applied to the standby (target) during replication. Without archive logging, ZDM cannot keep the target in sync with the source.
+**Problem:**  
+The source database ORADB1 is in NOARCHIVELOG mode. ZDM ONLINE_PHYSICAL requires ARCHIVELOG mode to establish a Data Guard standby relationship and apply redo to the target.
 
-**Current State (from Discovery):**
-```
-Archive Log Mode: NOARCHIVELOG
-Force Logging:    NO
-Redo groups:      3 × 200 MB (all INACTIVE / CURRENT, none archived)
-Archive dest:     /u01/app/oracle/product/12.2.0/dbhome_1/dbs/arch (inactive)
-```
+**Discovery Evidence:**  
+`SELECT LOG_MODE FROM V$DATABASE;` → `NOARCHIVELOG`
 
-**⚠️ Prerequisite — Disk Space Check:**
-Source has ~8.6 GB free on `/`. Archive logs will accumulate under the configured destination.
-Before enabling ARCHIVELOG, configure a dedicated archive log destination (see ACTION-08).
+**Remediation:**  
+Run `Scripts/fix_source_ORADB.sh`. The script performs the following steps automatically:
 
-**⚠️ Impact — Source Restart Required:**
-Enabling ARCHIVELOG requires a database shutdown and restart (MOUNT mode). Plan a brief
-maintenance window with the source DBA. Typical duration: 10–15 minutes.
-
-**Remediation:**
-```bash
-# Run fix_01_source_archivelog.sh from the ZDM server (or copy/paste the SQL block below)
-# File: Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts/fix_01_source_archivelog.sh
-ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle bash -s" << 'EOF_OUTER'
-export ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1
-export ORACLE_SID=oradb
-export PATH=$ORACLE_HOME/bin:$PATH
-
-sqlplus -S / as sysdba << 'EOF_SQL'
--- Step 1: Set archive log destination BEFORE enabling (avoid using default dbs/arch path)
-ALTER SYSTEM SET log_archive_dest_1='LOCATION=/u01/app/oracle/archive' SCOPE=SPFILE;
-
--- Step 2: Shutdown and restart in MOUNT mode
+```sql
+-- Run as SYSDBA on source
+ALTER SYSTEM SET log_archive_dest_1='LOCATION=/u01/app/oracle/fast_recovery_area' SCOPE=SPFILE;
 SHUTDOWN IMMEDIATE;
 STARTUP MOUNT;
-
--- Step 3: Enable ARCHIVELOG
 ALTER DATABASE ARCHIVELOG;
-
--- Step 4: Open the database
 ALTER DATABASE OPEN;
-
--- Step 5: Enable Force Logging (required for ZDM Data Guard replication)
-ALTER DATABASE FORCE LOGGING;
-
--- Step 6: Switch log to confirm archive is working
 ALTER SYSTEM SWITCH LOGFILE;
-ALTER SYSTEM SWITCH LOGFILE;
-
--- Step 7: Verify
-SELECT LOG_MODE FROM V$DATABASE;
-SELECT FORCE_LOGGING FROM V$DATABASE;
-SELECT STATUS FROM V$ARCHIVE_DEST WHERE DEST_ID=1;
-ARCHIVE LOG LIST;
-SELECT GROUP#, STATUS, ARCHIVED FROM V$LOG;
-EXIT;
-EOF_SQL
-EOF_OUTER
 ```
 
-**Verification:**
+> ⚠️ **Requires brief source database downtime.** Coordinate with stakeholders.
+
+**Verification:**  
 ```sql
--- Connect to source and confirm (expected outputs shown)
 SELECT LOG_MODE FROM V$DATABASE;
 -- Expected: ARCHIVELOG
-
-SELECT FORCE_LOGGING FROM V$DATABASE;
--- Expected: YES
-
-ARCHIVE LOG LIST;
--- Expected: Database log mode       Archive Mode
---           Automatic archival      Enabled
---           Archive destination     /u01/app/oracle/archive
-
-SELECT COUNT(*) FROM V$ARCHIVED_LOG WHERE COMPLETION_TIME > SYSDATE - 1/24;
--- Expected: > 0 (at least 2 from the manual log switches above)
 ```
 
-**Rollback:**
+**Rollback:**  
 ```sql
--- If ARCHIVELOG must be reversed (emergency only — will break ONLINE_PHYSICAL)
+-- If ARCHIVELOG must be disabled (reversing this decision):
 SHUTDOWN IMMEDIATE;
 STARTUP MOUNT;
 ALTER DATABASE NOARCHIVELOG;
 ALTER DATABASE OPEN;
 ```
 
-**Resolution Notes:**
-```
-Date:
-Performed by:
-Verification output:
-Notes:
-```
+**Resolution Notes:**  
+_[To be completed after execution]_
 
 ---
 
 ### ACTION-02: Enable Force Logging on Source
 
-> **Note:** This action is included in `fix_01_source_archivelog.sh` as Step 5, immediately after enabling ARCHIVELOG. No separate script is needed if running ACTION-01 and ACTION-02 together.
+**Category:** ❌ Blocker  
+**Risk:** R-01 (Critical)  
+**Status:** 🔲 Pending  
+**Server:** Source (tm-oracle-iaas / 10.1.0.11)
 
-**Category:** ❌ Blocker
-**Status:** 🔲 Pending
-**Priority:** CRITICAL
-**Server:** Source Database (`10.1.0.11`)
+**Problem:**  
+Force Logging is disabled on the source. Without it, certain DDL operations using NOLOGGING bypass redo generation, causing Data Guard applier on the target to silently lose data blocks.
 
-**Problem:**
-Force Logging ensures that all data changes generate redo, even for operations that would normally suppress redo (e.g., `NOLOGGING` DML). ZDM's Data Guard replication depends on complete redo streams — any gaps will cause data loss.
+**Discovery Evidence:**  
+`SELECT FORCE_LOGGING FROM V$DATABASE;` → `NO`
 
-**Current State:** `FORCE_LOGGING = NO` (from V$DATABASE)
+**Remediation:**  
+Included in `Scripts/fix_source_ORADB.sh`:
 
-**Remediation (if not already done via ACTION-01):**
-```bash
-ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle bash -s" << 'EOF'
-export ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1
-export ORACLE_SID=oradb
-export PATH=$ORACLE_HOME/bin:$PATH
-sqlplus -S / as sysdba << 'ENDSQL'
+```sql
 ALTER DATABASE FORCE LOGGING;
-SELECT FORCE_LOGGING FROM V\$DATABASE;
-EXIT;
-ENDSQL
-EOF
 ```
 
-**Verification:**
-```
-FORCE_LOGGING
--------------
-YES
+**Verification:**  
+```sql
+SELECT FORCE_LOGGING FROM V$DATABASE;
+-- Expected: YES
 ```
 
-**Resolution Notes:**
+**Rollback:**  
+```sql
+ALTER DATABASE NO FORCE LOGGING;
 ```
-Date:
-Performed by:
-Verification output:
-Notes:
-```
+
+**Resolution Notes:**  
+_[To be completed after execution]_
 
 ---
 
 ### ACTION-03: Enable Supplemental Logging on Source
 
-> **Note:** Supplemental logging is best enabled after ARCHIVELOG mode is active (ACTION-01/02).
-> It is included as the final step in `fix_01_source_archivelog.sh`.
+**Category:** ❌ Blocker  
+**Risk:** R-02 (High)  
+**Status:** 🔲 Pending  
+**Server:** Source (tm-oracle-iaas / 10.1.0.11)
 
-**Category:** ❌ Blocker
-**Status:** 🔲 Pending
-**Priority:** CRITICAL
-**Server:** Source Database (`10.1.0.11`)
+**Problem:**  
+Supplemental logging is not enabled on the source. ZDM ONLINE_PHYSICAL (Data Guard) requires minimum supplemental logging to correctly reconstruct redo on the target.
 
-**Problem:**
-Supplemental logging is required for ZDM's online physical migration to capture all necessary redo information for Data Guard replication and for proper handling of primary key tracking. Discovery shows no supplemental logging is configured.
+**Discovery Evidence:**  
+`SELECT SUPPLEMENTAL_LOG_DATA_MIN FROM V$DATABASE;` → `NO`
 
-**Current State (from Discovery):**
-```
-SUPPLEMENTAL_LOG_DATA_MIN: NO
-SUPPLEMENTAL_LOG_DATA_PK:  NO
-SUPPLEMENTAL_LOG_DATA_UI:  NO
-SUPPLEMENTAL_LOG_DATA_FK:  NO
-SUPPLEMENTAL_LOG_DATA_ALL: NO
-```
+**Remediation:**  
+Included in `Scripts/fix_source_ORADB.sh`:
 
-**Remediation:**
-```bash
-ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle bash -s" << 'EOF'
-export ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1
-export ORACLE_SID=oradb
-export PATH=$ORACLE_HOME/bin:$PATH
-sqlplus -S / as sysdba << 'ENDSQL'
--- Minimum supplemental logging (required)
+```sql
 ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
--- ALL columns supplemental logging (recommended for ZDM ONLINE_PHYSICAL)
 ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
 ALTER SYSTEM SWITCH LOGFILE;
-
-SELECT SUPPLEMENTAL_LOG_DATA_MIN, SUPPLEMENTAL_LOG_DATA_ALL FROM V\$DATABASE;
-EXIT;
-ENDSQL
-EOF
 ```
 
-**Verification:**
-```
-SUPPLEMENTAL_LOG_DATA_MIN  SUPPLEMENTAL_LOG_DATA_ALL
--------------------------  -------------------------
-YES                        YES
+**Verification:**  
+```sql
+SELECT SUPPLEMENTAL_LOG_DATA_MIN, SUPPLEMENTAL_LOG_DATA_ALL FROM V$DATABASE;
+-- Expected: YES, YES
 ```
 
-**Resolution Notes:**
+**Rollback:**  
+```sql
+ALTER DATABASE DROP SUPPLEMENTAL LOG DATA;
 ```
-Date:
-Performed by:
-Verification output:
-Notes:
-```
+
+**Resolution Notes:**  
+_[To be completed after execution]_
 
 ---
 
-### ACTION-04: Configure TDE Master Key on Target
+### ACTION-04: Configure TDE Master Key on Target CDB
 
-**Category:** ⚠️ Required
-**Status:** 🔲 Pending
-**Priority:** HIGH
-**Server:** Target Database Node 1 (`10.0.1.160` / `tmodaauks-rqahk1`)
-**Run As:** `opc` → `sudo -u oracle` → `sqlplus / as sysdba`
+**Category:** ❌ Blocker  
+**Risk:** R-03 (High)  
+**Status:** 🔲 Pending  
+**Server:** Target Node 1 (tmodaauks-rqahk1 / 10.0.1.160)
 
-**Problem:**
-The target CDB on ODAA shows TDE wallet status `OPEN_NO_MASTER_KEY`. ZDM requires a TDE master key to exist in the target wallet before migration begins. Without it, ZDM will fail during the database creation/restore phase.
+**Problem:**  
+The target CDB TDE wallet is in state `OPEN_NO_MASTER_KEY`. ZDM requires a TDE master key to exist on the target to complete the physical migration. Without it, ZDM may fail at the point of applying encrypted redo or performing the final standby conversion.
 
-**Current State (from Discovery):**
-```
-Target TDE Wallet Status: OPEN_NO_MASTER_KEY
-```
+**Discovery Evidence:**  
+`SELECT STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;` → `OPEN_NO_MASTER_KEY`
 
-**⚠️ Prerequisite:**
-You must know the TDE wallet password for the target CDB. This was set when the Exadata
-Database Service was provisioned on ODAA. Retrieve it from your password vault / ODAA admin.
+**Remediation:**  
+Run `Scripts/fix_target_ORADB.sh`. The script prompts for the TDE wallet password and runs:
 
-**Remediation:**
-```bash
-# Run from ZDM server as zdmuser (or use fix_02_target_tde_master_key.sh)
-ssh -i ~/.ssh/odaa.pem opc@10.0.1.160 "sudo -u oracle bash -s" << 'EOF'
-export ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
-# Find active CDB SID
-ORACLE_SID=$(cat /etc/oratab | grep -v '^#' | grep -i "dbhome_1" | head -1 | cut -d: -f1)
-export ORACLE_SID
-export PATH=$ORACLE_HOME/bin:$PATH
-
-echo "Connecting to CDB: $ORACLE_SID"
-sqlplus -S / as sysdba << 'ENDSQL'
--- Check current wallet status
-SELECT STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;
-
--- Create TDE master key (replace <WALLET_PASSWORD> with the actual wallet password)
--- IMPORTANT: Run this command interactively — do NOT store the password in scripts
--- ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE IDENTIFIED BY "<WALLET_PASSWORD>" WITH BACKUP;
-
--- Verify after executing
-SELECT STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;
-EXIT;
-ENDSQL
-EOF
-```
-
-**Manual SQL (run interactively with password):**
 ```sql
--- Connect to target as SYSDBA
-sqlplus / as sysdba
-
--- Create TDE master key (interactive — supply wallet password at prompt)
-ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE
-  IDENTIFIED BY "<TDE_WALLET_PASSWORD>"
-  WITH BACKUP;
-
--- Verify
-SELECT STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;
--- Expected: OPEN  PASSWORD  (or AUTOLOGIN if auto-login wallet configured)
+ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE 
+  IDENTIFIED BY "<wallet_password>" WITH BACKUP;
 ```
 
-**Verification:**
+> ⚠️ The wallet password is prompted interactively and never stored in the script.  
+> ⚠️ This must be run as SYSDBA on the **target CDB root**, not inside a PDB.
+
+**Verification:**  
 ```sql
 SELECT STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET;
--- STATUS must NOT be OPEN_NO_MASTER_KEY after this step
--- Expected: OPEN + (PASSWORD or AUTOLOGIN)
+-- Expected: OPEN, PASSWORD  (or AUTOLOGIN if auto-login wallet is configured)
+-- Must NOT show OPEN_NO_MASTER_KEY
 ```
 
-**Resolution Notes:**
-```
-Date:
-Performed by:
-Wallet password source:
-Verification output:
-Notes:
-```
+**Rollback:**  
+Not applicable — adding a master key does not change the wallet state adversely.  
+If performed on the wrong CDB, the DBA should coordinate with Oracle Support.
+
+**Resolution Notes:**  
+_[To be completed after execution — include target CDB SID and node used]_
 
 ---
 
 ### ACTION-05: Discover OCI Object Storage Namespace
 
-**Category:** ⚠️ Required
-**Status:** 🔲 Pending
-**Priority:** HIGH
-**Server:** ZDM Server (`10.1.0.8` / `tm-vm-odaa-oracle-jumpbox`)
-**Run As:** `zdmuser`
+**Category:** ❌ Blocker  
+**Risk:** R-04 (High)  
+**Status:** 🔲 Pending  
+**Server:** ZDM Server (tm-vm-odaa-oracle-jumpbox / 10.1.0.8)
 
-**Problem:**
-The OCI Object Storage namespace is required for ZDM to create buckets and transfer migration data. It is blank in `zdm-env.md`. The zdmuser OCI config is already configured (region: uk-london-1), so this is a simple query.
+**Problem:**  
+The OCI Object Storage namespace is not configured in zdm-env.md. ZDM uses OCI Object Storage to stage backup files during migration. The namespace is required for all OCI OS operations.
 
-**Remediation:**
+**Remediation:**  
+Included in `Scripts/fix_zdm_server_ORADB.sh`. Executed as zdmuser:
+
 ```bash
-# On ZDM server, run as zdmuser
-ssh -i ~/.ssh/zdm.pem azureuser@10.1.0.8 "sudo -u zdmuser bash -c 'oci os ns get'"
-
-# Alternative: log in to ZDM server directly
-su - zdmuser
-oci os ns get --config-file ~/.oci/config
+oci os ns get --config-file /home/zdmuser/.oci/config --query 'data' --raw-output
 ```
 
-**Expected Output:**
-```json
-{
-  "data": "<YOUR_NAMESPACE_STRING>"
-}
+**Verification:**  
+Output is a short string (e.g., `axyz1234abcd`). No error message.
+
+**Post-Action:**  
+Update `zdm-env.md`:
+```
+- OCI_OSS_NAMESPACE: <value from command output>
 ```
 
-**Post-Action:**
-Record the namespace value in `zdm-env.md`:
-```
-- OCI_OSS_NAMESPACE: <namespace_value>
-```
-
-**Resolution Notes:**
-```
-Date:
-Namespace value discovered:
-zdm-env.md updated: YES / NO
-Notes:
-```
+**Resolution Notes:**  
+Namespace value: _[To be completed]_
 
 ---
 
 ### ACTION-06: Create OCI Object Storage Bucket
 
-**Category:** ⚠️ Required
-**Status:** 🔲 Pending
-**Priority:** HIGH
-**Server:** ZDM Server (`10.1.0.8`)
-**Run As:** `zdmuser`
-**Prerequisite:** ACTION-05 (namespace must be known)
+**Category:** ❌ Blocker  
+**Risk:** R-04 (High)  
+**Status:** 🔲 Pending  
+**Server:** ZDM Server (tm-vm-odaa-oracle-jumpbox / 10.1.0.8)
 
-**Problem:**
-ZDM requires an OCI Object Storage bucket in the same region as the target database (uk-london-1) to stage RMAN backup sets during migration. No bucket exists yet.
+**Problem:**  
+No OCI Object Storage bucket exists for ZDM data transfer. ZDM requires a bucket in the same region as the target (uk-london-1) within the project compartment.
 
-**Remediation:**
+**Remediation:**  
+Included in `Scripts/fix_zdm_server_ORADB.sh`. Executed as zdmuser:
+
 ```bash
-# On ZDM server as zdmuser
-su - zdmuser
-
-OSS_NAMESPACE="<NAMESPACE_FROM_ACTION_05>"
-COMPARTMENT_OCID="ocid1.compartment.oc1..aaaaaaaas4upnqj72dfiivgwvn3uui5gkxo7ng6leeoifucbjiy326urbhmq"
-BUCKET_NAME="zdm-oradb-migration"
-REGION="uk-london-1"
-
 oci os bucket create \
-  --namespace "${OSS_NAMESPACE}" \
-  --compartment-id "${COMPARTMENT_OCID}" \
-  --name "${BUCKET_NAME}" \
-  --region "${REGION}" \
-  --versioning Disabled \
-  --public-access-type NoPublicAccess
-
-# Verify bucket creation
-oci os bucket get \
-  --namespace "${OSS_NAMESPACE}" \
-  --bucket-name "${BUCKET_NAME}"
+  --compartment-id ocid1.compartment.oc1..aaaaaaaas4upnqj72dfiivgwvn3uui5gkxo7ng6leeoifucbjiy326urbhmq \
+  --namespace <OCI_OSS_NAMESPACE> \
+  --name zdm-oradb-migration \
+  --storage-tier Standard
 ```
 
-**Verification:**
-```bash
-oci os bucket list \
-  --namespace "${OSS_NAMESPACE}" \
-  --compartment-id "${COMPARTMENT_OCID}" \
-  --query "data[?name=='zdm-oradb-migration']"
-# Expected: Returns bucket object with "name": "zdm-oradb-migration"
-```
+**Bucket Details:**
+| Field | Value |
+|---|---|
+| Suggested Name | `zdm-oradb-migration` |
+| Region | uk-london-1 |
+| Compartment | ocid1.compartment.oc1..aaaaaaaas4upnqj72dfiivgwvn3uui5gkxo7ng6leeoifucbjiy326urbhmq |
+| Storage Tier | Standard |
 
-**Post-Action:**
-Record the bucket name in `zdm-env.md`:
+**Post-Action:**  
+Update `zdm-env.md`:
 ```
 - OCI_OSS_BUCKET_NAME: zdm-oradb-migration
 ```
 
-**Resolution Notes:**
-```
-Date:
-Bucket name:
-Bucket OCID:
-zdm-env.md updated: YES / NO
-Notes:
-```
+**Resolution Notes:**  
+Bucket name used: _[To be completed]_
 
 ---
 
 ### ACTION-07: Initialize ZDM Credential Store
 
-**Category:** ⚠️ Required
-**Status:** 🔲 Pending
-**Priority:** HIGH
-**Server:** ZDM Server (`10.1.0.8`)
-**Run As:** `zdmuser`
-**Prerequisites:** ACTION-04 (TDE wallet), ACTION-05/06 (OSS), source and target SYS passwords
+**Category:** ❌ Blocker  
+**Risk:** R-05 (High)  
+**Status:** 🔲 Pending  
+**Server:** ZDM Server (tm-vm-odaa-oracle-jumpbox / 10.1.0.8)
 
-**Problem:**
-The ZDM credential store (`/u01/app/zdmhome/zdm/cred`) does not exist. ZDM requires source and target database SYS credentials to be stored in its credential store before executing `zdmcli migrate database`.
+**Problem:**  
+The ZDM credential store at `/u01/app/zdmhome/zdm/cred` does not exist. ZDM requires source and target SYS passwords to be stored before initiating a migration job.
 
-**Remediation:**
+**Remediation:**  
+The credential store is initialized automatically when `zdmcli migrate database` is first invoked with password arguments. Run as zdmuser:
+
 ```bash
-# Step 1: Log in to ZDM server as zdmuser
-su - zdmuser
-
-# Step 2: Verify ZDM service is running
-/u01/app/zdmhome/bin/zdmcli query jobid -jobid 1 2>/dev/null || echo "ZDM service is running (no jobs yet)"
-
-# Step 3: Create the ZDM credential store directory (if not present)
-# ZDM auto-creates this on first credential add — no manual mkdir needed
-
-# Step 4: Add source database SYS password to ZDM wallet
-# (ZDM will prompt for password — do NOT put plaintext in scripts)
+# Option 1: Pass credentials on the command line (they are stored in the cred store)
 /u01/app/zdmhome/bin/zdmcli migrate database \
   -sourcedb oradb1 \
   -sourcenode 10.1.0.11 \
@@ -473,349 +303,268 @@ su - zdmuser
   -srcarg1 user:azureuser \
   -srcarg2 identity_file:/home/zdmuser/.ssh/odaa.pem \
   -srcarg3 sudo_location:/usr/bin/sudo \
-  -targetdb <TARGET_DB_UNIQUE_NAME> \
   -targetnode 10.0.1.160 \
   -tgtauth zdmauth \
   -tgtarg1 user:opc \
   -tgtarg2 identity_file:/home/zdmuser/.ssh/odaa.pem \
   -tgtarg3 sudo_location:/usr/bin/sudo \
   -rsp /u01/app/zdmhome/rhp/zdm/template/zdm_template.rsp \
-  -pauseafter ZDM_VALIDATE_SRC \
-  2>&1 | head -50
-# Note: Running with -pauseafter ZDM_VALIDATE_SRC allows you to test credential
-# setup only; cancel migration after validation passes.
+  -eval    # -eval flag does a dry-run only; remove for actual migration
 ```
 
-**Alternative — Response File Method:**
-The ZDM response file (Step 3) can include encrypted passwords via the `TGT_DB_UNIQUE_NAME`
-and related parameters. Consult the ZDM admin guide for `zdmcli -cred` wallet operations:
-```bash
-# Check ZDM documentation
-/u01/app/zdmhome/bin/zdmcli migrate database -help 2>&1 | grep -i cred
-```
+> The full migration command will be generated in Step 3.  
+> `-eval` performs a pre-flight checks only run without executing the migration.
 
-**Verification:**
+**Verification:**  
 ```bash
-# Verify credential store directory was created after first zdmcli invocation
 ls -la /u01/app/zdmhome/zdm/cred/
-# Expected: cwallet.sso and related files
+# Directory should exist with wallet files after first zdmcli run
 ```
 
-**Resolution Notes:**
-```
-Date:
-Performed by:
-Source SYS password stored: YES / NO
-Target SYS password stored: YES / NO
-TDE wallet password stored: YES / NO
-Verification output:
-Notes:
-```
+**Resolution Notes:**  
+_[To be completed — record when first zdmcli eval or migrate run is executed]_
 
 ---
 
 ### ACTION-08: Configure Archive Log Destination on Source
 
-**Category:** ⚡ Recommended
-**Status:** 🔲 Pending
-**Priority:** MEDIUM
-**Server:** Source Database (`10.1.0.11`)
-**Prerequisite:** Confirm disk/mount point for archive logs before enabling ARCHIVELOG
+**Category:** ⚠️ Required  
+**Risk:** R-06 (Medium)  
+**Status:** 🔲 Pending  
+**Server:** Source (tm-oracle-iaas / 10.1.0.11)
 
-**Problem:**
-Source disk has only ~8.6 GB free on `/`. Archive logs will accumulate at the configured
-destination. The default archive path (`$ORACLE_HOME/dbs/arch`) is on the already-tight
-root filesystem. A dedicated mount or path with more headroom should be configured.
+**Problem:**  
+Source disk is tight at ~8.6 GB free on root (`/`). Enabling ARCHIVELOG will cause archive logs to accumulate. The default archive destination (`ORACLE_HOME/dbs/arch`) is on the already-tight root filesystem.
 
-**Remediation (already included in ACTION-01 fix script):**
+**Remediation:**  
+Included in `Scripts/fix_source_ORADB.sh`. Sets FRA to `/u01/app/oracle/fast_recovery_area` (same mount as ORACLE_BASE but using fast recovery area standard path):
+
+```sql
+ALTER SYSTEM SET log_archive_dest_1='LOCATION=/u01/app/oracle/fast_recovery_area' SCOPE=SPFILE;
+ALTER SYSTEM SET db_recovery_file_dest='/u01/app/oracle/fast_recovery_area' SCOPE=BOTH;
+ALTER SYSTEM SET db_recovery_file_dest_size=5G SCOPE=BOTH;
+```
+
+> Monitor archive log accumulation after enabling ARCHIVELOG. For a 1.9 GB database with 200 MB redo groups, each log switch generates ~200 MB. At steady state, expect 1–3 GB/hour of archive log generation during active migration.
+
+**Verification:**  
 ```bash
-# On source server as oracle, before or during ARCHIVELOG enablement
-# Option A: Use the existing archive destination default path with monitoring
-mkdir -p /u01/app/oracle/archive
-chown oracle:oinstall /u01/app/oracle/archive
-
-# Check /u01 disk space
-df -h /u01
-# If /u01 has more space, configure log_archive_dest_1 to /u01/app/oracle/archive
-
-# Option B: If a separate mount exists with more space (e.g. /mnt/archive)
-# Set SPFILE parameter:
-# ALTER SYSTEM SET log_archive_dest_1='LOCATION=/mnt/archive' SCOPE=SPFILE;
+df -h /u01/app/oracle
+# Confirm space is adequate (>5 GB free recommended during migration)
 ```
 
-**RMAN Archive Deletion Policy:**
-```rman
--- Set deletion policy to avoid unbounded log accumulation
-CONFIGURE ARCHIVELOG DELETION POLICY TO APPLIED ON ALL STANDBY;
--- Or for simple cleanup during migration window:
-CONFIGURE ARCHIVELOG DELETION POLICY TO NONE;
-```
-
-**Ongoing Monitoring:**
-```bash
-# Monitor archive log space on source (run periodically during migration)
-ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle bash -c '
-export ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1
-export ORACLE_SID=oradb
-export PATH=\$ORACLE_HOME/bin:\$PATH
-df -h /u01/app/oracle/archive 2>/dev/null || df -h /u01
-sqlplus -S / as sysdba <<SQL
-SELECT DEST_NAME, STATUS, TARGET, ARCHIVER, DESTINATION FROM V\\\$ARCHIVE_DEST WHERE STATUS=\\'VALID\\';
-SQL
-'"
-```
-
-**Resolution Notes:**
-```
-Date:
-Archive destination configured:
-Available space at destination:
-Monitoring plan:
-Notes:
-```
+**Resolution Notes:**  
+_[Record disk free space before and after steps]_
 
 ---
 
 ### ACTION-09: Configure RMAN on Source
 
-**Category:** ⚡ Recommended
-**Status:** 🔲 Pending
-**Priority:** MEDIUM
-**Server:** Source Database (`10.1.0.11`)
+**Category:** ⚠️ Required  
+**Risk:** R-08 (Medium)  
+**Status:** 🔲 Pending  
+**Server:** Source (tm-oracle-iaas / 10.1.0.11)
 
-**Problem:**
-RMAN is not configured on the source database. While ZDM manages its own RMAN backup/restore
-internally, it is strongly recommended to:
-1. Configure RMAN so a pre-migration backup can be taken as a safety net
-2. Set up Fast Recovery Area (FRA) for archive log and backup management during the migration window
+**Problem:**  
+No RMAN backup exists for the source database. Before initiating migration, a baseline backup should be taken as a safety net. Additionally, RMAN is required if OFFLINE_PHYSICAL is selected as the migration method.
 
-**Remediation:**
+**Remediation:**  
+Includes in `Scripts/fix_source_ORADB.sh`. Configures RMAN with FRA:
+
 ```bash
-# Run fix_05_rman_archive_config.sh — or manually:
-ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle bash -s" << 'EOF'
-export ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1
-export ORACLE_SID=oradb
-export PATH=$ORACLE_HOME/bin:$PATH
-mkdir -p /u01/app/oracle/fast_recovery_area
-
-rman target / << 'ENDRMAN'
+rman TARGET /
 CONFIGURE CONTROLFILE AUTOBACKUP ON;
 CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '/u01/app/oracle/fast_recovery_area/%F';
 CONFIGURE DEFAULT DEVICE TYPE TO DISK;
 CONFIGURE BACKUP OPTIMIZATION ON;
-CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 3 DAYS;
+CONFIGURE RETENTION POLICY TO REDUNDANCY 1;
+```
 
--- Take pre-migration backup
+After script execution, manually take a full pre-migration backup:
+
+```bash
+# Run on source as oracle user
+rman TARGET /
 BACKUP DATABASE PLUS ARCHIVELOG;
-
-SHOW ALL;
-EXIT;
-ENDRMAN
-EOF
 ```
 
-**Verification:**
+**Verification:**  
 ```bash
-ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle bash -c '
-export ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1
-export ORACLE_SID=oradb
-export PATH=\$ORACLE_HOME/bin:\$PATH
-rman target / <<SQL
+rman TARGET /
 LIST BACKUP SUMMARY;
-EXIT;
-SQL
-'"
 ```
 
-**Resolution Notes:**
-```
-Date:
-FRA location:
-Pre-migration backup taken: YES / NO
-Backup size:
-Notes:
-```
+**Resolution Notes:**  
+_[Record date of backup and location]_
 
 ---
 
-### ACTION-10: Verify SSH Key Access (zdmuser → Source and Target)
+### ACTION-10: Verify zdmuser SSH Key Access
 
-**Category:** ⚡ Recommended
-**Status:** 🔲 Pending
-**Priority:** MEDIUM
-**Server:** ZDM Server (`10.1.0.8`)
-**Run As:** `zdmuser`
+**Category:** ⚠️ Required  
+**Risk:** R-05 (Medium)  
+**Status:** 🔲 Pending  
+**Server:** ZDM Server (10.1.0.8)
 
-**Problem:**
-ZDM executes remote commands on source and target via SSH as zdmuser using the keys found in
-`/home/zdmuser/.ssh/`. Connectivity was confirmed as `azureuser` during Step 0 discovery, but
-ZDM itself will use the `zdmuser` identity. Verify that zdmuser's keys work for both hosts.
+**Problem:**  
+Discovery confirmed zdmuser has SSH keys (`odaa.pem`, `iaas.pem`, `zdm.pem`) but did not explicitly verify they work for source and target connections. ZDM executes all SSH as zdmuser.
 
-**Remediation / Verification:**
+**Remediation:**  
+Included in `Scripts/fix_zdm_server_ORADB.sh`:
+
 ```bash
-# On ZDM server as zdmuser
-su - zdmuser
-
-# Test SSH to source (azureuser admin, then sudo to oracle)
-echo "=== Testing zdmuser SSH to SOURCE ==="
-ssh -i ~/.ssh/odaa.pem -o StrictHostKeyChecking=no azureuser@10.1.0.11 \
-  "sudo -u oracle whoami && hostname"
-# Expected: oracle  \n  tm-oracle-iaas
-
-# Test SSH to target (opc admin, then sudo to oracle)
-echo "=== Testing zdmuser SSH to TARGET ==="
-ssh -i ~/.ssh/odaa.pem -o StrictHostKeyChecking=no opc@10.0.1.160 \
-  "sudo -u oracle whoami && hostname"
-# Expected: oracle  \n  tmodaauks-rqahk1
+# As zdmuser
+ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "hostname"   # Expected: tm-oracle-iaas
+ssh -i ~/.ssh/odaa.pem opc@10.0.1.160 "hostname"        # Expected: tmodaauks-rqahk1
 ```
 
-Alternatively, use `fix_06_verify_ssh.sh`.
+**Verification:**  
+Both commands return the server hostname without errors.
 
-**Resolution Notes:**
-```
-Date:
-zdmuser → source SSH result:
-zdmuser → target SSH result:
-Notes:
-```
+**Resolution Notes:**  
+_[Record test results and key in use]_
 
 ---
 
-### ACTION-11: Verify Oracle User Direct SSH Access (if required by ZDM configuration)
+### ACTION-11: Verify Oracle Sudo Access via Admin SSH User
 
-**Category:** ⚡ Recommended
-**Status:** 🔲 Pending
-**Priority:** MEDIUM
-**Server:** ZDM Server (`10.1.0.8`)
+**Category:** ⚠️ Required  
+**Risk:** R-05 (Medium)  
+**Status:** 🔲 Pending  
+**Server:** ZDM Server (10.1.0.8)
 
-**Problem:**
-Some ZDM response file configurations require direct SSH as the `oracle` OS user rather than
-using admin+sudo. Verify if direct oracle SSH is permitted; if not, confirm the ZDM response
-file will use the admin+sudo pattern (`-srcauth zdmauth`/`-tgtauth zdmauth`).
+**Problem:**  
+ZDM uses the admin SSH user (azureuser / opc) with `sudo -u oracle` to execute Oracle commands on source and target. This must be confirmed working before migration.
 
-**Context:**
-Discovery shows zdmuser's `~/.ssh/` contains: `iaas.pem`, `odaa.pem`, `zdm.pem`, `id_ed25519`, `id_rsa`.
-The `oracle` user SSH directory was not accessible during Step 0 discovery.
+**Remediation:**  
+Included in `Scripts/fix_zdm_server_ORADB.sh`:
 
-**Remediation / Verification:**
 ```bash
-su - zdmuser
+# As zdmuser on ZDM server
+ssh -i ~/.ssh/odaa.pem azureuser@10.1.0.11 "sudo -u oracle id"
+# Expected: uid=... (oracle) ...
 
-# Test direct SSH as oracle (may fail — expected if PermitRootLogin-like restrictions apply)
-echo "=== Testing direct oracle SSH to SOURCE ==="
-ssh -i ~/.ssh/odaa.pem oracle@10.1.0.11 "hostname" 2>&1
-# If this fails: use -srcauth zdmauth in zdmcli command (admin user + sudo)
-
-echo "=== Testing direct oracle SSH to TARGET ==="
-ssh -i ~/.ssh/odaa.pem oracle@10.0.1.160 "hostname" 2>&1
-# If this fails: use -tgtauth zdmauth in zdmcli command
+ssh -i ~/.ssh/odaa.pem opc@10.0.1.160 "sudo -u oracle id"
+# Expected: uid=... (oracle) ...
 ```
 
-**Decision:**
-| Result | ZDM Config Implication |
-|--------|----------------------|
-| Direct `oracle` SSH works | Can use `-srcauth osSudoRoot` in response file |
-| Direct `oracle` SSH blocked | Must use `-srcauth zdmauth` with admin user + sudo (standard ODAA pattern) |
+If not working, add to `/etc/sudoers` on source/target:
+```
+azureuser ALL=(oracle) NOPASSWD: ALL
+opc       ALL=(oracle) NOPASSWD: ALL
+```
 
-**Resolution Notes:**
-```
-Date:
-Direct oracle SSH to source: WORKS / BLOCKED
-Direct oracle SSH to target: WORKS / BLOCKED
-ZDM auth method confirmed:
-Notes:
-```
+**Resolution Notes:**  
+_[Record outcome of sudo test]_
 
 ---
 
 ### ACTION-12: Update zdm-env.md with Missing Values
 
-**Category:** ⚠️ Required
+**Category:** ⚠️ Required  
 **Status:** 🔲 Pending
-**Priority:** MEDIUM
-**File:** `prompts/Phase10-Migration/ZDM/zdm-env.md`
 
-**Problem:**
-Two required fields are blank in `zdm-env.md`. These values are needed for Step 3 migration
-artifact generation (ZDM response file and migration command).
+**Problem:**  
+Two fields are blank in `zdm-env.md` and block Step 3 (artifact generation):
+- `OCI_OSS_NAMESPACE` — must be populated after ACTION-05
+- `OCI_OSS_BUCKET_NAME` — must be populated after ACTION-06
 
-**Fields to Populate:**
+**Remediation:**  
+After completing ACTION-05 and ACTION-06, edit `prompts/Phase10-Migration/ZDM/zdm-env.md`:
 
-| Field | How to Obtain | Status |
-|-------|--------------|--------|
-| `OCI_OSS_NAMESPACE` | Run `oci os ns get` as zdmuser (ACTION-05) | ❌ BLANK |
-| `OCI_OSS_BUCKET_NAME` | Create bucket (ACTION-06) | ❌ BLANK |
-
-**Post-Action:**
-After completing ACTION-05 and ACTION-06, update the following lines in `zdm-env.md`:
-```diff
-- OCI_OSS_NAMESPACE: 
-+ OCI_OSS_NAMESPACE: <value from oci os ns get>
-- OCI_OSS_BUCKET_NAME: 
-+ OCI_OSS_BUCKET_NAME: zdm-oradb-migration
+```markdown
+- OCI_OSS_NAMESPACE: <value from oci os ns get>
+- OCI_OSS_BUCKET_NAME: zdm-oradb-migration
 ```
 
-**Resolution Notes:**
-```
-Date:
-OCI_OSS_NAMESPACE value:
-OCI_OSS_BUCKET_NAME value:
-zdm-env.md updated: YES / NO
-Notes:
-```
+**Resolution Notes:**  
+_[Record values set]_
 
 ---
 
-## Completion Checklist
+### R-07: Review and Clean Up Offline Databases on Target /u02
 
-Before proceeding to Step 3 (Generate Migration Artifacts):
+**Category:** ⚠️ Required  
+**Risk:** R-07 (Medium)  
+**Status:** 🔲 Pending  
+**Server:** Target (tmodaauks-rqahk1 / 10.0.1.160)
 
-- [ ] ACTION-01: Source database is in ARCHIVELOG mode (`LOG_MODE = ARCHIVELOG`)
-- [ ] ACTION-02: Force Logging is enabled (`FORCE_LOGGING = YES`)
-- [ ] ACTION-03: Supplemental logging is enabled (`SUPPLEMENTAL_LOG_DATA_MIN = YES`)
-- [ ] ACTION-04: Target TDE wallet has a master key (`STATUS != OPEN_NO_MASTER_KEY`)
-- [ ] ACTION-05: OCI Object Storage namespace discovered and recorded in zdm-env.md
-- [ ] ACTION-06: OCI Object Storage bucket created (`zdm-oradb-migration` in uk-london-1)
-- [ ] ACTION-07: ZDM credential store initialized (`/u01/app/zdmhome/zdm/cred` exists)
-- [ ] ACTION-08: Archive log destination configured with adequate space
-- [ ] ACTION-09: Pre-migration RMAN backup taken
-- [ ] ACTION-10: zdmuser SSH access to source and target verified
-- [ ] ACTION-11: ZDM auth method (admin+sudo vs. direct oracle) confirmed
-- [ ] ACTION-12: zdm-env.md updated with OSS namespace and bucket name
+**Problem:**  
+Three offline databases (`migdb`, `mydb`, `oradb01m`) occupy `/u02` on the target Exadata nodes. Current free space on `/u02` is only ~14 GB. ZDM will create a new database home and data files for ORADB on `/u02`, which may fail if space is insufficient.
 
----
-
-## Verification Discovery (Post-Fix)
-
-After completing all CRITICAL and HIGH actions, re-run source and target discovery to confirm
-changes took effect. Save outputs to `Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification/`.
+**Remediation:**  
+Coordinate with ODAA DBA to remove unused offline databases:
 
 ```bash
-# From ZDM server, re-run source discovery
-ssh -i ~/.ssh/zdm.pem azureuser@10.1.0.8 "sudo -u zdmuser bash -s" \
-  < Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Scripts/zdm_source_discovery.sh \
-  > Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification/zdm_source_post_fix.txt
+# On target node 1 as grid user or root
+# 1. Confirm databases are truly unused (no active connections)
+srvctl status database -db migdb
+srvctl status database -db mydb  
+srvctl status database -db oradb01m
 
-# Re-run target discovery
-ssh -i ~/.ssh/zdm.pem azureuser@10.1.0.8 "sudo -u zdmuser bash -s" \
-  < Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Scripts/zdm_target_discovery.sh \
-  > Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification/zdm_target_post_fix.txt
+# 2. Deregister from CRS and remove data files (dangerous — confirm before running)
+srvctl remove database -db migdb -noprompt
+srvctl remove database -db mydb -noprompt
+srvctl remove database -db oradb01m -noprompt
+
+# 3. Remove data files from ASM (if stored in ASM)
+# Connect as grid/sysdba and use ASMCMD to remove
+asmcmd
+cd DATAC3/
+ls
+rm -rf <migdb_dir>
+rm -rf <mydb_dir>
+rm -rf <oradb01m_dir>
 ```
 
----
+> ⚠️ **Irreversible operation.** Confirm with all stakeholders that these databases are no longer needed before deletion.
 
-## Next Steps
+**Verification:**  
+```bash
+df -h /u02
+# Expected: >20 GB free after cleanup
+```
 
-Once all items in the Completion Checklist are ✅:
-
-1. Update this log with resolution dates and verifications
-2. Ensure `zdm-env.md` is fully populated
-3. Proceed to **Step 3**: Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
-   - This Issue Resolution Log
-   - Updated Migration Questionnaire from Step 1
-   - Latest discovery files from `Step2/Verification/`
+**Resolution Notes:**  
+_[Record confirmation from stakeholders and which DBs were removed]_
 
 ---
 
-*Generated by GitHub Copilot — ODAA Migration Accelerator*
-*Based on Discovery Summary: 2026-02-27*
+## Verification Checklist
+
+Before proceeding to Step 3, confirm all items below:
+
+- [ ] ACTION-01: `SELECT LOG_MODE FROM V$DATABASE;` → `ARCHIVELOG`
+- [ ] ACTION-02: `SELECT FORCE_LOGGING FROM V$DATABASE;` → `YES`
+- [ ] ACTION-03: `SELECT SUPPLEMENTAL_LOG_DATA_MIN FROM V$DATABASE;` → `YES`
+- [ ] ACTION-04: `SELECT STATUS FROM V$ENCRYPTION_WALLET;` → `OPEN` (not `OPEN_NO_MASTER_KEY`)
+- [ ] ACTION-05: OCI namespace retrieved and recorded in zdm-env.md
+- [ ] ACTION-06: OCI bucket `zdm-oradb-migration` created and recorded in zdm-env.md
+- [ ] ACTION-07: ZDM credential store initialized (or will be initialized with Step 3 eval run)
+- [ ] ACTION-08: Archive log destination set and disk space confirmed adequate
+- [ ] ACTION-09: RMAN configured; pre-migration backup taken
+- [ ] ACTION-10: zdmuser SSH access to source and target verified
+- [ ] ACTION-11: sudo -u oracle works from both source and target admin users
+- [ ] ACTION-12: zdm-env.md fully populated (no blank required fields)
+- [ ] R-07: Target /u02 disk space confirmed adequate (>20 GB free) or offline DBs removed
+
+---
+
+## Re-Verification Discovery
+
+After completing all remediation steps, re-run source and target discovery to confirm fixes:
+
+```bash
+# From ZDM server as azureuser — re-run source discovery
+ssh -i ~/.ssh/zdm.pem azureuser@10.1.0.8 'bash -s' < Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Scripts/zdm_orchestrate_discovery.sh source
+
+# Save updated output to Step2/Verification/
+```
+
+Save re-verification discovery files to:  
+`Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification/`
+
+---
+
+*Generated by GitHub Copilot — ODAA Migration Accelerator — Step 2: Fix Issues*  
+*Based on Discovery Summary: 2026-02-27 21:36 UTC*

@@ -95,6 +95,32 @@ For each issue, generate:
 3. **Rollback Commands** (if applicable)
    - How to undo the change if needed
 
+#### ⚠️ SSH Shell Quoting — Mandatory Pattern for `run_sql_on_source`
+
+When generating bash scripts that run SQL over SSH via `sudo -u oracle bash -c '...'`, SQL statements containing single-quoted string values (e.g. `'LOCATION=/path'`, `'SOME_VALUE'`) will break the outer shell quoting and cause `ORA-00922` or similar parse errors.
+
+**Always generate the `run_sql_on_source` helper using base64 encoding:**
+
+```bash
+run_sql_on_source() {
+  local sql_block="$1"
+  local encoded_sql
+  encoded_sql=$(printf '%s\n' "${sql_block}" | base64 -w 0)
+  ssh -i "${SOURCE_SSH_KEY}" \
+      -o StrictHostKeyChecking=no \
+      -o ConnectTimeout=10 \
+      "${SOURCE_SSH_USER}@${SOURCE_HOST}" \
+      "sudo -u ${ORACLE_USER} bash -c '
+        export ORACLE_HOME=${ORACLE_HOME}
+        export ORACLE_SID=${ORACLE_SID}
+        export PATH=\${ORACLE_HOME}/bin:\${PATH}
+        echo \"${encoded_sql}\" | base64 -d | sqlplus -S / as sysdba
+      '"
+}
+```
+
+The same pattern applies to any analogous `run_sql_on_target` helper. Base64 output contains only `A–Z a–z 0–9 + / =` characters and therefore can never conflict with shell quoting delimiters.
+
 ### Part 3: Create Issue Resolution Log
 
 Create a file `Issue-Resolution-Log-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/` tracking:
