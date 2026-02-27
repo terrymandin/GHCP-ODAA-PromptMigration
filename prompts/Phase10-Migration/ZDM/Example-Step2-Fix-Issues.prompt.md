@@ -7,23 +7,26 @@
 ```
 @Step2-Fix-Issues.prompt.md
 
-Please help me resolve the issues identified in the Discovery Summary for our PRODDB migration.
+## Project Configuration
+#file:prompts/Phase10-Migration/ZDM/zdm-env.md
+
+Please help me resolve the issues identified in the Discovery Summary for our <DATABASE_NAME> migration.
 
 ## Attached Files
 
 ### Step1 Outputs
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
 
 ### Discovery Files (from Step0 - for reference)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/
 ```
 
-> **Note:** Replace `PRODDB` with your database name (e.g., PRODDB, HRDB, etc.).
+> **Note:** Replace `<DATABASE_NAME>` with the `PROJECT_NAME` value from [zdm-env.md](zdm-env.md).
 > When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---

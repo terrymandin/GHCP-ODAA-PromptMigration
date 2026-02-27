@@ -28,26 +28,29 @@ Copy and use this prompt with your discovery files:
 ```
 @Step1-Discovery-Questionnaire.prompt.md
 
-Please analyze the discovery results for our PRODDB migration and generate:
+## Project Configuration
+#file:prompts/Phase10-Migration/ZDM/zdm-env.md
+
+Please analyze the discovery results for our <DATABASE_NAME> migration and generate:
 1. A summary of discovered configurations
 2. A questionnaire for manual decisions with recommended defaults
 
 ## Attached Discovery Files
 
 ### Source Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/
 
 ### Target Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/
 
 ### ZDM Server Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
 ```
 
-> **Note:** Replace `PRODDB` with your database name (e.g., PRODDB, HRDB, etc.).
+> **Note:** Replace `<DATABASE_NAME>` with the `PROJECT_NAME` value from [zdm-env.md](zdm-env.md).
 > When referencing directories, GitHub Copilot will read all files in those directories.
 
 ---

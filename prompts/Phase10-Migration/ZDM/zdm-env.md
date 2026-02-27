@@ -1,28 +1,73 @@
-# ZDM Environment Variables
+﻿# ZDM Migration Project Configuration
 
-Optional environment variable overrides for ZDM discovery scripts.
-Reference this file in your prompt with `@zdm-env.md` if you need to override auto-detection.
-
-## Usage
-
-These values are only needed if auto-detection fails. The scripts will attempt to discover these automatically by:
-- Checking /etc/oratab for Oracle homes and SIDs
-- Searching common installation paths
-- Checking running processes
-- Examining user environment files
-
-If auto-detection works for your environment, you don't need to set these.
+> **Instructions:** Update the values below for your migration project before running any Example prompts.
+> All Example prompts attach this file with `#file:prompts/Phase10-Migration/ZDM/zdm-env.md` so
+> GitHub Copilot will use these values automatically when generating scripts and artifacts.
 
 ---
 
-## ZDM Server Environment
-- ZDM_REMOTE_ZDM_HOME: /home/zdmuser/zdmhome
-- ZDM_REMOTE_JAVA_HOME: /usr/java/jdk1.8.0_391
+## Project Identification
 
-## Source Database Environment
-- SOURCE_REMOTE_ORACLE_HOME: /u01/app/oracle/product/19.0.0.0/dbhome_1
-- SOURCE_REMOTE_ORACLE_SID: PRODDB
+- PROJECT_NAME: PRODDB
 
-## Target Database Environment
-- TARGET_REMOTE_ORACLE_HOME: /u01/app/oracle/product/19.0.0.0/dbhome_1
-- TARGET_REMOTE_ORACLE_SID: PRODDB
+> `PROJECT_NAME` is used for all artifact directory paths:
+> `Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts/`, `Step1/`, `Step2/`, `Step3/`
+
+---
+
+## Server Hostnames
+
+- SOURCE_HOST: proddb01.corp.example.com
+- TARGET_HOST: proddb-oda.eastus.azure.example.com
+- ZDM_HOST: zdm-jumpbox.corp.example.com
+
+---
+
+## SSH Users (admin user for each server)
+
+- SOURCE_SSH_USER: oracle
+- TARGET_SSH_USER: opc
+- ZDM_SSH_USER: azureuser
+
+---
+
+## SSH Key Paths (separate keys per security domain)
+
+- SOURCE_SSH_KEY: ~/.ssh/onprem_oracle_key
+- TARGET_SSH_KEY: ~/.ssh/oci_opc_key
+- ZDM_SSH_KEY: ~/.ssh/azure_key
+
+---
+
+## Application User Configuration
+
+- ORACLE_USER: oracle
+- ZDM_SOFTWARE_USER: zdmuser
+
+---
+
+## Oracle Path Overrides
+
+Leave blank to allow auto-detection via `/etc/oratab` and common paths. Set only if auto-detection fails.
+
+- SOURCE_REMOTE_ORACLE_HOME: 
+- SOURCE_REMOTE_ORACLE_SID: 
+- TARGET_REMOTE_ORACLE_HOME: 
+- TARGET_REMOTE_ORACLE_SID:
+
+---
+
+## OCI/Azure Configuration (non-sensitive identifiers)
+
+- OCI_USER_OCID: ocid1.user.oc1..example
+- OCI_COMPARTMENT_OCID: ocid1.compartment.oc1..example
+- TARGET_DB_SYSTEM_OCID: ocid1.dbsystem.oc1..example
+- TARGET_DATABASE_OCID: ocid1.database.oc1..example
+- OCI_API_KEY_FINGERPRINT: aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
+- OCI_CONFIG_PATH: ~/.oci/config
+- OCI_PRIVATE_KEY_PATH: ~/.oci/oci_api_key.pem
+
+### OCI Object Storage
+
+- OCI_OSS_NAMESPACE: example_namespace
+- OCI_OSS_BUCKET_NAME: zdm-migration-bucket

@@ -23,28 +23,8 @@ Copy and use this prompt to generate discovery scripts:
 ```
 @Step0-Generate-Discovery-Scripts.prompt.md
 
-Generate discovery scripts for our PRODDB migration project.
-
-## Migration Project Details
-- Project Name: PRODDB Migration to Oracle Database@Azure
-- Source Database: proddb01.corp.example.com
-- Target Database: proddb-oda.eastus.azure.example.com  
-- ZDM Server: zdm-jumpbox.corp.example.com
-
-## User Configuration (different admin users per server)
-- Source Admin User: oracle (on-premise server uses oracle user for SSH)
-- Target Admin User: opc (OCI/ODA uses opc user for SSH)
-- ZDM Admin User: azureuser (Azure VM uses azureuser for SSH)
-- Oracle User: oracle (database software owner)
-- ZDM User: zdmuser (ZDM software owner)
-
-## SSH Key Configuration
-- Source SSH Key: ~/.ssh/onprem_oracle_key
-- Target SSH Key: ~/.ssh/oci_opc_key
-- ZDM SSH Key: ~/.ssh/azure_key
-
-## Script Output Location
-Save all generated scripts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts/
+## Project Configuration
+#file:prompts/Phase10-Migration/ZDM/zdm-env.md
 
 ## Additional Discovery Requirements
 
@@ -68,62 +48,27 @@ In addition to the standard discovery, also verify:
 - Network latency to source and target (ping tests)
 ```
 
+> 🔑 **Before running this prompt:** Update `PROJECT_NAME` and all connection details in [zdm-env.md](zdm-env.md). The `PROJECT_NAME` value becomes the artifact directory name used in every subsequent step.
+
 ---
 
-## Example with Environment Overrides
+## Running the Scripts on the Server
 
-If auto-detection fails (e.g., non-standard installation paths), include `@zdm-env.md` or set environment variables before running:
+After Copilot generates the scripts, run them on the ZDM server. Set the same variables from [zdm-env.md](zdm-env.md) as environment variables before executing the orchestrator:
 
-**Option A: Reference zdm-env.md in the prompt**
-```
-@Step0-Generate-Discovery-Scripts.prompt.md
-@zdm-env.md
-
-Generate discovery scripts for our PRODDB migration project.
-...
-```
-
-**Option B: Set environment variables before running orchestration script**
 ```bash
-# Server hostnames
+# Source your project config (copy values from zdm-env.md)
 export SOURCE_HOST="proddb01.corp.example.com"
 export TARGET_HOST="proddb-oda.eastus.azure.example.com"
 export ZDM_HOST="zdm-jumpbox.corp.example.com"
-
-# SSH users (admin user for each server)
 export SOURCE_USER="oracle"
 export TARGET_USER="opc"
 export ZDM_USER="azureuser"
-
-# SSH key paths (separate keys for each security domain)
 export SOURCE_SSH_KEY="$HOME/.ssh/onprem_oracle_key"
 export TARGET_SSH_KEY="$HOME/.ssh/oci_opc_key"
 export ZDM_SSH_KEY="$HOME/.ssh/azure_key"
-
-# Application user configuration
 export ORACLE_USER=oracle
 export ZDM_SOFTWARE_USER=zdmuser
-
-# Oracle path overrides (if auto-detection fails)
-export SOURCE_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19.0.0/dbhome_1
-export SOURCE_REMOTE_ORACLE_SID=PRODDB
-export TARGET_REMOTE_ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
-export TARGET_REMOTE_ORACLE_SID=
-
-# ===========================================
-# OCI/AZURE CONFIGURATION (Non-sensitive identifiers)
-# ===========================================
-export OCI_USER_OCID="ocid1.user.oc1..example"
-export OCI_COMPARTMENT_OCID="ocid1.compartment.oc1..example"
-export TARGET_DB_SYSTEM_OCID="ocid1.dbsystem.oc1..example"
-export TARGET_DATABASE_OCID="ocid1.database.oc1..example"
-export OCI_API_KEY_FINGERPRINT="aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
-export OCI_CONFIG_PATH="~/.oci/config"
-export OCI_PRIVATE_KEY_PATH="~/.oci/oci_api_key.pem"
-
-# --- OCI Object Storage ---
-export OCI_OSS_NAMESPACE="example_namespace"
-export OCI_OSS_BUCKET_NAME="zdm-migration-bucket"
 
 ./zdm_orchestrate_discovery.sh
 ```

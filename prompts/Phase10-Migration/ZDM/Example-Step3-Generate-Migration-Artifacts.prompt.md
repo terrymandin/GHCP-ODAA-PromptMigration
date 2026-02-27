@@ -21,23 +21,26 @@ Copy and use this prompt to generate migration artifacts:
 ```
 @Step3-Generate-Migration-Artifacts.prompt.md
 
-Generate all migration artifacts for the PRODDB migration to Oracle Database@Azure.
+## Project Configuration
+#file:prompts/Phase10-Migration/ZDM/zdm-env.md
+
+Generate all migration artifacts for the <DATABASE_NAME> migration to Oracle Database@Azure.
 
 ## Step1 Outputs (Questionnaire and Summary)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step1/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
 
 ## Step2 Outputs (Issue Resolution Log)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/
 
 ## Discovery Files (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/source/
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/target/
-#file:Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery/server/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/
 
-> **Note:** Replace `PRODDB` with your database name (e.g., PRODDB, HRDB, etc.).
+> **Note:** Replace `<DATABASE_NAME>` with the `PROJECT_NAME` value from [zdm-env.md](zdm-env.md).
 > When referencing directories, GitHub Copilot will read all files in those directories.
 
 ## Additional Parameters (Optional Overrides)
