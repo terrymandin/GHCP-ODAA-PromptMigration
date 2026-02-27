@@ -451,13 +451,28 @@ check_required_passwords() {
 **Resilience Requirements:**
 - **Continue on failure** - If one server discovery fails, continue with the remaining servers
 - **Login shell for remote execution** - SSH commands run non-interactively, which means `.bashrc` is typically NOT sourced (it often has guards like `[ -z "$PS1" ] && return` at the top). To ensure environment variables like ZDM_HOME, ORACLE_HOME, JAVA_HOME are available:
-  - Use `bash -l -c 'command'` to force a login shell when executing remote scripts
+  - Use `bash -l -s` (login shell reading from stdin) when executing remote scripts
   - This ensures `.bash_profile` and `.bashrc` are properly sourced
+- **Working directory after login shell** - `bash -l` sources `~/.bash_profile` on the remote server, which may contain `cd` commands (e.g., Oracle environments often `cd $ORACLE_BASE` or similar) that change the working directory away from the temp directory where output files should be written. To guarantee the script runs in the correct temp directory, **prepend a `cd` to the piped script content** rather than relying on the SSH command string:
+  ```bash
+  # CORRECT: cd is the first command executed by bash -l, after profile sourcing
+  # Use process substitution to prepend cd before the script content
+  local remote_dir="/tmp/zdm_discovery_$$"
+  ssh $SSH_OPTS -i "$key_path" "${admin_user}@${host}" \
+      "mkdir -p $remote_dir && ${env_args}bash -l -s" \
+      < <(echo "cd '$remote_dir'" ; cat "$script_path")
+  
+  # WRONG: cd in the SSH command string runs before bash -l starts, so bash -l's
+  # profile sourcing can override it and leave the shell in a different directory
+  # ssh ... "mkdir -p $remote_dir && cd $remote_dir && bash -l -s" < "$script_path"
+  ```
+  This pattern must be used consistently for ALL three discovery scripts (source, target, server).
 - **Pass SOURCE_HOST and TARGET_HOST to ZDM server discovery** - The orchestration script MUST pass the source and target hostnames as environment variables when running the ZDM server discovery script, so connectivity tests work correctly:
   ```bash
   # When running server discovery, pass the hostnames for connectivity testing
   ssh $SSH_OPTS -i "$key_path" "${ZDM_ADMIN_USER}@${ZDM_HOST}" \
-      "SOURCE_HOST='$SOURCE_HOST' TARGET_HOST='$TARGET_HOST' ZDM_USER='$ZDM_USER' bash -l -s" < "$script_path"
+      "mkdir -p $remote_dir && SOURCE_HOST='$SOURCE_HOST' TARGET_HOST='$TARGET_HOST' ZDM_USER='$ZDM_USER' bash -l -s" \
+      < <(echo "cd '$remote_dir'" ; cat "$script_path")
   ```
 - **Auto-detection as primary method** - The remote discovery scripts should auto-detect Oracle and ZDM environments by:
   - Parsing /etc/oratab for Oracle homes and SIDs
