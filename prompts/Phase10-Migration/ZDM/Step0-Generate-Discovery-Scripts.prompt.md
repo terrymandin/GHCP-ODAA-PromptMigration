@@ -134,6 +134,27 @@ Generate a bash script to run on the **source database server** (executed via SS
 - Schema sizes (non-system schemas > 100MB)
 - Invalid objects count by owner/type
 
+**Tablespace Configuration:**
+- Autoextend settings for all tablespaces (AUTOEXTEND ON/OFF, MAXSIZE, increment size)
+- Current size vs. max size for all data files
+
+**Backup Configuration:**
+- Current RMAN backup schedule (crontab and DBMS_SCHEDULER jobs related to backup)
+- RMAN retention policy and archivelog deletion policy
+- Last successful backup timestamp and backup location (disk/tape/OSS)
+
+**Database Links:**
+- All database links (owner, DB_LINK name, host, username) — both public and private
+- Status/validity of each link where determinable
+
+**Materialized Views:**
+- Materialized view names, owner, refresh type, refresh mode, and next refresh time
+- Materialized view logs present
+
+**Scheduler Jobs:**
+- All DBMS_SCHEDULER jobs (owner, job name, job type, schedule, enabled status, last/next run date)
+- Any jobs that reference external hostnames, file paths, or credentials that may need reconfiguration post-migration
+
 **Output Format:**
 - Text report: `./zdm_source_discovery_<hostname>_<timestamp>.txt` (in current working directory)
 - JSON summary: `./zdm_source_discovery_<hostname>_<timestamp>.json` (in current working directory)
@@ -182,6 +203,21 @@ Generate a bash script to run on the **target database server** (Oracle Database
 **Authentication:**
 - SSH directory contents
 
+**Exadata / Storage Capacity:**
+- Available Exadata smart storage capacity (cell disk and grid disk free space via `cellcli` or `asmcmd` where accessible)
+- ASM disk group names, total size, free space, and redundancy type
+- Estimated space available for the incoming database
+
+**Pre-configured PDBs:**
+- Full list of existing PDBs: name, open mode, restricted status, creation SCN
+- Any PDB already reserved or named for this migration project
+- PDB storage limits (MAX_SIZE) if configured
+
+**Network Security Group Rules:**
+- Active NSG/firewall rules relevant to database connectivity (port 1521, 2484 for TCPS, 22 for SSH)
+- `iptables` or `firewalld` rules affecting Oracle listener ports
+- OCI NSG rules if accessible via OCI CLI (`oci network nsg list`)
+
 **Output Format:**
 - Text report: `./zdm_target_discovery_<hostname>_<timestamp>.txt` (in current working directory)
 - JSON summary: `./zdm_target_discovery_<hostname>_<timestamp>.json` (in current working directory)
@@ -196,6 +232,7 @@ Generate a bash script to run on the **ZDM jumpbox server** (executed via SSH as
 **OS Information:**
 - Hostname, current user
 - Operating system version
+- Available disk space on all mount points (minimum 25GB recommended for ZDM operations; report any filesystem with < 50GB free as a WARNING since 50GB or more is preferred — especially on the ZDM_HOME and /tmp filesystems)
 
 **ZDM Installation:**
 - ZDM_HOME location (must detect even when running as different user than zdmuser)
@@ -253,9 +290,9 @@ TARGET_HOST="${TARGET_HOST:-}"   # Target database hostname (passed from orchest
 
 The script should:
 1. **Only run connectivity tests if SOURCE_HOST and TARGET_HOST are provided** - Skip tests gracefully if not set
-2. **Ping tests** - Test ICMP connectivity and measure latency
+2. **Ping tests with latency measurement** - Run `ping -c 10` to each host and report min/avg/max round-trip latency in milliseconds; flag avg RTT > 10ms as a WARNING since high latency impacts ZDM online migration performance
 3. **Port tests** - Test SSH (22) and Oracle (1521) port connectivity using `timeout` and `/dev/tcp`
-4. **Report clearly** - Show SUCCESS/FAILED for each test with actionable guidance
+4. **Report clearly** - Show SUCCESS/FAILED for each test with latency values and actionable guidance
 
 Example connectivity test logic:
 ```bash
@@ -489,6 +526,14 @@ check_required_passwords() {
     - SOURCE_REMOTE_ORACLE_SID: Oracle SID on source server
     - TARGET_REMOTE_ORACLE_HOME: Path to Oracle home on target server
     - TARGET_REMOTE_ORACLE_SID: Oracle SID on target server
+- **Never suppress SSH/SCP errors silently** - Do NOT use `2>/dev/null` on SSH or SCP commands in the orchestration script. Capture stderr into a variable and log it on failure so the user can diagnose what went wrong. Apply this to both SSH connectivity checks and SCP file transfers — in both cases, capture combined stdout/stderr, check for success, and log the full captured output at ERROR level if the command fails.
+- **Upfront SSH key diagnostic in main()** - Before attempting any connections, log a diagnostic block showing:
+  1. The user running the script and their home directory
+  2. All `.pem` and `.key` files found in `~/.ssh/`; if none are found or the directory is missing, log a warning
+  3. For each configured SSH key (`SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ZDM_SSH_KEY`): expand the path (resolving `~` to `$HOME`), then log whether the file exists or is missing; if missing, log the exact expanded path that was checked and the environment variable the user should override to fix it
+
+  This is the single most common failure cause — the script runs as a different user than expected (e.g. `zdmuser` instead of `azureuser`), so a key path like `~/.ssh/odaa.pem` resolves to a path that does not exist for that user.
+- **List remote directory before collecting output files** - After the remote discovery script finishes but before running SCP collection, SSH back to the remote host and list the contents of the temp directory. Log the output at INFO level. If the directory is not found, log a clear message indicating that. This makes it immediately visible whether the remote script produced output files or ran into errors before attempting the transfer.
 - **Error tracking** - Track which servers succeeded/failed and report at the end
 - **Partial success** - A discovery run with 2 out of 3 servers successful should still save and report the successful results
 
@@ -496,6 +541,7 @@ check_required_passwords() {
 - Help message (-h, --help)
 - Config display (-c, --config)
 - Connectivity test only (-t, --test)
+- Verbose mode (-v, --verbose) — included by default; passes `-v` through to underlying SSH/SCP for detailed error output
 - Color-coded terminal output
 - Resilient error handling (continue despite individual failures)
 

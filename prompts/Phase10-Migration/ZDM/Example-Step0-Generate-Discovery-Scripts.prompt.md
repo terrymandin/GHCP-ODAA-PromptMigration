@@ -25,27 +25,6 @@ Copy and use this prompt to generate discovery scripts:
 
 ## Project Configuration
 #file:prompts/Phase10-Migration/ZDM/zdm-env.md
-
-## Additional Discovery Requirements
-
-### Source Database
-In addition to the standard discovery, also gather:
-- All tablespace autoextend settings
-- Current backup schedule and retention
-- Any database links configured
-- Materialized view refresh schedules
-- Scheduler jobs that may need reconfiguration
-
-### Target Database (Oracle Database@Azure)
-In addition to the standard discovery, also gather:
-- Available Exadata storage capacity
-- Pre-configured PDBs
-- Network security group rules
-
-### ZDM Server
-In addition to the standard discovery, also verify:
-- Available disk space for ZDM operations (minimum 50GB recommended)
-- Network latency to source and target (ping tests)
 ```
 
 > 🔑 **Before running this prompt:** Update `PROJECT_NAME` and all connection details in [zdm-env.md](zdm-env.md). The `PROJECT_NAME` value becomes the artifact directory name used in every subsequent step.
