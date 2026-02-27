@@ -2,7 +2,7 @@
 # =============================================================================
 # ZDM Discovery Orchestration Script
 # =============================================================================
-# Project  : PRODDB Migration to Oracle Database@Azure
+# Project  : ORADB Migration to Oracle Database@Azure
 # Generated: 2026-02-26
 #
 # USAGE:
@@ -21,7 +21,7 @@
 #
 # ENVIRONMENT OVERRIDES (optional):
 #   export SOURCE_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19c/dbhome_1
-#   export SOURCE_REMOTE_ORACLE_SID=PRODDB
+#   export SOURCE_REMOTE_ORACLE_SID=ORADB
 #   export TARGET_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19c/dbhome_1
 #   export TARGET_REMOTE_ORACLE_SID=
 #   export ZDM_REMOTE_ZDM_HOME=/home/zdmuser/zdmhome
@@ -35,8 +35,8 @@ set -o pipefail
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Script is at: Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts/
-# Navigate up 6 levels:  Scripts → Step0 → PRODDB → ZDM → Phase10-Migration → Artifacts → RepoRoot
+# Script is at: Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Scripts/
+# Navigate up 6 levels: Scripts → Step0 → ORADB → ZDM → Phase10-Migration → Artifacts → RepoRoot
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"
 
 # ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ log_section() {
 log_success() { echo -e "${GREEN}${BOLD}[OK   ] $(date '+%H:%M:%S') $*${RESET}"; }
 
 # ===========================================================================
-# CONFIGURATION — Pre-populated for PRODDB migration project
+# CONFIGURATION — Pre-populated for ORADB migration project
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ ZDM_REMOTE_JAVA_HOME="${ZDM_REMOTE_JAVA_HOME:-}"
 # ---------------------------------------------------------------------------
 # Output directory (absolute path)
 # ---------------------------------------------------------------------------
-OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Discovery}"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Discovery}"
 
 # ---------------------------------------------------------------------------
 # SSH options
@@ -117,7 +117,7 @@ SSH_OPTS="-o StrictHostKeyChecking=no \
 # ---------------------------------------------------------------------------
 # Remote working directory on each server
 # ---------------------------------------------------------------------------
-REMOTE_WORK_DIR="/tmp/zdm_proddb_discovery_$$"
+REMOTE_WORK_DIR="/tmp/zdm_oradb_discovery_$$"
 
 # ---------------------------------------------------------------------------
 # Error tracking
@@ -128,13 +128,18 @@ ZDM_SUCCESS=false
 
 # ===========================================================================
 # HELP / CONFIG
+#
+# IMPORTANT: show_help and show_config both call 'exit'. They MUST only be
+# called from the argument-parsing block below. Never call them from the main
+# execution body — even with output suppressed (> /dev/null), the 'exit'
+# inside will terminate the entire script before any discovery runs.
 # ===========================================================================
 
 show_help() {
     cat <<EOF
 
 ZDM Discovery Orchestration Script
-Project: PRODDB Migration to Oracle Database@Azure
+Project: ORADB Migration to Oracle Database@Azure
 
 USAGE:
   $0 [OPTIONS]
@@ -172,7 +177,7 @@ EXAMPLES:
   ./zdm_orchestrate_discovery.sh --test
 
   # Override Oracle SID (if auto-detection fails):
-  SOURCE_REMOTE_ORACLE_SID=PRODDB ./zdm_orchestrate_discovery.sh
+  SOURCE_REMOTE_ORACLE_SID=ORADB ./zdm_orchestrate_discovery.sh
 
 EOF
     exit 0
@@ -184,7 +189,7 @@ show_config() {
 ============================================================
   CURRENT CONFIGURATION
 ============================================================
-  Project       : PRODDB Migration to Oracle Database@Azure
+  Project       : ORADB Migration to Oracle Database@Azure
   Script Dir    : $SCRIPT_DIR
   Repo Root     : $REPO_ROOT
   Output Dir    : $OUTPUT_DIR
@@ -215,7 +220,11 @@ EOF
     exit 0
 }
 
-# Parse arguments
+# ---------------------------------------------------------------------------
+# Argument parsing — the ONLY place show_help and show_config are called.
+# Both functions call 'exit'; calling them outside this block would terminate
+# the script silently before any discovery work runs.
+# ---------------------------------------------------------------------------
 for arg in "$@"; do
     case "$arg" in
         -h|--help)   show_help ;;
@@ -403,13 +412,11 @@ run_server_discovery() {
 # MAIN
 # ===========================================================================
 
-log_section "ZDM DISCOVERY ORCHESTRATION — PRODDB"
+log_section "ZDM DISCOVERY ORCHESTRATION — ORADB"
 echo "  Started  : $(date)"
 echo "  Repo root: $REPO_ROOT"
 echo "  Output   : $OUTPUT_DIR"
 echo ""
-
-show_config > /dev/null 2>&1  # suppress output but validate config
 
 validate_prerequisites
 test_all_connections
@@ -473,30 +480,30 @@ fi
 # ===========================================================================
 
 log_section "DISCOVERY SUMMARY"
-echo "  Project      : PRODDB Migration to Oracle Database@Azure"
+echo "  Project      : ORADB Migration to Oracle Database@Azure"
 echo "  Completed    : $(date)"
 echo "  Output Dir   : $OUTPUT_DIR"
 echo ""
 echo "  ┌─────────────────────────────────────────────────────────┐"
-echo "  │  Server         │ Status                                │"
+echo "  │  Server          │ Status                               │"
 echo "  ├─────────────────────────────────────────────────────────┤"
 
 if [ "$SOURCE_SUCCESS" = "true" ]; then
-    echo -e "  │  Source (${SOURCE_HOST:0:25}) │ ${GREEN}SUCCESS${RESET}                               │"
+    echo -e "  │  Source (${SOURCE_HOST:0:24}) │ ${GREEN}SUCCESS${RESET}                              │"
 else
-    echo -e "  │  Source (${SOURCE_HOST:0:25}) │ ${RED}FAILED${RESET}                                │"
+    echo -e "  │  Source (${SOURCE_HOST:0:24}) │ ${RED}FAILED${RESET}                               │"
 fi
 
 if [ "$TARGET_SUCCESS" = "true" ]; then
-    echo -e "  │  Target (${TARGET_HOST:0:25}) │ ${GREEN}SUCCESS${RESET}                               │"
+    echo -e "  │  Target (${TARGET_HOST:0:24}) │ ${GREEN}SUCCESS${RESET}                              │"
 else
-    echo -e "  │  Target (${TARGET_HOST:0:25}) │ ${RED}FAILED${RESET}                                │"
+    echo -e "  │  Target (${TARGET_HOST:0:24}) │ ${RED}FAILED${RESET}                               │"
 fi
 
 if [ "$ZDM_SUCCESS" = "true" ]; then
-    echo -e "  │  ZDM    (${ZDM_HOST:0:25})   │ ${GREEN}SUCCESS${RESET}                               │"
+    echo -e "  │  ZDM    (${ZDM_HOST:0:24})   │ ${GREEN}SUCCESS${RESET}                              │"
 else
-    echo -e "  │  ZDM    (${ZDM_HOST:0:25})   │ ${RED}FAILED${RESET}                                │"
+    echo -e "  │  ZDM    (${ZDM_HOST:0:24})   │ ${RED}FAILED${RESET}                               │"
 fi
 
 echo "  └─────────────────────────────────────────────────────────┘"

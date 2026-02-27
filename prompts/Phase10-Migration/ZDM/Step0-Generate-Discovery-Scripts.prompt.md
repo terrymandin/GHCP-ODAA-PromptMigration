@@ -484,6 +484,32 @@ check_required_passwords() {
 - Color-coded terminal output
 - Resilient error handling (continue despite individual failures)
 
+> ⚠️ **CRITICAL: Never call `exit`-containing functions from the main execution body**
+>
+> Functions like `show_help` and `show_config` **must call `exit`** at the end so they work correctly as CLI options. However, this means they **must only ever be invoked from the argument-parsing block** (e.g., `for arg in "$@"; do ... done`). Never call them anywhere else in the script — even if you suppress their output with `> /dev/null 2>&1`. The `exit` inside the function will still terminate the entire script immediately, silently, before any real work runs.
+>
+> **Wrong** (script exits silently before running any discovery):
+> ```bash
+> show_config > /dev/null 2>&1  # BUG: exit 0 inside show_config kills the script here
+> validate_prerequisites         # never reached
+> ```
+>
+> **Right** (config summary in main body uses a separate non-exiting function):
+> ```bash
+> # Argument parsing only — the only place show_help/show_config are called
+> for arg in "$@"; do
+>     case "$arg" in
+>         -h|--help)   show_help ;;    # exits
+>         -c|--config) show_config ;;  # exits
+>         -t|--test)   TEST_ONLY=true ;;
+>     esac
+> done
+>
+> # Main body — never call show_config here
+> validate_prerequisites
+> test_all_connections
+> ```
+
 ---
 
 ## Script Requirements
@@ -511,6 +537,7 @@ All scripts should include:
 - Shebang (`#!/bin/bash`)
 - **Unix line endings (LF only)** - Scripts will be executed on Linux; Windows CRLF endings cause parse errors
 - **Resilient error handling** - Do NOT use `set -e` globally; instead use individual error trapping so scripts continue running even when some checks fail
+- **`exit`-containing helper functions must only be called from argument parsing** - Functions like `show_help` and `show_config` must end with `exit` so they work as CLI options, but this means calling them anywhere outside the argument-parsing block will silently terminate the script. Keep all calls to these functions inside the `for arg in "$@"` / `case` block. If the main body needs to log configuration values, implement a separate `log_config` function that prints without calling `exit`
 - **Environment variable discovery with auto-detection** - Use a priority-based approach:
   1. **Environment variable** - If already set in the environment (e.g., `export ORACLE_HOME=...`), use it
   2. **Auto-detection** - If not set, attempt to discover automatically using the methods below

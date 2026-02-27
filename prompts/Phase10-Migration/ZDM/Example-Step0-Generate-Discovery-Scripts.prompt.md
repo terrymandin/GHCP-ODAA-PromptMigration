@@ -223,7 +223,25 @@ All generated scripts include:
    discover_section "ZDM Installation" || SECTION_ERRORS=$((SECTION_ERRORS + 1))
    ```
 
-4. **Resilient Orchestration** - The orchestration script continues even when individual server discoveries fail
+4. **Never call `exit`-containing functions from the main body** - `show_help` and `show_config` must call `exit` so they work as CLI options, but this means they will silently terminate the entire script if called anywhere outside the argument-parsing block — even when output is suppressed with `> /dev/null 2>&1`. The script will print its startup banner and stop without error, appearing to do nothing.
+   ```bash
+   # WRONG — show_config contains 'exit 0', so this kills the script
+   # before validate_prerequisites ever runs:
+   show_config > /dev/null 2>&1
+   validate_prerequisites  # never reached
+
+   # RIGHT — only call show_config/show_help inside argument parsing:
+   for arg in "$@"; do
+       case "$arg" in
+           -h|--help)   show_help ;;    # exits
+           -c|--config) show_config ;;  # exits
+           -t|--test)   TEST_ONLY=true ;;
+       esac
+   done
+   validate_prerequisites  # reached correctly
+   ```
+
+5. **Resilient Orchestration** - The orchestration script continues even when individual server discoveries fail
 
 5. **Artifacts Directory Output** - Results are collected to the Artifacts directory by default, not /tmp
 
