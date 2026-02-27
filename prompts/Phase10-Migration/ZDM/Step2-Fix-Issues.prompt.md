@@ -95,6 +95,18 @@ For each issue, generate:
 3. **Rollback Commands** (if applicable)
    - How to undo the change if needed
 
+4. **Script README File**
+   - For every script file saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts/`, create a corresponding `README-<scriptname>.md` in the same directory
+   - Each README must include:
+     - **Purpose**: One-sentence summary of what the script does
+     - **Target Server**: Which server to run on (source, target, or ZDM)
+     - **Prerequisites**: Required tools, credentials, environment variables, and prior steps
+     - **Environment Variables**: List every variable the script reads, with description and example value
+     - **What It Does**: Numbered step-by-step walkthrough of the script logic
+     - **How to Run**: Exact command(s) to execute the script
+     - **Expected Output**: Description of successful output and any key indicators
+     - **Rollback / Undo**: How to reverse the changes if needed
+
 #### ⚠️ SSH Shell Quoting — Mandatory Pattern for `run_sql_on_source`
 
 When generating bash scripts that run SQL over SSH via `sudo -u oracle bash -c '...'`, SQL statements containing single-quoted string values (e.g. `'LOCATION=/path'`, `'SOME_VALUE'`) will break the outer shell quoting and cause `ORA-00922` or similar parse errors.
@@ -123,7 +135,12 @@ The same pattern applies to any analogous `run_sql_on_target` helper. Base64 out
 
 ### Part 3: Create Issue Resolution Log
 
-Create a file `Issue-Resolution-Log-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/` tracking:
+Create the following artifacts in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/`:
+
+- `Issue-Resolution-Log-<DATABASE_NAME>.md` — tracking table and per-issue details (see template below)
+- `Scripts/` directory containing each remediation script **and** a `README-<scriptname>.md` alongside it
+
+**Issue Resolution Log template:**
 
 ```markdown
 # Issue Resolution Log: <DATABASE_NAME>
@@ -274,6 +291,7 @@ Before proceeding to Step 3, ensure:
 - [ ] All ❌ Blockers are resolved
 - [ ] All ⚠️ Required Actions are completed
 - [ ] Issue Resolution Log is updated with all resolutions
+- [ ] Each remediation script has a corresponding `README-<scriptname>.md` saved alongside it
 - [ ] Verification discovery has been re-run
 - [ ] No new blockers identified in verification
 
@@ -284,8 +302,9 @@ Before proceeding to Step 3, ensure:
 Once all issues are resolved:
 
 1. ✅ Save Issue Resolution Log
-2. ✅ Ensure verification discovery files are saved
-3. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
+2. ✅ Ensure each remediation script has a `README-<scriptname>.md` saved alongside it
+3. ✅ Ensure verification discovery files are saved
+4. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
    - Completed questionnaire from Step 1
    - Issue Resolution Log from Step 2
    - Latest discovery files

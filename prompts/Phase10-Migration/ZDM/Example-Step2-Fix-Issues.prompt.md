@@ -277,6 +277,74 @@ df -h
 
 ---
 
+---
+
+### Script README Files Generated
+
+A `README-<scriptname>.md` is saved alongside each script in `Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/Scripts/`.
+
+**Example — `README-fix_source_PRODDB.md`:**
+
+```markdown
+# README: fix_source_PRODDB.sh
+
+## Purpose
+Enables supplemental logging on the source Oracle database (ORADB01) to satisfy ZDM online physical migration prerequisites.
+
+## Target Server
+**Source Database Server** — `temandin-oravm-vm01` (run via SSH from the ZDM jumpbox)
+
+## Prerequisites
+- SSH access to the source server as `temandin` (admin user with sudo)
+- Oracle database `ORADB01` must be open and in ARCHIVELOG mode
+- Environment variables sourced from `zdm-env.md`:
+  - `SOURCE_HOST` — hostname or IP of the source server
+  - `SOURCE_SSH_KEY` — path to the SSH private key
+  - `SOURCE_SSH_USER` — admin SSH user (e.g., `temandin`)
+  - `ORACLE_USER` — OS Oracle user (e.g., `oracle`)
+  - `ORACLE_HOME` — Oracle home path (e.g., `/u01/app/oracle/product/19.0.0/dbhome_1`)
+  - `ORACLE_SID` — Oracle SID (e.g., `ORADB01`)
+
+## What It Does
+1. SSH into the source server as `SOURCE_SSH_USER`
+2. Switches to `ORACLE_USER` via `sudo -u oracle bash -c '...'`
+3. Connects to the database as SYSDBA using `sqlplus / as sysdba`
+4. Runs `ALTER DATABASE ADD SUPPLEMENTAL LOG DATA`
+5. Runs `ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS`
+6. Runs `ALTER SYSTEM SWITCH LOGFILE` to flush redo
+7. Queries `V$DATABASE` to verify `SUPPLEMENTAL_LOG_DATA_MIN = YES` and `SUPPLEMENTAL_LOG_DATA_PK = YES`
+8. Prints PASS or FAIL based on the verification result and exits with the appropriate code
+
+## How to Run
+```bash
+# From the ZDM server, ensure environment variables are set, then:
+bash Artifacts/Phase10-Migration/ZDM/PRODDB/Step2/Scripts/fix_source_PRODDB.sh
+```
+
+## Expected Output
+```
+[INFO] Connecting to source: temandin-oravm-vm01
+[INFO] Enabling supplemental logging on ORADB01...
+[INFO] ALTER DATABASE ADD SUPPLEMENTAL LOG DATA ... done
+[INFO] ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY) COLUMNS ... done
+[INFO] Switching logfile...
+[INFO] Verifying supplemental logging...
+[PASS] SUPPLEMENTAL_LOG_DATA_MIN = YES
+[PASS] SUPPLEMENTAL_LOG_DATA_PK  = YES
+[INFO] fix_source_PRODDB.sh completed successfully.
+```
+
+## Rollback / Undo
+To disable supplemental logging (only if required — disabling during migration causes data loss):
+```sql
+-- Connect as SYSDBA on source
+ALTER DATABASE DROP SUPPLEMENTAL LOG DATA;
+```
+> **Warning:** Do not disable supplemental logging while ZDM migration is in progress.
+```
+
+---
+
 ### Iteration Required
 
 After resolving the above issues:
