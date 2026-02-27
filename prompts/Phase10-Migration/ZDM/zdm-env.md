@@ -59,10 +59,9 @@ Leave blank to allow auto-detection via `/etc/oratab` and common paths. Set only
 
 ## OCI/Azure Configuration (non-sensitive identifiers)
 
+- OCI_TENANCY_OCID: ocid1.tenancy.oc1..example
 - OCI_USER_OCID: ocid1.user.oc1..example
 - OCI_COMPARTMENT_OCID: ocid1.compartment.oc1..example
-- TARGET_DB_SYSTEM_OCID: ocid1.dbsystem.oc1..example
-- TARGET_DATABASE_OCID: ocid1.database.oc1..example
 - OCI_API_KEY_FINGERPRINT: aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99
 - OCI_CONFIG_PATH: ~/.oci/config
 - OCI_PRIVATE_KEY_PATH: ~/.oci/oci_api_key.pem
