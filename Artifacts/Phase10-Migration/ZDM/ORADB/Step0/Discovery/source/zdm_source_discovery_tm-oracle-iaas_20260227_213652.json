@@ -1,0 +1,17 @@
+{
+  "discovery_type": "source",
+  "project": "ORADB",
+  "hostname": "tm-oracle-iaas.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net",
+  "timestamp": "2026-02-27T21:36:55Z",
+  "oracle": {
+    "sid": "oradb",
+    "home": "/u01/app/oracle/product/12.2.0/dbhome_1",
+    "base": "/u01/app/oracle/product",
+    "version": "12.2.0.1.0",
+    "db_name": "ORADB1",
+    "log_mode": "NOARCHIVELOG",
+    "cdb": "YES",
+    "tde_status": "NOT_AVAILABLE"
+  },
+  "report_file": "zdm_source_discovery_tm-oracle-iaas_20260227_213652.txt"
+}

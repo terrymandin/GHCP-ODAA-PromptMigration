@@ -1,0 +1,380 @@
+
+[0;36m========================================================================[0m
+[0;36m  ZDM SOURCE DATABASE DISCOVERY[0m
+[0;36m========================================================================[0m
+[0;32m[INFO][0m  Start time: Fri Feb 27 21:19:01 UTC 2026
+[0;32m[INFO][0m  Running as user: azureuser
+[0;32m[INFO][0m  ORACLE_USER: oracle
+[0;32m[INFO][0m  Detected ORACLE_HOME=/u01/app/oracle/product/12.2.0/dbhome_1  ORACLE_SID=oradb
+
+[0;36m========================================================================[0m
+[0;36m  OS INFORMATION[0m
+[0;36m========================================================================[0m
+Hostname:       tm-oracle-iaas.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+Short hostname: tm-oracle-iaas
+IP addresses:
+  127.0.0.1/8
+  10.1.0.11/24
+OS version:
+NAME="Oracle Linux Server"
+VERSION="7.4"
+ID="ol"
+VERSION_ID="7.4"
+PRETTY_NAME="Oracle Linux Server 7.4"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:4:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://bugzilla.oracle.com/"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.4
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.4
+Kernel: 4.1.12-124.14.1.el7uek.x86_64
+Disk space:
+Filesystem      Size  Used Avail Use% Mounted on
+devtmpfs        3.9G     0  3.9G   0% /dev
+tmpfs           3.9G     0  3.9G   0% /dev/shm
+tmpfs           3.9G  265M  3.7G   7% /run
+tmpfs           3.9G     0  3.9G   0% /sys/fs/cgroup
+/dev/sda2        30G   20G  8.6G  70% /
+/dev/sda1       497M  117M  381M  24% /boot
+/dev/sdb1        16G  2.1G   13G  14% /mnt/resource
+tmpfs           799M     0  799M   0% /run/user/54322
+
+[0;36m========================================================================[0m
+[0;36m  ORACLE ENVIRONMENT[0m
+[0;36m========================================================================[0m
+ORACLE_HOME: /u01/app/oracle/product/12.2.0/dbhome_1
+ORACLE_SID:  oradb
+ORACLE_BASE: 
+Oracle version:
+
+[0;36m========================================================================[0m
+[0;36m  DATABASE CONFIGURATION[0m
+[0;36m========================================================================[0m
+
+'DB_NAME='||NAME
+-----------------
+DB_NAME=ORADB1
+
+'DB_UNIQUE_NAME='||DB_UNIQUE_NAME
+---------------------------------------------
+DB_UNIQUE_NAME=oradb1
+
+'DBID='||DBID
+---------------------------------------------
+DBID=2571197414
+
+'DB_ROLE='||DATABASE_ROL
+------------------------
+DB_ROLE=PRIMARY
+
+'OPEN_MODE='||OPEN_MODE
+------------------------------
+OPEN_MODE=READ WRITE
+
+'LOG_MODE='||LOG_MODE
+---------------------
+LOG_MODE=NOARCHIVELOG
+
+'FORCE_LOGGING='||FORCE_LOGGING
+-----------------------------------------------------
+FORCE_LOGGING=NO
+
+'SUPPLEMENTAL_LOG_DATA_MIN='||SUPP
+----------------------------------
+SUPPLEMENTAL_LOG_DATA_MIN=NO
+
+'CDB='|
+-------
+CDB=YES
+
+'NLS_CHARACTERSET='||VALUE
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+NLS_CHARACTERSET=AL32UTF8
+
+'NLS_NCHAR_CHARACTERSET='||VALUE
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+NLS_NCHAR_CHARACTERSET=AL16UTF16
+--- Database Size ---
+
+'DATAFILE_SIZE_GB='||ROUND(SUM(BYTES)/1024/1024/1024,2)
+---------------------------------------------------------
+DATAFILE_SIZE_GB=1.9
+
+'TEMPFILE_SIZE_GB='||ROUND(SUM(BYTES)/1024/1024/1024,2)
+---------------------------------------------------------
+TEMPFILE_SIZE_GB=.03
+
+[0;36m========================================================================[0m
+[0;36m  CONTAINER DATABASE (CDB/PDB)[0m
+[0;36m========================================================================[0m
+CDB: YES
+
+NAME																 OPEN_MODE  RES     CON_ID
+-------------------------------------------------------------------------------------------------------------------------------- ---------- --- ----------
+PDB$SEED															 READ ONLY  NO		 2
+PDB1																 READ WRITE NO		 3
+
+[0;36m========================================================================[0m
+[0;36m  TDE CONFIGURATION[0m
+[0;36m========================================================================[0m
+
+WRL_TYPE
+--------------------
+WRL_PARAMETER
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STATUS			       WALLET_TYPE
+------------------------------ --------------------
+FILE
+/u01/app/oracle/product/12.2.0/dbhome_1/admin/oradb1/wallet
+NOT_AVAILABLE		       UNKNOWN
+
+
+ENCRYPTED_TABLESPACE_COUNT
+--------------------------
+			 0
+SELECT TABLESPACE_NAME, ENCRYPTIONALG
+       *
+ERROR at line 1:
+ORA-00904: "TABLESPACE_NAME": invalid identifier
+
+
+
+[0;36m========================================================================[0m
+[0;36m  SUPPLEMENTAL LOGGING[0m
+[0;36m========================================================================[0m
+
+MIN	 PK  UI  FK  ALL
+-------- --- --- --- ---
+NO	 NO  NO  NO  NO
+
+[0;36m========================================================================[0m
+[0;36m  REDO / ARCHIVE CONFIGURATION[0m
+[0;36m========================================================================[0m
+--- Redo Log Groups ---
+
+    GROUP#    MEMBERS	 SIZE_MB STATUS
+---------- ---------- ---------- ----------------
+MEMBER
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	 1	    1	     200 INACTIVE
+/u01/app/oracle/oradata/oradb1/redo01.log
+
+	 2	    1	     200 CURRENT
+/u01/app/oracle/oradata/oradb1/redo02.log
+
+	 3	    1	     200 INACTIVE
+/u01/app/oracle/oradata/oradb1/redo03.log
+
+--- Archive Log Destinations ---
+
+   DEST_ID DEST_NAME																															    STATUS    TARGET
+---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- --------- ----------------
+ARCHIVER   DESTINATION
+---------- ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	 1 LOG_ARCHIVE_DEST_1																														    VALID     PRIMARY
+FOREGROUND /u01/app/oracle/product/12.2.0/dbhome_1/dbs/arch
+
+
+[0;36m========================================================================[0m
+[0;36m  NETWORK CONFIGURATION[0m
+[0;36m========================================================================[0m
+--- Listener Status ---
+
+LSNRCTL for Linux: Version 12.2.0.1.0 - Production on 27-FEB-2026 21:19:01
+
+Copyright (c) 1991, 2016, Oracle.  All rights reserved.
+
+Connecting to (ADDRESS=(PROTOCOL=tcp)(HOST=)(PORT=1521))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 12.2.0.1.0 - Production
+Start Date                23-FEB-2026 21:54:03
+Uptime                    3 days 23 hr. 24 min. 59 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Log File         /u01/app/oracle/diag/tnslsnr/tm-oracle-iaas/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=tm-oracle-iaas.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net)(PORT=1521)))
+Services Summary...
+Service "4b85b38ae4551c7fe0630b00010aad3c" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+Service "oradb1" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+Service "oradbXDB" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+Service "pdb1" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+The command completed successfully
+--- tnsnames.ora ---
+
+
+
+oradb =
+	 (DESCRIPTION =
+	   (ADDRESS_LIST =
+	     (ADDRESS = (PROTOCOL = TCP)
+	                (HOST = 10.1.0.11)
+	                (PORT = 1521))
+	   )
+	   (CONNECT_DATA =
+	     (SERVICE_NAME = oradb)
+	     (UR = A)
+	   )
+ )
+
+
+--- sqlnet.ora ---
+[0;33m[WARN][0m  sqlnet.ora not found at /u01/app/oracle/product/12.2.0/dbhome_1/network/admin/sqlnet.ora
+
+[0;36m========================================================================[0m
+[0;36m  AUTHENTICATION[0m
+[0;36m========================================================================[0m
+--- Password file ---
+Password file: /u01/app/oracle/product/12.2.0/dbhome_1/dbs/orapworadb  (-rw-r-----. 1 oracle oinstall 3584 Feb 23 21:35 /u01/app/oracle/product/12.2.0/dbhome_1/dbs/orapworadb)
+--- SSH directory (oracle user) ---
+[0;33m[WARN][0m  Cannot list oracle SSH directory
+
+[0;36m========================================================================[0m
+[0;36m  DATA GUARD CONFIGURATION[0m
+[0;36m========================================================================[0m
+
+NAME
+--------------------------------------------------------------------------------
+VALUE
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+db_file_name_convert
+
+
+db_unique_name
+oradb1
+
+dg_broker_config_file1
+/u01/app/oracle/product/12.2.0/dbhome_1/dbs/dr1oradb1.dat
+
+dg_broker_config_file2
+/u01/app/oracle/product/12.2.0/dbhome_1/dbs/dr2oradb1.dat
+
+dg_broker_start
+FALSE
+
+fal_client
+
+
+fal_server
+
+
+log_archive_dest_1
+
+
+log_archive_dest_2
+
+
+log_archive_dest_3
+
+
+log_archive_dest_state_1
+enable
+
+log_archive_dest_state_2
+enable
+
+log_file_name_convert
+
+
+standby_file_management
+MANUAL
+
+
+[0;36m========================================================================[0m
+[0;36m  SCHEMA INFORMATION[0m
+[0;36m========================================================================[0m
+--- Non-system schemas > 100MB ---
+--- Invalid objects by owner/type ---
+
+[0;36m========================================================================[0m
+[0;36m  TABLESPACE CONFIGURATION[0m
+[0;36m========================================================================[0m
+
+TABLESPACE_NAME
+------------------------------
+FILE_NAME
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   SIZE_GB MAXSIZE_GB AUT INCREMENT_MB
+---------- ---------- --- ------------
+SYSAUX
+/u01/app/oracle/oradata/oradb1/sysaux01.dbf
+      .811	   32 YES	    10
+
+SYSTEM
+/u01/app/oracle/oradata/oradb1/system01.dbf
+      .801	   32 YES	    10
+
+UNDOTBS1
+/u01/app/oracle/oradata/oradb1/undotbs01.dbf
+      .283	   32 YES	     5
+
+USERS
+/u01/app/oracle/oradata/oradb1/users01.dbf
+      .005	   32 YES	   1.3
+
+
+[0;36m========================================================================[0m
+[0;36m  BACKUP CONFIGURATION[0m
+[0;36m========================================================================[0m
+--- RMAN retention policy ---
+WHERE  POLICY_TYPE IN ('RETENTION POLICY','ARCHIVELOG DELETION POLICY')
+       *
+ERROR at line 2:
+ORA-00904: "POLICY_TYPE": invalid identifier
+
+
+--- Last successful backup ---
+--- Crontab (backup jobs) ---
+[0;32m[INFO][0m  No RMAN crontab entries found
+--- DBMS_SCHEDULER backup jobs ---
+
+OWNER																 JOB_NAME															  JOB_TYPE	   ENABL LAST_RUN
+-------------------------------------------------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------- ---------------- ----- -------------------
+NEXT_RUN
+-------------------
+SYS																 ORA$PREPLUGIN_BACKUP_JOB															   FALSE
+
+
+
+[0;36m========================================================================[0m
+[0;36m  DATABASE LINKS[0m
+[0;36m========================================================================[0m
+SELECT OWNER, DB_LINK, USERNAME, HOST, CREATED, STATUS
+                                                *
+ERROR at line 1:
+ORA-00904: "STATUS": invalid identifier
+
+
+
+[0;36m========================================================================[0m
+[0;36m  MATERIALIZED VIEWS[0m
+[0;36m========================================================================[0m
+       TO_CHAR(NEXT_STATEMENT,'YYYY-MM-DD HH24:MI:SS') AS NEXT_REFRESH,
+               *
+ERROR at line 2:
+ORA-00904: "NEXT_STATEMENT": invalid identifier
+
+
+
+[0;36m========================================================================[0m
+[0;36m  SCHEDULER JOBS[0m
+[0;36m========================================================================[0m
+--- Jobs referencing external hosts/paths/credentials ---
+[0;32m[INFO][0m  JSON summary written to: ./zdm_source_discovery_tm-oracle-iaas_20260227_211901.json
+
+[0;36m========================================================================[0m
+[0;36m  DISCOVERY COMPLETE[0m
+[0;36m========================================================================[0m
+[0;32m[INFO][0m  End time: Fri Feb 27 21:19:04 UTC 2026
+[0;32m[INFO][0m  Text report: ./zdm_source_discovery_tm-oracle-iaas_20260227_211901.txt
+[0;32m[INFO][0m  JSON summary: ./zdm_source_discovery_tm-oracle-iaas_20260227_211901.json
