@@ -533,7 +533,7 @@ check_required_passwords() {
   3. For each configured SSH key (`SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ZDM_SSH_KEY`): expand the path (resolving `~` to `$HOME`), then log whether the file exists or is missing; if missing, log the exact expanded path that was checked and the environment variable the user should override to fix it
 
   This is the single most common failure cause — the script runs as a different user than expected (e.g. `zdmuser` instead of `azureuser`), so a key path like `~/.ssh/odaa.pem` resolves to a path that does not exist for that user.
-- **List remote directory before collecting output files** - After the remote discovery script finishes but before running SCP collection, SSH back to the remote host and list the contents of the temp directory. Log the output at INFO level. If the directory is not found, log a clear message indicating that. This makes it immediately visible whether the remote script produced output files or ran into errors before attempting the transfer.
+- **List remote directory before collecting output files** - After the remote discovery script finishes but before running SCP collection, SSH back to the remote host and list the contents of the temp directory. Log each line using `log_info` (the orchestrator does **not** define `log_raw` — that function only exists inside the individual discovery scripts that write to a report file). If the directory is not found, log a clear message indicating that. This makes it immediately visible whether the remote script produced output files or ran into errors before attempting the transfer.
 - **Error tracking** - Track which servers succeeded/failed and report at the end
 - **Partial success** - A discovery run with 2 out of 3 servers successful should still save and report the successful results
 
@@ -544,6 +544,13 @@ check_required_passwords() {
 - Verbose mode (-v, --verbose) — included by default; passes `-v` through to underlying SSH/SCP for detailed error output
 - Color-coded terminal output
 - Resilient error handling (continue despite individual failures)
+
+> ⚠️ **CRITICAL: `log_raw` must NOT be used in the orchestration script**
+>
+> The orchestrator defines only: `log_info`, `log_warn`, `log_error`, `log_debug`, and `log_section`.
+> The `log_raw` helper (which writes to a local report file) is defined **only inside the individual discovery scripts** (`zdm_source_discovery.sh`, `zdm_target_discovery.sh`, `zdm_server_discovery.sh`).
+> Using `log_raw` anywhere inside `zdm_orchestrate_discovery.sh` will produce `command not found` errors at runtime.
+> Use `log_info` for any inline output that would have been written with `log_raw` in the orchestrator.
 
 > ⚠️ **CRITICAL: Never call `exit`-containing functions from the main execution body**
 >
