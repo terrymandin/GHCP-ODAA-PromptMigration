@@ -1,0 +1,32 @@
+[2026-02-27 17:52:12] ----------------------------------------------------------------------
+[2026-02-27 17:52:12] INFO  Starting fix_04: Configure TDE Master Key on Target CDB
+[2026-02-27 17:52:12] INFO  Target host : 10.0.1.160
+[2026-02-27 17:52:12] INFO  SSH user    : opc
+[2026-02-27 17:52:12] INFO  Log file    : fix_04_20260227_175150.log
+[2026-02-27 17:52:12] ----------------------------------------------------------------------
+[2026-02-27 17:52:12] INFO  Step 0: Testing SSH connectivity to target...
+tmodaauks-rqahk1
+[2026-02-27 17:52:13] INFO  SSH to target: OK
+[2026-02-27 17:52:13] INFO  TARGET_ORACLE_SID not set — auto-detecting from /etc/oratab on target...
+[2026-02-27 17:52:13] INFO  Detected ORACLE_SID: 'mydb'
+[2026-02-27 17:52:13] ----------------------------------------------------------------------
+[2026-02-27 17:52:13] INFO  Step 1: Checking current TDE wallet status...
+[2026-02-27 17:52:14] INFO  Current wallet status:
+SELECT WRL_PARAMETER, STATUS, WALLET_TYPE FROM V$ENCRYPTION_WALLET
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+[2026-02-27 17:52:14] ----------------------------------------------------------------------
+[2026-02-27 17:52:14] INFO  Step 2: Creating TDE master key in target CDB wallet...
+[2026-02-27 17:52:14] INFO     (Using ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE ...)
+ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE IDENTIFIED BY "StrongWalletPwd" WITH BACKUP
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+[2026-02-27 17:52:15] ERROR Failed to create TDE master key. Check wallet password and wallet location.

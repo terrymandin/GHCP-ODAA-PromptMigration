@@ -1,0 +1,25 @@
+[2026-02-27 17:51:32] ----------------------------------------------------------------------
+[2026-02-27 17:51:32] INFO  Starting fix_01: Enable ARCHIVELOG, Force Logging, Supplemental Logging
+[2026-02-27 17:51:33] INFO  Source host : 10.1.0.11
+[2026-02-27 17:51:33] INFO  SSH user    : azureuser
+[2026-02-27 17:51:33] INFO  Oracle SID  : oradb
+[2026-02-27 17:51:33] INFO  Log file    : fix_01_20260227_175132.log
+[2026-02-27 17:51:33] ----------------------------------------------------------------------
+[2026-02-27 17:51:33] INFO  Step 0: Testing SSH connectivity to source...
+tm-oracle-iaas
+[2026-02-27 17:51:33] INFO  SSH to source: OK
+[2026-02-27 17:51:33] ----------------------------------------------------------------------
+[2026-02-27 17:51:33] INFO  Step 1: Checking current database mode...
+[2026-02-27 17:51:33] INFO  Current status: LOG_MODE=ARCHIVELOG FORCE_LOGGING=YES SUPLOG_MIN=YES SUPLOG_ALL=YES
+[2026-02-27 17:51:33] WARN  Database is already in ARCHIVELOG mode — skipping STARTUP MOUNT step.
+[2026-02-27 17:51:33] ----------------------------------------------------------------------
+[2026-02-27 17:51:33] INFO  Step 2: ARCHIVELOG already enabled — skipping restart.
+[2026-02-27 17:51:33] ----------------------------------------------------------------------
+[2026-02-27 17:51:33] INFO  Step 3: Enabling Force Logging...
+ALTER DATABASE FORCE LOGGING
+*
+ERROR at line 1:
+ORA-12920: database is already in force logging mode
+
+
+[2026-02-27 17:51:33] ERROR Failed to enable Force Logging.
