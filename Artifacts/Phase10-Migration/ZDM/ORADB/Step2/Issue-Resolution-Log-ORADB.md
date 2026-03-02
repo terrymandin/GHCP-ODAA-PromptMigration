@@ -2,21 +2,20 @@
 
 ## Generated
 - **Date:** 2026-03-02
-- **Based On:** `Discovery-Summary-ORADB.md` (Step 1)
-- **Migration:** ORADB (Azure IaaS `tm-oracle-iaas`) → ODAA (`tmodaauks-rqahk1`)
+- **Based On:** Discovery-Summary-ORADB.md (Step 1 output)
+- **Migration Method:** ONLINE_PHYSICAL (Azure IaaS → ODAA)
 
 ---
 
 ## Summary
 
-| # | Issue | Category | Status | Script | Date Resolved | Verified By |
-|---|-------|----------|--------|--------|---------------|-------------|
-| 1 | PDB1 is MOUNTED — must be OPEN READ WRITE | ❌ Blocker | 🔲 Pending | `zdm_fix_source_db.sh` | | |
-| 2 | ALL COLUMNS supplemental logging not enabled | ❌ Blocker | 🔲 Pending | `zdm_fix_source_db.sh` | | |
-| 3 | OCI config not configured for `zdmuser` on ZDM server | ❌ Blocker | 🔲 Pending | `zdm_configure_oci.sh` | | |
-| 4 | `OCI_OSS_NAMESPACE` and `OCI_OSS_BUCKET_NAME` not set in `zdm-env.md` | ⚠️ Required | 🔲 Pending | Manual + `zdm_configure_oci.sh` | | |
-| 5 | Source root filesystem at 78% used (6.3 GB free) | ⚡ Recommended | 🔲 Pending | Manual steps below | | |
-| 6 | ZDM server root filesystem below 50 GB recommended (24 GB free) | ⚡ Recommended | 🔲 Pending | Manual steps below | | |
+| # | Issue | Category | Priority | Status | Date Resolved | Verified By |
+|---|-------|----------|----------|--------|---------------|-------------|
+| 1 | Open PDB1 on source | ❌ Blocker | Critical | 🔲 Pending | | |
+| 2 | Enable ALL COLUMNS supplemental logging | ❌ Blocker | Critical | 🔲 Pending | | |
+| 3 | Configure OCI config for zdmuser | ❌ Blocker | Critical | 🔲 Pending | | |
+| 4 | Monitor source root disk space | ⚡ Recommended | Medium | 🔲 Pending | | |
+| 5 | Expand ZDM server root filesystem | ⚡ Recommended | Medium | 🔲 Pending | | |
 
 ---
 
@@ -24,345 +23,299 @@
 
 ---
 
-### Issue 1: PDB1 is MOUNTED — must be OPEN READ WRITE
+### Issue 1: Open PDB1 on Source
 
-**Category:** ❌ Blocker
+**Category:** ❌ Blocker  
 **Status:** 🔲 Pending
 
-**Problem:**
-The source PDB1 was discovered in `MOUNTED` open mode. ZDM online physical migration requires the source PDB to be in `READ WRITE` mode before migration begins. Additionally, `SAVE STATE` is required so that PDB1 automatically reopens if the source database is restarted during the migration window.
+**Problem:**  
+PDB1 on the source database `ORADB1` (SID: `oradb`) is in `MOUNTED` state. ZDM physical online migration requires the source PDB to be in `READ WRITE` (open) mode before migration can begin. The PDB state must also be persisted so that it survives an instance restart.
 
-**Discovery Evidence:**
-```
-PDB Name:    PDB1
-PDB Status:  MOUNTED  ⚠️ (must be OPEN before migration)
-```
+**Remediation Script:** `Scripts/fix_open_pdb1.sh`
 
-**Remediation:**
-Run the fix script as `zdmuser` on the ZDM server (`tm-vm-odaa-oracle-jumpbox`):
 ```bash
-sudo su - zdmuser
-chmod +x ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts/zdm_fix_source_db.sh
-~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts/zdm_fix_source_db.sh
-```
-
-The script executes the following SQL on the source database:
-```sql
-ALTER PLUGGABLE DATABASE PDB1 OPEN READ WRITE;
-ALTER PLUGGABLE DATABASE PDB1 SAVE STATE;
+# Run as zdmuser on ZDM server (10.1.0.8)
+cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
+chmod +x fix_open_pdb1.sh
+./fix_open_pdb1.sh
 ```
 
 **Verification:**
-After running the script, verify:
-```sql
-SELECT name, open_mode, restricted
-FROM   v$pdbs
-WHERE  name = 'PDB1';
--- Expected: open_mode = READ WRITE, restricted = NO
+
+```bash
+# Expected: PDB1 shows OPEN_MODE = READ WRITE and RESTRICTED = NO
+# The script outputs a verification query after applying the fix.
+# To manually verify, re-run the source discovery or check:
+#   SELECT NAME, OPEN_MODE, RESTRICTED FROM V$PDBS WHERE NAME = 'PDB1';
 ```
 
-Or re-run source discovery and confirm `PDB Status: OPEN READ WRITE ✅`.
+**Expected Verification Output:**
 
-**Rollback:**
-To revert PDB1 to MOUNTED state (e.g., if deliberately kept closed):
+```
+NAME   OPEN_MODE  RESTRICTED
+------ ---------- ----------
+PDB1   READ WRITE NO
+```
+
+**Rollback / Undo:**
+
 ```sql
+-- To close PDB1 again (if needed for rollback):
 ALTER PLUGGABLE DATABASE PDB1 CLOSE IMMEDIATE;
+ALTER PLUGGABLE DATABASE PDB1 DISCARD STATE;
 ```
 
-**Resolution Notes:**
-_Date:_ _______________  |  _Resolved By:_ _______________  |  _Notes:_ _______________
+**Resolution Notes:**  
+_[Update with date, who resolved, and any notes]_
 
 ---
 
-### Issue 2: ALL COLUMNS Supplemental Logging Not Enabled
+### Issue 2: Enable ALL COLUMNS Supplemental Logging
 
-**Category:** ❌ Blocker
+**Category:** ❌ Blocker  
 **Status:** 🔲 Pending
 
-**Problem:**
-`ONLINE_PHYSICAL` migration uses Data Guard redo application at the target. Full supplemental logging (`ALL COLUMNS`) is required so that all column values are captured in the redo stream, enabling accurate row-level changes during the active migration phase. Current state shows only minimal supplemental logging (FOREIGN KEY only).
+**Problem:**  
+The source database has only minimal supplemental logging enabled (`LOG_DATA_MIN = YES`). ZDM ONLINE_PHYSICAL migration requires ALL COLUMNS supplemental logging (`LOG_DATA_ALL = YES`) to correctly apply redo at the target during the Data Guard synchronisation phase. Without this, the migration EVAL will fail or redo apply will generate errors.
 
-**Discovery Evidence:**
-```
-Supplemental Logging (Minimal) : YES  ✅
-Supplemental Logging (All Cols): NO   ⚠️  ← Must be YES
-Supplemental Logging (Primary Key): NO  ⚠️
-```
+**Discovery State:**
 
-**Remediation:**
-Run the fix script as `zdmuser` on the ZDM server (same script as Issue 1 — covers both):
+| Type | Current | Required |
+|------|---------|----------|
+| Minimal (LOG_DATA_MIN) | YES ✅ | YES |
+| All Columns | NO ⚠️ | **YES** |
+| Primary Key | NO ⚠️ | YES |
+| Unique | NO | Optional |
+| Foreign Key | YES ✅ | YES |
+
+**Remediation Script:** `Scripts/fix_supplemental_logging.sh`
+
 ```bash
-~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts/zdm_fix_source_db.sh
-```
-
-The script executes the following SQL on the source database:
-```sql
-ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
-ALTER SYSTEM SWITCH LOGFILE;
+# Run as zdmuser on ZDM server (10.1.0.8)
+cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
+chmod +x fix_supplemental_logging.sh
+./fix_supplemental_logging.sh
 ```
 
 **Verification:**
-After running the script, verify:
+
 ```sql
-SELECT supplemental_log_data_min  AS supp_min,
-       supplemental_log_data_pk   AS supp_pk,
-       supplemental_log_data_all  AS supp_all
-FROM   v$database;
--- Expected: SUPP_ALL = YES
+-- Expected: LOG_DATA_ALL = YES, LOG_DATA_PK = YES
+SELECT
+  SUPPLEMENTAL_LOG_DATA_MIN  AS MIN_LOGGING,
+  SUPPLEMENTAL_LOG_DATA_PK   AS PK_LOGGING,
+  SUPPLEMENTAL_LOG_DATA_UI   AS UI_LOGGING,
+  SUPPLEMENTAL_LOG_DATA_FK   AS FK_LOGGING,
+  SUPPLEMENTAL_LOG_DATA_ALL  AS ALL_LOGGING
+FROM V$DATABASE;
 ```
 
-**Rollback:**
-To revert supplemental logging (only do this after migration completes or is abandoned):
+**Expected Verification Output:**
+
+```
+MIN_LOGGING PK_LOGGING UI_LOGGING FK_LOGGING ALL_LOGGING
+----------- ---------- ---------- ---------- -----------
+YES         YES        NO         YES        YES
+```
+
+**Rollback / Undo:**
+
 ```sql
+-- To remove ALL COLUMNS supplemental logging (if needed for rollback):
 ALTER DATABASE DROP SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+-- Note: Minimal and FK supplemental logging will remain.
+-- Do NOT remove until migration is fully complete and verified.
 ```
 
-**Resolution Notes:**
-_Date:_ _______________  |  _Resolved By:_ _______________  |  _Notes:_ _______________
+**Resolution Notes:**  
+_[Update with date, who resolved, and any notes]_
 
 ---
 
-### Issue 3: OCI Config Not Configured for zdmuser on ZDM Server
+### Issue 3: Configure OCI Config for zdmuser on ZDM Server
 
-**Category:** ❌ Blocker
+**Category:** ❌ Blocker  
 **Status:** 🔲 Pending
 
-**Problem:**
-ZDM requires the `zdmuser` account on the ZDM server to have a valid OCI CLI configuration (`~/.oci/config`) and API key (`~/.oci/oci_api_key.pem`) in order to:
-- Authenticate to OCI and interact with Object Storage (backup staging)
-- Verify and resolve the target DB OCID
-- Manage ZDM job state stored in OCI
+**Problem:**  
+The OCI CLI (`oci`) is installed on the ZDM server (version 3.73.1) but the OCI configuration file (`~/.oci/config`) has **not been verified** for `zdmuser`. The `azureuser` home directory has no OCI config at all. ZDM requires OCI API access to interact with Oracle Cloud Infrastructure — specifically to verify the target database OCID, access OCI Object Storage as a backup staging area, and validate the migration environment.
 
-Discovery found:
-```
-OCI config (zdmuser):   Not verified  ⚠️
-OCI config (azureuser): Not found at ~/.oci/config  ⚠️
-```
+**Required Configuration Values (from zdm-env.md):**
 
-**Prerequisites before running the fix script:**
-1. Ensure the OCI API private key (`oci_api_key.pem`) file is copied to the ZDM server at `/home/zdmuser/.oci/oci_api_key.pem`.
-   From your local machine:
-   ```bash
-   scp -i ~/.ssh/zdm.pem \
-       /path/to/oci_api_key.pem \
-       azureuser@10.1.0.8:/tmp/oci_api_key.pem
+| Parameter | Value |
+|-----------|-------|
+| Tenancy OCID | `ocid1.tenancy.oc1..aaaaaaaarvyhjcn7wkkxxx5g3o7lgqks23bmsjtsticz3gtg5xs5qyrwkftq` |
+| User OCID | `ocid1.user.oc1..aaaaaaaakfe5cirdq7vkkrhogjrgcrgftvwb7mdoehujgchefpqv54vhsnoa` |
+| Region | `uk-london-1` |
+| API Key Fingerprint | `7f:05:c1:f2:5c:3a:46:ec:9f:95:44:c8:77:a4:50:f9` |
+| Private Key Path | `~/.oci/oci_api_key.pem` |
 
-   # Then on ZDM server:
-   sudo cp /tmp/oci_api_key.pem /home/zdmuser/.oci/oci_api_key.pem
-   sudo chown zdmuser:zdmuser /home/zdmuser/.oci/oci_api_key.pem
-   sudo chmod 600 /home/zdmuser/.oci/oci_api_key.pem
-   ```
-2. Confirm the API key fingerprint in OCI Console matches:
-   `7f:05:c1:f2:5c:3a:46:ec:9f:95:44:c8:77:a4:50:f9`
+> **⚠️ Pre-requisite:** The OCI API private key file `/home/zdmuser/.oci/oci_api_key.pem` must already exist on the ZDM server. If it does not, upload it before running the script. The corresponding public key must be uploaded to OCI Console → Identity → Users → API Keys.
 
-**Remediation:**
-Run the OCI configuration script as `zdmuser`:
+**Remediation Script:** `Scripts/fix_oci_config.sh`
+
 ```bash
-sudo su - zdmuser
-chmod +x ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts/zdm_configure_oci.sh
-~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts/zdm_configure_oci.sh
-```
-
-The script creates `~/.oci/config` with the following values (from `zdm-env.md`):
-```ini
-[DEFAULT]
-user=ocid1.user.oc1..aaaaaaaakfe5cirdq7vkkrhogjrgcrgftvwb7mdoehujgchefpqv54vhsnoa
-fingerprint=7f:05:c1:f2:5c:3a:46:ec:9f:95:44:c8:77:a4:50:f9
-tenancy=ocid1.tenancy.oc1..aaaaaaaarvyhjcn7wkkxxx5g3o7lgqks23bmsjtsticz3gtg5xs5qyrwkftq
-region=uk-london-1
-key_file=/home/zdmuser/.oci/oci_api_key.pem
+# Run as zdmuser on ZDM server (10.1.0.8)
+cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
+chmod +x fix_oci_config.sh
+./fix_oci_config.sh
 ```
 
 **Verification:**
+
 ```bash
-# As zdmuser on ZDM server:
+# Test OCI CLI with the new config
 oci os ns get
-# Expected: {"data": "<your-namespace>"}  (non-empty string)
+# Expected: Returns the OCI Object Storage namespace as a JSON string
+# e.g.: { "data": "axxxxxxxxxxx" }
 
-oci iam region list --output table
-# Expected: list of OCI regions including uk-london-1
+# Also test target DB lookup
+oci db database get \
+  --database-id ocid1.database.oc1.uk-london-1.anwgiljss56liuaatz45cjnpbvpgku7gkorvxg6lytoj5lxxruk2eqxzkzma
 ```
 
-**Rollback:**
+**Rollback / Undo:**
+
 ```bash
-# Remove OCI config (a backup is created automatically by the script):
-rm ~/.oci/config
-# Restore backup:
-cp ~/.oci/config.bak.<timestamp> ~/.oci/config
+# To remove the OCI config (if created incorrectly):
+rm -f ~/.oci/config
+# Re-run fix_oci_config.sh with corrected values
 ```
 
-**Resolution Notes:**
-_Date:_ _______________  |  _Resolved By:_ _______________  |  _Notes:_ _______________
+**Resolution Notes:**  
+_[Update with date, who resolved, and any notes — including the Object Storage namespace retrieved by `oci os ns get`. That value is needed for Section C of the Migration Questionnaire.]_
 
 ---
 
-### Issue 4: OCI Object Storage Namespace and Bucket Name Not Configured
+### Issue 4: Monitor Source Root Disk Space
 
-**Category:** ⚠️ Required
+**Category:** ⚡ Recommended  
 **Status:** 🔲 Pending
 
-**Problem:**
-`OCI_OSS_NAMESPACE` and `OCI_OSS_BUCKET_NAME` were not set in `zdm-env.md`. ZDM physical migration requires an OCI Object Storage bucket as the backup staging location. These values must be determined and set before generating the ZDM response file in Step 3.
+**Problem:**  
+The source server (`tm-oracle-iaas`) root filesystem (`/`) is at **78% utilisation** with only **6.3 GB free**. During ONLINE_PHYSICAL migration, ZDM uses RMAN to create an initial backup. Archive logs accumulate in `/u01/app/oracle/fast_recovery_area` (on the root filesystem) during the Data Guard synchronisation phase. If the filesystem fills up, the migration will fail.
 
-**Steps to Resolve:**
+**Recommended Actions:**
 
-1. **Get the Object Storage namespace** (run as `zdmuser` after OCI config is set up — Issue 3 must be resolved first):
+1. Before starting migration, check current free space:
    ```bash
-   oci os ns get
-   # Output: {"data": "abc123xyz"}
-   # Note the value — this is your OCI_OSS_NAMESPACE
+   ssh -i ~/.ssh/iaas.pem azureuser@10.1.0.11 \
+     "df -h / /u01/app/oracle/fast_recovery_area 2>/dev/null || df -h /"
    ```
 
-2. **Decide on a bucket name** — recommended: `zdm-migration-oradb`
+2. Consider redirecting archive logs to the `/mnt/resource` partition (16 GB, 15 GB free):
+   ```sql
+   -- As sysdba on source:
+   ALTER SYSTEM SET LOG_ARCHIVE_DEST_1='LOCATION=/mnt/oracle/archive' SCOPE=BOTH;
+   -- Ensure /mnt/oracle/archive exists and is owned by oracle
+   ```
 
-3. **Create the bucket** (uncomment and adjust the bucket creation block in `zdm_configure_oci.sh`, or use OCI Console):
+3. Set an RMAN archive log deletion policy to prevent accumulation:
+   ```
+   RMAN> CONFIGURE ARCHIVELOG DELETION POLICY TO APPLIED ON ALL STANDBY;
+   ```
+
+**No dedicated remediation script is generated** for this item as the action depends on your storage allocation decisions. Monitor and take action as needed before starting the migration.
+
+**Resolution Notes:**  
+_[Update with confirmed free space at migration start time]_
+
+---
+
+### Issue 5: Expand ZDM Server Root Filesystem
+
+**Category:** ⚡ Recommended  
+**Status:** 🔲 Pending
+
+**Problem:**  
+The ZDM server (`tm-vm-odaa-oracle-jumpbox`) root filesystem has only **24 GB free** (total: 39 GB). ZDM documentation recommends a minimum of **50 GB** of free space for staging migration logs, temporary files, and RMAN output.
+
+**Impact Assessment:**  
+For this specific migration (2.08 GB database), the risk is relatively low — the staging data should fit within available space. However, if multiple migrations are run or ZDM logs accumulate, disk pressure may cause issues.
+
+**Recommended Actions:**
+
+1. Check current ZDM log and base directory sizes:
    ```bash
-   oci os bucket create \
-     --namespace-name "<your-namespace>" \
-     --name "zdm-migration-oradb" \
-     --compartment-id "ocid1.compartment.oc1..aaaaaaaas4upnqj72dfiivgwvn3uui5gkxo7ng6leeoifucbjiy326urbhmq" \
-     --public-access-type "NoPublicAccess"
-   ```
-   Or: OCI Console → Storage → Object Storage & Archive Storage → Buckets → Create Bucket.
-
-4. **Update `zdm-env.md`** with both values:
-   ```
-   OCI_OSS_NAMESPACE: <your-namespace>
-   OCI_OSS_BUCKET_NAME: zdm-migration-oradb
+   du -sh /u01/app/zdmbase/chkbase/* 2>/dev/null | sort -rh | head -20
+   du -sh /u01/app/zdmhome/logs/* 2>/dev/null | sort -rh | head -10
    ```
 
-**Verification:**
+2. Clean up failed job logs (can be done safely after confirmed failures):
+   ```bash
+   # As zdmuser
+   ls /u01/app/zdmbase/chkbase/
+   # Old failed jobs can be purged via zdmcli after confirming they are not needed
+   ```
+
+3. If expansion is needed, resize the Azure VM OS disk or attach a data disk via Azure portal.
+
+**No dedicated remediation script is generated** for this item. Escalate to the Azure infrastructure team if disk expansion is required.
+
+**Resolution Notes:**  
+_[Update with confirmed free space at migration start time]_
+
+---
+
+## Re-Verification Instructions
+
+After resolving Issues 1–3, re-run the relevant portions of source discovery to confirm the fixes:
+
 ```bash
-oci os bucket get \
-  --namespace-name "<your-namespace>" \
-  --bucket-name "zdm-migration-oradb"
-# Expected: JSON with bucket details, no error
+# As zdmuser on ZDM server
+sudo su - zdmuser
+
+# Re-run source discovery to verify PDB1 open state and supplemental logging
+cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step0/Scripts
+./zdm_orchestrate_discovery.sh source
+# Save updated outputs to:
+# Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification/
 ```
 
-**Resolution Notes:**
-_Date:_ _______________  |  _Resolved By:_ _______________  |  _Namespace:_ _______________  |  _Bucket:_ _______________
+Or run the consolidated verification script:
 
----
-
-### Issue 5: Source Root Filesystem at 78% Used (6.3 GB Free)
-
-**Category:** ⚡ Recommended
-**Status:** 🔲 Pending
-
-**Problem:**
-The source database server (`tm-oracle-iaas`) root filesystem is at 78% utilisation with only 6.3 GB free. During `ONLINE_PHYSICAL` migration, archive logs accumulate in the FRA (`/u01/app/oracle/fast_recovery_area`) as redo is generated. If the FRA fills up, the source database will hang.
-
-**Discovery Evidence:**
+```bash
+cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
+chmod +x verify_fixes.sh
+./verify_fixes.sh
 ```
-Root Disk Free:      6.3 GB (78% used)  ⚠️
-Archive Log Dest 1:  LOCATION=/u01/app/oracle/fast_recovery_area
-/mnt (temp partition): 16 GB free (available for redirect)
-```
-
-**Recommended Steps:**
-
-1. **Monitor FRA usage before and during migration:**
-   ```sql
-   -- Run on source as oracle
-   SELECT name,
-          round(space_limit/1073741824, 2)    AS limit_gb,
-          round(space_used/1073741824, 2)     AS used_gb,
-          round(space_reclaimable/1073741824, 2) AS reclaimable_gb,
-          number_of_files
-   FROM   v$recovery_file_dest;
-   ```
-
-2. **Optional — redirect archive logs to /mnt partition** (larger, 16 GB free):
-   ```sql
-   ALTER SYSTEM SET log_archive_dest_1 = 'LOCATION=/mnt/resource/archivelog' SCOPE=BOTH;
-   ```
-   Ensure `/mnt/resource/archivelog` exists and is owned by oracle:
-   ```bash
-   sudo mkdir -p /mnt/resource/archivelog
-   sudo chown oracle:oinstall /mnt/resource/archivelog
-   ```
-
-3. **Delete obsolete RMAN backups** if backup retention allows:
-   ```bash
-   rman target /
-   # In RMAN:
-   DELETE OBSOLETE;
-   ```
-
-**Resolution Notes:**
-_Date:_ _______________  |  _Resolved By:_ _______________  |  _Action Taken:_ _______________
-
----
-
-### Issue 6: ZDM Server Root Filesystem Below 50 GB Recommended
-
-**Category:** ⚡ Recommended
-**Status:** 🔲 Pending
-
-**Problem:**
-The ZDM server (`tm-vm-odaa-oracle-jumpbox`) root filesystem has only 24 GB free on a 39 GB volume. Oracle recommends 50+ GB for ZDM staging operations (log capture, temporary files). Low disk space may cause ZDM jobs to fail mid-flight.
-
-**Discovery Evidence:**
-```
-/ (rootvg-rootlv): 39 GB total, 24 GB free  ⚠️ (below 50 GB recommended)
-/mnt (temp):       16 GB total, 15 GB free
-```
-
-**Recommended Steps:**
-
-1. **Check ZDM base/log usage** as `zdmuser`:
-   ```bash
-   du -sh /u01/app/zdmbase/
-   du -sh /u01/app/zdmhome/
-   find /u01/app/zdmbase/crsdata -name "*.log" -mtime +30 | xargs ls -lh | tail -20
-   ```
-
-2. **Option A — Expand the root VM disk in Azure:**
-   - Azure Portal → VM `tm-vm-odaa-oracle-jumpbox` → Disks → Resize OS disk
-   - Then expand the LVM volume group and logical volume:
-     ```bash
-     sudo pvresize /dev/sda
-     sudo lvextend -l +100%FREE /dev/rootvg/rootlv
-     sudo xfs_growfs /
-     ```
-
-3. **Option B — Redirect ZDM staging to /mnt** (temporary disk, larger):
-   - Set `ZDM_BASE` to point to a path on `/mnt` before job start (consult ZDM documentation for `zdm.base` parameter)
-   - Note: `/mnt` is ephemeral on Azure VMs — not suitable for long-lived staging
-
-4. **Purge old ZDM job logs:**
-   ```bash
-   # ZDM job logs are stored in:
-   ls /u01/app/zdmbase/crsdata/*/rhp/zdm/log/
-   # Archive or delete logs from completed/failed jobs older than migration window
-   ```
-
-**Resolution Notes:**
-_Date:_ _______________  |  _Resolved By:_ _______________  |  _Action Taken:_ _______________
 
 ---
 
 ## Completion Checklist
 
-Before proceeding to Step 3 (Generate Migration Artifacts), verify ALL of the following:
+Before proceeding to Step 3, confirm all items are ✅:
 
-- [ ] **Issue 1:** PDB1 open mode verified as `READ WRITE` (query `v$pdbs`)
-- [ ] **Issue 2:** `supplemental_log_data_all = YES` verified in `v$database`
-- [ ] **Issue 3:** `oci os ns get` succeeds as `zdmuser` on ZDM server
-- [ ] **Issue 4:** `OCI_OSS_NAMESPACE` and `OCI_OSS_BUCKET_NAME` updated in `zdm-env.md` and bucket exists in OCI
-- [ ] **Issue 5:** FRA usage monitored; archive log redirect in place if needed
-- [ ] **Issue 6:** ZDM server disk space confirmed adequate for migration staging
-- [ ] ZDM EVAL prechecks pass with latest `iaas_to_odaa.rsp` (re-run `zdmcli migrate database ... -eval`)
+```
+[ ] Issue 1 RESOLVED  — PDB1 is OPEN (READ WRITE) and state is SAVED
+[ ] Issue 2 RESOLVED  — ALL COLUMNS supplemental logging is YES in V$DATABASE
+[ ] Issue 3 RESOLVED  — OCI CLI returns namespace via `oci os ns get` as zdmuser
+[ ] Issue 4 REVIEWED  — Source disk space is adequate for migration
+[ ] Issue 5 REVIEWED  — ZDM server disk space is adequate for migration
+[ ] verify_fixes.sh has been run and all checks passed
+[ ] Verification discovery outputs saved to Step2/Verification/
+[ ] Migration Questionnaire (Step1) updated with OCI Object Storage namespace (Section C)
 
----
-
-## Remediation Scripts
-
-| Script | Location | Purpose | Run On |
-|--------|----------|---------|--------|
-| `zdm_fix_source_db.sh` | `Step2/Scripts/` | Open PDB1 + enable ALL supplemental logging | ZDM server as `zdmuser` |
-| `zdm_configure_oci.sh` | `Step2/Scripts/` | Configure OCI CLI for `zdmuser` + verify connectivity | ZDM server as `zdmuser` |
+Completed By: _______________
+Date: _______________
+Reviewed By: _______________
+```
 
 ---
 
-*Generated by ZDM Migration Planning - Step 2 | 2026-03-02*
+## Next Steps
+
+Once all blockers are resolved:
+
+1. ✅ This log is updated and all items marked resolved
+2. ✅ `verify_fixes.sh` output saved to `Step2/Verification/`
+3. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
+   - `Migration-Questionnaire-ORADB.md` (completed)
+   - `Discovery-Summary-ORADB.md`
+   - This `Issue-Resolution-Log-ORADB.md`
+   - Latest discovery files from `Step2/Verification/`
+
+---
+
+*Generated by ZDM Migration Planning - Step 2*  
+*Source: Discovery-Summary-ORADB.md | Migration-Questionnaire-ORADB.md*
