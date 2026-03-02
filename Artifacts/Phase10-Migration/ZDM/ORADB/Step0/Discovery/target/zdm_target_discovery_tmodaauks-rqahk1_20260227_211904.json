@@ -1,9 +1,0 @@
-{
-  "hostname": "tmodaauks-rqahk1.ocioracle.ocitmvnetuks.oraclevcn.com",
-  "os_version": "Oracle Linux Server 8.10",
-  "oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
-  "oracle_sid": "mydb",
-  "grid_detected": "YES",
-  "discovery_timestamp": "20260227_211904",
-  "discovery_host": "tmodaauks-rqahk1"
-}

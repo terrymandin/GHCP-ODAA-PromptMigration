@@ -32,9 +32,14 @@
 ## Oracle Path Overrides
 Leave blank to allow auto-detection via `/etc/oratab` and common paths. Set only if auto-detection fails.
 - SOURCE_REMOTE_ORACLE_HOME: 
-- SOURCE_REMOTE_ORACLE_SID: 
+- SOURCE_ORACLE_SID: 
 - TARGET_REMOTE_ORACLE_HOME: 
-- TARGET_REMOTE_ORACLE_SID:
+- TARGET_ORACLE_SID:
+> **ODAA / Exadata RAC note:** Scripts that SSH in remotely read `/etc/oratab`, which returns the
+> `db_name` (e.g. `oradb01`) — not the running RAC instance name (e.g. `oradb011`). This causes
+> `ORA-01034: ORACLE not available` in both Step0 orchestrated discovery and Step2 fix scripts.
+> Set `TARGET_ORACLE_SID` to the instance SID on Node 1 (`<db_name>1`) to override auto-detection
+> for all scripts. Confirm the value with `ps -ef | grep pmon` on the target node.
 ---
 ## OCI/Azure Configuration (non-sensitive identifiers)
 - OCI_TENANCY_OCID: ocid1.tenancy.oc1..<YOUR_TENANCY_OCID>
