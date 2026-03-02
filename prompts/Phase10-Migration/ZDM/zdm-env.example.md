@@ -21,6 +21,7 @@
 - ZDM_SSH_USER: <ZDM_SSH_USER>
 ---
 ## SSH Key Paths (separate keys per security domain)
+> Keys must be stored in `~/.ssh/` under the **zdmuser** account on the ZDM server, since all scripts run as zdmuser (`~` = `/home/zdmuser`). Ensure each file has permissions `600`.
 - SOURCE_SSH_KEY: ~/.ssh/<source_key>.pem
 - TARGET_SSH_KEY: ~/.ssh/<target_key>.pem
 - ZDM_SSH_KEY: ~/.ssh/<zdm_key>.pem

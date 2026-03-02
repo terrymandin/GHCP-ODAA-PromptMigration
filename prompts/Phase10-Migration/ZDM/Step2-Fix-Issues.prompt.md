@@ -86,7 +86,15 @@ For each issue, generate:
 1. **Remediation Script/Commands**
    - Exact commands to fix the issue
    - Which server to run on (source, target, or ZDM)
-   - Required privileges
+   - **Which user to run as** — all scripts must be run as `zdmuser` on the ZDM server. Include a user guard at the top of every generated script:
+     ```bash
+     if [[ "$(whoami)" != "zdmuser" ]]; then
+       echo "ERROR: This script must be run as zdmuser. Current user: $(whoami)"
+       echo "       Switch with: sudo su - zdmuser"
+       exit 1
+     fi
+     ```
+   - SSH keys are in `/home/zdmuser/.ssh/` — generated scripts must use `~/.ssh/<keyname>.pem` paths (which expand correctly when running as `zdmuser`)
 
 2. **Verification Commands**
    - How to verify the fix was successful
@@ -103,7 +111,7 @@ For each issue, generate:
      - **Prerequisites**: Required tools, credentials, environment variables, and prior steps
      - **Environment Variables**: List every variable the script reads, with description and example value
      - **What It Does**: Numbered step-by-step walkthrough of the script logic
-     - **How to Run**: Exact command(s) to execute the script
+     - **How to Run**: Exact command(s) to execute the script, including which user to run as (e.g. "Run as `zdmuser` on the ZDM server")
      - **Expected Output**: Description of successful output and any key indicators
      - **Rollback / Undo**: How to reverse the changes if needed
 
@@ -232,22 +240,17 @@ oci os ns get
 
 > **IMPORTANT:** ZDM uses admin users with sudo, NOT direct SSH as oracle.
 > If Step 0 discovery completed successfully, SSH is already working.
+> All fix scripts run **as zdmuser** on the ZDM server; SSH keys must be in `/home/zdmuser/.ssh/`.
 
 ```bash
-# SSH Pattern: admin user + sudo to oracle
-# Source: ssh SOURCE_ADMIN_USER@host → sudo -u oracle
-# Target: ssh TARGET_ADMIN_USER@host → sudo -u oracle
+# SSH Pattern: zdmuser on ZDM server → SSH as admin user → sudo to oracle
+# Source: ssh -i ~/.ssh/iaas.pem SOURCE_SSH_USER@host → sudo -u oracle
+# Target: ssh -i ~/.ssh/odaa.pem TARGET_SSH_USER@host → sudo -u oracle
 
-# Test SSH (as configured admin users, not oracle)
-ssh -i <key> ${SOURCE_ADMIN_USER}@<source_host> "sudo -u oracle whoami"  # Should print: oracle
-ssh -i <key> ${TARGET_ADMIN_USER}@<target_host> "sudo -u oracle whoami"  # Should print: oracle
-
-# Example with typical users:
-ssh -i iaas.pem temandin@source_host "sudo -u oracle whoami"
-ssh opc@target_host "sudo -u oracle whoami"
+# Test SSH connectivity (run as zdmuser on ZDM server)
+ssh -i ~/.ssh/iaas.pem ${SOURCE_SSH_USER}@<source_host> "sudo -u oracle whoami"  # Should print: oracle
+ssh -i ~/.ssh/odaa.pem ${TARGET_SSH_USER}@<target_host> "sudo -u oracle whoami"  # Should print: oracle
 ```
-
-**Note:** "SSH directory not found for oracle user" is NOT a blocker - we don't SSH as oracle.
 
 ### Network Issues
 
@@ -266,17 +269,18 @@ nc -zv <target_ip> 1521
 
 ## Re-Running Discovery
 
-After fixing issues, re-run the relevant discovery script:
+After fixing issues, re-run the relevant discovery script as `zdmuser` on the ZDM server:
 
 ```bash
-# From ZDM server, re-run source discovery (uses SOURCE_ADMIN_USER automatically)
+# Switch to zdmuser if not already
+sudo su - zdmuser
+
+# Re-run source discovery
+cd ~/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Scripts
 ./zdm_orchestrate_discovery.sh source
 
-# Or run individual scripts (SSH as admin user, script will sudo to oracle)
-ssh -i <key> ${SOURCE_ADMIN_USER}@<source_host> 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
-
-# Example:
-ssh -i iaas.pem temandin@10.1.0.10 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
+# Or run individual scripts directly
+ssh -i ~/.ssh/iaas.pem ${SOURCE_SSH_USER}@${SOURCE_HOST} 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
 ```
 
 Save updated discovery outputs to:

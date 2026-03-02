@@ -553,11 +553,11 @@ check_required_passwords() {
     - TARGET_REMOTE_ORACLE_SID: Oracle SID on target server
 - **Never suppress SSH/SCP errors silently** - Do NOT use `2>/dev/null` on SSH or SCP commands in the orchestration script. Capture stderr into a variable and log it on failure so the user can diagnose what went wrong. Apply this to both SSH connectivity checks and SCP file transfers — in both cases, capture combined stdout/stderr, check for success, and log the full captured output at ERROR level if the command fails.
 - **Upfront SSH key diagnostic in main()** - Before attempting any connections, log a diagnostic block showing:
-  1. The user running the script and their home directory
-  2. All `.pem` and `.key` files found in `~/.ssh/`; if none are found or the directory is missing, log a warning
-  3. For each configured SSH key (`SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ZDM_SSH_KEY`): expand the path (resolving `~` to `$HOME`), then log whether the file exists or is missing; if missing, log the exact expanded path that was checked and the environment variable the user should override to fix it
+  1. The user running the script and their home directory. Scripts must run as `zdmuser`; if the current user is not `zdmuser`, log a warning.
+  2. All `.pem` and `.key` files found in `~/.ssh/`; if none are found or the directory is missing, log a warning.
+  3. For each configured SSH key (`SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ZDM_SSH_KEY`): expand the path (resolving `~` to `$HOME`), then log whether the file exists or is missing; if missing, log the exact expanded path that was checked and the environment variable the user should override to fix it.
 
-  This is the single most common failure cause — the script runs as a different user than expected (e.g. `zdmuser` instead of `azureuser`), so a key path like `~/.ssh/odaa.pem` resolves to a path that does not exist for that user.
+  This is the single most common failure cause — the script runs as a different user (e.g. `azureuser` instead of `zdmuser`), so `~/.ssh/` resolves to `/home/azureuser/.ssh/` and the keys are not found. Keys must be in `/home/zdmuser/.ssh/` with permissions `600`.
 - **List remote directory before collecting output files** - After the remote discovery script finishes but before running SCP collection, SSH back to the remote host and list the contents of the temp directory. Log each line using `log_info` (the orchestrator does **not** define `log_raw` — that function only exists inside the individual discovery scripts that write to a report file). If the directory is not found, log a clear message indicating that. This makes it immediately visible whether the remote script produced output files or ran into errors before attempting the transfer.
 - **Error tracking** - Track which servers succeeded/failed and report at the end
 - **Partial success** - A discovery run with 2 out of 3 servers successful should still save and report the successful results
