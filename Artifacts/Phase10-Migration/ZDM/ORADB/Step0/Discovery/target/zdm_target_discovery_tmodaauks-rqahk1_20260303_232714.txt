@@ -1,0 +1,216 @@
+==================================================================
+ZDM TARGET DATABASE DISCOVERY REPORT
+Project:   ORADB
+Server:    tmodaauks-rqahk1.ocioracle.ocitmvnetuks.oraclevcn.com
+Date:      Tue Mar  3 23:27:14 UTC 2026
+Script:    bash
+==================================================================
+
+==================================================================
+  OS INFORMATION
+==================================================================
+  Hostname (FQDN):                              tmodaauks-rqahk1.ocioracle.ocitmvnetuks.oraclevcn.com
+  Hostname (short):                             tmodaauks-rqahk1
+  IP Addresses:                                 10.0.1.160,10.0.1.155,10.0.1.200,10.0.1.159,192.168.255.151,169.254.200.2,100.106.64.130,100.106.64.131,100.107.0.192,100.107.0.193,
+  OS Version:                                   Oracle Linux Server 8.10
+  Kernel:                                       5.15.0-308.179.6.16.el8uek.x86_64
+  Architecture:                                 x86_64
+
+  Disk Space:
+    Filesystem                                                                        Size  Used Avail Use% Mounted on
+    /dev/mapper/VGExaDb-LVDbSys1                                                       15G  6.4G  8.6G  43% /
+    /dev/mapper/VGExaDbDisk.u01.20.img-LVDBDisk                                        20G  4.1G   16G  21% /u01
+    /dev/sda1                                                                         412M  128M  285M  31% /boot
+    /dev/mapper/VGExaDb-LVDbVar1                                                      5.0G  1.9G  3.1G  39% /var
+    /dev/mapper/VGExaDb-LVDbKdump                                                      20G  175M   20G   1% /crashfiles
+    /dev/mapper/VGExaDb-LVDbTmp                                                       3.0G   61M  2.9G   3% /tmp
+    /dev/mapper/VGExaDb-LVDbVarLog                                                     18G  595M   18G   4% /var/log
+    /dev/mapper/VGExaDbDisk.grid--klone--Linux--x86--64--19000251021.50.img-LVDBDisk   50G   13G   38G  26% /u01/app/19.0.0.0/grid
+    /dev/mapper/VGExaDb-LVDbVarLogAudit                                               3.0G  159M  2.8G   6% /var/log/audit
+    /dev/mapper/VGExaDb-LVDbHome                                                      4.0G   97M  3.9G   3% /home
+    /dev/mapper/VGExaDbDisk.u02_extra.img-LVDBDisk                                     57G   41G   14G  75% /u02
+    /dev/asm/acfsvol01-283                                                            100G   13G   88G  13% /acfs01
+
+==================================================================
+  ORACLE ENVIRONMENT
+==================================================================
+  ORACLE_HOME:                                  /u01/app/19.0.0.0/grid
+  ORACLE_SID:                                   +ASM1
+  ORACLE_BASE:                                  N/A
+  Oracle Version:                               19.0.0.0.0
+
+==================================================================
+  DATABASE CONFIGURATION
+==================================================================
+  Database Name:                                SELECT name FROM v$database
+  DB Unique Name:                               SELECT db_unique_name FROM v$database
+  Database Role:                                SELECT database_role FROM v$database
+  Open Mode:                                    SELECT open_mode FROM v$database
+  Character Set:                                SELECT value FROM nls_database_parameters WHERE parameter=NLS_CHARACTERSET
+
+  Available Storage - Tablespaces:
+	     LEFT JOIN (SELECT tablespace_name, SUM(bytes) AS bytes FROM dba_free_space GROUP BY tablespace_name) f
+                                                                         *
+ERROR at line 7:
+ORA-01219: database or pluggable database not open: queries allowed on fixed tables or views only
+
+
+
+==================================================================
+  CONTAINER DATABASE
+==================================================================
+  CDB:                                          SELECT cdb FROM v$database
+
+==================================================================
+  TDE CONFIGURATION
+==================================================================
+  Wallet Status:                                OPEN_NO_MASTER_KEY
+  Wallet Type:                                  UNKNOWN
+  Wallet Location:                              /var/opt/oracle/dbaas_acfs/grid/tcps_wallets/
+
+==================================================================
+  NETWORK CONFIGURATION
+==================================================================
+  IP Addresses:
+        inet 127.0.0.1/8 scope host lo
+        inet 10.0.1.160/24 brd 10.0.1.255 scope global noprefixroute bondeth0
+        inet 10.0.1.155/24 brd 10.0.1.255 scope global secondary bondeth0:1
+        inet 10.0.1.200/24 brd 10.0.1.255 scope global secondary bondeth0:3
+        inet 10.0.1.159/24 brd 10.0.1.255 scope global secondary bondeth0:4
+        inet 192.168.255.151/22 brd 192.168.255.255 scope global noprefixroute bondeth1
+        inet 169.254.200.2/30 brd 169.254.200.3 scope link noprefixroute eth0
+        inet 100.106.64.130/16 brd 100.106.255.255 scope global noprefixroute stre0
+        inet 100.106.64.131/16 brd 100.106.255.255 scope global noprefixroute stre1
+        inet 100.107.0.192/16 brd 100.107.255.255 scope global noprefixroute clre0
+        inet 100.107.0.193/16 brd 100.107.255.255 scope global noprefixroute clre1
+
+  Listener Status:
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 03-MAR-2026 23:27:14
+
+Copyright (c) 1991, 2025, Oracle.  All rights reserved.
+
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=LISTENER)))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                20-FEB-2026 22:52:07
+Uptime                    11 days 0 hr. 35 min. 7 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Parameter File   /u01/app/19.0.0.0/grid/network/admin/listener.ora
+Listener Log File         /u01/app/grid/diag/tnslsnr/tmodaauks-rqahk1/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=ipc)(KEY=LISTENER)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=10.0.1.155)(PORT=2484)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.0.1.160)(PORT=1521)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.0.1.155)(PORT=1521)))
+Services Summary...
+Service "+APX" has 1 instance(s).
+  Instance "+APX1", status READY, has 1 handler(s) for this service...
+Service "+ASM" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_DATAC3" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_RECOC3" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "4142c932dbecb6f0e0634e514664b1aa.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "oradb011", status READY, has 1 handler(s) for this service...
+Service "4964144811d52701e063a001000af8aa.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "oradb011", status READY, has 1 handler(s) for this service...
+Service "oradb01XDB.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "oradb011", status READY, has 1 handler(s) for this service...
+Service "oradb01_ORADB01PDB.paas.oracle.com" has 1 instance(s).
+  Instance "oradb011", status READY, has 1 handler(s) for this service...
+Service "oradb01m.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "oradb011", status READY, has 1 handler(s) for this service...
+Service "oradb01pdb.ocioracle.ocitmvnetuks.oraclevcn.com" has 1 instance(s).
+  Instance "oradb011", status READY, has 1 handler(s) for this service...
+The command completed successfully
+
+  SCAN Listener (if Grid/RAC):
+    srvctl not found in PATH (may need GRID_HOME)
+
+  tnsnames.ora (/u01/app/19.0.0.0/grid/network/admin):
+    tnsnames.ora not found at /u01/app/19.0.0.0/grid/network/admin/tnsnames.ora
+
+==================================================================
+  OCI/AZURE INTEGRATION
+==================================================================
+  OCI CLI Version:                              NOT INSTALLED
+  OCI Config:                                   NOT FOUND at /home/opc/.oci/config
+
+  OCI Connectivity Test:
+
+  Azure Instance Metadata:
+    Azure metadata service not accessible (expected on non-Azure VMs)
+
+  OCI Instance Metadata:
+    OCI metadata service not accessible
+
+==================================================================
+  GRID INFRASTRUCTURE
+==================================================================
+  crsctl not found - this may be a single-instance database
+  Grid Infrastructure:                          Not detected (single-instance or CRS not in PATH)
+
+==================================================================
+  AUTHENTICATION
+==================================================================
+  Password File:                                NOT FOUND
+
+  Oracle user SSH directory:
+    total 20
+    drwx------. 2 oracle oinstall  108 Dec 16 15:24 .
+    drwx------. 4 oracle oinstall 4096 Feb 17 02:06 ..
+    -rw-------. 1 oracle oinstall 2116 Dec 16 15:54 authorized_keys
+    -rw-------. 1 oracle oinstall    0 Dec 16 15:12 authorized_keys-orig
+    -rw-------. 1 oracle oinstall 2610 Dec 16 15:24 id_rsa
+    -rw-r--r--. 1 oracle oinstall  577 Dec 16 15:24 id_rsa.pub
+    -rw-r--r--. 1 oracle oinstall  808 Dec 16 15:24 known_hosts
+
+==================================================================
+  EXADATA / ASM STORAGE
+==================================================================
+  ASM Disk Groups:
+
+GROUP_NUMBER NAME			    TYPE   STATE	 TOTAL_MB    FREE_MB   PCT_USED
+------------ ------------------------------ ------ ----------- ---------- ---------- ----------
+	   1 DATAC3			    HIGH   MOUNTED	  5013504    4227948	   15.7
+	   2 RECOC3			    HIGH   MOUNTED	  1253376    1074060	   14.3
+
+  Exadata Cell Check (if applicable):
+    cellcli not accessible
+
+==================================================================
+  NETWORK SECURITY / FIREWALL
+==================================================================
+  iptables (Oracle-relevant ports 1521, 2484, 22):
+    iptables not accessible
+
+  firewalld status:
+
+  ss (listening sockets on Oracle ports):
+    LISTEN 0      128       10.0.1.160:1521       0.0.0.0:*                                      
+    LISTEN 0      128    100.107.0.193:22299      0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.160:22         0.0.0.0:*                                      
+    LISTEN 0      128        127.0.0.1:22         0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.200:2484       0.0.0.0:*                                      
+    LISTEN 0      1          127.0.0.1:22613      0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.159:2484       0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.155:2484       0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.155:1521       0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.200:1521       0.0.0.0:*                                      
+    LISTEN 0      128       10.0.1.159:1521       0.0.0.0:*                                      
+    LISTEN 0      128    100.107.0.192:53227      0.0.0.0:*                                      
+    LISTEN 0      128    169.254.200.2:22         0.0.0.0:*                                      
+
+  OCI NSG List (if OCI CLI configured):
+    OCI CLI not available or not configured
+
+==================================================================
+END OF TARGET DISCOVERY REPORT
+Generated: Tue Mar  3 23:27:15 UTC 2026
+==================================================================

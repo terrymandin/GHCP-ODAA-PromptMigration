@@ -1,0 +1,479 @@
+==================================================================
+ZDM SOURCE DATABASE DISCOVERY REPORT
+Project:   ORADB
+Server:    tm-oracle-iaas.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+Date:      Tue Mar  3 23:27:09 UTC 2026
+Script:    bash
+==================================================================
+
+==================================================================
+  OS INFORMATION
+==================================================================
+  Hostname (FQDN):                              tm-oracle-iaas.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+  Hostname (short):                             tm-oracle-iaas
+  IP Addresses:                                 10.1.0.11,
+  OS Version:                                   Oracle Linux Server 7.4
+  Kernel:                                       4.1.12-124.14.1.el7uek.x86_64
+  Architecture:                                 x86_64
+
+  Disk Space:
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2        30G   23G  5.6G  81% /
+/dev/sda1       497M  117M  381M  24% /boot
+/dev/sdb1        16G  2.1G   13G  14% /mnt/resource
+
+==================================================================
+  ORACLE ENVIRONMENT
+==================================================================
+  ORACLE_HOME:                                  /u01/app/oracle/product/12.2.0/dbhome_1
+  ORACLE_SID:                                   oradb
+  ORACLE_BASE:                                  N/A
+  Oracle Version:                               12.2.0.1.0
+
+==================================================================
+  DATABASE CONFIGURATION
+==================================================================
+  Database Name:                                ORADB1
+  DB Unique Name:                               oradb1
+  DBID:                                         2571197414
+  Database Role:                                PRIMARY
+  Open Mode:                                    READ WRITE
+  Log Mode:                                     ARCHIVELOG
+  Force Logging:                                YES
+  Data Files Size:                              2.15 GB
+  Temp Files Size:                              .03 GB
+  Character Set:                                AL32UTF8
+  NLS National Charset:                         AL16UTF16
+
+==================================================================
+  CONTAINER DATABASE
+==================================================================
+  CDB:                                          YES
+
+  PDB List:
+
+NAME																 OPEN_MODE  RES     CON_ID
+-------------------------------------------------------------------------------------------------------------------------------- ---------- --- ----------
+PDB$SEED															 READ ONLY  NO		 2
+PDB1																 READ WRITE NO		 3
+
+==================================================================
+  TDE CONFIGURATION
+==================================================================
+  Wallet Status:                                NOT_AVAILABLE
+  Wallet Type:                                  UNKNOWN
+  Wallet Location:                              /u01/app/oracle/product/12.2.0/dbhome_1/admin/oradb1/wallet
+
+  Encrypted Tablespaces:
+
+==================================================================
+  SUPPLEMENTAL LOGGING
+==================================================================
+
+LOG_MODE     SUPPLEME SUP SUP SUP SUP
+------------ -------- --- --- --- ---
+ARCHIVELOG   YES      YES NO  NO  YES
+
+==================================================================
+  REDO AND ARCHIVE CONFIGURATION
+==================================================================
+  Redo Log Groups:
+
+    GROUP#    THREAD#  SEQUENCE#    SIZE_MB    MEMBERS STATUS
+---------- ---------- ---------- ---------- ---------- ----------------
+	 1	    1	      25	200	     1 INACTIVE
+	 2	    1	      26	200	     1 CURRENT
+	 3	    1	      24	200	     1 INACTIVE
+
+  Redo Log Members:
+
+    GROUP#
+----------
+MEMBER
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STATUS
+-------
+	 1
+/u01/app/oracle/oradata/oradb1/redo01.log
+
+
+	 2
+/u01/app/oracle/oradata/oradb1/redo02.log
+
+
+	 3
+/u01/app/oracle/oradata/oradb1/redo03.log
+
+
+
+  Archive Log Destinations:
+
+   DEST_ID
+----------
+DEST_NAME
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STATUS	  TARGET	   ARCHIVER   SCHEDULE
+--------- ---------------- ---------- --------
+DESTINATION
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ERROR
+-----------------------------------------------------------------
+	 1
+LOG_ARCHIVE_DEST_1
+VALID	  PRIMARY	   ARCH       ACTIVE
+/u01/app/oracle/fast_recovery_area
+
+
+
+  Archive Log Summary (last 24h):
+
+HOUR		   COUNT    SIZE_GB
+------------- ---------- ----------
+2026-03-03 01	       1	.16
+2026-03-03 23	       1	.17
+
+==================================================================
+  NETWORK CONFIGURATION
+==================================================================
+  IP Addresses:
+        inet 127.0.0.1/8 scope host lo
+        inet 10.1.0.11/24 brd 10.1.0.255 scope global eth0
+
+  Listener Status:
+
+LSNRCTL for Linux: Version 12.2.0.1.0 - Production on 03-MAR-2026 23:27:10
+
+Copyright (c) 1991, 2016, Oracle.  All rights reserved.
+
+Connecting to (ADDRESS=(PROTOCOL=tcp)(HOST=)(PORT=1521))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 12.2.0.1.0 - Production
+Start Date                23-FEB-2026 21:54:03
+Uptime                    8 days 1 hr. 33 min. 7 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Log File         /u01/app/oracle/diag/tnslsnr/tm-oracle-iaas/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=tm-oracle-iaas.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net)(PORT=1521)))
+Services Summary...
+Service "4b85b38ae4551c7fe0630b00010aad3c" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+Service "oradb1" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+Service "oradbXDB" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+Service "pdb1" has 1 instance(s).
+  Instance "oradb", status READY, has 1 handler(s) for this service...
+The command completed successfully
+
+  tnsnames.ora:
+    
+    
+    
+    oradb =
+    	 (DESCRIPTION =
+    	   (ADDRESS_LIST =
+    	     (ADDRESS = (PROTOCOL = TCP)
+    	                (HOST = 10.1.0.11)
+    	                (PORT = 1521))
+    	   )
+    	   (CONNECT_DATA =
+    	     (SERVICE_NAME = oradb)
+    	     (UR = A)
+    	   )
+     )
+    
+    
+
+  sqlnet.ora:
+    sqlnet.ora not found at /u01/app/oracle/product/12.2.0/dbhome_1/network/admin/sqlnet.ora
+
+==================================================================
+  AUTHENTICATION
+==================================================================
+  Password File:                                /u01/app/oracle/product/12.2.0/dbhome_1/dbs/orapworadb
+
+  Oracle user SSH directory:
+    SSH directory not accessible via sudo
+
+==================================================================
+  DATA GUARD
+==================================================================
+  Data Guard Parameters:
+
+NAME
+--------------------------------------------------------------------------------
+VALUE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+db_unique_name
+oradb1
+
+dg_broker_config_file1
+/u01/app/oracle/product/12.2.0/dbhome_1/dbs/dr1oradb1.dat
+
+dg_broker_start
+FALSE
+
+fal_client
+
+
+fal_server
+
+
+log_archive_config
+
+
+log_archive_dest_1
+LOCATION=/u01/app/oracle/fast_recovery_area
+
+log_archive_dest_2
+
+
+log_archive_dest_3
+
+
+standby_file_management
+MANUAL
+
+
+==================================================================
+  SCHEMA INFORMATION
+==================================================================
+  Non-System Schemas > 100MB:
+
+  Invalid Objects by Owner/Type:
+
+==================================================================
+  TABLESPACE CONFIGURATION
+==================================================================
+  Tablespace Autoextend Settings:
+
+TABLESPACE_NAME
+------------------------------
+FILE_NAME
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CURRENT_GB     MAX_GB INCREMENT_MB AUT
+---------- ---------- ------------ ---
+SYSAUX
+/u01/app/oracle/oradata/oradb1/sysaux01.dbf
+      1.05	   32		10 YES
+
+SYSTEM
+/u01/app/oracle/oradata/oradb1/system01.dbf
+       .81	   32		10 YES
+
+UNDOTBS1
+/u01/app/oracle/oradata/oradb1/undotbs01.dbf
+       .28	   32		 5 YES
+
+USERS
+/u01/app/oracle/oradata/oradb1/users01.dbf
+	 0	   32	      1.25 YES
+
+
+  Tablespace Usage Summary:
+
+TABLESPACE_NAME 	       STATUS	   TOTAL_GB    FREE_GB	 PCT_USED
+------------------------------ --------- ---------- ---------- ----------
+SYSAUX			       ONLINE	       1.05	   .06	     94.7
+SYSTEM			       ONLINE		.81	   .01	     99.1
+UNDOTBS1		       ONLINE		.28	   .24	     15.6
+USERS			       ONLINE		  0	     0	       20
+
+==================================================================
+  BACKUP CONFIGURATION
+==================================================================
+  RMAN Configuration:
+
+NAME
+-----------------------------------------------------------------
+VALUE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+BACKUP OPTIMIZATION
+ON
+
+CONTROLFILE AUTOBACKUP
+ON
+
+CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE
+DISK TO "/u01/app/oracle/fast_recovery_area/%F"
+
+DEFAULT DEVICE TYPE TO
+DISK
+
+RETENTION POLICY
+TO REDUNDANCY 1
+
+
+  Last Successful Backup:
+
+  Backup-Related Crontab (current user):
+    (no crontab or no backup entries)
+
+  Backup-Related DBMS_SCHEDULER Jobs:
+
+OWNER
+--------------------------------------------------------------------------------------------------------------------------------
+JOB_NAME
+--------------------------------------------------------------------------------------------------------------------------------
+JOB_ACTION
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+REPEAT_INTERVAL
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ENABL STATE	      LAST_RUN		  NEXT_RUN
+----- --------------- ------------------- -------------------
+SYS
+ORA$PREPLUGIN_BACKUP_JOB
+
+
+FALSE DISABLED
+
+
+==================================================================
+  DATABASE LINKS
+==================================================================
+
+OWNER
+--------------------------------------------------------------------------------------------------------------------------------
+DB_LINK
+--------------------------------------------------------------------------------------------------------------------------------
+USERNAME
+--------------------------------------------------------------------------------------------------------------------------------
+HOST
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATED
+----------
+SYS
+SYS_HUB
+
+SEEDDATA
+2017-01-26
+
+
+==================================================================
+  MATERIALIZED VIEWS
+==================================================================
+  Materialized Views:
+		    TO_CHAR(next,'YYYY-MM-DD HH24:MI:SS') AS next_refresh
+                            *
+ERROR at line 3:
+ORA-00904: "NEXT": invalid identifier
+
+
+
+  Materialized View Logs:
+SELECT log_owner, master, log_table, primary_key, rowid, sequence
+                                                  *
+ERROR at line 1:
+ORA-01446: cannot select ROWID from, or sample, a view with DISTINCT, GROUP BY, etc.
+
+
+
+==================================================================
+  SCHEDULER JOBS
+==================================================================
+
+OWNER
+--------------------------------------------------------------------------------------------------------------------------------
+JOB_NAME															 JOB_TYPE	  SCHEDULE_TYP ENABL STATE	     LAST_RUN
+-------------------------------------------------------------------------------------------------------------------------------- ---------------- ------------ ----- --------------- -------------------
+NEXT_RUN
+-------------------
+ORACLE_OCM
+MGMT_CONFIG_JOB 														 STORED_PROCEDURE CALENDAR     TRUE  SCHEDULED	     2026-03-03 01:01:01
+2026-03-04 01:01:01
+
+ORACLE_OCM
+MGMT_STATS_CONFIG_JOB														 STORED_PROCEDURE CALENDAR     TRUE  SCHEDULED	     2026-03-01 01:01:01
+2026-04-01 01:01:01
+
+SYS
+BSLN_MAINTAIN_STATS_JOB 															  NAMED        TRUE  SCHEDULED	     2026-03-01 00:00:00
+2026-03-08 00:00:00
+
+SYS
+CLEANUP_NON_EXIST_OBJ														 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 21:46:33
+2026-03-04 09:46:33
+
+SYS
+CLEANUP_ONLINE_IND_BUILD													 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 23:22:13
+2026-03-04 00:22:13
+
+SYS
+CLEANUP_ONLINE_PMO														 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 22:39:48
+2026-03-03 23:39:48
+
+SYS
+CLEANUP_TAB_IOT_PMO														 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 23:22:23
+2026-03-04 00:22:23
+
+SYS
+CLEANUP_TRANSIENT_PKG														 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 21:39:38
+2026-03-03 23:39:38
+
+SYS
+CLEANUP_TRANSIENT_TYPE														 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 21:46:29
+2026-03-04 09:46:29
+
+SYS
+DRA_REEVALUATE_OPEN_FAILURES													 STORED_PROCEDURE WINDOW_GROUP TRUE  SCHEDULED	     2026-03-03 22:00:02
+
+
+SYS
+FGR$AUTOPURGE_JOB														 PLSQL_BLOCK	  CALENDAR     FALSE DISABLED
+
+
+SYS
+FILE_SIZE_UPD															 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-02-23 21:46:25
+2027-02-23 21:46:25
+
+SYS
+FILE_WATCHER																	  NAMED        FALSE DISABLED
+
+
+SYS
+HM_CREATE_OFFLINE_DICTIONARY													 STORED_PROCEDURE WINDOW_GROUP FALSE DISABLED
+
+
+SYS
+LOAD_OPATCH_INVENTORY														 PLSQL_BLOCK	  ONCE	       FALSE DISABLED
+
+
+SYS
+ORA$AUTOTASK_CLEAN																  NAMED        TRUE  SCHEDULED	     2026-03-03 03:00:00
+2026-03-04 03:00:00
+
+SYS
+ORA$PREPLUGIN_BACKUP_JOB															  EVENT        FALSE DISABLED
+
+
+SYS
+PMO_DEFERRED_GIDX_MAINT_JOB															  NAMED        TRUE  SCHEDULED	     2026-03-03 02:00:02
+2026-03-04 02:00:00
+
+SYS
+PURGE_LOG																	  NAMED        TRUE  SCHEDULED	     2026-03-03 03:00:00
+2026-03-04 03:00:00
+
+SYS
+RSE$CLEAN_RECOVERABLE_SCRIPT													 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 00:00:00
+2026-03-04 00:00:00
+
+SYS
+SM$CLEAN_AUTO_SPLIT_MERGE													 PLSQL_BLOCK	  CALENDAR     TRUE  SCHEDULED	     2026-03-03 00:00:00
+2026-03-04 00:00:00
+
+SYS
+XMLDB_NFS_CLEANUP_JOB														 STORED_PROCEDURE CALENDAR     FALSE DISABLED
+
+
+
+  Jobs referencing external resources (hostnames, file paths, credentials):
+
+==================================================================
+END OF SOURCE DISCOVERY REPORT
+Generated: Tue Mar  3 23:27:12 UTC 2026
+==================================================================

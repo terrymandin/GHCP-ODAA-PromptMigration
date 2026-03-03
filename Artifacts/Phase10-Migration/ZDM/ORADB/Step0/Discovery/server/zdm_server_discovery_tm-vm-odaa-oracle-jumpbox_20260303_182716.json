@@ -1,0 +1,25 @@
+{
+  "discovery_type": "zdm_server",
+  "project": "ORADB",
+  "generated_at": "2026-03-03T23:27:49Z",
+  "hostname": "tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net",
+  "current_user": "azureuser",
+  "ip_addresses": "10.1.0.8,",
+  "os_version": "Oracle Linux Server 9.5",
+  "zdm_home": "/u01/app/zdmhome",
+  "zdm_installed": "true",
+  "java_home": "/u01/app/zdmhome/jdk",
+  "oci_cli_version": "3.73.1",
+  "oci_connectivity": "FAILED",
+  "source_connectivity": "[0;32m[INFO][0m  Source DB port 22: OPEN
+[0;32m[INFO][0m  Source DB port 1521: OPEN
+OK",
+  "target_connectivity": "[1;33m[WARN][0m  Target DB (ODAA) ping FAILED to 10.0.1.160
+[0;32m[INFO][0m  Target DB (ODAA) port 22: OPEN
+[0;32m[INFO][0m  Target DB (ODAA) port 1521: OPEN
+PING_FAILED",
+  "zdm_log_dir": "/u01/app/zdmhome/log",
+  "source_host_tested": "10.1.0.11",
+  "target_host_tested": "10.0.1.160",
+  "report_file": "zdm_server_discovery_tm-vm-odaa-oracle-jumpbox_20260303_182716.txt"
+}
