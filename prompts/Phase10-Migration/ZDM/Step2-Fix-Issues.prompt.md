@@ -148,6 +148,114 @@ Create the following artifacts in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAM
 - `Issue-Resolution-Log-<DATABASE_NAME>.md` — tracking table and per-issue details (see template below)
 - `Scripts/` directory containing each remediation script **and** a `README-<scriptname>.md` alongside it
 
+---
+
+### Part 4: Generate Verification Script
+
+Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved and writes a structured Markdown results file to the repo.
+
+#### Required capabilities
+
+1. **Per-issue status tracking** — declare these variables in the Configuration section with safe defaults:
+   ```bash
+   # Per-issue status for Verification-Results output (values: PASS | FAIL | WARN)
+   ISSUE1_STATUS="FAIL"; ISSUE1_DETAIL="Not checked"
+   ISSUE2_STATUS="FAIL"; ISSUE2_DETAIL="Not checked"
+   ISSUE3_STATUS="FAIL"; ISSUE3_DETAIL="Not checked"
+   ISSUE4_STATUS="WARN"; ISSUE4_DETAIL="Not checked"
+   ISSUE5_STATUS="WARN"; ISSUE5_DETAIL="Not checked"
+   ```
+
+2. **Set status inline** — after the pass/fail/warn call inside each blocker and recommended check, assign the matching `ISSUE*_STATUS` and `ISSUE*_DETAIL` variable, e.g.:
+   ```bash
+   if [[ "${PDB_OPEN_MODE}" == "READ WRITE" ]]; then
+     pass "PDB1 is OPEN (READ WRITE) — Issue 1 resolved"
+     ISSUE1_STATUS="PASS"; ISSUE1_DETAIL="OPEN_MODE = READ WRITE"
+   else
+     fail "PDB1 open mode is '${PDB_OPEN_MODE}' — run fix_open_pdb1.sh"
+     ISSUE1_STATUS="FAIL"; ISSUE1_DETAIL="OPEN_MODE = '${PDB_OPEN_MODE}' — run fix_open_pdb1.sh"
+   fi
+   ```
+   Apply the same pattern to:
+   - Issue 2 (supplemental logging check) → `ISSUE2_STATUS` / `ISSUE2_DETAIL`
+   - Issue 3 (OCI config / connectivity check) → `ISSUE3_STATUS` / `ISSUE3_DETAIL`
+   - Issue 4 (source disk space check) → `ISSUE4_STATUS` / `ISSUE4_DETAIL`
+   - Issue 5 (ZDM disk space check) → `ISSUE5_STATUS` / `ISSUE5_DETAIL`
+
+3. **Write `Verification-Results-<DATABASE_NAME>.md`** — after the summary output block and the `verify_fixes.sh completed` echo, append a section that writes a Markdown results file to the Step2 directory (parent of `Verification/`) so it can be committed to the repo:
+
+   ```bash
+   # =============================================================================
+   # Write structured Markdown results file (commit to repo for Step 3)
+   # =============================================================================
+   DB_NAME_UPPER="${ORACLE_SID^^}"
+   RESULTS_FILE="$(dirname "${VERIFY_DIR}")/Verification-Results-${DB_NAME_UPPER}.md"
+
+   _icon() { case "$1" in PASS) echo "✅ PASS";; FAIL) echo "❌ FAIL";; WARN) echo "⚠️  WARN";; *) echo "❓ UNKNOWN";; esac; }
+   ISSUE1_ICON=$(_icon "${ISSUE1_STATUS}")
+   ISSUE2_ICON=$(_icon "${ISSUE2_STATUS}")
+   ISSUE3_ICON=$(_icon "${ISSUE3_STATUS}")
+   ISSUE4_ICON=$(_icon "${ISSUE4_STATUS}")
+   ISSUE5_ICON=$(_icon "${ISSUE5_STATUS}")
+
+   BLOCKERS_PASSED=0
+   [[ "${ISSUE1_STATUS}" == "PASS" ]] && BLOCKERS_PASSED=$((BLOCKERS_PASSED + 1))
+   [[ "${ISSUE2_STATUS}" == "PASS" ]] && BLOCKERS_PASSED=$((BLOCKERS_PASSED + 1))
+   [[ "${ISSUE3_STATUS}" == "PASS" ]] && BLOCKERS_PASSED=$((BLOCKERS_PASSED + 1))
+
+   if [[ "${FAIL_COUNT}" -eq 0 ]]; then
+     PROCEED_LINE="✅ YES — all 3 blockers resolved"
+     COMMIT_MSG_BODY="Step2 verification passed: all blockers resolved for ${DB_NAME_UPPER}"
+   else
+     PROCEED_LINE="❌ NO — ${FAIL_COUNT} blocker(s) still pending"
+     COMMIT_MSG_BODY="Step2 verification: ${BLOCKERS_PASSED}/3 blockers resolved for ${DB_NAME_UPPER}"
+   fi
+
+   cat > "${RESULTS_FILE}" << RESULTS_EOF
+   # Step 2 Verification Results: ${DB_NAME_UPPER}
+
+   **Verified:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+   **Verified By:** $(whoami) on $(hostname)
+   **Log:** \`$(basename "${LOG_FILE}")\` (in \`Step2/Verification/\`)
+
+   ---
+
+   ## Blocker Status (Must Be Resolved Before Step 3)
+
+   | # | Issue | Status | Detail |
+   |---|-------|--------|--------|
+   | 1 | PDB1 is OPEN (READ WRITE) on source | ${ISSUE1_ICON} | ${ISSUE1_DETAIL} |
+   | 2 | ALL COLUMNS supplemental logging on source | ${ISSUE2_ICON} | ${ISSUE2_DETAIL} |
+   | 3 | OCI config (~/.oci/config) for zdmuser on ZDM server | ${ISSUE3_ICON} | ${ISSUE3_DETAIL} |
+
+   ## Recommended Items
+
+   | # | Item | Status | Detail |
+   |---|------|--------|--------|
+   | 4 | Source root disk space | ${ISSUE4_ICON} | ${ISSUE4_DETAIL} |
+   | 5 | ZDM server root disk space | ${ISSUE5_ICON} | ${ISSUE5_DETAIL} |
+
+   ---
+
+   ## Summary
+
+   - **Blockers Resolved:** ${BLOCKERS_PASSED}/3
+   - **Proceed to Step 3:** ${PROCEED_LINE}
+   RESULTS_EOF
+
+   echo ""
+   echo "  📄 Verification results written to:"
+   echo "  ${RESULTS_FILE}"
+   echo ""
+   echo "  Commit to repo when ready to proceed to Step 3:"
+   echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step2/Verification-Results-${DB_NAME_UPPER}.md"
+   echo "    git commit -m \"${COMMIT_MSG_BODY}\""
+   ```
+
+4. **Place the results file section** after the `verify_fixes.sh completed` echo line and before the final `exit 1` guard — so the file is always written regardless of pass/fail, enabling partial progress to be committed.
+
+5. **`VERIFY_DIR` path** — point the log output subdirectory at `${HOME}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification` so the results file ends up one level up at `Step2/Verification-Results-<DATABASE_NAME>.md`, which maps to the repo path `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification-Results-<DATABASE_NAME>.md`.
+
 **Issue Resolution Log template:**
 
 ```markdown
@@ -298,6 +406,8 @@ Before proceeding to Step 3, ensure:
 - [ ] Each remediation script has a corresponding `README-<scriptname>.md` saved alongside it
 - [ ] Verification discovery has been re-run
 - [ ] No new blockers identified in verification
+- [ ] `verify_fixes.sh` has been run and all critical checks PASSED
+- [ ] `Verification-Results-<DATABASE_NAME>.md` committed to repo (see git commands printed by script)
 
 ---
 
@@ -307,10 +417,13 @@ Once all issues are resolved:
 
 1. ✅ Save Issue Resolution Log
 2. ✅ Ensure each remediation script has a `README-<scriptname>.md` saved alongside it
-3. ✅ Ensure verification discovery files are saved
-4. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
+3. ✅ Run `verify_fixes.sh` — confirm all checks PASS
+4. ✅ Commit `Verification-Results-<DATABASE_NAME>.md` to the repo (git commands printed by the script)
+5. ✅ Ensure verification discovery files are saved
+6. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
    - Completed questionnaire from Step 1
    - Issue Resolution Log from Step 2
+   - `Verification-Results-<DATABASE_NAME>.md` from Step 2
    - Latest discovery files
 
 ---
