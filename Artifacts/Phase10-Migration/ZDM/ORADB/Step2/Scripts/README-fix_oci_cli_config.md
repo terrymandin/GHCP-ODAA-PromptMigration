@@ -1,7 +1,17 @@
 # README: fix_oci_cli_config.sh
 
-## Purpose
-Creates the OCI CLI configuration file for `zdmuser` on the ZDM server and creates the OCI Object Storage bucket required for ZDM `ONLINE_PHYSICAL` migration. Resolves **Issue 1** and **Issue 6** from the Issue Resolution Log.
+> ## ⚠️ SUPERSEDED — 2026-03-04
+> This script is **no longer used** for this migration.
+> **Replaced by: [`fix_azure_blob_storage.sh`](fix_azure_blob_storage.sh)** — see [`README-fix_azure_blob_storage.md`](README-fix_azure_blob_storage.md)
+>
+> **Reason:** The OCI user (`temandin@microsoft.com`) is a federated IDCSApp user with API keys disabled.
+> No OCI IAM, Instance Principal, or service account access is available.
+> Azure Blob Storage is used instead.
+
+---
+
+## Original Purpose (Reference Only)
+Would have created the OCI CLI configuration file for `zdmuser` on the ZDM server and created the OCI Object Storage bucket required for ZDM `ONLINE_PHYSICAL` migration. Would have resolved **Issue 1** and **Issue 6** from the Issue Resolution Log.
 
 ## Target Server
 **ZDM server** — `tm-vm-odaa-oracle-jumpbox` (10.1.0.8)

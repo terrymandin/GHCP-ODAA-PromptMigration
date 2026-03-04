@@ -10,12 +10,12 @@
 
 | # | Issue | Category | Priority | Status | Date Resolved | Verified By |
 |---|-------|----------|----------|--------|---------------|-------------|
-| 1 | OCI CLI config missing on ZDM server | ❌ Blocker | HIGH | 🔲 Pending | | |
+| 1 | OCI CLI config missing on ZDM server | ❌ Blocker | HIGH | � In Progress — Azure Blob Storage path chosen; run `fix_azure_blob_storage.sh` | | |
 | 2 | Password file missing on ODAA target | ❌ Blocker | HIGH | 🔲 Pending | | |
 | 3 | Target database not open during discovery | ❌ Blocker | HIGH | 🔲 Pending | | |
 | 4 | TDE wallet has no master encryption key on target | ⚠️ Required | HIGH | 🔲 Pending | | |
 | 5 | SSH key mismatch — source key `iaas.pem` vs `odaa.pem` in zdm-env.md | ⚠️ Required | HIGH | 🔲 Pending | | |
-| 6 | OCI Object Storage bucket not configured | ⚠️ Required | HIGH | 🔲 Pending | | |
+| 6 | OCI Object Storage bucket not configured | ⚠️ Required | HIGH | 🔄 In Progress — resolved together with Issue 1 via `fix_azure_blob_storage.sh` | | |
 | 7 | Source root filesystem 81% full (5.6 GB free) | ⚡ Recommendation | MEDIUM | 🔲 Pending | | |
 | 8 | Target Oracle Home path unconfirmed (dbhome_1 vs dbhome_2) | ⚠️ Required | HIGH | 🔲 Pending | | |
 
@@ -26,39 +26,65 @@
 ### Issue 1: OCI CLI config missing on ZDM server
 
 **Category:** ❌ Blocker
-**Status:** 🔲 Pending
+**Status:** 🔲 Pending — **Resolution path changed (see below)**
 **Script:** `Scripts/fix_oci_cli_config.sh`
 
 **Problem:**
 The OCI CLI is installed on the ZDM server (version 3.73.1), but the config file does not exist at the required path for the `zdmuser` account: `/home/zdmuser/.oci/config`. Without a valid OCI config, ZDM cannot authenticate to OCI Object Storage for the backup/transfer phase of `ONLINE_PHYSICAL` migration. The config was found missing at `/home/azureuser/.oci/config` (wrong user context — must be under `zdmuser`).
 
-**What the script does:**
+> 🚫 **Escalation required (2026-03-04) — All self-service options exhausted:**
+> - The OCI user (`temandin@microsoft.com`) is a **federated IDCSApp user** with **API keys disabled** — original script cannot run.
+> - **Option A (Instance Principal):** Requires creating a Dynamic Group + IAM policy — **no IAM access**.
+> - **Option B (Local OCI service account):** Requires an OCI admin to create a non-federated user — **no OCI admin privileges**.
+>
+> **This issue is a migration blocker until one of the options below is resolved by someone with appropriate permissions.**
+
+**Available Resolution Options:**
+
+| Option | Description | Who Can Do It | Requires OCI IAM? |
+|--------|-------------|--------------|-------------------|
+| **A — Instance Principal** | ~~Dynamic Group + IAM policy on ZDM VM~~ | ~~OCI admin~~ | ~~Yes~~ — **ruled out** |
+| **B — Local OCI service account** | ~~Non-federated OCI user with API keys~~ | ~~OCI admin~~ | ~~Yes~~ — **ruled out** |
+| **C — Azure Blob Storage (recommended)** | Use an Azure Storage Account container as ZDM staging instead of OCI Object Storage. ZDM 21.5 supports this natively for ODAA migrations. | Azure admin or anyone with Azure storage account access | No |
+| **D — Escalate to OCI/Azure admin** | Engage an admin with OCI IAM or Azure permissions to action Option A, B, or C | Project manager / Oracle/Microsoft support contact | Depends on option |
+
+**Recommended path: Option C — Azure Blob Storage**
+
+Since the ZDM server and source database are both on Azure, an Azure Storage Account is the lowest-friction alternative. ZDM 21.5 natively supports Azure Blob Storage as a backup staging location for ODAA migrations.
+
+**Option C — Prerequisites:**
+1. Azure Storage Account in the same region as the ZDM server (or accessible over the network)
+2. A container (e.g., `zdm-oradb-migration`) in that storage account
+3. Storage Account access key or SAS token with `read`, `write`, `delete`, `list` on the container
+4. The ZDM server and ODAA target must be able to reach the Azure Blob Storage endpoint
+
+**Option C — ZDM response file parameters (replaces OCI Object Storage parameters):**
+```
+COMMON_BACKUP_TYPE=OSS
+# Change backup type when using Azure Blob:
+COMMON_BACKUP_AZURE_ACCOUNT_NAME=<storage_account_name>
+COMMON_BACKUP_AZURE_ACCOUNT_KEY=<storage_account_key_or_sas>
+COMMON_BACKUP_AZURE_CONTAINER_NAME=zdm-oradb-migration
+COMMON_BACKUP_AZURE_ENDPOINT=https://<storage_account_name>.blob.core.windows.net
+```
+> Confirm exact parameter names against ZDM 21.5 documentation — use `zdmcli migrate database --help` for the full parameter list.
+
+**Option C — `zdm-env.md` additions required:**
+```
+AZURE_STORAGE_ACCOUNT_NAME: <TBD>
+AZURE_STORAGE_CONTAINER_NAME: zdm-oradb-migration
+AZURE_BLOB_ENDPOINT: https://<account>.blob.core.windows.net
+```
+
+**What the original script does (preserved for reference — not runnable with current permissions):**
 - Creates `/home/zdmuser/.oci/` directory with correct permissions
 - Writes `/home/zdmuser/.oci/config` with `[DEFAULT]` profile using OCIDs from `zdm-env.md`
 - Sets file permissions to `600`
 - Verifies OCI connectivity by running `oci os ns get`
-
-**Prerequisites before running:**
-- The OCI API private key (`oci_api_key.pem`) must already be uploaded to `/home/zdmuser/.oci/oci_api_key.pem` on the ZDM server
-- The `oci` CLI binary must be on the `zdmuser` PATH
-
-**Remediation:**
-```bash
-# Run as zdmuser on ZDM server
-sudo su - zdmuser
-cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
-bash fix_oci_cli_config.sh
-```
-
-**Verification:**
-```bash
-# Run as zdmuser on ZDM server
-oci os ns get --config-file /home/zdmuser/.oci/config
-# Expected: JSON output with "data": "<namespace>"
-```
+- Creates Object Storage bucket `zdm-oradb-migration`
 
 **Resolution Notes:**
-_Update when resolved — date, by whom, OCI namespace returned._
+_Blocked. Action required: (1) confirm who in the project has Azure storage account access or OCI admin access, (2) select Option C or D, (3) create storage container and obtain credentials, (4) update `zdm-env.md`, (5) record date resolved and by whom._
 
 ---
 
@@ -221,32 +247,37 @@ _Update zdm-env.md once confirmed — which key is the correct source key._
 ### Issue 6: OCI Object Storage bucket not configured
 
 **Category:** ⚠️ Required
-**Status:** 🔲 Pending
-**Script:** `Scripts/fix_oci_cli_config.sh` (includes bucket creation)
+**Status:** � Blocked — dependent on Issue 1 resolution
+**Script:** `Scripts/fix_oci_cli_config.sh` (original — OCI path only)
 
 **Problem:**
-`zdm-env.md` has `OCI_OSS_NAMESPACE` and `OCI_OSS_BUCKET_NAME` both blank. ZDM `ONLINE_PHYSICAL` migration using OCI Object Storage requires a valid bucket in the target OCI region. Without this, the ZDM response file cannot be fully populated for Step 3.
+`zdm-env.md` has `OCI_OSS_NAMESPACE` and `OCI_OSS_BUCKET_NAME` both blank. ZDM `ONLINE_PHYSICAL` migration requires a backup staging location. Without it, the ZDM response file cannot be fully populated for Step 3.
 
-**Recommended Action:**
-After OCI CLI is configured (Issue 1), run:
+> ⚠️ **This issue is now linked to Issue 1.** OCI Object Storage cannot be configured due to missing OCI IAM access. If **Issue 1 is resolved via Option C (Azure Blob Storage)**, this issue is also resolved — an Azure Blob container replaces the OCI bucket. If Issue 1 is resolved via Option A or B, then the OCI bucket approach below applies.
+
+**If Issue 1 resolved via OCI (Option A or B):**
 ```bash
 # Get namespace
 oci os ns get --config-file /home/zdmuser/.oci/config
 
-# Create bucket (replace <NAMESPACE> and confirm region)
+# Create bucket
 oci os bucket create \
   --config-file /home/zdmuser/.oci/config \
   --compartment-id ocid1.compartment.oc1..aaaaaaaas4upnqj72dfiivgwvn3uui5gkxo7ng6leeoifucbjiy326urbhmq \
   --name zdm-oradb-migration \
   --region uk-london-1
 
-# Update zdm-env.md with:
+# Update zdm-env.md:
 # OCI_OSS_NAMESPACE: <value from ns get>
 # OCI_OSS_BUCKET_NAME: zdm-oradb-migration
 ```
 
+**If Issue 1 resolved via Azure Blob (Option C):**
+- Azure Storage container `zdm-oradb-migration` serves as the staging bucket — no OCI bucket needed
+- Update `zdm-env.md` with `AZURE_STORAGE_ACCOUNT_NAME`, `AZURE_STORAGE_CONTAINER_NAME`, `AZURE_BLOB_ENDPOINT`
+
 **Resolution Notes:**
-_Update zdm-env.md with namespace and bucket name once created._
+_Resolve Issue 1 first. Then update this issue with staging location type, container/bucket name, and date resolved._
 
 ---
 

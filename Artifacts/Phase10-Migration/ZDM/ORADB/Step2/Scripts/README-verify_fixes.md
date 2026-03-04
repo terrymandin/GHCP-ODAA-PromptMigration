@@ -9,7 +9,7 @@ Run as **`zdmuser`**.
 
 ## Prerequisites
 The following issues should be fixed before running this script:
-1. **fix_oci_cli_config.sh** complete (Issue 1 + Issue 6)
+1. **fix_azure_blob_storage.sh** complete (Issues 1 + 6)
 2. **fix_target_password_file.sh** complete (Issue 2)
 3. **fix_open_target_db.sh** complete (Issue 3)
 4. SSH key `~/.ssh/iaas.pem` in place for source connectivity
@@ -28,7 +28,7 @@ All values are hardcoded from `zdm-env.md`:
 | `TARGET_SSH_KEY` | SSH key for target | `~/.ssh/odaa.pem` |
 | `ORACLE_USER` | Oracle OS user | `oracle` |
 | `TARGET_DB_UNIQUE_NAME` | Target DB unique name | `oradb01` |
-| `OCI_CONFIG_FILE` | OCI config path | `~/.oci/config` |
+| `AZURE_CREDS_FILE` | Azure Blob credentials file path | `~/.azure/zdm_blob_creds` |
 | `SOURCE_FREE_GB_THRESHOLD` | Minimum expected free GB on source | `10` |
 | `ZDM_FREE_GB_THRESHOLD` | Minimum expected free GB on ZDM | `10` |
 
@@ -43,10 +43,12 @@ The script performs the following checks in sequence:
 - Check if `orapworadb01` exists in `${ORACLE_HOME}/dbs/`
 - PASS = file found; FAIL = missing (run `fix_target_password_file.sh`)
 
-**BLOCKER 2 — OCI CLI config:**
-- Check `~/.oci/config` exists on ZDM server as `zdmuser`
-- Run `oci os ns get` to test connectivity
-- PASS = config valid and namespace returned; FAIL = config missing or connectivity fails
+**BLOCKER 2 — Azure Blob Storage credentials:**
+- Check `~/.azure/zdm_blob_creds` exists on ZDM server as `zdmuser`
+- Sources the file to load account name, container, auth type, and auth value
+- If `az` CLI is present: runs `az storage container show` with the stored credentials
+- If `az` CLI absent and auth type is `sas`: falls back to `curl` against the Blob endpoint
+- PASS = container accessible; FAIL = credentials missing or connectivity test fails
 
 **BLOCKER 3 — Source SSH key:**
 - SSH to `azureuser@10.1.0.11` using `~/.ssh/iaas.pem`
@@ -94,9 +96,9 @@ SUMMARY
   Total WARN:           0
   Total FAIL:           0
 
-  BLOCKER 1 — Target password file:    PASS
-  BLOCKER 2 — OCI CLI config:          PASS
-  BLOCKER 3 — Source SSH key:          PASS
+  BLOCKER 1 — Target password file:          PASS
+  BLOCKER 2 — Azure Blob Storage creds:      PASS
+  BLOCKER 3 — Source SSH key:                PASS
   RECOMMEND 4 — Source disk space:     WARN
   RECOMMEND 5 — ZDM disk space:        PASS
 

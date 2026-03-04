@@ -148,9 +148,10 @@
 
 | | |
 |---|---|
-| **Status** | ✅ Configured in `zdm-env.md` |
+| **Status** | 🚫 **Blocked — not applicable until Issue 1 is resolved** |
+| **Note** | The OCI user (`temandin@microsoft.com`) is a federated IDCSApp user with API keys disabled. If Issue 1 is resolved via **OCI Option A or B**, confirm the fingerprint below. If resolved via **Azure Blob Storage (Option C)**, this field is not needed. |
 | **Current Value** | `7f:05:c1:f2:5c:3a:46:ec:9f:95:44:c8:77:a4:50:f9` |
-| **Confirm Value** | ☐ Confirmed &nbsp;&nbsp; ☐ Update to: _______________ |
+| **Confirm Value** | ☐ Confirmed (OCI path) &nbsp;&nbsp; ☐ N/A (Azure Blob path) &nbsp;&nbsp; ☐ Update to: _______________ |
 
 ---
 
@@ -158,23 +159,25 @@
 
 | | |
 |---|---|
-| **Status** | ⚠️ Needs verification — OCI config not yet created on ZDM server |
-| **Recommended Default** | `/home/zdmuser/.oci/oci_api_key.pem` |
-| **Justification** | ZDM operations run as `zdmuser`. The private key must be accessible to zdmuser. `zdm-env.md` references `~/.oci/oci_api_key.pem`; confirm the key has been placed in zdmuser's home. |
-| **Answer** | _______________ |
+| **Status** | 🚫 **Blocked — not applicable until Issue 1 is resolved** |
+| **Note** | OCI API key cannot be generated for the current user. Required only if Issue 1 is resolved via OCI Option A or B. Not needed for Azure Blob Storage (Option C). |
+| **Recommended Default** | `/home/zdmuser/.oci/oci_api_key.pem` (OCI path only) |
+| **Answer** | ☐ N/A (Azure Blob path) &nbsp;&nbsp; ☐ Confirmed at `/home/zdmuser/.oci/oci_api_key.pem` (OCI path) |
 
 ---
 
 ## Section C: Object Storage Configuration
 
+> ⚠️ **NOTE (2026-03-04):** OCI Object Storage cannot be configured — no OCI IAM, Instance Principal, or service account access available. **Two paths are now possible:** resolve Issue 1 via OCI (answer the OCI questions below) OR via **Azure Blob Storage** (answer the Azure questions below). Confirm path before completing Step 3.
+
 ### C1 — OCI Object Storage Namespace
 
 | | |
 |---|---|
-| **Status** | ⚠️ NOT configured in `zdm-env.md` (blank) |
-| **How to Find** | Run: `oci os ns get --config-file /home/zdmuser/.oci/config` on ZDM server (after OCI CLI configured) |
-| **Answer** | _______________ |
-| **ZDM RSP Parameter** | `COMMON_BACKUP_OSS_NAMESPACE` |
+| **Status** | 🚫 Blocked — OCI Object Storage path not yet available (see Issue 1) |
+| **How to Find** | `oci os ns get --config-file /home/zdmuser/.oci/config` (once OCI CLI configured) OR `oci os ns get --auth instance_principal` (if Instance Principal granted) |
+| **Answer** | ☐ N/A (Azure Blob path chosen) &nbsp;&nbsp; ☐ OCI path: _______________ |
+| **ZDM RSP Parameter** | `COMMON_BACKUP_OSS_NAMESPACE` (OCI path only) |
 
 ---
 
@@ -182,11 +185,24 @@
 
 | | |
 |---|---|
-| **Status** | ⚠️ NOT configured in `zdm-env.md` (blank) |
-| **Recommended Default** | `zdm-oradb-migration` (create new dedicated bucket) |
-| **Justification** | A dedicated bucket simplifies cleanup and access management. Bucket should be in the same tenancy and region as the ODAA target. |
-| **Answer** | _______________ |
-| **ZDM RSP Parameter** | `COMMON_BACKUP_OSS_BUCKET` |
+| **Status** | 🚫 Blocked — dependent on OCI path resolution |
+| **Recommended Default** | `zdm-oradb-migration` |
+| **Answer** | ☐ N/A (Azure Blob path chosen) &nbsp;&nbsp; ☐ OCI path: _______________ |
+| **ZDM RSP Parameter** | `COMMON_BACKUP_OSS_BUCKET` (OCI path only) |
+
+---
+
+### C2-ALT — Azure Blob Storage (if OCI Object Storage not used)
+
+> Complete this section if Issue 1 is resolved via **Option C (Azure Blob Storage)**.
+
+| Item | Answer | ZDM RSP Parameter |
+|------|--------|-------------------|
+| Azure Storage Account Name | _______________ | `COMMON_BACKUP_AZURE_ACCOUNT_NAME` |
+| Azure Blob Container Name | `zdm-oradb-migration` (recommended) | `COMMON_BACKUP_AZURE_CONTAINER_NAME` |
+| Azure Blob Endpoint | `https://<account>.blob.core.windows.net` | `COMMON_BACKUP_AZURE_ENDPOINT` |
+| Access Key or SAS Token | ☐ Access key &nbsp;&nbsp; ☐ SAS token | `COMMON_BACKUP_AZURE_ACCOUNT_KEY` |
+| Region (confirm matches ZDM server) | _______________ | N/A |
 
 ---
 
@@ -311,7 +327,7 @@
 | SYS password (target oradb01) | ☐ Available | Required by ZDM; target password file must also exist (see Action #2 in Discovery Summary) |
 | TDE wallet password (source) | ☐ Available / ☐ N/A | Required only if TDE is configured; if new TDE setup, set this password before migration |
 | TDE wallet password (target) | ☐ Available / ☐ N/A | Target ODAA wallet has no master key — set after TDE strategy is confirmed |
-| OCI API private key | ☐ Available at `/home/zdmuser/.oci/oci_api_key.pem` | Must match registered API fingerprint `7f:05:c1:...` |
+| OCI API private key | ☐ N/A (Azure Blob path) / ☐ Available at `/home/zdmuser/.oci/oci_api_key.pem` | Required only for OCI Object Storage path; blocked for current user (federated IDCSApp, API keys disabled) |
 
 ---
 
@@ -323,9 +339,9 @@
 | 2 | Target DB unique name confirmed | ☐ |
 | 3 | Target password file created | ☐ |
 | 4 | TDE strategy decided and actioned | ☐ |
-| 5 | OCI CLI configured on ZDM server (`/home/zdmuser/.oci/config`) | ☐ |
-| 6 | OCI API private key installed for zdmuser | ☐ |
-| 7 | OCI Object Storage bucket created | ☐ |
+| 5 | OCI CLI configured on ZDM server (`/home/zdmuser/.oci/config`) | ❌ N/A — Azure Blob Storage used instead; run `fix_azure_blob_storage.sh` |
+| 6 | OCI API private key installed for zdmuser | ❌ N/A — not required; Azure Blob Storage used |
+| 7 | OCI Object Storage bucket created OR Azure Blob container created | 🔲 Pending — run `fix_azure_blob_storage.sh` to create Azure Blob container |
 | 8 | Source SSH key confirmed (`iaas.pem` vs `odaa.pem`) | ☐ |
 | 9 | Migration method confirmed (ONLINE_PHYSICAL) | ☐ |
 | 10 | Maintenance window scheduled | ☐ |

@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
 # fix_oci_cli_config.sh
-# Purpose : Create the OCI CLI config file for zdmuser on the ZDM server
-#           and optionally create the OCI Object Storage bucket required for
-#           ZDM ONLINE_PHYSICAL migration.
+# SUPERSEDED — 2026-03-04
+# -----------------------------------------------------------------------
+# This script is NO LONGER USED for this migration.
+# Reason  : OCI user (temandin@microsoft.com) is a federated IDCSApp user
+#           with API keys disabled. No OCI IAM / Instance Principal access.
+# Replaced by: fix_azure_blob_storage.sh
+#              (Uses Azure Blob Storage as ZDM staging — Issues 1 + 6)
+# -----------------------------------------------------------------------
+# Original purpose (preserved for reference only):
+#   Create the OCI CLI config file for zdmuser on the ZDM server and
+#   create the OCI Object Storage bucket required for ZDM ONLINE_PHYSICAL.
 # Run as  : zdmuser on the ZDM server (tm-vm-odaa-oracle-jumpbox / 10.1.0.8)
 # Step    : ZDM Migration Step 2 — Fix Issues
 # Issue   : Issue 1 (OCI CLI config) + Issue 6 (Object Storage bucket)
 # =============================================================================
+echo "ERROR: This script is superseded. Run fix_azure_blob_storage.sh instead."
+echo "       OCI Object Storage is not available for this migration (no API key access)."
+exit 1
+# --- Original script content preserved below for reference (not executed) ---
 
 set -euo pipefail
 
