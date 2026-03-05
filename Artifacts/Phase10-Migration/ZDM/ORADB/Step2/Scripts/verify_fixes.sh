@@ -43,6 +43,11 @@ AZURE_CREDS_FILE="${HOME}/.azure/zdm_blob_creds"
 SOURCE_FREE_GB_THRESHOLD=10
 ZDM_FREE_GB_THRESHOLD=10
 
+# Resolve repo root from the script's own location so Verification-Results
+# is written into the repo clone (wherever it was checked out).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT=$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")
+
 VERIFY_DIR="${HOME}/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification"
 mkdir -p "${VERIFY_DIR}"
 LOG_FILE="${VERIFY_DIR}/verify_fixes_$(date +%Y%m%d_%H%M%S).log"
@@ -309,6 +314,15 @@ else
   ISSUE5_DETAIL="Could not determine ZDM disk space — check manually"
 fi
 
+# Determine where to write the results file — prefer the repo clone so the
+# user can git-add/commit/push without any extra copy steps.
+if [[ -n "${REPO_ROOT}" ]]; then
+  RESULTS_BASE="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/ORADB/Step2"
+else
+  RESULTS_BASE="$(dirname "${VERIFY_DIR}")"
+fi
+mkdir -p "${RESULTS_BASE}"
+
 # =============================================================================
 # FINAL SUMMARY
 # =============================================================================
@@ -339,7 +353,7 @@ log "verify_fixes.sh completed. Log: ${LOG_FILE}"
 # Write structured Markdown results file (commit to repo for Step 3)
 # =============================================================================
 DB_NAME_UPPER="${ORACLE_SID^^}"
-RESULTS_FILE="$(dirname "${VERIFY_DIR}")/Verification-Results-${DB_NAME_UPPER}.md"
+RESULTS_FILE="${RESULTS_BASE}/Verification-Results-${DB_NAME_UPPER}.md"
 
 _icon() {
   case "$1" in
@@ -411,9 +425,11 @@ echo ""
 echo "  📄 Verification results written to:"
 echo "  ${RESULTS_FILE}"
 echo ""
-echo "  Commit to repo when ready to proceed to Step 3:"
+echo "  Commit and push to repo before running Step 3:"
+echo "    cd \"${REPO_ROOT:-<repo-root>}\""
 echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step2/Verification-Results-${DB_NAME_UPPER}.md"
 echo "    git commit -m \"${COMMIT_MSG_BODY}\""
+echo "    git push"
 
 # Exit non-zero if any blockers failed
 if [[ "${FAIL_COUNT}" -gt 0 ]]; then

@@ -64,7 +64,7 @@ The script performs the following checks in sequence:
 - Run `df -BG /` locally on ZDM server
 - WARN if below 10 GB threshold
 
-**Results file:** Writes `Verification-Results-ORADB.md` to `Step2/` with per-issue status table.
+**Results file:** Writes `Verification-Results-ORADB.md` directly into the repo clone at `Artifacts/Phase10-Migration/ZDM/ORADB/Step2/` (the script detects the repo root from its own location using `git rev-parse --show-toplevel`). Falls back to `~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/` if not running inside a git clone.
 
 ## How to Run
 ```bash
@@ -72,15 +72,15 @@ The script performs the following checks in sequence:
 ssh -i ~/.ssh/zdm.pem azureuser@10.1.0.8
 sudo su - zdmuser
 
-# 2. Run the script
-cd ~/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
+# 2. Run the script from within the repo clone
+cd ~/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Scripts
 bash verify_fixes.sh
 
 # 3. Review output — all 3 blockers must show ✅ PASS
 
-# 4. Commit results file (git command printed at end of script)
-cd ~/Artifacts
-git add Phase10-Migration/ZDM/ORADB/Step2/Verification-Results-ORADB.md
+# 4. The script writes Verification-Results-ORADB.md into the repo clone and
+#    prints the git commands to run. Execute them to commit and push:
+git add Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification-Results-ORADB.md
 git commit -m "Step2 verification passed: all blockers resolved for ORADB"
 git push
 ```
@@ -104,11 +104,13 @@ SUMMARY
 
 verify_fixes.sh completed.
 
-  📄 Verification results written to: .../Step2/Verification-Results-ORADB.md
+  📄 Verification results written to: .../Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification-Results-ORADB.md
 
-  Commit to repo when ready to proceed to Step 3:
+  Commit and push to repo before running Step 3:
+    cd "/home/zdmuser/GHCP-ODAA-PromptMigration"
     git add Artifacts/Phase10-Migration/ZDM/ORADB/Step2/Verification-Results-ORADB.md
     git commit -m "Step2 verification passed: all blockers resolved for ORADB"
+    git push
 
   ✅ All blockers resolved. Proceed to Step 3.
 ```

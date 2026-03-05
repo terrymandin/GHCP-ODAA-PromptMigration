@@ -252,9 +252,36 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    echo "    git commit -m \"${COMMIT_MSG_BODY}\""
    ```
 
-4. **Place the results file section** after the `verify_fixes.sh completed` echo line and before the final `exit 1` guard — so the file is always written regardless of pass/fail, enabling partial progress to be committed.
+4. **Write the results file into the repo clone** — use `BASH_SOURCE[0]` to locate the script, then `git rev-parse --show-toplevel` from that directory to find the repo root. Write `Verification-Results-<DATABASE_NAME>.md` there so the user can commit it without any extra copy step. Fall back to the local `~/Artifacts/...` path only if not running inside a git repo:
 
-5. **`VERIFY_DIR` path** — point the log output subdirectory at `${HOME}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification` so the results file ends up one level up at `Step2/Verification-Results-<DATABASE_NAME>.md`, which maps to the repo path `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification-Results-<DATABASE_NAME>.md`.
+   ```bash
+   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+   REPO_ROOT=$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")
+
+   if [[ -n "${REPO_ROOT}" ]]; then
+     RESULTS_BASE="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2"
+   else
+     RESULTS_BASE="$(dirname "${VERIFY_DIR}")"
+   fi
+   mkdir -p "${RESULTS_BASE}"
+   RESULTS_FILE="${RESULTS_BASE}/Verification-Results-${DB_NAME_UPPER}.md"
+   ```
+
+5. **Place the results file write + git instructions** after the `verify_fixes.sh completed` echo line and before the final `exit 1` guard — so the file is always written regardless of pass/fail, enabling partial progress to be committed. After writing the file, echo the manual git commands for the user to run — do **not** run git commands automatically:
+
+   ```bash
+   echo ""
+   echo "  📄 Verification results written to:"
+   echo "  ${RESULTS_FILE}"
+   echo ""
+   echo "  Commit and push to repo before running Step 3:"
+   echo "    cd \"${REPO_ROOT:-<repo-root>}\""
+   echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step2/Verification-Results-${DB_NAME_UPPER}.md"
+   echo "    git commit -m \"${COMMIT_MSG_BODY}\""
+   echo "    git push"
+   ```
+
+6. **`VERIFY_DIR` path** — point the log output subdirectory at `${HOME}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification`. Logs stay local; only the results file goes into the repo clone.
 
 **Issue Resolution Log template:**
 
@@ -407,7 +434,7 @@ Before proceeding to Step 3, ensure:
 - [ ] Verification discovery has been re-run
 - [ ] No new blockers identified in verification
 - [ ] `verify_fixes.sh` has been run and all critical checks PASSED
-- [ ] `Verification-Results-<DATABASE_NAME>.md` committed to repo (see git commands printed by script)
+- [ ] `Verification-Results-<DATABASE_NAME>.md` committed and pushed to repo (run the git commands printed by the script)
 
 ---
 
@@ -418,7 +445,7 @@ Once all issues are resolved:
 1. ✅ Save Issue Resolution Log
 2. ✅ Ensure each remediation script has a `README-<scriptname>.md` saved alongside it
 3. ✅ Run `verify_fixes.sh` — confirm all checks PASS
-4. ✅ Commit `Verification-Results-<DATABASE_NAME>.md` to the repo (git commands printed by the script)
+4. ✅ Run the git commands printed by the script to commit and push `Verification-Results-<DATABASE_NAME>.md`
 5. ✅ Ensure verification discovery files are saved
 6. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
    - Completed questionnaire from Step 1
