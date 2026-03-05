@@ -1,0 +1,181 @@
+# =============================================================================
+# ZDM Response File
+# Database:         ORADB
+# Migration Type:   ONLINE_PHYSICAL (Data Guard replication)
+# Source:           ORADB1 · Oracle 12.2.0.1 CDB · tm-oracle-iaas (10.1.0.11)
+# Target:           oradb01 / oradb011 · Oracle 19c ExaDB-D · tmodaauks-rqahk1 (10.0.1.160)
+# Generated:        2026-03-05
+# =============================================================================
+#
+# HOW TO USE THIS FILE
+# ====================
+# This file uses ${VARIABLE} placeholders for secrets and OCIDs.
+# Do NOT hard-code passwords or access keys.
+#
+# Before running ZDM:
+#   1. Set environment variables on the ZDM server (as zdmuser):
+#        source ~/zdm_oci_env.sh         # OCI OCIDs
+#        source ~/.azure/zdm_blob_creds  # Azure Blob credentials
+#   2. Create password files:
+#        bash zdm_commands_ORADB.sh create-creds
+#   3. The zdm_commands_ORADB.sh script handles envsubst substitution automatically.
+#
+# Alternatively, substitute variables manually with envsubst:
+#   envsubst < zdm_migrate_ORADB.rsp > zdm_migrate_ORADB_resolved.rsp
+#
+# Then reference the resolved file with -rspfile in the zdmcli command.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# MIGRATION METHOD
+# -----------------------------------------------------------------------------
+MIGRATION_METHOD=ONLINE_PHYSICAL
+
+# -----------------------------------------------------------------------------
+# SOURCE DATABASE CONFIGURATION
+# Source: ORADB1 · Oracle 12.2.0.1 CDB · tm-oracle-iaas (10.1.0.11)
+# Oracle Home: /u01/app/oracle/product/12.2.0/dbhome_1
+# DB Unique Name: oradb1  |  DB Name: ORADB1
+# Character Set: AL32UTF8  |  Is CDB: YES  |  Size: 2.15 GB
+# ARCHIVELOG: YES  |  FORCE LOGGING: YES  |  Supp Logging Min: YES
+# TDE: NOT ENABLED (source)
+# -----------------------------------------------------------------------------
+SOURCEDATABASE_CONNECTIONDETAILS_HOST=10.1.0.11
+SOURCEDATABASE_CONNECTIONDETAILS_PORT=1521
+SOURCEDATABASE_CONNECTIONDETAILS_SERVICENAME=ORADB1
+
+# Source SYS admin password file — created at runtime from SOURCE_SYS_PASSWORD env var
+# Run: bash zdm_commands_ORADB.sh create-creds
+SOURCEDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/source_sys_password.txt
+
+# -----------------------------------------------------------------------------
+# TARGET DATABASE CONFIGURATION
+# Target: oradb01 / oradb011 · Oracle 19c ExaDB-D · tmodaauks-rqahk1 (10.0.1.160)
+# Oracle Home: /u02/app/oracle/product/19.0.0.0/dbhome_1 (confirmed via verify_fixes.sh)
+# DB Unique Name: oradb01  |  TDE Wallet: OPEN_NO_MASTER_KEY (see TDE section below)
+# -----------------------------------------------------------------------------
+TARGETDATABASE_OCID=ocid1.database.oc1.uk-london-1.anwgiljss56liuaatz45cjnpbvpgku7gkorvxg6lytoj5lxxruk2eqxzkzma
+TARGETDATABASE_CONNECTIONDETAILS_HOST=10.0.1.160
+TARGETDATABASE_CONNECTIONDETAILS_PORT=1521
+TARGETDATABASE_CONNECTIONDETAILS_SERVICENAME=oradb01
+
+# Target SYS admin password file — created at runtime from TARGET_SYS_PASSWORD env var
+TARGETDATABASE_ADMINPASSWORDFILE=/home/zdmuser/creds/target_sys_password.txt
+
+# Target DB unique name — used for Data Guard configuration
+TGT_DB_UNIQUE_NAME=oradb01
+
+# Target Oracle Home (confirmed dbhome_1 via verify_fixes.sh — Issue 8 resolved)
+# Note: This parameter is passed on the zdmcli command line as -targethome
+# Included here for reference: /u02/app/oracle/product/19.0.0.0/dbhome_1
+
+# -----------------------------------------------------------------------------
+# OCI AUTHENTICATION
+# ⚠️  WARNING: The current OCI user (temandin@microsoft.com) is a FEDERATED IDCSApp
+#     user. API keys are currently DISABLED for this user.
+#
+#     ZDM requires OCI API authentication for ExaDB-D target database operations
+#     (e.g., querying database lifecycle state via OCI control plane).
+#
+#     RESOLUTION REQUIRED before execution:
+#       Option A — OCI admin creates a non-federated OCI service account with API keys
+#       Option B — OCI admin enables Instance Principal for the ZDM server VM
+#
+#     The OCIDs below are correct; only the API key/fingerprint is blocked.
+#     Contact OCI admin if ZDM eval reports OCI authentication errors.
+#
+#     API Key Fingerprint (from zdm-env.md — value captured but key auth is blocked):
+#       7f:05:c1:f2:5c:3a:46:ec:9f:95:44:c8:77:a4:50:f9
+# -----------------------------------------------------------------------------
+OCIAUTHENTICATION_TYPE=API_KEY
+OCIAUTHENTICATION_USERPRINCIPAL_TENANTID=ocid1.tenancy.oc1..aaaaaaaarvyhjcn7wkkxxx5g3o7lgqks23bmsjtsticz3gtg5xs5qyrwkftq
+OCIAUTHENTICATION_USERPRINCIPAL_USERID=ocid1.user.oc1..aaaaaaaakfe5cirdq7vkkrhogjrgcrgftvwb7mdoehujgchefpqv54vhsnoa
+OCIAUTHENTICATION_USERPRINCIPAL_FINGERPRINT=7f:05:c1:f2:5c:3a:46:ec:9f:95:44:c8:77:a4:50:f9
+OCIAUTHENTICATION_USERPRINCIPAL_PRIVATEKEYFILE=/home/zdmuser/.oci/oci_api_key.pem
+
+# OCI Compartment
+OCI_COMPARTMENT_OCID=ocid1.compartment.oc1..aaaaaaaas4upnqj72dfiivgwvn3uui5gkxo7ng6leeoifucbjiy326urbhmq
+
+# OCI Region (inferred from TARGET_DATABASE_OCID)
+COMMON_BACKUP_OSS_REGION=uk-london-1
+
+# -----------------------------------------------------------------------------
+# BACKUP STAGING — AZURE BLOB STORAGE
+# Replaces OCI Object Storage. Confirmed working via verify_fixes.sh (Blocker 2 ✅ PASS).
+# Storage Account: tmmigrate  |  Container: zdm  |  Auth: via ~/.azure/zdm_blob_creds
+#
+# ⚠️  SECURITY: AZURE_STORAGE_ACCESS_KEY must be set as an environment variable.
+#     DO NOT hard-code the access key in this file.
+#     Source it before running: source ~/.azure/zdm_blob_creds
+#
+# Note: Confirm exact ZDM 21.5 parameter names with:
+#   /u01/app/zdmhome/bin/zdmcli migrate database --help | grep -i azure
+# The parameters below reflect the expected ZDM 21.5 Azure Blob naming convention.
+# -----------------------------------------------------------------------------
+COMMON_BACKUP_TYPE=OSS
+COMMON_BACKUP_AZURE_ACCOUNT_NAME=tmmigrate
+COMMON_BACKUP_AZURE_ACCOUNT_KEY=${AZURE_STORAGE_ACCESS_KEY}
+COMMON_BACKUP_AZURE_CONTAINER_NAME=zdm
+COMMON_BACKUP_AZURE_ENDPOINT=https://tmmigrate.blob.core.windows.net
+
+# -----------------------------------------------------------------------------
+# DATA GUARD CONFIGURATION (ONLINE_PHYSICAL)
+# Protection Mode: MAXIMUM_PERFORMANCE (async redo transport)
+# Pause: After ZDM_CONFIGURE_DG_SRC — DBA must validate DG before replication continues
+# Auto Switchover: Disabled — manual switchover required at DBA discretion
+# -----------------------------------------------------------------------------
+ONLINE_STANDBY_DG_PROTECTION_MODE=MAXIMUM_PERFORMANCE
+ONLINE_STANDBY_REDO_TRANSPORT=ASYNC
+
+# Pause after Data Guard configuration — manual validation required before proceeding
+PAUSEAFTER=ZDM_CONFIGURE_DG_SRC
+
+# Disable auto switchover — switchover requires manual DBA confirmation
+# Note: Without AUTO_SWITCHOVER parameter, ZDM waits for manual resume at switchover phase
+
+# -----------------------------------------------------------------------------
+# TDE CONFIGURATION
+# ⚠️  TDE STRATEGY PENDING — DBA DECISION REQUIRED (Issue 4 from Step2)
+#
+# Current state:
+#   Source: TDE NOT ENABLED (tde_wallet_status = NOT_AVAILABLE)
+#   Target: TDE WALLET OPEN_NO_MASTER_KEY (wallet open, no master key set)
+#
+# ODAA/ExaDB-D typically requires TDE. Confirm with Oracle ODAA support.
+#
+# To enable TDE (if required):
+#   1. Enable TDE on source ORADB1 (see Runbook Phase 2.4 for SQL commands)
+#   2. Set TDE_ENABLED=true in zdm_commands_ORADB.sh
+#   3. Set SOURCE_TDE_WALLET_PASSWORD environment variable
+#   4. Uncomment SOURCEDATABASE_TDEKEYSTOREPASSWORDFILE below
+#   5. Run bash zdm_commands_ORADB.sh create-creds (creates ~/creds/tde_password.txt)
+#
+# Uncomment the lines below ONLY after TDE strategy is confirmed and TDE is enabled on source:
+# SOURCEDATABASE_TDEKEYSTOREPASSWORDFILE=/home/zdmuser/creds/tde_password.txt
+#
+# If TDE is NOT required on this ODAA instance (confirmed by Oracle support):
+# Add: TGT_SKIP_DATAPATCH=TRUE  (only if Oracle support confirms this is safe)
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# RMAN / BACKUP SETTINGS
+# ZDM will use RMAN on source for full backup + incremental merge approach
+# Parallelism and channels can be tuned if needed
+# Default values used unless ZDM eval reports performance issues
+# -----------------------------------------------------------------------------
+# Uncomment to override RMAN parallelism:
+# RMAN_PARALLELISM_ONLINE_FULL=4
+# RMAN_PARALLELISM_ONLINE_INCREMENTAL=2
+
+# -----------------------------------------------------------------------------
+# MISCELLANEOUS
+# DB links (count: 1) — verify target has equivalent DB links after migration
+# Scheduler jobs (count: 22) — ZDM physical migration preserves scheduler jobs
+# MViews (count: 0) — N/A
+# Source OS: Oracle Linux 7.4 → Target OS: Oracle Linux 8.10 (upgrade handled by ZDM)
+# Source version: 12.2.0.1 → Target version: 19.0.0.0 (upgrade handled by ZDM via RMAN restore)
+# -----------------------------------------------------------------------------
+
+# =============================================================================
+# END OF ZDM RESPONSE FILE — zdm_migrate_ORADB.rsp
+# =============================================================================
