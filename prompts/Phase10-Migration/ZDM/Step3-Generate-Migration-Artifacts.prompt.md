@@ -76,6 +76,13 @@ Before generating artifacts, verify:
 | OCI/Azure identifiers provided | ✅ |
 | Network connectivity verified | ✅ |
 | SSH key authentication working | ✅ |
+| ZDM is latest stable version (see Discovery Summary ZDM Version Status) | ✅ |
+
+> **ZDM Version Pre-Check:**
+> Before generating artifacts, confirm the ZDM version from the Discovery Summary ZDM Server Details section.
+> - If the version was flagged as ⚠️ **outdated or undetermined** in Step 1, the generated Runbook MUST include a **Phase 0 pre-migration step** to upgrade ZDM to the latest stable release before running `zdmcli migrate database`.
+> - Oracle ZDM release updates are available on [My Oracle Support](https://support.oracle.com) (search: "Zero Downtime Migration") and [Oracle ZDM Documentation](https://docs.oracle.com/en/database/oracle/zero-downtime-migration/index.html).
+> - The Runbook's **Pre-Migration Checklist** must include the item: `[ ] Confirm ZDM latest stable version is installed (zdmcli query jobid -all to confirm service, OPatch/inventory for version)`.
 
 ---
 

@@ -111,7 +111,7 @@ SUDO_PATH="/usr/bin/sudo"
 # Source from: ~/zdm_oci_env.sh (created by 'init' command)
 #
 # Azure Blob variables (source from ~/.azure/zdm_blob_creds):
-#   AZURE_STORAGE_ACCESS_KEY  Azure storage account access key (secret — never commit)
+#   AZURE_STORAGE_AUTH_VALUE  Azure storage key or SAS token (secret — never commit)
 #
 # Password variables (set interactively at runtime):
 #   SOURCE_SYS_PASSWORD       Source Oracle SYS password
@@ -186,13 +186,13 @@ validate_oci_environment() {
     fi
 
     # Azure Blob credentials check
-    if [ -z "${AZURE_STORAGE_ACCESS_KEY:-}" ]; then
-        missing_vars+=("AZURE_STORAGE_ACCESS_KEY")
+    if [ -z "${AZURE_STORAGE_AUTH_VALUE:-}" ]; then
+        missing_vars+=("AZURE_STORAGE_AUTH_VALUE")
         ((errors++))
-        echo "  ✗ AZURE_STORAGE_ACCESS_KEY is NOT set"
+        echo "  ✗ AZURE_STORAGE_AUTH_VALUE is NOT set"
         echo "    → Source it: source ~/.azure/zdm_blob_creds"
     else
-        echo "  ✓ AZURE_STORAGE_ACCESS_KEY is set"
+        echo "  ✓ AZURE_STORAGE_AUTH_VALUE is set"
     fi
 
     if [ "${errors}" -gt 0 ]; then
@@ -438,6 +438,35 @@ cmd_generate_rsp() {
     chmod 600 "${RSP_RESOLVED}"
     log "Resolved RSP written to: ${RSP_RESOLVED}"
     log "⚠️  This file contains substituted values — do not commit to git."
+
+    # Validate that no unresolved ${...} placeholders remain in the RSP
+    local unresolved
+    unresolved=$(grep -oP '\$\{[^}]+\}' "${RSP_RESOLVED}" 2>/dev/null || true)
+    if [ -n "${unresolved}" ]; then
+        error "RSP contains unresolved placeholders after envsubst:"
+        echo "${unresolved}" | while read -r v; do
+            echo "    ${v}"
+        done
+        return 1
+    fi
+    log "RSP validation: no unresolved placeholders."
+}
+
+# =============================================================================
+# COMMAND: check-service
+# Verify ZDM service is running before executing zdmcli commands
+# =============================================================================
+cmd_check_service() {
+    log "Checking ZDM service status..."
+    if ! "${ZDM_HOME}/bin/zdmservice" status > /dev/null 2>&1; then
+        echo ""
+        error "ZDM service is NOT running."
+        echo "  Start it with: ${ZDM_HOME}/bin/zdmservice start"
+        echo "  Then re-run this command."
+        return 1
+    fi
+    log "ZDM service is running."
+    return 0
 }
 
 # =============================================================================
@@ -448,6 +477,7 @@ cmd_eval() {
     log "Starting ZDM evaluation (dry run) for ORADB migration..."
     echo ""
 
+    cmd_check_service || return 1
     validate_oci_environment || return 1
     validate_password_environment || return 1
 
@@ -475,7 +505,7 @@ cmd_eval() {
         -tgtarg1 "user:${TARGET_SSH_USER}" \
         -tgtarg2 "identity_file:${TARGET_SSH_KEY}" \
         -tgtarg3 "sudo_location:${SUDO_PATH}" \
-        -rspfile "${RSP_RESOLVED}" \
+        -rsp "${RSP_RESOLVED}" \
         -targethome "${TARGET_ORACLE_HOME}" \
         ${TDE_ARG} \
         -eval
@@ -502,6 +532,7 @@ cmd_migrate() {
     log "Starting ZDM ONLINE_PHYSICAL migration for ORADB..."
     echo ""
 
+    cmd_check_service || return 1
     validate_oci_environment || return 1
     validate_password_environment || return 1
 
@@ -549,7 +580,7 @@ cmd_migrate() {
         -tgtarg1 "user:${TARGET_SSH_USER}" \
         -tgtarg2 "identity_file:${TARGET_SSH_KEY}" \
         -tgtarg3 "sudo_location:${SUDO_PATH}" \
-        -rspfile "${RSP_RESOLVED}" \
+        -rsp "${RSP_RESOLVED}" \
         -targethome "${TARGET_ORACLE_HOME}" \
         ${TDE_ARG}
 
@@ -711,6 +742,7 @@ case "${COMMAND}" in
     create-creds)   cmd_create_creds ;;
     cleanup-creds)  cmd_cleanup_creds ;;
     generate-rsp)   cmd_generate_rsp ;;
+    check-service)  cmd_check_service ;;
     eval)           cmd_eval ;;
     migrate)        cmd_migrate ;;
     status)         cmd_status "${1:-}" ;;

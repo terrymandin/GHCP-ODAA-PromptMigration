@@ -86,6 +86,11 @@ Create a file `Discovery-Summary-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migra
    > ZDM uses admin users (SOURCE_ADMIN_USER, TARGET_ADMIN_USER) with `sudo -u oracle`.
    > If discovery succeeded, SSH connectivity is already working.
 
+   > **IMPORTANT: ZDM Version Check**
+   > Always check `zdm_installation.zdm_version` from the server discovery JSON.
+   > If the version is UNDETERMINED or known to be outdated, add a **Required Action** item:
+   > `Verify ZDM is the latest stable release; upgrade if necessary (see My Oracle Support — 'Zero Downtime Migration').
+
 3. **Discovered Configurations**
    - All auto-populated values from discovery scripts
    - Organized by source/target/ZDM server
@@ -197,7 +202,27 @@ The Discovery Summary should follow this structure:
 [Similar structure]
 
 ## ZDM Server Details
-[Similar structure]
+
+| Property | Value |
+|----------|-------|
+| ZDM Version | <from discovery — zdm_installation.zdm_version> |
+| ZDM Home | <from discovery> |
+| ZDM Service Status | Running / Stopped |
+| Active Jobs | <count> |
+
+### ZDM Version Status
+
+| Check | Current State | Required State | Status |
+|-------|---------------|----------------|--------|
+| ZDM Version Installed | <discovered version> | Latest stable | ✅/⚠️/❌ |
+| ZDM Service Running | YES/NO | YES | ✅/❌ |
+| ZDM Binary Functional | YES/NO | YES | ✅/❌ |
+
+> **ZDM Version Guidance:**
+> Oracle ZDM is updated regularly. Check [Oracle ZDM Release Notes](https://docs.oracle.com/en/database/oracle/zero-downtime-migration/index.html) to confirm the installed version is the latest stable release.
+> - If the discovered version is **not the latest stable release**, flag this as a ⚠️ **Required Action** in the Required Actions section.
+> - If the version is **undetermined**, flag this as a ⚠️ **Required Action** requiring manual inspection and upgrade verification before proceeding.
+> - ZDM patch bundles and release updates are available on [My Oracle Support](https://support.oracle.com) — search for "Zero Downtime Migration" to find the latest available version.
 
 ## Required Actions Before Migration
 

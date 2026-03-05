@@ -104,7 +104,7 @@ COMMON_BACKUP_OSS_REGION=uk-london-1
 # Replaces OCI Object Storage. Confirmed working via verify_fixes.sh (Blocker 2 ✅ PASS).
 # Storage Account: tmmigrate  |  Container: zdm  |  Auth: via ~/.azure/zdm_blob_creds
 #
-# ⚠️  SECURITY: AZURE_STORAGE_ACCESS_KEY must be set as an environment variable.
+# ⚠️  SECURITY: AZURE_STORAGE_AUTH_VALUE must be set as an environment variable.
 #     DO NOT hard-code the access key in this file.
 #     Source it before running: source ~/.azure/zdm_blob_creds
 #
@@ -112,9 +112,9 @@ COMMON_BACKUP_OSS_REGION=uk-london-1
 #   /u01/app/zdmhome/bin/zdmcli migrate database --help | grep -i azure
 # The parameters below reflect the expected ZDM 21.5 Azure Blob naming convention.
 # -----------------------------------------------------------------------------
-COMMON_BACKUP_TYPE=OSS
+COMMON_BACKUP_TYPE=AZURE
 COMMON_BACKUP_AZURE_ACCOUNT_NAME=tmmigrate
-COMMON_BACKUP_AZURE_ACCOUNT_KEY=${AZURE_STORAGE_ACCESS_KEY}
+COMMON_BACKUP_AZURE_ACCOUNT_KEY="${AZURE_STORAGE_AUTH_VALUE}"
 COMMON_BACKUP_AZURE_CONTAINER_NAME=zdm
 COMMON_BACKUP_AZURE_ENDPOINT=https://tmmigrate.blob.core.windows.net
 

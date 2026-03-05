@@ -266,12 +266,70 @@ Generate a bash script to run on the **ZDM jumpbox server** (executed via SSH as
 - Active migration jobs
 
 **IMPORTANT: ZDM Version Detection:**
-ZDM does NOT support a `-version` flag. To verify ZDM is installed:
+ZDM does NOT support a `-version` flag. To verify ZDM is installed and to determine the installed version:
 1. Check if `$ZDM_HOME/bin/zdmcli` exists and is executable
 2. Run `$ZDM_HOME/bin/zdmcli` without arguments - it will display usage information if installed correctly
 3. Check for ZDM response file templates at `$ZDM_HOME/rhp/zdm/template/*.rsp`
 4. Use `zdmservice status` to check if the ZDM service is running
 Do NOT use `zdmcli -version` as this is an invalid command.
+
+**IMPORTANT: ZDM Version Capture — Required for Latest-Version Validation:**
+The discovery script MUST attempt to determine the exact installed ZDM version and report it prominently so Step 1 can flag outdated installations. Use the following methods in priority order:
+
+```bash
+# Method 1: Oracle Inventory XML (most reliable)
+if sudo test -f "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null; then
+    ZDM_VERSION=$(sudo grep -oP '(?<=VER=")[0-9.]+' "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null | head -1)
+fi
+
+# Method 2: OPatch installed patches list
+if [ -z "${ZDM_VERSION:-}" ] && sudo test -x "${ZDM_HOME}/OPatch/opatch" 2>/dev/null; then
+    ZDM_OPATCH=$(sudo -u "${ZDM_USER:-zdmuser}" "${ZDM_HOME}/OPatch/opatch" lspatches 2>/dev/null | head -20)
+fi
+
+# Method 3: version.txt or similar files in ZDM_HOME
+if [ -z "${ZDM_VERSION:-}" ]; then
+    for vfile in "${ZDM_HOME}/version.txt" "${ZDM_HOME}/VERSION" "${ZDM_HOME}/rhp/version.txt"; do
+        if sudo test -f "$vfile" 2>/dev/null; then
+            ZDM_VERSION=$(sudo cat "$vfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
+            break
+        fi
+    done
+fi
+
+# Method 4: zdmbase log/build files
+if [ -z "${ZDM_VERSION:-}" ]; then
+    for bfile in "${ZDM_HOME}/../../zdmbase/rhp/version.txt" "${ZDM_HOME}/../zdmbase/rhp/version.txt"; do
+        if sudo test -f "$bfile" 2>/dev/null; then
+            ZDM_VERSION=$(sudo cat "$bfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
+            break
+        fi
+    done
+fi
+
+# Method 5: Derive major version from ZDM_HOME path (e.g., /u01/app/zdmhome21 → 21)
+if [ -z "${ZDM_VERSION:-}" ]; then
+    ZDM_VERSION_PATH=$(echo "${ZDM_HOME}" | grep -oP '[0-9]+' | tail -1)
+fi
+
+# Report discovered version — if undetermined, emit a WARNING
+if [ -n "${ZDM_VERSION:-}" ]; then
+    log_info "ZDM Version:  ${ZDM_VERSION}"
+else
+    log_warn "ZDM Version:  UNDETERMINED — manual inspection required"
+fi
+```
+
+The JSON summary output MUST include a `zdm_version` field in the `zdm_installation` section:
+```json
+"zdm_installation": {
+  "zdm_home": "<path>",
+  "zdm_version": "<version or UNDETERMINED>",
+  "zdm_opatch_patches": "<patch list or N/A>",
+  "zdm_service_running": true,
+  "zdmcli_functional": true
+}
+```
 
 **IMPORTANT: ZDM Detection Requirements:**
 The script may be executed as a different user (e.g., azureuser) than the ZDM software owner (zdmuser). The script MUST detect ZDM using these methods in priority order:
