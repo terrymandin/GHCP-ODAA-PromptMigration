@@ -1,4 +1,6 @@
-# Example: Generate Migration Artifacts for PRODDB (Step 3)
+# Example: Generate Migration Artifacts for <DATABASE_NAME> (Step 3)
+
+> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
 
 This example demonstrates how to use Step 3 to generate all migration artifacts (RSP file, CLI commands, and runbook) from a completed questionnaire after all issues have been resolved in Step 2.
 
@@ -19,23 +21,26 @@ Copy and use this prompt to generate migration artifacts:
 ```
 @Step3-Generate-Migration-Artifacts.prompt.md
 
-Generate all migration artifacts for the <DATABASE> migration to Oracle Database@Azure.
+## Project Configuration
+#file:prompts/Phase10-Migration/ZDM/zdm-env.md
+
+Generate all migration artifacts for the <DATABASE_NAME> migration to Oracle Database@Azure.
 
 ## Step1 Outputs (Questionnaire and Summary)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step1/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
 
 ## Step2 Outputs (Issue Resolution Log)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step2/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/
 
 ## Discovery Files (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/source/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/target/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step0/Discovery/server/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/
 
 ## Output Directory
-Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3/
+Save all generated artifacts to: Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/
 
-> **Note:** Replace `<DATABASE>` with your database name (e.g., PRODDB, HRDB, etc.).
+> **Note:** Replace `<DATABASE_NAME>` with the `PROJECT_NAME` value from [zdm-env.md](zdm-env.md).
 > When referencing directories, GitHub Copilot will read all files in those directories.
 
 ## Additional Parameters (Optional Overrides)
@@ -134,7 +139,7 @@ sudo su - zdmuser
 ### Step 2: First-Time Setup (run once)
 ```bash
 # Navigate to your cloned fork's artifacts directory
-cd ~/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3
+cd ~/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
 
 # Initialize environment (creates ~/creds directory and ~/zdm_oci_env.sh template)
 ./zdm_commands_<DB_NAME>.sh init
@@ -439,7 +444,7 @@ export TARGET_HOME="<TARGET_ORACLE_HOME>"
 
 # Authentication
 export SSH_KEY="/home/zdmuser/.ssh/zdm_migration_key"
-export RSP_FILE="/home/zdmuser/migrations/<DATABASE>/zdm_migrate_<DB_NAME>.rsp"
+export RSP_FILE="/home/zdmuser/migrations/PRODDB/zdm_migrate_<DB_NAME>.rsp"
 
 # OCI (from environment variables in ~/zdm_oci_env.sh)
 export OCI_BACKUP_USER="${TARGET_USER_OCID}"
@@ -705,7 +710,7 @@ After artifacts are generated:
 ### 1. Commit Artifacts to GitHub
 ```bash
 # From VS Code terminal
-git add Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3/
+git add Artifacts/Phase10-Migration/ZDM/PRODDB/Step3/
 git commit -m "Add Step3 migration artifacts for <DB_NAME>"
 git push
 ```
@@ -726,7 +731,7 @@ git pull
 ### 3. Run First-Time Setup
 ```bash
 # Navigate to Step3 artifacts
-cd Artifacts/Phase10-Migration/ZDM/<DATABASE>/Step3
+cd Artifacts/Phase10-Migration/ZDM/PRODDB/Step3
 
 # Make script executable
 chmod +x zdm_commands_<DB_NAME>.sh
