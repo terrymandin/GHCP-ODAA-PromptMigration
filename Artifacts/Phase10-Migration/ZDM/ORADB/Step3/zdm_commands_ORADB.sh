@@ -327,7 +327,8 @@ EOF
     echo ""
     log "Verifying ZDM installation..."
     if [ -f "${ZDM_BIN}" ]; then
-        "${ZDM_BIN}" -version
+        log "ZDM binary found: ${ZDM_BIN}"
+        "${ZDM_HOME}/bin/zdmservice" status
     else
         error "ZDM binary not found at ${ZDM_BIN}. Verify ZDM installation."
         return 1
