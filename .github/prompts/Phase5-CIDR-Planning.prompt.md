@@ -1,8 +1,6 @@
----
-title: Phase 5 - CIDR Range Planning for Oracle Database@Azure
-description: Generate CIDR range definitions for Oracle Database@Azure deployment based on best practices
-version: 1.0.0
-authors: GitHub Copilot
+﻿---
+mode: agent
+description: Phase 5 - CIDR range planning for Oracle Database@Azure
 ---
 
 # Phase 5: CIDR Range Planning for Oracle Database@Azure
@@ -68,8 +66,8 @@ Calculate IP requirements based on Microsoft documentation:
 Based on the requirements, calculate:
 
 1. **Total IP Requirements**:
-   - Client subnet: (Number of clusters × ((VMs per cluster × 4) + 3)) + 13
-   - Backup subnet: (Number of clusters × (VMs per cluster × 3)) + 3
+   - Client subnet: (Number of clusters Ã— ((VMs per cluster Ã— 4) + 3)) + 13
+   - Backup subnet: (Number of clusters Ã— (VMs per cluster Ã— 3)) + 3
 
 2. **Recommended CIDR Size** (with growth buffer):
    - Add 50-100% buffer for future growth
@@ -83,11 +81,11 @@ Based on the requirements, calculate:
 
 ### Step 4: Validate Against Constraints
 Ensure the calculated ranges:
-- ✓ Don't overlap with existing VNet CIDRs
-- ✓ Don't use reserved ranges (100.106.0.0/16, 100.107.0.0/16 for X9M)
-- ✓ Provide sufficient capacity for current and future needs
-- ✓ Meet minimum CIDR size requirements
-- ✓ Account for cross-region routing requirements
+- âœ“ Don't overlap with existing VNet CIDRs
+- âœ“ Don't use reserved ranges (100.106.0.0/16, 100.107.0.0/16 for X9M)
+- âœ“ Provide sufficient capacity for current and future needs
+- âœ“ Meet minimum CIDR size requirements
+- âœ“ Account for cross-region routing requirements
 
 ### Step 5: Generate CIDR Definition Document
 Create or update the file `Artifacts/Phase5-CIDR/CIDR-Definition.md` with the following structure:
@@ -109,14 +107,14 @@ Create or update the file `Artifacts/Phase5-CIDR/CIDR-Definition.md` with the fo
 ## Calculated IP Requirements
 
 ### Client Subnet
-- VMs: [X clusters] × [X VMs] × 4 IPs = [X] IPs
-- SCANs: [X clusters] × 3 IPs = [X] IPs
+- VMs: [X clusters] Ã— [X VMs] Ã— 4 IPs = [X] IPs
+- SCANs: [X clusters] Ã— 3 IPs = [X] IPs
 - Networking Services: 13 IPs
 - **Total Required**: [X] IPs
 - **Recommended CIDR Size**: /[X] ([X] usable IPs)
 
 ### Backup Subnet
-- VMs: [X clusters] × [X VMs] × 3 IPs = [X] IPs
+- VMs: [X clusters] Ã— [X VMs] Ã— 3 IPs = [X] IPs
 - Networking Services: 3 IPs
 - **Total Required**: [X] IPs
 - **Recommended CIDR Size**: /[X] ([X] usable IPs)
@@ -148,10 +146,10 @@ For subnet [CIDR]:
 
 ## Network Constraints
 
-- ✓ No overlap with existing VNet CIDR: [VNet CIDR]
-- ✓ Reserved ranges avoided: 100.106.0.0/16, 100.107.0.0/16 (X9M)
-- ✓ Cross-region routing accounted for: [Yes/No]
-- ✓ Future growth capacity: [X]% buffer included
+- âœ“ No overlap with existing VNet CIDR: [VNet CIDR]
+- âœ“ Reserved ranges avoided: 100.106.0.0/16, 100.107.0.0/16 (X9M)
+- âœ“ Cross-region routing accounted for: [Yes/No]
+- âœ“ Future growth capacity: [X]% buffer included
 
 ## Validation Checklist
 
@@ -204,14 +202,14 @@ Please provide the following information for CIDR planning:
 
 ## Success Criteria
 
-✓ CIDR ranges calculated based on VM cluster requirements
-✓ Growth buffer (50-100%) included in calculations
-✓ No overlap with existing network ranges
-✓ Reserved IP ranges properly documented
-✓ Meets minimum CIDR size requirements from Microsoft documentation
-✓ `Artifacts/Phase5-CIDR/CIDR Definition.md` file created with complete specifications
-✓ Validation checklist included for team review
-✓ References to official Microsoft documentation included
+âœ“ CIDR ranges calculated based on VM cluster requirements
+âœ“ Growth buffer (50-100%) included in calculations
+âœ“ No overlap with existing network ranges
+âœ“ Reserved IP ranges properly documented
+âœ“ Meets minimum CIDR size requirements from Microsoft documentation
+âœ“ `Artifacts/Phase5-CIDR/CIDR Definition.md` file created with complete specifications
+âœ“ Validation checklist included for team review
+âœ“ References to official Microsoft documentation included
 
 ## Notes
 

@@ -1,3 +1,7 @@
+﻿---
+mode: agent
+description: Phase 6 - Generate ODAA infrastructure using Terraform Azure Verified Modules
+---
 # Reusable Terraform Prompt for Oracle Database@Azure (ODAA)
 
 ## Quick Start - Using @ Mentions (Recommended)
@@ -5,13 +9,13 @@
 **In GitHub Copilot Chat**, you can reference this file directly without copy/pasting:
 
 ```
-@PROMPT_TEMPLATE.md
+@Phase6-IaC
 
 Deploy to westus2 with Exadata.X11M shape and 4 compute nodes.
 ```
 
 The `@` symbol lets Copilot read the file content automatically. You can:
-- `@PROMPT_TEMPLATE.md` - Reference this entire file
+- `@Phase6-IaC` - Reference this entire file
 - `@workspace` - Include workspace context
 - Combine with your custom requirements
 
@@ -19,7 +23,7 @@ The `@` symbol lets Copilot read the file content automatically. You can:
 
 ## Prerequisites
 
-**Before using this prompt**, ensure you have completed Phase 5 CIDR Planning and have the `Artifacts/CIDR-Definition.md` file available. This file contains the approved network configuration that should be used for infrastructure generation.
+**Before using this prompt**, ensure you have completed Phase 5 CIDR Planning and have the `Artifacts/Phase5-CIDR/CIDR-Definition.md` file available. This file contains the approved network configuration that should be used for infrastructure generation.
 
 ---
 
@@ -28,7 +32,7 @@ The `@` symbol lets Copilot read the file content automatically. You can:
 ### Core Prompt
 
 ```
-Read the network configuration from #file:Artifacts/CIDR-Definition.md
+Read the network configuration from #file:Artifacts/Phase5-CIDR/CIDR-Definition.md
 
 Create an Oracle Database@Azure (ODAA) Infrastructure and Cluster instance using Terraform Azure Verified Modules (AVM).
 
@@ -63,7 +67,7 @@ Create a Artifacts/Phase6-IaC/Azure-IaC-Services.md file that provides a summary
 ### Method 1: @ Mention (Best for VS Code Copilot)
 Type in Copilot Chat:
 ```
-@PROMPT_TEMPLATE.md
+@Phase6-IaC
 
 Additional requirements:
 - Deploy to eastus region
@@ -77,7 +81,7 @@ Additional requirements:
 
 ### Method 3: Reference with Context
 ```
-Using the prompt in @PROMPT_TEMPLATE.md, create ODAA infrastructure with:
+Using the prompt in @Phase6-IaC, create ODAA infrastructure with:
 - Exadata.X11M shape
 - Custom maintenance window for Sundays
 - Private endpoints enabled
@@ -129,7 +133,7 @@ Using AVM modules for all infrastructure components provides several benefits:
 
 ### Basic ODAA Deployment
 ```
-@PROMPT_TEMPLATE.md #file:Artifacts/CIDR-Definition.md
+@Phase6-IaC #file:Artifacts/Phase5-CIDR/CIDR-Definition.md
 
 Create ODAA infrastructure using Azure Verified Modules for ALL resources:
 - Deploy to eastus region in availability zone 1
@@ -142,7 +146,7 @@ Create ODAA infrastructure using Azure Verified Modules for ALL resources:
 
 ### Production-Ready Deployment with Advanced Features
 ```
-@PROMPT_TEMPLATE.md #file:Artifacts/CIDR-Definition.md
+@Phase6-IaC #file:Artifacts/Phase5-CIDR/CIDR-Definition.md
 
 Create production-grade ODAA infrastructure using Azure Verified Modules for ALL resources:
 - Deploy to westus2 region with availability zone redundancy
@@ -163,7 +167,7 @@ Create production-grade ODAA infrastructure using Azure Verified Modules for ALL
 
 ### Development Environment
 ```
-@PROMPT_TEMPLATE.md
+@Phase6-IaC
 
 Create ODAA development environment using Azure Verified Modules:
 - Deploy to eastus2 region
@@ -179,7 +183,7 @@ Create ODAA development environment using Azure Verified Modules:
 
 ### Migration Scenario
 ```
-@PROMPT_TEMPLATE.md
+@Phase6-IaC
 
 Create ODAA infrastructure for Oracle database migration using AVM for everything:
 - Target region: centralus (zone 2)

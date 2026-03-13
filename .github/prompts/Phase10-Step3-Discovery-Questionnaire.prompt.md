@@ -1,9 +1,11 @@
-# ZDM Migration Step 1: Get Manual Configuration Context
-
-> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
+﻿---
+mode: agent
+description: ZDM Step 3 - Analyze discovery output and create migration plan
+---
+# ZDM Migration Step 3: Get Manual Configuration Context
 
 ## Purpose
-This prompt analyzes the discovery output from Step 0 and generates:
+This prompt analyzes the discovery output from Step 2 and generates:
 1. **Discovery Summary** - Auto-populated findings from the discovery scripts
 2. **Migration Planning Questionnaire** - Questions requiring manual input with recommended defaults
 
@@ -12,13 +14,13 @@ This prompt analyzes the discovery output from Step 0 and generates:
 ## Migration Flow Overview
 
 ```
-Step 0: Run Scripts to Get Context
+Step 2: Run Scripts to Get Context
          ↓
-Step 1: Get Manual Configuration Context    ← YOU ARE HERE
+Step 3: Get Manual Configuration Context    ← YOU ARE HERE
          ↓
-Step 2: Fix Issues (Iteration may be required)
+Step 4: Fix Issues (Iteration may be required)
          ↓
-Step 3: Generate Migration Artifacts & Run Migration
+Step 5: Generate Migration Artifacts & Run Migration
 ```
 
 ---
@@ -26,38 +28,39 @@ Step 3: Generate Migration Artifacts & Run Migration
 ## Prerequisites
 
 Before running this prompt:
-1. ✅ Run `Step0-Generate-Discovery-Scripts.prompt.md` to generate discovery scripts
-2. ✅ Execute the discovery scripts on all servers
-3. ✅ Check discovery output files into the repository
+1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
+2. ✅ Run `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` to generate discovery scripts
+3. ✅ Execute the discovery scripts on all servers
+4. ✅ Check discovery output files into the repository
 
 ---
 
 ## How to Use This Prompt
 
-Attach the discovery files from Step0 and run this prompt:
+Attach the discovery files from Step2 and run this prompt:
 
 ```
-@Step1-Discovery-Questionnaire.prompt.md
+@Phase10-ZDM-Step3-Discovery-Questionnaire
 
-Please analyze the discovery results for our <DATABASE_NAME> migration and generate:
+Please analyze the discovery results and generate:
 1. A summary of discovered configurations
 2. A questionnaire for manual decisions with recommended defaults
 
 ## Attached Discovery Files
 
-### Source Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
+### Source Database Discovery (from Step2)
+#file:Artifacts/Phase10-Migration/Step2/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/Step2/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
 
-### Target Database Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
+### Target Database Discovery (from Step2)
+#file:Artifacts/Phase10-Migration/Step2/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/Step2/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
 
-### ZDM Server Discovery (from Step0)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
+### ZDM Server Discovery (from Step2)
+#file:Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
 
-**Note:** Replace `<DATABASE_NAME>`, `<hostname>`, and `<timestamp>` with actual values.
+**Note:** Replace `<hostname>` and `<timestamp>` with actual values.
 Use the most recent discovery files if multiple exist (highest timestamp).
 ```
 
@@ -69,7 +72,7 @@ When this prompt is run with discovery files attached, perform the following:
 
 ### Part 1: Generate Discovery Summary
 
-Create a file `Discovery-Summary-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/` that includes:
+Create a file `Discovery-Summary.md` in `Artifacts/Phase10-Migration/Step3/` that includes:
 
 1. **Environment Overview**
    - Source database summary (name, version, size, character set)
@@ -101,7 +104,7 @@ Create a file `Discovery-Summary-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migra
 
 ### Part 2: Generate Migration Planning Questionnaire
 
-Create a file `Migration-Questionnaire-<DATABASE_NAME>.md` in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/` containing ONLY the items requiring manual input:
+Create a file `Migration-Questionnaire.md` in `Artifacts/Phase10-Migration/Step3/` containing ONLY the items requiring manual input:
 
 **Section A: Migration Strategy Decisions**
 - Online vs Offline migration (with recommendation based on discovery)
@@ -138,18 +141,18 @@ Each question should include:
 
 ## Output Files
 
-Step 1 creates the following outputs:
+Step 3 creates the following outputs:
 
 ```
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
-├── Step0/
+Artifacts/Phase10-Migration/
+├── Step2/
 │   └── Discovery/
 │       ├── source/
 │       ├── target/
 │       └── server/
-└── Step1/                                      # NEW: Created by this step
-    ├── Discovery-Summary-<DATABASE_NAME>.md         # NEW: Generated summary
-    └── Migration-Questionnaire-<DATABASE_NAME>.md   # NEW: Manual items only
+└── Step3/                                      # NEW: Created by this step
+    ├── Discovery-Summary.md                         # NEW: Generated summary
+    └── Migration-Questionnaire.md                   # NEW: Manual items only
 ```
 
 ---
@@ -159,7 +162,7 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
 The Discovery Summary should follow this structure:
 
 ```markdown
-# Discovery Summary: <DATABASE_NAME> Migration
+# Discovery Summary
 
 ## Generated
 - Date: <timestamp>
@@ -234,7 +237,7 @@ The Discovery Summary should follow this structure:
 
 ## Discovered Values Reference
 
-[Complete list of all discovered values for reference in Step 2]
+[Complete list of all discovered values for reference in Step 4]
 ```
 
 ---
@@ -244,11 +247,11 @@ The Discovery Summary should follow this structure:
 The Questionnaire should follow this structure:
 
 ```markdown
-# Migration Planning Questionnaire: <DATABASE_NAME>
+# Migration Planning Questionnaire
 
 ## Instructions
 Please complete the following questions. Recommended defaults are provided based on discovery analysis.
-After completing, save this file and proceed to Step 2.
+After completing, save this file and proceed to Step 4.
 
 ---
 
@@ -295,12 +298,12 @@ These values must be obtained from the OCI Console or Azure Portal.
 
 ## Section C: Object Storage
 
-**Recommended Bucket Name:** zdm-migration-<DATABASE_NAME>-<date>
+**Recommended Bucket Name:** zdm-migration-<date>
 
 | Field | Recommended | Your Value |
 |-------|-------------|------------|
 | Object Storage Namespace | [from discovery or manual] | _______________ |
-| Bucket Name | zdm-migration-<DATABASE_NAME> | _______________ |
+| Bucket Name | zdm-migration | _______________ |
 | Bucket Region | [same as target] | _______________ |
 | Create New Bucket? | YES | [ ] YES [ ] NO |
 
@@ -349,8 +352,8 @@ These values must be obtained from the OCI Console or Azure Portal.
 After completing this questionnaire:
 1. Save this file
 2. Review the Discovery Summary for any critical actions
-3. Run `Step2-Fix-Issues.prompt.md` to address any blockers
-4. After all issues resolved, run `Step3-Generate-Migration-Artifacts.prompt.md` with:
+3. Run `@Phase10-ZDM-Step4-Fix-Issues` to address any blockers
+4. After all issues resolved, run `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` with:
    - This completed questionnaire
    - The Discovery Summary
    - The Issue Resolution Log
@@ -360,14 +363,14 @@ After completing this questionnaire:
 
 ## Next Steps
 
-After Step 1 generates the outputs:
+After Step 3 generates the outputs:
 
 1. **Review Discovery Summary** - Check for any required actions or blockers
 2. **Complete the Questionnaire** - Fill in manual items
-3. **Run Step 2**: `Step2-Fix-Issues.prompt.md`
+3. **Run Step 4**: `@Phase10-ZDM-Step4-Fix-Issues`
    - Address all blockers and required actions
    - Iterate until all issues are resolved
-4. **Run Step 3**: `Step3-Generate-Migration-Artifacts.prompt.md`
+4. **Run Step 5**: `@Phase10-ZDM-Step5-Generate-Migration-Artifacts`
    - Attach the completed questionnaire
    - Attach the Issue Resolution Log
    - This generates the RSP file, ZDM commands, and runbook
