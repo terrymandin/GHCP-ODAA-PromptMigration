@@ -65,6 +65,41 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
     └── ssh-connectivity-report-<timestamp>.json
 ```
 
+---
+
+## Output Location
+
+Save the Step 1 script to: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/`
+
+**IMPORTANT:** Step 1 should ONLY create files in the `Step1/` directory. Do NOT create Step2/, Step3/, or Step4/ folders — those will be created by their respective prompts.
+
+The Step 1 directory structure to create:
+```
+Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
+└── Step1/                                    # Step 1: SSH Connectivity Test (CREATE THIS ONLY)
+    └── Scripts/                              # SSH test script
+        └── zdm_test_ssh_connectivity.sh
+```
+
+> **Note:** The `Validation/` subdirectory and its report files are produced at runtime when `zdm_test_ssh_connectivity.sh` is executed on the ZDM server — they are not created by this prompt.
+
+For reference, the complete migration folder structure (created across all steps) is:
+```
+Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
+├── Step1/    # Created by Step1 prompt (this prompt) — SSH connectivity test script
+├── Step2/    # Created by Step2 prompt — Discovery scripts
+├── Step3/    # Created by Step3 prompt — Discovery questionnaire
+└── Step4/    # Created by Step4 prompt — Migration artifacts
+```
+
+After generating the SSH test script:
+1. Copy `zdm_test_ssh_connectivity.sh` to the ZDM server
+2. Run it as `zdmuser` to validate connectivity to both source and target hosts
+3. Review the generated report files in `Step1/Validation/`
+4. If both checks pass, proceed to **Step 2: Generate Discovery Scripts**
+
+---
+
 ## Next Step
 
 If Step1 passes for both source and target, continue with:
