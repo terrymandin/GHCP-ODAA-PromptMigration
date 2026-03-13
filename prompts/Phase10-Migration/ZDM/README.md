@@ -1,8 +1,6 @@
-# ZDM Migration Prompts
+﻿# ZDM Migration Prompts
 
 This directory contains prompts for Zero Downtime Migration (ZDM) from on-premise Oracle databases to Oracle Database@Azure.
-
-> **Database Name:** The database name (`<DATABASE_NAME>`) is used throughout all migration steps to organize artifacts under `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/`
 
 ## Migration Workflow
 
@@ -81,9 +79,9 @@ Each step has a corresponding example file showing a completed prompt for a fict
 **Purpose**: Fail fast on bad SSH IP/hostname, user, key, or key permission inputs before running the longer discovery step.
 
 **Output**:
-- SSH precheck script saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Scripts/`
+- SSH precheck script saved to `Artifacts/Phase10-Migration/Step1/Scripts/`
   - `zdm_test_ssh_connectivity.sh`
-- Validation outputs saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Validation/`
+- Validation outputs saved to `Artifacts/Phase10-Migration/Step1/Validation/`
   - `ssh-connectivity-report-<timestamp>.md`
   - `ssh-connectivity-report-<timestamp>.json`
 
@@ -95,22 +93,21 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 ### Step 2: Generate Discovery Scripts + Run to Get Context
 
-**Purpose**: Specify the database name and generate discovery scripts to gather technical context from all servers.
+**Purpose**: Generate discovery scripts to gather technical context from all servers.
 
 **Output**: 
-- Four bash scripts saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts/`
+- Four bash scripts saved to `Artifacts/Phase10-Migration/Step2/Scripts/`
   - `zdm_source_discovery.sh` - Run on source database server
   - `zdm_target_discovery.sh` - Run on target Oracle Database@Azure server
   - `zdm_server_discovery.sh` - Run on ZDM jumpbox server
   - `zdm_orchestrate_discovery.sh` - Master script to run all discoveries remotely
-- Discovery outputs saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/`
+- Discovery outputs saved to `Artifacts/Phase10-Migration/Step2/Discovery/`
   - Source, target, and server discovery results (TXT and JSON)
 
 **Usage**:
-1. Specify your database name in Step 2 (e.g., PRODDB, FINANCEDB)
-2. Run the Step 2 prompt to generate discovery scripts
-3. Copy discovery scripts to respective servers and execute
-4. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/`
+1. Run the Step 2 prompt to generate discovery scripts
+2. Copy discovery scripts to respective servers and execute
+3. Collect output files to `Artifacts/Phase10-Migration/Step2/Discovery/`
 
 ### Step 3: Get Manual Configuration Context
 
@@ -119,9 +116,9 @@ Each step has a corresponding example file showing a completed prompt for a fict
 **Inputs**:
 - Discovery output files (from Step 2)
 
-**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
-- `Discovery-Summary-<DATABASE_NAME>.md` - Auto-populated findings from discovery
-- `Migration-Questionnaire-<DATABASE_NAME>.md` - Manual decisions with recommended defaults
+**Output Location**: `Artifacts/Phase10-Migration/Step3/`
+- `Discovery-Summary.md` - Auto-populated findings from discovery
+- `Migration-Questionnaire.md` - Manual decisions with recommended defaults
 
 **The Questionnaire captures:**
 - Migration type (Online Physical vs Offline Physical)
@@ -147,8 +144,8 @@ Each step has a corresponding example file showing a completed prompt for a fict
 - Discovery Summary (from Step 3)
 - Migration Questionnaire (from Step 3)
 
-**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/`
-- `Issue-Resolution-Log-<DATABASE_NAME>.md` - Tracking of issues and resolutions
+**Output Location**: `Artifacts/Phase10-Migration/Step4/`
+- `Issue-Resolution-Log.md` - Tracking of issues and resolutions
 - Updated discovery outputs (after re-running discovery to verify fixes)
 
 **Common Issues to Address:**
@@ -176,11 +173,11 @@ Each step has a corresponding example file showing a completed prompt for a fict
 - Issue Resolution Log (from Step 4 - confirming all blockers resolved)
 - Discovery output files (from Step 2)
 
-**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step5/`
+**Output Location**: `Artifacts/Phase10-Migration/Step5/`
 - `README.md` - Quick-start guide and checklist
-- `zdm_migrate_<DATABASE_NAME>.rsp` - ZDM response file
-- `zdm_commands_<DATABASE_NAME>.sh` - CLI commands script with `init`, `create-creds`, and migration commands
-- `ZDM-Migration-Runbook-<DATABASE_NAME>.md` - Step-by-step runbook
+- `zdm_migrate.rsp` - ZDM response file
+- `zdm_commands.sh` - CLI commands script with `init`, `create-creds`, and migration commands
+- `ZDM-Migration-Runbook.md` - Step-by-step runbook
 
 **Usage**:
 1. Ensure all issues from Step 4 are resolved
@@ -312,51 +309,50 @@ The complete workflow alternates between your local VS Code environment and the 
 When working on the ZDM server, you must:
 1. **SSH as your admin user** (e.g., `azureuser`, `opc`) - NOT directly as `zdmuser`
 2. **Switch to zdmuser**: `sudo su - zdmuser`
-3. **First-time setup**: Run `./zdm_commands_<DATABASE_NAME>.sh init` to create required directories and files
+3. **First-time setup**: Run `./zdm_commands.sh init` to create required directories and files
 
 ---
 
 ## Artifacts Directory Structure
 
-Each migration creates a dedicated folder under `Artifacts/Phase10-Migration/ZDM/`:
+Each migration creates its artifacts directly under `Artifacts/Phase10-Migration/`:
 
 ```
-Artifacts/Phase10-Migration/ZDM/
-└── <DATABASE_NAME>/                             # e.g., PRODDB
-    ├── Step1/                              # Step 1: Test SSH Connectivity
-    │   ├── Scripts/
-    │   │   └── zdm_test_ssh_connectivity.sh
-    │   └── Validation/
-    │       ├── ssh-connectivity-report-*.md
-    │       └── ssh-connectivity-report-*.json
-    ├── Step2/                              # Step 2: Run Scripts to Get Context
-    │   ├── Scripts/                        # Discovery scripts
-    │   │   ├── zdm_source_discovery.sh
-    │   │   ├── zdm_target_discovery.sh
-    │   │   ├── zdm_server_discovery.sh
-    │   │   ├── zdm_orchestrate_discovery.sh
-    │   │   └── README.md
-    │   └── Discovery/                      # Discovery outputs
-    │       ├── source/
-    │       │   ├── zdm_source_discovery_*.txt
-    │       │   └── zdm_source_discovery_*.json
-    │       ├── target/
-    │       │   ├── zdm_target_discovery_*.txt
-    │       │   └── zdm_target_discovery_*.json
-    │       └── server/
-    │           ├── zdm_server_discovery_*.txt
-    │           └── zdm_server_discovery_*.json
-    ├── Step3/                              # Step 3: Get Manual Configuration Context
-    │   ├── Discovery-Summary-<DATABASE_NAME>.md
-    │   └── Migration-Questionnaire-<DATABASE_NAME>.md
-    ├── Step4/                              # Step 4: Fix Issues (Iterative)
-    │   ├── Issue-Resolution-Log-<DATABASE_NAME>.md
-    │   └── Verification/                   # Re-run discovery outputs
-    │       └── (updated discovery files)
-    └── Step5/                              # Step 5: Migration Artifacts & Execution
-        ├── zdm_migrate_<DATABASE_NAME>.rsp
-        ├── zdm_commands_<DATABASE_NAME>.sh
-        └── ZDM-Migration-Runbook-<DATABASE_NAME>.md
+Artifacts/Phase10-Migration/
+├── Step1/                              # Step 1: Test SSH Connectivity
+│   ├── Scripts/
+│   │   └── zdm_test_ssh_connectivity.sh
+│   └── Validation/
+│       ├── ssh-connectivity-report-*.md
+│       └── ssh-connectivity-report-*.json
+├── Step2/                              # Step 2: Run Scripts to Get Context
+│   ├── Scripts/                        # Discovery scripts
+│   │   ├── zdm_source_discovery.sh
+│   │   ├── zdm_target_discovery.sh
+│   │   ├── zdm_server_discovery.sh
+│   │   ├── zdm_orchestrate_discovery.sh
+│   │   └── README.md
+│   └── Discovery/                      # Discovery outputs
+│       ├── source/
+│       │   ├── zdm_source_discovery_*.txt
+│       │   └── zdm_source_discovery_*.json
+│       ├── target/
+│       │   ├── zdm_target_discovery_*.txt
+│       │   └── zdm_target_discovery_*.json
+│       └── server/
+│           ├── zdm_server_discovery_*.txt
+│           └── zdm_server_discovery_*.json
+├── Step3/                              # Step 3: Get Manual Configuration Context
+│   ├── Discovery-Summary.md
+│   └── Migration-Questionnaire.md
+├── Step4/                              # Step 4: Fix Issues (Iterative)
+│   ├── Issue-Resolution-Log.md
+│   └── Verification/                   # Re-run discovery outputs
+│       └── (updated discovery files)
+└── Step5/                              # Step 5: Migration Artifacts & Execution
+    ├── zdm_migrate.rsp
+    ├── zdm_commands.sh
+    └── ZDM-Migration-Runbook.md
 ```
 
 ## Migration Types

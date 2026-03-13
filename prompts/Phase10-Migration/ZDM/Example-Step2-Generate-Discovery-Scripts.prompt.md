@@ -1,6 +1,4 @@
-# Example: Generate Discovery Scripts for <DATABASE_NAME> (Step 2)
-
-> **Note:** Replace `<DATABASE_NAME>` with your project name (for example: `PRODDB`).
+﻿# Example: Generate Discovery Scripts (Step 2)
 
 This example is intentionally lightweight and shows how to call Step 2.
 Run Step 2 scripts from the ZDM box; no SSH into the ZDM box is required for Step 2.
@@ -13,10 +11,10 @@ Run Step 2 scripts from the ZDM box; no SSH into the ZDM box is required for Ste
 ## Project Configuration
 #file:prompts/Phase10-Migration/ZDM/zdm-env.md
 
-Generate Step 2 discovery scripts for the <DATABASE_NAME> migration.
+Generate Step 2 discovery scripts.
 ```
 
-> Update `PROJECT_NAME` in [zdm-env.md](zdm-env.md) before running, and run the generated scripts on the ZDM box.
+> Run the generated scripts on the ZDM box.
 
 ---
 
@@ -25,7 +23,7 @@ Generate Step 2 discovery scripts for the <DATABASE_NAME> migration.
 Step 2 generates script artifacts in:
 
 ```text
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/
+Artifacts/Phase10-Migration/Step2/
 ├── Scripts/
 │   ├── zdm_source_discovery.sh
 │   ├── zdm_target_discovery.sh

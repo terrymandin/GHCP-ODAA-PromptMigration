@@ -1,6 +1,4 @@
-# ZDM Migration Step 1: Test SSH Connectivity
-
-> **Note:** Replace `<DATABASE_NAME>` with your database name (for example: `PRODDB`).
+﻿# ZDM Migration Step 1: Test SSH Connectivity
 
 ## Purpose
 Run a fast precheck before Step2 to validate SSH host/IP reachability and SSH key usability, so you can catch bad connectivity inputs before generating and running the longer discovery flow.
@@ -16,7 +14,6 @@ Attach your project configuration:
 ```
 
 Required values in `zdm-env.md`:
-- `PROJECT_NAME`
 - `SOURCE_HOST`
 - `TARGET_HOST`
 - `SOURCE_SSH_USER`
@@ -30,7 +27,7 @@ Required values in `zdm-env.md`:
 
 Generate a single bash script named `zdm_test_ssh_connectivity.sh` in:
 
-`Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Scripts/`
+`Artifacts/Phase10-Migration/Step1/Scripts/`
 
 The script must:
 1. Run on the ZDM server as `zdmuser`.
@@ -46,7 +43,7 @@ The script must:
    - `-o PasswordAuthentication=no`
 6. Run a trivial remote command (`hostname`) to confirm end-to-end success.
 7. Create output files in:
-   - `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Validation/`
+   - `Artifacts/Phase10-Migration/Step1/Validation/`
 8. Write:
    - `ssh-connectivity-report-<timestamp>.md` (human-readable summary)
    - `ssh-connectivity-report-<timestamp>.json` (machine-readable status)
@@ -57,7 +54,7 @@ The script must:
 ## Expected Output Structure
 
 ```text
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
+Artifacts/Phase10-Migration/Step1/
 ├── Scripts/
 │   └── zdm_test_ssh_connectivity.sh
 └── Validation/
@@ -69,13 +66,13 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/
 
 ## Output Location
 
-Save the Step 1 script to: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/`
+Save the Step 1 script to: `Artifacts/Phase10-Migration/Step1/`
 
 **IMPORTANT:** Step 1 should ONLY create files in the `Step1/` directory. Do NOT create Step2/, Step3/, or Step4/ folders — those will be created by their respective prompts.
 
 The Step 1 directory structure to create:
 ```
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
+Artifacts/Phase10-Migration/
 └── Step1/                                    # Step 1: SSH Connectivity Test (CREATE THIS ONLY)
     └── Scripts/                              # SSH test script
         └── zdm_test_ssh_connectivity.sh
@@ -85,7 +82,7 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
 
 For reference, the complete migration folder structure (created across all steps) is:
 ```
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
+Artifacts/Phase10-Migration/
 ├── Step1/    # Created by Step1 prompt (this prompt) — SSH connectivity test script
 ├── Step2/    # Created by Step2 prompt — Discovery scripts
 ├── Step3/    # Created by Step3 prompt — Discovery questionnaire

@@ -1,6 +1,4 @@
-# Example: Discovery Analysis and Migration Planning for <DATABASE_NAME> (Step 3)
-
-> **Note:** Replace `<DATABASE_NAME>` with your project name (for example: `PRODDB`).
+﻿# Example: Discovery Analysis and Migration Planning (Step 3)
 
 This example is intentionally lightweight and shows how to call Step 3.
 
@@ -17,12 +15,12 @@ Analyze Step 2 discovery outputs and generate:
 2) Migration planning questionnaire
 
 ## Step2 Discovery Inputs
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/source/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/target/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/server/
+#file:Artifacts/Phase10-Migration/Step2/Discovery/source/
+#file:Artifacts/Phase10-Migration/Step2/Discovery/target/
+#file:Artifacts/Phase10-Migration/Step2/Discovery/server/
 
 ## Output Directory
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/
+Artifacts/Phase10-Migration/Step3/
 ```
 
 ---
@@ -30,8 +28,8 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/
 ## Expected Output
 
 Step 3 produces:
-- `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/Discovery-Summary-<DATABASE_NAME>.md`
-- `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/Migration-Questionnaire-<DATABASE_NAME>.md`
+- `Artifacts/Phase10-Migration/Step3/Discovery-Summary.md`
+- `Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md`
 
 The questionnaire should highlight manual decisions (for example OCIDs, migration options, and scheduling).
 

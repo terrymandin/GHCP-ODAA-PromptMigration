@@ -5,11 +5,6 @@
 > All Example prompts attach `zdm-env.md` with `#file:prompts/Phase10-Migration/ZDM/zdm-env.md` so
 > GitHub Copilot will use these values automatically when generating scripts and artifacts.
 ---
-## Project Identification
-- PROJECT_NAME: <YOUR_PROJECT_NAME>
-> `PROJECT_NAME` is used for all artifact directory paths:
-> `Artifacts/Phase10-Migration/ZDM/<YOUR_PROJECT_NAME>/Step1/`, `Step2/Scripts/`, `Step3/`, `Step4/`, `Step5/`
----
 ## Remote Server Hostnames
 - SOURCE_HOST: <SOURCE_HOST_IP_OR_FQDN>
 - TARGET_HOST: <TARGET_HOST_IP_OR_FQDN>

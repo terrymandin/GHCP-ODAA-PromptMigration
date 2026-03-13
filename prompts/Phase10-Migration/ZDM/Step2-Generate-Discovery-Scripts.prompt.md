@@ -1,4 +1,4 @@
-# ZDM Migration Step 2: Run Scripts to Get Context
+﻿# ZDM Migration Step 2: Run Scripts to Get Context
 
 ## Purpose
 This prompt generates the discovery scripts that will be used to gather technical context from the source database server, target Oracle Database@Azure server, and the local ZDM server environment. The discovery outputs form the foundation for all subsequent migration steps.
@@ -81,22 +81,7 @@ Step 5: Generate Migration Artifacts & Run Migration
 
 ## Instructions
 
-### Task 1: Specify Database Name
-
-Before generating discovery scripts, specify the database name that will be used throughout all migration steps:
-
-**DATABASE Name:** `<YOUR_DATABASE_NAME>`
-
-> **Important:** This database name will be used to:
-> - Organize all artifacts: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/`
-> - Name output files in Steps 3-5
-> - Track this specific migration project
->
-> **Replace `<DATABASE_NAME>` with your actual database name** (e.g., PRODDB, FINANCEDB, SALESDB)
-
----
-
-### Task 2: Generate Discovery Scripts
+### Generate Discovery Scripts
 
 Run this prompt to generate fresh discovery scripts. These scripts should be generated at the start of each migration project to ensure they contain the latest discovery logic.
 
@@ -571,9 +556,9 @@ check_required_passwords() {
 - Collect results to local Artifacts directory
 
 **Output Directory:**
-- Default output should be the Discovery directory **relative to the repository root**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/`
-- The script must calculate the repository root by navigating up from `SCRIPT_DIR`. Since the script is located at `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts/`, use: `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"` (6 levels up: Scripts → Step2 → <DATABASE_NAME> → ZDM → Phase10-Migration → Artifacts → RepoRoot)
-- Use an absolute path for `OUTPUT_DIR` by combining `REPO_ROOT` with the relative path: `OUTPUT_DIR="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery"`
+- Default output should be the Discovery directory **relative to the repository root**: `Artifacts/Phase10-Migration/Step2/Discovery/`
+- The script must calculate the repository root by navigating up from `SCRIPT_DIR`. Since the script is located at `Artifacts/Phase10-Migration/Step2/Scripts/`, use: `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"` (4 levels up: Scripts → Step2 → Phase10-Migration → Artifacts → RepoRoot)
+- Use an absolute path for `OUTPUT_DIR` by combining `REPO_ROOT` with the relative path: `OUTPUT_DIR="${REPO_ROOT}/Artifacts/Phase10-Migration/Step2/Discovery"`
 - Configurable via command-line option or environment variable (when set externally, use as-is)
 - Create subdirectories for each server type (source/, target/, server/)
 
@@ -913,13 +898,13 @@ All scripts should include:
 
 ## Output Location
 
-Save all Step 2 outputs to: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/`
+Save all Step 2 outputs to: `Artifacts/Phase10-Migration/Step2/`
 
 **IMPORTANT:** Step 2 should ONLY create files in the `Step2/` directory. Do NOT create Step3/ or Step4/ folders - those will be created by their respective prompts.
 
 The Step 2 directory structure should be:
 ```
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
+Artifacts/Phase10-Migration/
 └── Step2/                                    # Step 2: Discovery Scripts (CREATE THIS ONLY)
     ├── Scripts/                              # Discovery scripts
     │   ├── zdm_source_discovery.sh
@@ -935,7 +920,7 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
 
 For reference, the complete migration folder structure (created across all steps) is:
 ```
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
+Artifacts/Phase10-Migration/
 ├── Step2/    # Created by Step2 prompt (this prompt)
 ├── Step3/    # Created by Step3 prompt (Discovery Questionnaire)
 └── Step4/    # Created by Step4 prompt (Migration Artifacts)

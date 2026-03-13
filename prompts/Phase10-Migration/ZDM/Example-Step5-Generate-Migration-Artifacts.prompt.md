@@ -1,6 +1,4 @@
-# Example: Generate Migration Artifacts for <DATABASE_NAME> (Step 5)
-
-> **Note:** Replace `<DATABASE_NAME>` with your project name (for example: `PRODDB`).
+﻿# Example: Generate Migration Artifacts (Step 5)
 
 This example is intentionally lightweight and shows how to call Step 5.
 
@@ -12,21 +10,21 @@ This example is intentionally lightweight and shows how to call Step 5.
 ## Project Configuration
 #file:prompts/Phase10-Migration/ZDM/zdm-env.md
 
-Generate migration artifacts for <DATABASE_NAME>.
+Generate migration artifacts.
 
 ## Step3 Inputs
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/
+#file:Artifacts/Phase10-Migration/Step3/
 
 ## Step4 Inputs
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/
+#file:Artifacts/Phase10-Migration/Step4/
 
 ## Step2 Discovery Inputs
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/source/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/target/
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/server/
+#file:Artifacts/Phase10-Migration/Step2/Discovery/source/
+#file:Artifacts/Phase10-Migration/Step2/Discovery/target/
+#file:Artifacts/Phase10-Migration/Step2/Discovery/server/
 
 ## Output Directory
-Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step5/
+Artifacts/Phase10-Migration/Step5/
 ```
 
 ---
@@ -35,9 +33,9 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step5/
 
 Step 5 generates a migration artifact set, usually including:
 - `README.md`
-- `zdm_migrate_<DATABASE_NAME>.rsp`
-- `zdm_commands_<DATABASE_NAME>.sh`
-- `ZDM-Migration-Runbook-<DATABASE_NAME>.md`
+- `zdm_migrate.rsp`
+- `zdm_commands.sh`
+- `ZDM-Migration-Runbook.md`
 
 These files should be derived from Step2 discovery plus Step3/Step4 decisions and resolutions.
 
