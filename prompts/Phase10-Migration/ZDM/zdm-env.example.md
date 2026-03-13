@@ -8,7 +8,7 @@
 ## Project Identification
 - PROJECT_NAME: <YOUR_PROJECT_NAME>
 > `PROJECT_NAME` is used for all artifact directory paths:
-> `Artifacts/Phase10-Migration/ZDM/<YOUR_PROJECT_NAME>/Step0/Scripts/`, `Step1/`, `Step2/`, `Step3/`
+> `Artifacts/Phase10-Migration/ZDM/<YOUR_PROJECT_NAME>/Step1/`, `Step2/Scripts/`, `Step3/`, `Step4/`, `Step5/`
 ---
 ## Remote Server Hostnames
 - SOURCE_HOST: <SOURCE_HOST_IP_OR_FQDN>
@@ -19,7 +19,7 @@
 - TARGET_SSH_USER: <TARGET_SSH_USER>
 ---
 ## SSH Key Paths (for remote source/target servers)
-> Keys must be stored in `~/.ssh/` under the **zdmuser** account on the ZDM server, since Step0 scripts run as zdmuser on the ZDM box (`~` = `/home/zdmuser`). Ensure each file has permissions `600`.
+> Keys must be stored in `~/.ssh/` under the **zdmuser** account on the ZDM server, since Step1 and Step2 scripts run as zdmuser on the ZDM box (`~` = `/home/zdmuser`). Ensure each file has permissions `600`.
 - SOURCE_SSH_KEY: ~/.ssh/<source_key>.pem
 - TARGET_SSH_KEY: ~/.ssh/<target_key>.pem
 ---
@@ -35,7 +35,7 @@ Leave blank to allow auto-detection via `/etc/oratab` and common paths. Set only
 - TARGET_ORACLE_SID:
 > **ODAA / Exadata RAC note:** Scripts that SSH in remotely read `/etc/oratab`, which returns the
 > `db_name` (e.g. `oradb01`) — not the running RAC instance name (e.g. `oradb011`). This causes
-> `ORA-01034: ORACLE not available` in both Step0 orchestrated discovery and Step2 fix scripts.
+> `ORA-01034: ORACLE not available` in both Step2 orchestrated discovery and Step4 fix scripts.
 > Set `TARGET_ORACLE_SID` to the instance SID on Node 1 (`<db_name>1`) to override auto-detection
 > for all scripts. Confirm the value with `ps -ef | grep pmon` on the target node.
 ---

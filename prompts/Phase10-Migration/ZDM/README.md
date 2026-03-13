@@ -2,32 +2,38 @@
 
 This directory contains prompts for Zero Downtime Migration (ZDM) from on-premise Oracle databases to Oracle Database@Azure.
 
-> **Database Name:** The database name (`<DATABASE_NAME>`) is specified in Step 0 and used throughout all migration steps to organize artifacts under `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/`
+> **Database Name:** The database name (`<DATABASE_NAME>`) is used throughout all migration steps to organize artifacts under `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/`
 
 ## Migration Workflow
 
-The ZDM migration process is divided into four steps, each with its own prompt:
+The ZDM migration process is divided into five steps, each with its own prompt:
 
 ```
-Step 0: Generate Discovery Scripts + Run to Get Context
+Step 1: Test SSH Connectivity (fail-fast precheck)
+         ↓
+         ├── Validate source/target SSH hosts
+         ├── Validate SSH key files + permissions
+         └── Confirm non-interactive SSH works
+         ↓
+Step 2: Generate Discovery Scripts + Run to Get Context
          ↓
          ├── Generate discovery scripts
          ├── Run discovery scripts on servers
          └── Collect discovery outputs
          ↓
-Step 1: Get Manual Configuration Context
+Step 3: Get Manual Configuration Context
          ↓
          ├── Analyze discovery results
          ├── Generate Discovery Summary
          └── Complete Migration Questionnaire (manual decisions)
          ↓
-Step 2: Fix Issues (Iteration may be required)
+Step 4: Fix Issues (Iteration may be required)
          ↓
          ├── Address critical actions from Discovery Summary
          ├── Re-run discovery to verify fixes
          └── Repeat until all blockers resolved
          ↓
-Step 3: Generate Migration Artifacts & Run Migration
+Step 5: Generate Migration Artifacts & Run Migration
          ↓
          ├── Generate RSP file
          ├── Generate ZDM CLI commands
@@ -39,20 +45,22 @@ Step 3: Generate Migration Artifacts & Run Migration
 
 | Information Type | Captured In Step | Examples |
 |-----------------|------------------|----------|
-| **Technical Configuration** | Step 0 - Discovery Scripts (auto) | DB version, character set, TDE status, storage |
-| **Business Decisions** | Step 1 - Migration Questionnaire (manual) | Online vs Offline, timeline, downtime tolerance |
-| **OCI/Azure IDs** | Step 1 - Migration Questionnaire (manual) | OCIDs, subscription IDs |
-| **Issue Resolution** | Step 2 - Fix Issues (iterative) | Enable supplemental logging, configure network |
-| **Migration Config** | Step 3 - RSP/CLI generation (auto) | Response file, commands, runbook |
+| **SSH Connectivity Readiness** | Step 1 - SSH Connectivity Test (auto) | Reachability, key file validation, SSH auth precheck |
+| **Technical Configuration** | Step 2 - Discovery Scripts (auto) | DB version, character set, TDE status, storage |
+| **Business Decisions** | Step 3 - Migration Questionnaire (manual) | Online vs Offline, timeline, downtime tolerance |
+| **OCI/Azure IDs** | Step 3 - Migration Questionnaire (manual) | OCIDs, subscription IDs |
+| **Issue Resolution** | Step 4 - Fix Issues (iterative) | Enable supplemental logging, configure network |
+| **Migration Config** | Step 5 - RSP/CLI generation (auto) | Response file, commands, runbook |
 
 ## Prompt Files
 
 | Step | File | Example | Purpose |
 |------|------|---------|---------|
-| 0 | [Step0-Generate-Discovery-Scripts.prompt.md](Step0-Generate-Discovery-Scripts.prompt.md) | [Example](Example-Step0-Generate-Discovery-Scripts.prompt.md) | Generate and run discovery scripts |
-| 1 | [Step1-Discovery-Questionnaire.prompt.md](Step1-Discovery-Questionnaire.prompt.md) | [Example](Example-Step1-Discovery-Questionnaire.prompt.md) | Analyze discovery, complete questionnaire |
-| 2 | [Step2-Fix-Issues.prompt.md](Step2-Fix-Issues.prompt.md) | [Example](Example-Step2-Fix-Issues.prompt.md) | Address blockers, iterate until resolved |
-| 3 | [Step3-Generate-Migration-Artifacts.prompt.md](Step3-Generate-Migration-Artifacts.prompt.md) | [Example](Example-Step3-Generate-Migration-Artifacts.prompt.md) | Generate RSP file, CLI commands, runbook |
+| 1 | [Step1-Test-SSH-Connectivity.prompt.md](Step1-Test-SSH-Connectivity.prompt.md) | [Example](Example-Step1-Test-SSH-Connectivity.prompt.md) | Validate SSH hosts and keys before discovery |
+| 2 | [Step2-Generate-Discovery-Scripts.prompt.md](Step2-Generate-Discovery-Scripts.prompt.md) | [Example](Example-Step2-Generate-Discovery-Scripts.prompt.md) | Generate and run discovery scripts |
+| 3 | [Step3-Discovery-Questionnaire.prompt.md](Step3-Discovery-Questionnaire.prompt.md) | [Example](Example-Step3-Discovery-Questionnaire.prompt.md) | Analyze discovery, complete questionnaire |
+| 4 | [Step4-Fix-Issues.prompt.md](Step4-Fix-Issues.prompt.md) | [Example](Example-Step4-Fix-Issues.prompt.md) | Address blockers, iterate until resolved |
+| 5 | [Step5-Generate-Migration-Artifacts.prompt.md](Step5-Generate-Migration-Artifacts.prompt.md) | [Example](Example-Step5-Generate-Migration-Artifacts.prompt.md) | Generate RSP file, CLI commands, runbook |
 
 ## Example Files
 
@@ -60,42 +68,58 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 | Example | Description |
 |---------|-------------|
-| [Example-Step0](Example-Step0-Generate-Discovery-Scripts.prompt.md) | Shows how to request discovery scripts with custom requirements |
-| [Example-Step1](Example-Step1-Discovery-Questionnaire.prompt.md) | Shows a fully completed questionnaire for online physical migration |
-| [Example-Step2](Example-Step2-Fix-Issues.prompt.md) | Shows iterative issue resolution and verification |
-| [Example-Step3](Example-Step3-Generate-Migration-Artifacts.prompt.md) | Shows expected RSP file, CLI script, and runbook output |
-| [Example-Step2](Example-Step2-Fix-Issues.prompt.md) | Shows iterative issue resolution and verification |
-| [Example-Step3](Example-Step3-Generate-Migration-Artifacts.prompt.md) | Shows expected RSP file, CLI script, and runbook output |
+| [Example-Step1](Example-Step1-Test-SSH-Connectivity.prompt.md) | Shows SSH host/key connectivity validation before discovery |
+| [Example-Step2](Example-Step2-Generate-Discovery-Scripts.prompt.md) | Shows how to request discovery scripts with custom requirements |
+| [Example-Step3](Example-Step3-Discovery-Questionnaire.prompt.md) | Shows a fully completed questionnaire for online physical migration |
+| [Example-Step4](Example-Step4-Fix-Issues.prompt.md) | Shows iterative issue resolution and verification |
+| [Example-Step5](Example-Step5-Generate-Migration-Artifacts.prompt.md) | Shows expected RSP file, CLI script, and runbook output |
 
 ## Detailed Workflow
 
-### Step 0: Generate Discovery Scripts + Run to Get Context
+### Step 1: Test SSH Connectivity (Precheck)
+
+**Purpose**: Fail fast on bad SSH IP/hostname, user, key, or key permission inputs before running the longer discovery step.
+
+**Output**:
+- SSH precheck script saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Scripts/`
+  - `zdm_test_ssh_connectivity.sh`
+- Validation outputs saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Validation/`
+  - `ssh-connectivity-report-<timestamp>.md`
+  - `ssh-connectivity-report-<timestamp>.json`
+
+**Usage**:
+1. Fill SSH host/user/key values in `zdm-env.md`
+2. Run the Step 1 prompt to generate the precheck script
+3. Execute the script on the ZDM server as `zdmuser`
+4. Resolve any SSH failures before proceeding to Step 2
+
+### Step 2: Generate Discovery Scripts + Run to Get Context
 
 **Purpose**: Specify the database name and generate discovery scripts to gather technical context from all servers.
 
 **Output**: 
-- Four bash scripts saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Scripts/`
+- Four bash scripts saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts/`
   - `zdm_source_discovery.sh` - Run on source database server
   - `zdm_target_discovery.sh` - Run on target Oracle Database@Azure server
   - `zdm_server_discovery.sh` - Run on ZDM jumpbox server
   - `zdm_orchestrate_discovery.sh` - Master script to run all discoveries remotely
-- Discovery outputs saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/`
+- Discovery outputs saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/`
   - Source, target, and server discovery results (TXT and JSON)
 
 **Usage**:
-1. Specify your database name in Step 0 (e.g., PRODDB, FINANCEDB)
-2. Run the Step 0 prompt to generate discovery scripts
+1. Specify your database name in Step 2 (e.g., PRODDB, FINANCEDB)
+2. Run the Step 2 prompt to generate discovery scripts
 3. Copy discovery scripts to respective servers and execute
-4. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/`
+4. Collect output files to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/`
 
-### Step 1: Get Manual Configuration Context
+### Step 3: Get Manual Configuration Context
 
 **Purpose**: Analyze discovery results and collect manual configuration decisions via questionnaire.
 
 **Inputs**:
-- Discovery output files (from Step 0)
+- Discovery output files (from Step 2)
 
-**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/`
+**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
 - `Discovery-Summary-<DATABASE_NAME>.md` - Auto-populated findings from discovery
 - `Migration-Questionnaire-<DATABASE_NAME>.md` - Manual decisions with recommended defaults
 
@@ -110,20 +134,20 @@ Each step has a corresponding example file showing a completed prompt for a fict
 - Rollback plans and risk mitigation
 
 **Usage**:
-1. Attach discovery output files from `Step0/Discovery/`
+1. Attach discovery output files from `Step2/Discovery/`
 2. Review generated Discovery Summary
 3. Complete the Migration Questionnaire with business decisions
-4. Note critical actions that need to be addressed in Step 2
+4. Note critical actions that need to be addressed in Step 4
 
-### Step 2: Fix Issues (Iteration May Be Required)
+### Step 4: Fix Issues (Iteration May Be Required)
 
 **Purpose**: Address blockers and critical actions identified in the Discovery Summary before proceeding.
 
 **Inputs**:
-- Discovery Summary (from Step 1)
-- Migration Questionnaire (from Step 1)
+- Discovery Summary (from Step 3)
+- Migration Questionnaire (from Step 3)
 
-**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/`
+**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/`
 - `Issue-Resolution-Log-<DATABASE_NAME>.md` - Tracking of issues and resolutions
 - Updated discovery outputs (after re-running discovery to verify fixes)
 
@@ -141,27 +165,27 @@ Each step has a corresponding example file showing a completed prompt for a fict
 3. Re-run relevant discovery scripts to verify fixes
 4. Update Issue Resolution Log
 5. Repeat until all critical actions are resolved
-6. Proceed to Step 3 only when all blockers are cleared
+6. Proceed to Step 5 only when all blockers are cleared
 
-### Step 3: Generate Migration Artifacts & Run Migration
+### Step 5: Generate Migration Artifacts & Run Migration
 
 **Purpose**: Generate all artifacts needed to execute the migration.
 
 **Inputs**:
-- Completed questionnaire (from Step 1)
-- Issue Resolution Log (from Step 2 - confirming all blockers resolved)
-- Discovery output files (from Step 0)
+- Completed questionnaire (from Step 3)
+- Issue Resolution Log (from Step 4 - confirming all blockers resolved)
+- Discovery output files (from Step 2)
 
-**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/`
+**Output Location**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step5/`
 - `README.md` - Quick-start guide and checklist
 - `zdm_migrate_<DATABASE_NAME>.rsp` - ZDM response file
 - `zdm_commands_<DATABASE_NAME>.sh` - CLI commands script with `init`, `create-creds`, and migration commands
 - `ZDM-Migration-Runbook-<DATABASE_NAME>.md` - Step-by-step runbook
 
 **Usage**:
-1. Ensure all issues from Step 2 are resolved
-2. Provide completed questionnaire from `Step1/`
-3. Artifacts are saved to `Step3/`
+1. Ensure all issues from Step 4 are resolved
+2. Provide completed questionnaire from `Step3/`
+3. Artifacts are saved to `Step5/`
 4. Review generated artifacts
 5. Commit and push to GitHub
 6. Pull changes on ZDM jumpbox
@@ -185,7 +209,7 @@ The complete workflow alternates between your local VS Code environment and the 
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 2. Run Step0 Prompt          │  │                                                        │
+│  │ 2. Run Step2 Prompt          │  │                                                        │
 │  │    → Generate discovery      │  │                                                        │
 │  │      scripts                 │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
@@ -214,7 +238,7 @@ The complete workflow alternates between your local VS Code environment and the 
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 9. Run Step1 Prompt          │  │                                                        │
+│  │ 9. Run Step3 Prompt          │  │                                                        │
 │  │    → Analyze discovery       │  │                                                        │
 │  │    → Generate questionnaire  │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
@@ -225,7 +249,7 @@ The complete workflow alternates between your local VS Code environment and the 
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 11. Run Step2 Prompt         │  │                                                        │
+│  │ 11. Run Step4 Prompt         │  │                                                        │
 │  │     → Identify issues        │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 │                  │                                                        │
@@ -233,12 +257,12 @@ The complete workflow alternates between your local VS Code environment and the 
 │     │  ITERATE UNTIL FIXED  │◄─────┼──────────────────────────────────────────┐             │
 │     │  ┌─────────────────┐  │      │                                          │             │
 │     │  │ Fix issues      │──┼──────┼───► Re-run discovery on servers ─────────┤             │
-│     │  │ Re-run Step1/2  │◄─┼──────┼──── git commit/push artifacts ◄──────────┘             │
+│     │  │ Re-run Step3/4  │◄─┼──────┼──── git commit/push artifacts ◄──────────┘             │
 │     │  └─────────────────┘  │      │                                                        │
 │     └───────────┬───────────┘      │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 12. Run Step3 Prompt         │  │                                                        │
+│  │ 12. Run Step5 Prompt         │  │                                                        │
 │  │     → Generate RSP, CLI,     │  │                                                        │
 │  │       Runbook                │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
@@ -276,11 +300,11 @@ The complete workflow alternates between your local VS Code environment and the 
 
 | Phase | Location | Actions |
 |-------|----------|---------|
-| **Setup** | VS Code | Fork repo, clone, run Step0 prompt (specify DATABASE name) |
+| **Setup** | VS Code | Fork repo, clone, run Step1 prompt (SSH precheck), then run Step2 prompt |
 | **Discovery** | ZDM Server | Clone fork, run discovery scripts, commit artifacts |
-| **Analysis** | VS Code | Pull, run Step1/2 prompts, complete questionnaire |
-| **Iteration** | Both | Fix issues on servers, re-run discovery, update Step1/2 |
-| **Generation** | VS Code | Run Step3 prompt, commit artifacts |
+| **Analysis** | VS Code | Pull, run Step3/4 prompts, complete questionnaire |
+| **Iteration** | Both | Fix issues on servers, re-run discovery, update Step3/4 |
+| **Generation** | VS Code | Run Step5 prompt, commit artifacts |
 | **Migration** | ZDM Server | Pull, init, configure, execute migration |
 
 ### Important: ZDM Server Login
@@ -289,7 +313,6 @@ When working on the ZDM server, you must:
 1. **SSH as your admin user** (e.g., `azureuser`, `opc`) - NOT directly as `zdmuser`
 2. **Switch to zdmuser**: `sudo su - zdmuser`
 3. **First-time setup**: Run `./zdm_commands_<DATABASE_NAME>.sh init` to create required directories and files
-```
 
 ---
 
@@ -299,8 +322,14 @@ Each migration creates a dedicated folder under `Artifacts/Phase10-Migration/ZDM
 
 ```
 Artifacts/Phase10-Migration/ZDM/
-└── <DATABASE_NAME>/                             # e.g., PRODDB (specified in Step 0)
-    ├── Step0/                              # Step 0: Run Scripts to Get Context
+└── <DATABASE_NAME>/                             # e.g., PRODDB
+    ├── Step1/                              # Step 1: Test SSH Connectivity
+    │   ├── Scripts/
+    │   │   └── zdm_test_ssh_connectivity.sh
+    │   └── Validation/
+    │       ├── ssh-connectivity-report-*.md
+    │       └── ssh-connectivity-report-*.json
+    ├── Step2/                              # Step 2: Run Scripts to Get Context
     │   ├── Scripts/                        # Discovery scripts
     │   │   ├── zdm_source_discovery.sh
     │   │   ├── zdm_target_discovery.sh
@@ -317,14 +346,14 @@ Artifacts/Phase10-Migration/ZDM/
     │       └── server/
     │           ├── zdm_server_discovery_*.txt
     │           └── zdm_server_discovery_*.json
-    ├── Step1/                              # Step 1: Get Manual Configuration Context
+    ├── Step3/                              # Step 3: Get Manual Configuration Context
     │   ├── Discovery-Summary-<DATABASE_NAME>.md
     │   └── Migration-Questionnaire-<DATABASE_NAME>.md
-    ├── Step2/                              # Step 2: Fix Issues (Iterative)
+    ├── Step4/                              # Step 4: Fix Issues (Iterative)
     │   ├── Issue-Resolution-Log-<DATABASE_NAME>.md
     │   └── Verification/                   # Re-run discovery outputs
     │       └── (updated discovery files)
-    └── Step3/                              # Step 3: Migration Artifacts & Execution
+    └── Step5/                              # Step 5: Migration Artifacts & Execution
         ├── zdm_migrate_<DATABASE_NAME>.rsp
         ├── zdm_commands_<DATABASE_NAME>.sh
         └── ZDM-Migration-Runbook-<DATABASE_NAME>.md
@@ -377,12 +406,13 @@ Artifacts/Phase10-Migration/ZDM/
 
 ## Best Practices
 
-1. **Always run Step 0 first** - Ensures scripts contain latest discovery logic
-2. **Verify all questionnaire fields** - Incorrect values cause migration failures
-3. **Test connectivity before migration** - Use the connectivity matrix in questionnaire
-4. **Create password files securely** - Never embed passwords in scripts
-5. **Review generated runbook** - Understand each step before execution
-6. **Plan for rollback** - Know the rollback procedures before starting
+1. **Always run Step 1 first** - Catch bad SSH host/key inputs before long-running discovery
+2. **Run Step 2 next** - Ensures scripts contain latest discovery logic
+3. **Verify all questionnaire fields** - Incorrect values cause migration failures
+4. **Test connectivity before migration** - Use the connectivity matrix in questionnaire
+5. **Create password files securely** - Never embed passwords in scripts
+6. **Review generated runbook** - Understand each step before execution
+7. **Plan for rollback** - Know the rollback procedures before starting
 
 ## Support Resources
 

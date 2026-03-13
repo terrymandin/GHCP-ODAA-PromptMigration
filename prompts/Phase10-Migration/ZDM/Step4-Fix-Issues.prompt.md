@@ -1,6 +1,6 @@
-# ZDM Migration Step 2: Fix Issues
+# ZDM Migration Step 4: Fix Issues
 
-> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step0-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
+> **Note:** Replace `<DATABASE_NAME>` with your database name (e.g., PRODDB, HRDB, etc.). The value you specify in Example-Step2-Generate-Discovery-Scripts.prompt.md will be used throughout all steps.
 
 ## Purpose
 This prompt helps address blockers and critical actions identified in the Discovery Summary before proceeding to migration artifact generation. **Iteration may be required** until all issues are resolved.
@@ -10,9 +10,10 @@ This prompt helps address blockers and critical actions identified in the Discov
 ## Prerequisites
 
 Before running this prompt:
-1. ✅ Complete `Step0-Generate-Discovery-Scripts.prompt.md` and run discovery scripts
-2. ✅ Complete `Step1-Discovery-Questionnaire.prompt.md` to generate Discovery Summary
-3. ✅ Review Discovery Summary for critical actions and blockers
+1. ✅ Complete `Step1-Test-SSH-Connectivity.prompt.md` and confirm connectivity checks pass
+2. ✅ Complete `Step2-Generate-Discovery-Scripts.prompt.md` and run discovery scripts
+3. ✅ Complete `Step3-Discovery-Questionnaire.prompt.md` to generate Discovery Summary
+4. ✅ Review Discovery Summary for critical actions and blockers
 
 ---
 
@@ -21,17 +22,17 @@ Before running this prompt:
 Attach the Discovery Summary and run this prompt to get remediation guidance:
 
 ```
-@Step2-Fix-Issues.prompt.md
+@Step4-Fix-Issues.prompt.md
 
 Please help me resolve the issues identified in the Discovery Summary for our <DATABASE_NAME> migration.
 
 ## Attached Files
 
-### Discovery Summary (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Discovery-Summary-<DATABASE_NAME>.md
+### Discovery Summary (from Step3)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/Discovery-Summary-<DATABASE_NAME>.md
 
-### Migration Questionnaire (from Step1)
-#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step1/Migration-Questionnaire-<DATABASE_NAME>.md
+### Migration Questionnaire (from Step3)
+#file:Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step3/Migration-Questionnaire-<DATABASE_NAME>.md
 ```
 
 ---
@@ -42,7 +43,7 @@ This step is designed to be repeated until all blockers are resolved:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Step 2: Fix Issues - Iterative Process                 │
+│  Step 4: Fix Issues - Iterative Process                 │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  1. Review blockers from Discovery Summary              │
@@ -58,7 +59,7 @@ This step is designed to be repeated until all blockers are resolved:
 │  ┌──────────────────────────────────────────┐           │
 │  │ All blockers resolved?                   │           │
 │  │   NO  → Return to step 1                 │           │
-│  │   YES → Proceed to Step 3                │           │
+│  │   YES → Proceed to Step 5                │           │
 │  └──────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -104,7 +105,7 @@ For each issue, generate:
    - How to undo the change if needed
 
 4. **Script README File**
-   - For every script file saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts/`, create a corresponding `README-<scriptname>.md` in the same directory
+   - For every script file saved to `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/Scripts/`, create a corresponding `README-<scriptname>.md` in the same directory
    - Each README must include:
      - **Purpose**: One-sentence summary of what the script does
      - **Target Server**: Which server to run on (source, target, or ZDM)
@@ -143,7 +144,7 @@ The same pattern applies to any analogous `run_sql_on_target` helper. Base64 out
 
 ### Part 3: Create Issue Resolution Log
 
-Create the following artifacts in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/`:
+Create the following artifacts in `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/`:
 
 - `Issue-Resolution-Log-<DATABASE_NAME>.md` — tracking table and per-issue details (see template below)
 - `Scripts/` directory containing each remediation script **and** a `README-<scriptname>.md` alongside it
@@ -182,11 +183,11 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    - Issue 4 (source disk space check) → `ISSUE4_STATUS` / `ISSUE4_DETAIL`
    - Issue 5 (ZDM disk space check) → `ISSUE5_STATUS` / `ISSUE5_DETAIL`
 
-3. **Write `Verification-Results-<DATABASE_NAME>.md`** — after the summary output block and the `verify_fixes.sh completed` echo, append a section that writes a Markdown results file to the Step2 directory (parent of `Verification/`) so it can be committed to the repo:
+3. **Write `Verification-Results-<DATABASE_NAME>.md`** — after the summary output block and the `verify_fixes.sh completed` echo, append a section that writes a Markdown results file to the Step4 directory (parent of `Verification/`) so it can be committed to the repo:
 
    ```bash
    # =============================================================================
-   # Write structured Markdown results file (commit to repo for Step 3)
+   # Write structured Markdown results file (commit to repo for Step 5)
    # =============================================================================
    DB_NAME_UPPER="${ORACLE_SID^^}"
    RESULTS_FILE="$(dirname "${VERIFY_DIR}")/Verification-Results-${DB_NAME_UPPER}.md"
@@ -205,22 +206,22 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
 
    if [[ "${FAIL_COUNT}" -eq 0 ]]; then
      PROCEED_LINE="✅ YES — all 3 blockers resolved"
-     COMMIT_MSG_BODY="Step2 verification passed: all blockers resolved for ${DB_NAME_UPPER}"
+     COMMIT_MSG_BODY="Step4 verification passed: all blockers resolved for ${DB_NAME_UPPER}"
    else
      PROCEED_LINE="❌ NO — ${FAIL_COUNT} blocker(s) still pending"
-     COMMIT_MSG_BODY="Step2 verification: ${BLOCKERS_PASSED}/3 blockers resolved for ${DB_NAME_UPPER}"
+     COMMIT_MSG_BODY="Step4 verification: ${BLOCKERS_PASSED}/3 blockers resolved for ${DB_NAME_UPPER}"
    fi
 
    cat > "${RESULTS_FILE}" << RESULTS_EOF
-   # Step 2 Verification Results: ${DB_NAME_UPPER}
+   # Step 4 Verification Results: ${DB_NAME_UPPER}
 
    **Verified:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
    **Verified By:** $(whoami) on $(hostname)
-   **Log:** \`$(basename "${LOG_FILE}")\` (in \`Step2/Verification/\`)
+   **Log:** \`$(basename "${LOG_FILE}")\` (in \`Step4/Verification/\`)
 
    ---
 
-   ## Blocker Status (Must Be Resolved Before Step 3)
+   ## Blocker Status (Must Be Resolved Before Step 5)
 
    | # | Issue | Status | Detail |
    |---|-------|--------|--------|
@@ -240,15 +241,15 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    ## Summary
 
    - **Blockers Resolved:** ${BLOCKERS_PASSED}/3
-   - **Proceed to Step 3:** ${PROCEED_LINE}
+   - **Proceed to Step 5:** ${PROCEED_LINE}
    RESULTS_EOF
 
    echo ""
    echo "  📄 Verification results written to:"
    echo "  ${RESULTS_FILE}"
    echo ""
-   echo "  Commit to repo when ready to proceed to Step 3:"
-   echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step2/Verification-Results-${DB_NAME_UPPER}.md"
+   echo "  Commit to repo when ready to proceed to Step 5:"
+   echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step4/Verification-Results-${DB_NAME_UPPER}.md"
    echo "    git commit -m \"${COMMIT_MSG_BODY}\""
    ```
 
@@ -259,7 +260,7 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    REPO_ROOT=$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")
 
    if [[ -n "${REPO_ROOT}" ]]; then
-     RESULTS_BASE="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2"
+     RESULTS_BASE="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4"
    else
      RESULTS_BASE="$(dirname "${VERIFY_DIR}")"
    fi
@@ -274,14 +275,14 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    echo "  📄 Verification results written to:"
    echo "  ${RESULTS_FILE}"
    echo ""
-   echo "  Commit and push to repo before running Step 3:"
+   echo "  Commit and push to repo before running Step 5:"
    echo "    cd \"${REPO_ROOT:-<repo-root>}\""
-   echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step2/Verification-Results-${DB_NAME_UPPER}.md"
+   echo "    git add Artifacts/Phase10-Migration/ZDM/${DB_NAME_UPPER}/Step4/Verification-Results-${DB_NAME_UPPER}.md"
    echo "    git commit -m \"${COMMIT_MSG_BODY}\""
    echo "    git push"
    ```
 
-6. **`VERIFY_DIR` path** — point the log output subdirectory at `${HOME}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification`. Logs stay local; only the results file goes into the repo clone.
+6. **`VERIFY_DIR` path** — point the log output subdirectory at `${HOME}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/Verification`. Logs stay local; only the results file goes into the repo clone.
 
 **Issue Resolution Log template:**
 
@@ -374,7 +375,7 @@ oci os ns get
 #### 5. SSH Key Authentication Issues
 
 > **IMPORTANT:** ZDM uses admin users with sudo, NOT direct SSH as oracle.
-> If Step 0 discovery completed successfully, SSH is already working.
+> If Step 2 discovery completed successfully, SSH is already working.
 > All fix scripts run **as zdmuser** on the ZDM server; SSH keys must be in `/home/zdmuser/.ssh/`.
 
 ```bash
@@ -411,7 +412,7 @@ After fixing issues, re-run the relevant discovery script as `zdmuser` on the ZD
 sudo su - zdmuser
 
 # Re-run source discovery
-cd ~/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Scripts
+cd ~/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts
 ./zdm_orchestrate_discovery.sh source
 
 # Or run individual scripts directly
@@ -419,13 +420,13 @@ ssh -i ~/.ssh/iaas.pem ${SOURCE_SSH_USER}@${SOURCE_HOST} 'ORACLE_USER=oracle bas
 ```
 
 Save updated discovery outputs to:
-`Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Verification/`
+`Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step4/Verification/`
 
 ---
 
 ## Completion Checklist
 
-Before proceeding to Step 3, ensure:
+Before proceeding to Step 5, ensure:
 
 - [ ] All ❌ Blockers are resolved
 - [ ] All ⚠️ Required Actions are completed
@@ -447,12 +448,12 @@ Once all issues are resolved:
 3. ✅ Run `verify_fixes.sh` — confirm all checks PASS
 4. ✅ Run the git commands printed by the script to commit and push `Verification-Results-<DATABASE_NAME>.md`
 5. ✅ Ensure verification discovery files are saved
-6. 🔲 Run `Step3-Generate-Migration-Artifacts.prompt.md` with:
-   - Completed questionnaire from Step 1
-   - Issue Resolution Log from Step 2
-   - `Verification-Results-<DATABASE_NAME>.md` from Step 2
+6. 🔲 Run `Step5-Generate-Migration-Artifacts.prompt.md` with:
+   - Completed questionnaire from Step 3
+   - Issue Resolution Log from Step 4
+   - `Verification-Results-<DATABASE_NAME>.md` from Step 4
    - Latest discovery files
 
 ---
 
-*Generated by ZDM Migration Planning - Step 2*
+*Generated by ZDM Migration Planning - Step 4*

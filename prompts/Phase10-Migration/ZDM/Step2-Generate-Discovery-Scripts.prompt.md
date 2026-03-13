@@ -1,4 +1,4 @@
-# ZDM Migration Step 0: Run Scripts to Get Context
+# ZDM Migration Step 2: Run Scripts to Get Context
 
 ## Purpose
 This prompt generates the discovery scripts that will be used to gather technical context from the source database server, target Oracle Database@Azure server, and the local ZDM server environment. The discovery outputs form the foundation for all subsequent migration steps.
@@ -33,13 +33,13 @@ This prompt generates the discovery scripts that will be used to gather technica
 ## Migration Flow Overview
 
 ```
-Step 0: Run Scripts to Get Context    ← YOU ARE HERE
+Step 2: Run Scripts to Get Context    ← YOU ARE HERE
          ↓
-Step 1: Get Manual Configuration Context
+Step 3: Get Manual Configuration Context
          ↓
-Step 2: Fix Issues (Iteration may be required)
+Step 4: Fix Issues (Iteration may be required)
          ↓
-Step 3: Generate Migration Artifacts & Run Migration
+Step 5: Generate Migration Artifacts & Run Migration
 ```
 
 ---
@@ -81,7 +81,7 @@ Step 3: Generate Migration Artifacts & Run Migration
 
 ## Instructions
 
-### Step 1: Specify Database Name
+### Task 1: Specify Database Name
 
 Before generating discovery scripts, specify the database name that will be used throughout all migration steps:
 
@@ -89,14 +89,14 @@ Before generating discovery scripts, specify the database name that will be used
 
 > **Important:** This database name will be used to:
 > - Organize all artifacts: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/`
-> - Name output files in Steps 1-3
+> - Name output files in Steps 3-5
 > - Track this specific migration project
 >
 > **Replace `<DATABASE_NAME>` with your actual database name** (e.g., PRODDB, FINANCEDB, SALESDB)
 
 ---
 
-### Step 2: Generate Discovery Scripts
+### Task 2: Generate Discovery Scripts
 
 Run this prompt to generate fresh discovery scripts. These scripts should be generated at the start of each migration project to ensure they contain the latest discovery logic.
 
@@ -274,7 +274,7 @@ ZDM does NOT support a `-version` flag. To verify ZDM is installed and to determ
 Do NOT use `zdmcli -version` as this is an invalid command.
 
 **IMPORTANT: ZDM Version Capture — Required for Latest-Version Validation:**
-The discovery script MUST attempt to determine the exact installed ZDM version and report it prominently so Step 1 can flag outdated installations. Use the following methods in priority order:
+The discovery script MUST attempt to determine the exact installed ZDM version and report it prominently so Step 3 can flag outdated installations. Use the following methods in priority order:
 
 ```bash
 # Method 1: Oracle Inventory XML (most reliable)
@@ -473,9 +473,9 @@ TARGET_SSH_KEY="${TARGET_SSH_KEY:-}"
 
 ## Required Password/Credential Environment Variables
 
-> ⚠️ **SECURITY WARNING**: Never commit passwords or secrets to GitHub or any source control system. The environment variables below must be set at runtime on the ZDM server before executing migration scripts. Step 1 questionnaire will reference these variables rather than requesting direct password entry. Step 2 generated scripts will validate that these variables are set before executing.
+> ⚠️ **SECURITY WARNING**: Never commit passwords or secrets to GitHub or any source control system. The environment variables below must be set at runtime on the ZDM server before executing migration scripts. Step 3 questionnaire will reference these variables rather than requesting direct password entry. Step 4 generated scripts will validate that these variables are set before executing.
 
-The following environment variables must be set before running ZDM migration scripts. These are used in Step 2 when generating migration artifacts and executing the migration.
+The following environment variables must be set before running ZDM migration scripts. These are used in Step 4 when generating migration artifacts and executing the migration.
 
 ### Required Password Variables
 
@@ -534,7 +534,7 @@ export OCI_OSS_BUCKET_NAME="<oci_oss_bucket_name>"
 
 ### Password Variable Validation
 
-Step 2 generated scripts will include validation to check that required password environment variables are set before executing:
+Step 4 generated scripts will include validation to check that required password environment variables are set before executing:
 
 ```bash
 # Example validation included in generated scripts
@@ -571,9 +571,9 @@ check_required_passwords() {
 - Collect results to local Artifacts directory
 
 **Output Directory:**
-- Default output should be the Discovery directory **relative to the repository root**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery/`
-- The script must calculate the repository root by navigating up from `SCRIPT_DIR`. Since the script is located at `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Scripts/`, use: `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"` (6 levels up: Scripts → Step0 → <DATABASE_NAME> → ZDM → Phase10-Migration → Artifacts → RepoRoot)
-- Use an absolute path for `OUTPUT_DIR` by combining `REPO_ROOT` with the relative path: `OUTPUT_DIR="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/Discovery"`
+- Default output should be the Discovery directory **relative to the repository root**: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery/`
+- The script must calculate the repository root by navigating up from `SCRIPT_DIR`. Since the script is located at `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Scripts/`, use: `REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../../.." && pwd)"` (6 levels up: Scripts → Step2 → <DATABASE_NAME> → ZDM → Phase10-Migration → Artifacts → RepoRoot)
+- Use an absolute path for `OUTPUT_DIR` by combining `REPO_ROOT` with the relative path: `OUTPUT_DIR="${REPO_ROOT}/Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/Discovery"`
 - Configurable via command-line option or environment variable (when set externally, use as-is)
 - Create subdirectories for each server type (source/, target/, server/)
 
@@ -913,14 +913,14 @@ All scripts should include:
 
 ## Output Location
 
-Save all Step 0 outputs to: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step0/`
+Save all Step 2 outputs to: `Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/Step2/`
 
-**IMPORTANT:** Step 0 should ONLY create files in the `Step0/` directory. Do NOT create Step1/ or Step2/ folders - those will be created by their respective prompts.
+**IMPORTANT:** Step 2 should ONLY create files in the `Step2/` directory. Do NOT create Step3/ or Step4/ folders - those will be created by their respective prompts.
 
-The Step 0 directory structure should be:
+The Step 2 directory structure should be:
 ```
 Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
-└── Step0/                                    # Step 0: Discovery Scripts (CREATE THIS ONLY)
+└── Step2/                                    # Step 2: Discovery Scripts (CREATE THIS ONLY)
     ├── Scripts/                              # Discovery scripts
     │   ├── zdm_source_discovery.sh
     │   ├── zdm_target_discovery.sh
@@ -936,11 +936,11 @@ Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
 For reference, the complete migration folder structure (created across all steps) is:
 ```
 Artifacts/Phase10-Migration/ZDM/<DATABASE_NAME>/
-├── Step0/    # Created by Step0 prompt (this prompt)
-├── Step1/    # Created by Step1 prompt (Discovery Questionnaire)
-└── Step2/    # Created by Step2 prompt (Migration Artifacts)
+├── Step2/    # Created by Step2 prompt (this prompt)
+├── Step3/    # Created by Step3 prompt (Discovery Questionnaire)
+└── Step4/    # Created by Step4 prompt (Migration Artifacts)
 After generating discovery scripts:
 1. Copy discovery scripts to respective servers
 2. Execute scripts to gather discovery information
-3. Collect output files to `Step0/Discovery/`
-4. Proceed to **Step 1: Discovery Questionnaire** to complete the full questionnaire with discovery data and business decisions
+3. Collect output files to `Step2/Discovery/`
+4. Proceed to **Step 3: Discovery Questionnaire** to complete the full questionnaire with discovery data and business decisions
