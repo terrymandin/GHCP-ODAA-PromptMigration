@@ -27,7 +27,7 @@
 - ORACLE_USER: oracle
 - ZDM_SOFTWARE_USER: zdmuser
 ---
-## Oracle Path Overrides
+## Oracle Path Overrides - Optional
 Leave blank to allow auto-detection via `/etc/oratab` and common paths. Set only if auto-detection fails.
 - SOURCE_REMOTE_ORACLE_HOME: 
 - SOURCE_ORACLE_SID: 
