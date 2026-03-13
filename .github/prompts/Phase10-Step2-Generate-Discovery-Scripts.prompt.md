@@ -273,7 +273,7 @@ fi
 
 # Method 2: OPatch installed patches list
 if [ -z "${ZDM_VERSION:-}" ] && sudo test -x "${ZDM_HOME}/OPatch/opatch" 2>/dev/null; then
-    ZDM_OPATCH=$(sudo -u "${ZDM_USER:-zdmuser}" "${ZDM_HOME}/OPatch/opatch" lspatches 2>/dev/null | head -20)
+    ZDM_OPATCH=$(sudo su - "${ZDM_USER:-zdmuser}" -c "${ZDM_HOME}/OPatch/opatch lspatches" 2>/dev/null | head -20)
 fi
 
 # Method 3: version.txt or similar files in ZDM_HOME
@@ -322,7 +322,7 @@ The JSON summary output MUST include a `zdm_version` field in the `zdm_installat
 
 **IMPORTANT: ZDM Detection Requirements:**
 The script may be executed as a different user (e.g., azureuser) than the ZDM software owner (zdmuser). The script MUST detect ZDM using these methods in priority order:
-1. **Get ZDM_HOME from zdmuser's environment** - Use `sudo -u zdmuser -i bash -c 'echo $ZDM_HOME'` to get the environment variable from the zdmuser's login shell
+1. **Get ZDM_HOME from zdmuser's environment** - Use `sudo su - zdmuser -c 'echo $ZDM_HOME'` to get the environment variable from the zdmuser's login shell
 2. **Check zdmuser's home directory** - Look for common paths like `~zdmuser/zdmhome`, `~zdmuser/app/zdmhome`
 3. **Search common system paths** - Check `/u01/app/zdmhome`, `/u01/zdm`, `/opt/zdm`, etc.
 4. **Find zdmcli binary** - Use `sudo find` to locate the zdmcli binary and derive ZDM_HOME from it
@@ -433,7 +433,7 @@ Generate a bash script that runs on the ZDM box to orchestrate discovery across 
   - ZDM server: local execution as `zdmuser` (no SSH)
 - OS-level discovery commands run as the respective admin user
 - Oracle SQL commands run as ORACLE_USER (default: "oracle") via `sudo -u oracle`
-- ZDM CLI commands run as ZDM_USER (default: "zdmuser") via `sudo -u zdmuser`
+- ZDM CLI commands run as ZDM_USER (default: "zdmuser") via `sudo su - zdmuser`
 
 **Environment Variable Defaults in Orchestration Script:**
 ```bash
@@ -753,7 +753,7 @@ All scripts should include:
           if id "$zdm_user" &>/dev/null; then
               # Try to get ZDM_HOME from zdmuser's login shell environment
               local zdm_home_from_user
-              zdm_home_from_user=$(sudo -u "$zdm_user" -i bash -c 'echo $ZDM_HOME' 2>/dev/null)
+              zdm_home_from_user=$(sudo su - "$zdm_user" -c 'echo $ZDM_HOME' 2>/dev/null)
               if [ -n "$zdm_home_from_user" ] && [ -d "$zdm_home_from_user" ] && [ -f "$zdm_home_from_user/bin/zdmcli" ]; then
                   export ZDM_HOME="$zdm_home_from_user"
               fi
@@ -878,11 +878,11 @@ All scripts should include:
   run_zdm_cmd() {
       local zdm_cmd="$1"
       if [ -n "${ZDM_HOME:-}" ]; then
-          # Execute as zdmuser - use sudo if current user is not zdmuser
+          # Execute as zdmuser - use sudo su - if current user is not zdmuser
           if [ "$(whoami)" = "$ZDM_USER" ]; then
               $ZDM_HOME/bin/$zdm_cmd
           else
-              sudo -u "$ZDM_USER" -E ZDM_HOME="$ZDM_HOME" $ZDM_HOME/bin/$zdm_cmd
+              sudo su - "$ZDM_USER" -c "$ZDM_HOME/bin/$zdm_cmd"
           fi
       else
           echo "ERROR: ZDM_HOME not set"
