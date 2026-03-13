@@ -3,6 +3,7 @@
 > **Note:** Replace `<DATABASE_NAME>` with your project name (for example: `PRODDB`).
 
 This example is intentionally lightweight and shows how to call Step 0.
+Run Step 0 scripts from the ZDM box; no SSH into the ZDM box is required for Step 0.
 
 ## Example Prompt
 
@@ -15,7 +16,7 @@ This example is intentionally lightweight and shows how to call Step 0.
 Generate Step 0 discovery scripts for the <DATABASE_NAME> migration.
 ```
 
-> Update `PROJECT_NAME` in [zdm-env.md](zdm-env.md) before running.
+> Update `PROJECT_NAME` in [zdm-env.md](zdm-env.md) before running, and run the generated scripts on the ZDM box.
 
 ---
 

@@ -1,7 +1,7 @@
 # ZDM Migration Step 0: Run Scripts to Get Context
 
 ## Purpose
-This prompt generates the discovery scripts that will be used to gather technical context from the source database server, target Oracle Database@Azure server, and ZDM jumpbox server. The discovery outputs form the foundation for all subsequent migration steps.
+This prompt generates the discovery scripts that will be used to gather technical context from the source database server, target Oracle Database@Azure server, and the local ZDM server environment. The discovery outputs form the foundation for all subsequent migration steps.
 
 ---
 
@@ -252,7 +252,7 @@ Generate a bash script to run on the **target database server** (Oracle Database
 
 ### 3. ZDM Server Discovery Script (`zdm_server_discovery.sh`)
 
-Generate a bash script to run on the **ZDM jumpbox server** (executed via SSH as ADMIN_USER for OS-level discovery, with ZDM CLI commands running as ZDM_USER via sudo) that discovers:
+Generate a bash script to run on the **ZDM server** (executed locally on the ZDM box as `zdmuser`) that discovers:
 
 **OS Information:**
 - Hostname, current user
@@ -415,22 +415,20 @@ fi
 
 ### 4. Master Orchestration Script (`zdm_orchestrate_discovery.sh`)
 
-Generate a bash script that can be run from any machine with SSH access to orchestrate discovery across all servers:
+Generate a bash script that runs on the ZDM box to orchestrate discovery across all servers:
 
 **Configuration:**
-- Environment variables for SOURCE_HOST, TARGET_HOST, ZDM_HOST
+- Environment variables for SOURCE_HOST, TARGET_HOST
 - Environment variables for SSH/admin users (each server can have a different admin user):
   - SOURCE_ADMIN_USER: Linux admin user for source database server (default: "azureuser")
   - TARGET_ADMIN_USER: Linux admin user for target Oracle Database@Azure server (default: "azureuser")
-  - ZDM_ADMIN_USER: Linux admin user for ZDM jumpbox server (default: "azureuser")
 - Environment variables for application users:
   - ORACLE_USER: Oracle database software owner (default: "oracle")
   - ZDM_USER: ZDM software owner user for ZDM CLI commands (default: "zdmuser")
 - Separate SSH key paths for each environment (all optional — leave empty to use SSH agent or default key):
   - SOURCE_SSH_KEY: SSH key for source database server (optional)
   - TARGET_SSH_KEY: SSH key for target Oracle Database@Azure server (optional)
-  - ZDM_SSH_KEY: SSH key for ZDM jumpbox server (optional)
-  (Note: These are typically different keys due to separate security domains)
+  (Note: Source and target keys are often different due to separate security domains)
 
   **SSH key rule:** SSH key variables default to empty. The `-i` flag MUST only be added to SSH and SCP commands when the corresponding key variable is non-empty (i.e., the variable was explicitly set in `zdm-env.md` and is not commented out). Use bash conditional expansion throughout all SSH and SCP calls:
   ```bash
@@ -443,7 +441,7 @@ Generate a bash script that can be run from any machine with SSH access to orche
 - Each server can have a different admin user for SSH connections:
   - Source server: SOURCE_ADMIN_USER (default: "azureuser")
   - Target server: TARGET_ADMIN_USER (default: "azureuser")
-  - ZDM server: ZDM_ADMIN_USER (default: "azureuser")
+  - ZDM server: local execution as `zdmuser` (no SSH)
 - OS-level discovery commands run as the respective admin user
 - Oracle SQL commands run as ORACLE_USER (default: "oracle") via `sudo -u oracle`
 - ZDM CLI commands run as ZDM_USER (default: "zdmuser") via `sudo -u zdmuser`
@@ -454,11 +452,10 @@ Generate a bash script that can be run from any machine with SSH access to orche
 # USER CONFIGURATION
 # ===========================================
 
-# SSH/Admin users for each server (can be different for each environment)
+# SSH/Admin users for remote source/target servers
 # These are Linux admin users with sudo privileges
 SOURCE_ADMIN_USER="${SOURCE_ADMIN_USER:-azureuser}"
 TARGET_ADMIN_USER="${TARGET_ADMIN_USER:-azureuser}"
-ZDM_ADMIN_USER="${ZDM_ADMIN_USER:-azureuser}"
 
 # Oracle database software owner (for running SQL commands)
 ORACLE_USER="${ORACLE_USER:-oracle}"
@@ -470,7 +467,6 @@ ZDM_USER="${ZDM_USER:-zdmuser}"
 # Set these only if the corresponding key is defined in zdm-env.md and not commented out
 SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-}"
 TARGET_SSH_KEY="${TARGET_SSH_KEY:-}"
-ZDM_SSH_KEY="${ZDM_SSH_KEY:-}"
 ```
 
 ---
@@ -603,9 +599,7 @@ check_required_passwords() {
 - **Pass SOURCE_HOST and TARGET_HOST to ZDM server discovery** - The orchestration script MUST pass the source and target hostnames as environment variables when running the ZDM server discovery script, so connectivity tests work correctly:
   ```bash
   # When running server discovery, pass the hostnames for connectivity testing
-  ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${ZDM_ADMIN_USER}@${ZDM_HOST}" \
-      "mkdir -p $remote_dir && SOURCE_HOST='$SOURCE_HOST' TARGET_HOST='$TARGET_HOST' ZDM_USER='$ZDM_USER' bash -l -s" \
-      < <(echo "cd '$remote_dir'" ; cat "$script_path")
+  SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash "$script_path"
   ```
 - **Auto-detection as primary method** - The remote discovery scripts should auto-detect Oracle and ZDM environments by:
   - Parsing /etc/oratab for Oracle homes and SIDs
@@ -626,7 +620,7 @@ check_required_passwords() {
 - **Upfront SSH key diagnostic in main()** - Before attempting any connections, log a diagnostic block showing:
   1. The user running the script and their home directory. Scripts must run as `zdmuser`; if the current user is not `zdmuser`, log a warning.
   2. All `.pem` and `.key` files found in `~/.ssh/`; if none are found or the directory is missing, log a warning.
-  3. For each SSH key variable (`SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ZDM_SSH_KEY`): if the variable is empty (key not configured in `zdm-env.md` or commented out), log that no key is configured for that server — this is valid, meaning SSH agent or default key will be used. If the variable is non-empty, expand the path (resolving `~` to `$HOME`), then log whether the file exists or is missing; if missing, log the exact expanded path that was checked and the environment variable the user should override to fix it.
+  3. For each SSH key variable (`SOURCE_SSH_KEY`, `TARGET_SSH_KEY`): if the variable is empty (key not configured in `zdm-env.md` or commented out), log that no key is configured for that server — this is valid, meaning SSH agent or default key will be used. If the variable is non-empty, expand the path (resolving `~` to `$HOME`), then log whether the file exists or is missing; if missing, log the exact expanded path that was checked and the environment variable the user should override to fix it.
 
   This is the single most common failure cause — the script runs as a different user (e.g. `azureuser` instead of `zdmuser`), so `~/.ssh/` resolves to `/home/azureuser/.ssh/` and the keys are not found. Keys must be in `/home/zdmuser/.ssh/` with permissions `600`.
 - **List remote directory before collecting output files** - After the remote discovery script finishes but before running SCP collection, SSH back to the remote host and list the contents of the temp directory. Log each line using `log_info` (the orchestrator does **not** define `log_raw` — that function only exists inside the individual discovery scripts that write to a report file). If the directory is not found, log a clear message indicating that. This makes it immediately visible whether the remote script produced output files or ran into errors before attempting the transfer.
