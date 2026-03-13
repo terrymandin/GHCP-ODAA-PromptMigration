@@ -1,569 +1,503 @@
-﻿#!/bin/bash
+#!/bin/bash
 # =============================================================================
 # zdm_orchestrate_discovery.sh
-# Phase 10 â€” ZDM Migration Â· Step 2: Orchestrate Discovery Across All Servers
+# Phase 10 — ZDM Migration · Step 2: Discovery Orchestration
 #
-# READ-ONLY DISCOVERY SCRIPT - Makes no changes to any server or database
+# READ-ONLY DISCOVERY SCRIPT - Makes no changes to the database or OS configuration
 #
-# Orchestrates discovery by:
-#   1. SSHing to the source DB server and running zdm_source_discovery.sh
-#   2. SSHing to the target Oracle DB@Azure server and running zdm_target_discovery.sh
-#   3. Running zdm_server_discovery.sh locally on this ZDM server
-#   4. SCP-collecting all output files into Artifacts/Phase10-Migration/Step2/Discovery/
+# Master script that runs on the ZDM server as zdmuser. Copies the three
+# discovery scripts to their respective servers via SCP, executes them via SSH
+# (login shell), and collects the output files back to the local output directory.
 #
 # Usage:
-#   ./zdm_orchestrate_discovery.sh [-h] [-c] [-t] [-v]
-#
-#   -h, --help     Show this help message
-#   -c, --config   Show configuration and exit
-#   -t, --test     Test SSH connectivity only (do not run discovery)
-#   -v, --verbose  Verbose SSH/SCP output
-#
-# Run as: zdmuser on the ZDM server
+#   bash zdm_orchestrate_discovery.sh            # full discovery
+#   bash zdm_orchestrate_discovery.sh -t         # connectivity test only
+#   bash zdm_orchestrate_discovery.sh -c         # show config and exit
+#   bash zdm_orchestrate_discovery.sh -h         # show help and exit
+#   bash zdm_orchestrate_discovery.sh -v         # verbose SSH output
 # =============================================================================
 
-# Do NOT use set -e globally â€” individual sections handle their own errors
-set -uo pipefail
-
-# =============================================================================
-# USER CONFIGURATION  (from zdm-env.md)
-# =============================================================================
-
-# --- Hosts ---
-SOURCE_HOST="${SOURCE_HOST:-10.1.0.11}"
-TARGET_HOST="${TARGET_HOST:-10.0.1.160}"
-
-# --- SSH/Admin users for remote servers (Linux admin users with sudo) ---
-SOURCE_ADMIN_USER="${SOURCE_ADMIN_USER:-azureuser}"
-TARGET_ADMIN_USER="${TARGET_ADMIN_USER:-opc}"
-
-# --- Oracle database software owner (for running SQL commands) ---
-ORACLE_USER="${ORACLE_USER:-oracle}"
-
-# --- ZDM software owner (for running ZDM CLI commands) ---
-ZDM_USER="${ZDM_USER:-zdmuser}"
-
-# --- SSH key paths (optional â€” when empty, SSH agent or default key is used) ---
-# Set only if the key is defined in zdm-env.md and is non-empty
-SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-${HOME}/.ssh/odaa.pem}"
-TARGET_SSH_KEY="${TARGET_SSH_KEY:-${HOME}/.ssh/odaa.pem}"
-
-# --- Oracle environment overrides (leave empty for auto-detection) ---
-SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-}"
-SOURCE_REMOTE_ORACLE_SID="${SOURCE_REMOTE_ORACLE_SID:-}"
-TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-}"
-TARGET_REMOTE_ORACLE_SID="${TARGET_REMOTE_ORACLE_SID:-}"
-ZDM_REMOTE_ZDM_HOME="${ZDM_REMOTE_ZDM_HOME:-}"
-ZDM_REMOTE_JAVA_HOME="${ZDM_REMOTE_JAVA_HOME:-}"
-
-# =============================================================================
-# INTERNAL CONFIGURATION
-# =============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/Artifacts/Phase10-Migration/Step2/Discovery}"
-
-VERBOSE=false
-TEST_ONLY=false
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
-# Results tracking
-SOURCE_STATUS="NOT_RUN"
-TARGET_STATUS="NOT_RUN"
-SERVER_STATUS="NOT_RUN"
-FAILURES=()
+# ---------------------------------------------------------------------------
+# Environment Variables with defaults (from zdm-env.md)
+# ---------------------------------------------------------------------------
+SOURCE_HOST="${SOURCE_HOST:-10.1.0.11}"
+TARGET_HOST="${TARGET_HOST:-10.0.1.160}"
+SOURCE_ADMIN_USER="${SOURCE_ADMIN_USER:-azureuser}"
+TARGET_ADMIN_USER="${TARGET_ADMIN_USER:-opc}"
+ORACLE_USER="${ORACLE_USER:-oracle}"
+ZDM_USER="${ZDM_USER:-zdmuser}"
+SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-${HOME}/.ssh/odaa.pem}"   # set empty to use SSH agent
+TARGET_SSH_KEY="${TARGET_SSH_KEY:-${HOME}/.ssh/odaa.pem}"   # set empty to use SSH agent
 
-# =============================================================================
-# COLOR OUTPUT
-# =============================================================================
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'  # No Color
+# Optional Oracle env overrides (passed through to discovery scripts)
+SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-}"
+SOURCE_ORACLE_SID="${SOURCE_ORACLE_SID:-}"
+TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-}"
+TARGET_ORACLE_SID="${TARGET_ORACLE_SID:-}"
 
-log_info()    { echo -e "${GREEN}[INFO]${NC}  $1"; }
-log_warn()    { echo -e "${YELLOW}[WARN]${NC}  $1"; }
-log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
-log_debug()   { $VERBOSE && echo -e "${CYAN}[DEBUG]${NC} $1" || true; }
-log_section() { echo -e "\n${BOLD}${CYAN}============================================================${NC}"; \
-                echo -e "${BOLD}${CYAN}  $1${NC}"; \
-                echo -e "${BOLD}${CYAN}============================================================${NC}"; }
+# Output directory (create relative to SCRIPT_DIR/../Discovery)
+OUTPUT_BASE="${OUTPUT_BASE:-${SCRIPT_DIR}/../Discovery}"
+REMOTE_TMP_DIR="${REMOTE_TMP_DIR:-/tmp/zdm_discovery_${TIMESTAMP}}"
 
-# =============================================================================
-# ARGUMENT PARSING  â€” show_help / show_config ONLY called from here
-# =============================================================================
+# Script paths
+SOURCE_DISCOVERY_SCRIPT="${SCRIPT_DIR}/zdm_source_discovery.sh"
+TARGET_DISCOVERY_SCRIPT="${SCRIPT_DIR}/zdm_target_discovery.sh"
+SERVER_DISCOVERY_SCRIPT="${SCRIPT_DIR}/zdm_server_discovery.sh"
+
+# ---------------------------------------------------------------------------
+# SSH / SCP options
+# ---------------------------------------------------------------------------
+SSH_BASE_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15"
+SCP_BASE_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15"
+VERBOSE=false
+
+# ---------------------------------------------------------------------------
+# Logging helpers
+# ---------------------------------------------------------------------------
+log_info()  { printf '[%s] INFO:  %s\n' "$(date +%H:%M:%S)" "$*" ; }
+log_warn()  { printf '[%s] WARN:  %s\n' "$(date +%H:%M:%S)" "$*" ; }
+log_error() { printf '[%s] ERROR: %s\n' "$(date +%H:%M:%S)" "$*" >&2 ; }
+log_ok()    { printf '[%s] OK:    %s\n' "$(date +%H:%M:%S)" "$*" ; }
+
+# ---------------------------------------------------------------------------
+# show_help — called only from argument parsing, exits immediately
+# ---------------------------------------------------------------------------
 show_help() {
-    cat <<HELP
-Usage: $(basename "$0") [OPTIONS]
-
-Orchestrates ZDM discovery across source, target, and ZDM server.
+    cat << 'HELPEOF'
+Usage: bash zdm_orchestrate_discovery.sh [OPTIONS]
 
 Options:
-  -h, --help     Show this help message and exit
-  -c, --config   Show current configuration and exit
-  -t, --test     Test SSH connectivity only (do not run discovery)
-  -v, --verbose  Enable verbose SSH/SCP output
+  -h    Show this help message and exit
+  -c    Display current configuration and exit
+  -t    Run connectivity tests only (ping + port checks), then exit
+  -v    Enable verbose SSH output
 
 Environment variables (override defaults):
-  SOURCE_HOST            Source database host (default: $SOURCE_HOST)
-  TARGET_HOST            Target database host (default: $TARGET_HOST)
-  SOURCE_ADMIN_USER      SSH admin user for source server (default: $SOURCE_ADMIN_USER)
-  TARGET_ADMIN_USER      SSH admin user for target server (default: $TARGET_ADMIN_USER)
-  SOURCE_SSH_KEY         SSH key for source (default: $SOURCE_SSH_KEY)
-  TARGET_SSH_KEY         SSH key for target (default: $TARGET_SSH_KEY)
-  OUTPUT_DIR             Output directory (default: $OUTPUT_DIR)
+  SOURCE_HOST, TARGET_HOST
+  SOURCE_ADMIN_USER, TARGET_ADMIN_USER
+  SOURCE_SSH_KEY, TARGET_SSH_KEY          (empty = use SSH agent / default key)
+  ORACLE_USER, ZDM_USER
+  SOURCE_REMOTE_ORACLE_HOME, SOURCE_ORACLE_SID
+  TARGET_REMOTE_ORACLE_HOME, TARGET_ORACLE_SID
+  OUTPUT_BASE                             (default: ../Discovery)
 
-Output:
-  Discovery files saved to: \$OUTPUT_DIR/{source,target,server}/
-
-HELP
+Examples:
+  bash zdm_orchestrate_discovery.sh
+  SOURCE_SSH_KEY="" TARGET_SSH_KEY="" bash zdm_orchestrate_discovery.sh   # use SSH agent
+  bash zdm_orchestrate_discovery.sh -t                                     # connectivity only
+HELPEOF
     exit 0
 }
 
+# ---------------------------------------------------------------------------
+# show_config — called only from argument parsing, exits immediately
+# ---------------------------------------------------------------------------
 show_config() {
-    cat <<CONFIG
-=== Current Configuration ===
-SOURCE_HOST         : $SOURCE_HOST
-TARGET_HOST         : $TARGET_HOST
-SOURCE_ADMIN_USER   : $SOURCE_ADMIN_USER
-TARGET_ADMIN_USER   : $TARGET_ADMIN_USER
-ORACLE_USER         : $ORACLE_USER
-ZDM_USER            : $ZDM_USER
-SOURCE_SSH_KEY      : ${SOURCE_SSH_KEY:-<not set â€” using SSH agent>}
-TARGET_SSH_KEY      : ${TARGET_SSH_KEY:-<not set â€” using SSH agent>}
-OUTPUT_DIR          : $OUTPUT_DIR
-REPO_ROOT           : $REPO_ROOT
-VERBOSE             : $VERBOSE
-CONFIG
+    echo "=== ZDM Discovery Orchestrator — Current Configuration ==="
+    echo "  SOURCE_HOST        : ${SOURCE_HOST}"
+    echo "  SOURCE_ADMIN_USER  : ${SOURCE_ADMIN_USER}"
+    echo "  SOURCE_SSH_KEY     : ${SOURCE_SSH_KEY:-<SSH agent / default key>}"
+    echo "  SOURCE_ORACLE_HOME : ${SOURCE_REMOTE_ORACLE_HOME:-<auto-detect>}"
+    echo "  SOURCE_ORACLE_SID  : ${SOURCE_ORACLE_SID:-<auto-detect>}"
+    echo ""
+    echo "  TARGET_HOST        : ${TARGET_HOST}"
+    echo "  TARGET_ADMIN_USER  : ${TARGET_ADMIN_USER}"
+    echo "  TARGET_SSH_KEY     : ${TARGET_SSH_KEY:-<SSH agent / default key>}"
+    echo "  TARGET_ORACLE_HOME : ${TARGET_REMOTE_ORACLE_HOME:-<auto-detect>}"
+    echo "  TARGET_ORACLE_SID  : ${TARGET_ORACLE_SID:-<auto-detect>}"
+    echo ""
+    echo "  ORACLE_USER        : ${ORACLE_USER}"
+    echo "  ZDM_USER           : ${ZDM_USER}"
+    echo "  OUTPUT_BASE        : ${OUTPUT_BASE}"
+    echo "  REMOTE_TMP_DIR     : ${REMOTE_TMP_DIR}"
+    echo "==========================================================="
     exit 0
 }
 
-for arg in "$@"; do
-    case "$arg" in
-        -h|--help)    show_help ;;
-        -c|--config)  show_config ;;
-        -t|--test)    TEST_ONLY=true ;;
-        -v|--verbose) VERBOSE=true ;;
-        *) log_warn "Unknown option: $arg (ignored)" ;;
+# ---------------------------------------------------------------------------
+# Argument parsing
+# ---------------------------------------------------------------------------
+CONNECTIVITY_TEST_ONLY=false
+while getopts "hctv" opt; do
+    case "${opt}" in
+        h) show_help ;;
+        c) show_config ;;
+        t) CONNECTIVITY_TEST_ONLY=true ;;
+        v) VERBOSE=true ;;
+        *) echo "Unknown option: -${OPTARG}"; show_help ;;
     esac
 done
 
-# =============================================================================
-# SSH OPTIONS
-# =============================================================================
-SSH_BASE_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15"
-SCP_BASE_OPTS="-o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=15"
-$VERBOSE && SSH_BASE_OPTS="$SSH_BASE_OPTS -v" && SCP_BASE_OPTS="$SCP_BASE_OPTS -v"
+# Build SSH/SCP options (append -v only if verbose)
+SSH_OPTS="${SSH_BASE_OPTS}"
+SCP_OPTS="${SCP_BASE_OPTS}"
+if [[ "${VERBOSE}" == "true" ]]; then
+    SSH_OPTS="${SSH_OPTS} -v"
+    SCP_OPTS="${SCP_OPTS} -v"
+fi
 
-# =============================================================================
-# SSH KEY DIAGNOSTICS  (run before any connections)
-# =============================================================================
-log_upfront_ssh_diagnostics() {
-    log_section "SSH KEY DIAGNOSTICS"
+# ---------------------------------------------------------------------------
+# Startup diagnostics
+# ---------------------------------------------------------------------------
+log_info "============================================================"
+log_info " ZDM Step 2 — Discovery Orchestrator"
+log_info " Started  : $(date)"
+log_info " Run as   : $(whoami)@$(hostname)"
+log_info " Home dir : ${HOME}"
+log_info "============================================================"
 
-    log_info "Running as user     : $(whoami)"
-    log_info "HOME directory      : $HOME"
+# 1. Warn if not running as zdmuser
+if [[ "$(whoami)" != "${ZDM_USER}" ]]; then
+    log_warn "Running as '$(whoami)', not '${ZDM_USER}'. ZDM server discovery user guard will fail."
+    log_warn "Switch to ${ZDM_USER} first: sudo su - ${ZDM_USER}"
+fi
 
-    if [ "$(whoami)" != "$ZDM_USER" ]; then
-        log_warn "IMPORTANT: This script should run as '$ZDM_USER'."
-        log_warn "  Currently running as '$(whoami)'. SSH keys must exist under /home/$ZDM_USER/.ssh/ with permissions 600."
-    fi
+# 2. Check for PEM/key files in ~/.ssh/
+log_info ""
+log_info "SSH key check (~/.ssh/):"
+pem_files="$(find "${HOME}/.ssh" -name '*.pem' -o -name '*.key' 2>/dev/null)"
+if [[ -z "${pem_files}" ]]; then
+    log_warn "No .pem or .key files found in ${HOME}/.ssh/"
+else
+    while IFS= read -r f; do
+        perms="$(stat -c '%a' "${f}" 2>/dev/null || stat -f '%A' "${f}" 2>/dev/null)"
+        log_info "  ${f}  [perms: ${perms}]"
+    done <<< "${pem_files}"
+fi
 
-    # List SSH keys in ~/.ssh/
-    if [ -d "${HOME}/.ssh" ]; then
-        PEM_KEYS="$(find "${HOME}/.ssh" -name '*.pem' -o -name '*.key' 2>/dev/null | tr '\n' ' ')"
-        if [ -n "$PEM_KEYS" ]; then
-            log_info "SSH .pem/.key files found in ${HOME}/.ssh/: $PEM_KEYS"
-        else
-            log_warn "No .pem or .key files in ${HOME}/.ssh/ â€” SSH agent or default key must be active."
-        fi
+# 3. Report SSH key variable status
+log_info ""
+log_info "SSH key variable status:"
+if [[ -z "${SOURCE_SSH_KEY}" ]]; then
+    log_info "  SOURCE_SSH_KEY: empty — will use SSH agent / default key for source"
+else
+    if [[ -f "${SOURCE_SSH_KEY}" ]]; then
+        log_ok   "  SOURCE_SSH_KEY: ${SOURCE_SSH_KEY} (file exists)"
     else
-        log_warn "SSH directory ${HOME}/.ssh/ does not exist."
+        log_warn "  SOURCE_SSH_KEY: ${SOURCE_SSH_KEY} (FILE NOT FOUND)"
     fi
-
-    # Check SOURCE_SSH_KEY
-    if [ -z "${SOURCE_SSH_KEY:-}" ]; then
-        log_info "SOURCE_SSH_KEY: not configured â€” SSH agent or default key will be used for source"
+fi
+if [[ -z "${TARGET_SSH_KEY}" ]]; then
+    log_info "  TARGET_SSH_KEY: empty — will use SSH agent / default key for target"
+else
+    if [[ -f "${TARGET_SSH_KEY}" ]]; then
+        log_ok   "  TARGET_SSH_KEY: ${TARGET_SSH_KEY} (file exists)"
     else
-        local src_key_exp="${SOURCE_SSH_KEY/#\~/$HOME}"
-        if [ -f "$src_key_exp" ]; then
-            log_info "SOURCE_SSH_KEY: $src_key_exp â€” EXISTS"
-        else
-            log_warn "SOURCE_SSH_KEY: $src_key_exp â€” FILE NOT FOUND"
-            log_warn "  Check the SOURCE_SSH_KEY path is correct and the file exists under $(whoami)'s home."
-            log_warn "  Override: export SOURCE_SSH_KEY=\"/path/to/your/key.pem\""
-        fi
+        log_warn "  TARGET_SSH_KEY: ${TARGET_SSH_KEY} (FILE NOT FOUND)"
     fi
+fi
 
-    # Check TARGET_SSH_KEY
-    if [ -z "${TARGET_SSH_KEY:-}" ]; then
-        log_info "TARGET_SSH_KEY: not configured â€” SSH agent or default key will be used for target"
+# ---------------------------------------------------------------------------
+# Verify required scripts exist
+# ---------------------------------------------------------------------------
+log_info ""
+log_info "Verifying discovery scripts:"
+SCRIPTS_OK=true
+for script_path in "${SOURCE_DISCOVERY_SCRIPT}" "${TARGET_DISCOVERY_SCRIPT}" "${SERVER_DISCOVERY_SCRIPT}"; do
+    if [[ -f "${script_path}" ]]; then
+        log_ok   "  Found: ${script_path}"
     else
-        local tgt_key_exp="${TARGET_SSH_KEY/#\~/$HOME}"
-        if [ -f "$tgt_key_exp" ]; then
-            log_info "TARGET_SSH_KEY: $tgt_key_exp â€” EXISTS"
-        else
-            log_warn "TARGET_SSH_KEY: $tgt_key_exp â€” FILE NOT FOUND"
-            log_warn "  Override: export TARGET_SSH_KEY=\"/path/to/your/key.pem\""
-        fi
+        log_error "  MISSING: ${script_path}"
+        SCRIPTS_OK=false
     fi
-}
+done
+if [[ "${SCRIPTS_OK}" != "true" ]]; then
+    log_error "One or more required discovery scripts are missing. Cannot continue."
+    exit 1
+fi
 
-# =============================================================================
-# PREREQUISITES
-# =============================================================================
-validate_prerequisites() {
-    log_section "VALIDATING PREREQUISITES"
-
-    local errors=0
-
-    [ -z "$SOURCE_HOST" ] && { log_error "SOURCE_HOST is not set"; ((errors++)); }
-    [ -z "$TARGET_HOST" ] && { log_error "TARGET_HOST is not set"; ((errors++)); }
-    [ -z "$SOURCE_ADMIN_USER" ] && { log_error "SOURCE_ADMIN_USER is not set"; ((errors++)); }
-    [ -z "$TARGET_ADMIN_USER" ] && { log_error "TARGET_ADMIN_USER is not set"; ((errors++)); }
-
-    if [ $errors -gt 0 ]; then
-        log_error "$errors prerequisite check(s) failed. Aborting."
-        exit 1
-    fi
-
-    log_info "Prerequisites validated."
-}
-
-# =============================================================================
-# CONNECTIVITY TESTS
-# =============================================================================
-test_ssh_connection() {
+# ---------------------------------------------------------------------------
+# Helper: quick connectivity test (ping + port check)
+# ---------------------------------------------------------------------------
+test_connectivity() {
     local label="$1"
     local host="$2"
-    local user="$3"
-    local key_path="$4"
+    local key_path="$3"
+    local admin_user="$4"
+    local overall=0
 
-    log_info "Testing SSH: $label ($user@$host)..."
-    # Resolve ~ in key path
-    local key_exp="${key_path/#\~/$HOME}"
+    log_info "--- ${label} connectivity test (${host}) ---"
 
-    local ssh_out
-    local ssh_exit=0
-    ssh_out="$(ssh $SSH_BASE_OPTS ${key_path:+-i "$key_exp"} "${user}@${host}" "hostname" 2>&1)" || ssh_exit=$?
-
-    if [ $ssh_exit -eq 0 ]; then
-        log_info "  SSH $label: SUCCESS (remote hostname: $ssh_out)"
-        return 0
+    # Ping
+    ping -c 3 -W 3 "${host}" &>/dev/null
+    if [[ $? -eq 0 ]]; then
+        log_ok "  Ping ${host}: OK"
     else
-        log_error "  SSH $label: FAILED (exit $ssh_exit)"
-        log_error "  Output: $ssh_out"
-        return 1
+        log_warn "  Ping ${host}: FAILED"
+        overall=1
     fi
+
+    # Port 22
+    timeout 5 bash -c "echo >/dev/tcp/${host}/22" 2>/dev/null
+    if [[ $? -eq 0 ]]; then
+        log_ok "  Port 22 (${host}): OPEN"
+    else
+        log_warn "  Port 22 (${host}): CLOSED or FILTERED"
+        overall=1
+    fi
+
+    # Port 1521
+    timeout 5 bash -c "echo >/dev/tcp/${host}/1521" 2>/dev/null
+    if [[ $? -eq 0 ]]; then
+        log_ok "  Port 1521 (${host}): OPEN"
+    else
+        log_warn "  Port 1521 (${host}): CLOSED or FILTERED"
+        overall=1
+    fi
+
+    # SSH test
+    ssh_out="$(ssh ${SSH_OPTS} ${key_path:+-i "${key_path}"} "${admin_user}@${host}" \
+        "hostname" 2>&1)"
+    ssh_exit=$?
+    if [[ ${ssh_exit} -eq 0 ]]; then
+        log_ok "  SSH ${admin_user}@${host}: OK (hostname=${ssh_out})"
+    else
+        log_warn "  SSH ${admin_user}@${host}: FAILED (exit ${ssh_exit}): ${ssh_out}"
+        overall=1
+    fi
+
+    return ${overall}
 }
 
-test_all_connections() {
-    log_section "CONNECTIVITY TESTS"
+log_info ""
+log_info "Running connectivity pre-checks..."
+SOURCE_CONN_OK=0; TARGET_CONN_OK=0
+test_connectivity "SOURCE" "${SOURCE_HOST}" "${SOURCE_SSH_KEY}" "${SOURCE_ADMIN_USER}" \
+    && SOURCE_CONN_OK=1 || SOURCE_CONN_OK=0
+test_connectivity "TARGET" "${TARGET_HOST}" "${TARGET_SSH_KEY}" "${TARGET_ADMIN_USER}" \
+    && TARGET_CONN_OK=1 || TARGET_CONN_OK=0
 
-    test_ssh_connection "SOURCE" "$SOURCE_HOST" "$SOURCE_ADMIN_USER" "$SOURCE_SSH_KEY" || FAILURES+=("SSH SOURCE")
-    test_ssh_connection "TARGET" "$TARGET_HOST" "$TARGET_ADMIN_USER" "$TARGET_SSH_KEY" || FAILURES+=("SSH TARGET")
+if [[ "${CONNECTIVITY_TEST_ONLY}" == "true" ]]; then
+    log_info ""
+    log_info "Connectivity test complete (-t flag set — skipping discovery)."
+    log_info "  Source: $([ "${SOURCE_CONN_OK}" -eq 1 ] && echo "OK" || echo "ISSUES DETECTED")"
+    log_info "  Target: $([ "${TARGET_CONN_OK}" -eq 1 ] && echo "OK" || echo "ISSUES DETECTED")"
+    exit 0
+fi
 
-    if [ ${#FAILURES[@]} -gt 0 ]; then
-        log_warn "Some connectivity tests failed: ${FAILURES[*]}"
-        log_warn "Discovery will be attempted for each server independently."
-    else
-        log_info "All connectivity tests passed."
-    fi
-}
+# ---------------------------------------------------------------------------
+# Create local output directories
+# ---------------------------------------------------------------------------
+mkdir -p "${OUTPUT_BASE}/source" "${OUTPUT_BASE}/target" "${OUTPUT_BASE}/server"
+log_info ""
+log_info "Output directories created: ${OUTPUT_BASE}/{source,target,server}"
 
-# =============================================================================
-# REMOTE DISCOVERY EXECUTION
-# =============================================================================
+# Track success/failure per server
+SOURCE_SUCCESS=false
+TARGET_SUCCESS=false
+SERVER_SUCCESS=false
+
+# ---------------------------------------------------------------------------
+# Helper: run discovery on a remote server
+# ---------------------------------------------------------------------------
 run_remote_discovery() {
-    local label="$1"
+    local label="$1"        # SOURCE or TARGET
     local host="$2"
-    local user="$3"
+    local admin_user="$3"
     local key_path="$4"
     local script_path="$5"
-    local env_args="$6"
-    local results_dir="$7"
+    local local_output_dir="$6"
+    local extra_env="$7"    # extra env vars to export on remote (key=value pairs, space-separated)
 
-    local key_exp="${key_path/#\~/$HOME}"
-    local script_name
-    script_name="$(basename "$script_path")"
-    local remote_dir="/tmp/zdm_discovery_$$_${label,,}"
+    log_info ""
+    log_info "=========================================="
+    log_info " Running ${label} discovery on ${host}"
+    log_info "=========================================="
 
-    log_section "RUNNING $label DISCOVERY"
-    log_info "Host   : $host"
-    log_info "User   : $user"
-    log_info "Script : $script_name"
-    log_info "Remote : $remote_dir"
-
-    # Step 1: Copy discovery script to remote
-    log_info "Uploading $script_name to $user@$host:$remote_dir/ ..."
-    local scp_out
-    local scp_exit=0
-    scp_out="$(scp $SCP_BASE_OPTS ${key_path:+-i "$key_exp"} \
-        "$script_path" \
-        "${user}@${host}:${script_name}.tmp" 2>&1)" || scp_exit=$?
-
-    if [ $scp_exit -ne 0 ]; then
-        log_error "SCP upload FAILED for $label (exit $scp_exit)"
-        log_error "SCP output: $scp_out"
+    # 1. Create remote temp dir and copy script
+    log_info "  Creating remote temp dir: ${REMOTE_TMP_DIR}"
+    ssh_create_out="$(ssh ${SSH_OPTS} ${key_path:+-i "${key_path}"} "${admin_user}@${host}" \
+        "mkdir -p ${REMOTE_TMP_DIR}" 2>&1)"
+    if [[ $? -ne 0 ]]; then
+        log_error "  Failed to create remote temp dir on ${host}: ${ssh_create_out}"
         return 1
     fi
-    log_info "  Upload successful."
 
-    # Step 2: Execute discovery remotely (login shell + cd to remote_dir first)
-    log_info "Executing $script_name on $host ..."
-    local exec_out
-    local exec_exit=0
-    exec_out="$(ssh $SSH_BASE_OPTS ${key_path:+-i "$key_exp"} "${user}@${host}" \
-        "${env_args}bash -l -s" \
-        < <(echo "mkdir -p '$remote_dir' && cd '$remote_dir' && chmod +x ~/${script_name}.tmp && cp ~/${script_name}.tmp $remote_dir/$script_name" ; \
-            echo "cd '$remote_dir'" ; \
-            cat "$script_path") 2>&1)" || exec_exit=$?
-
-    if [ $exec_exit -ne 0 ]; then
-        log_warn "Remote execution for $label returned exit code $exec_exit"
-        log_warn "Output:"
-        echo "$exec_out" | head -50
-    else
-        log_info "Remote execution completed successfully."
-    fi
-    log_debug "Full remote output:\n$exec_out"
-
-    # Step 3: List remote output directory before collecting
-    log_info "Listing remote output directory ($remote_dir) ..."
-    local ls_out
-    local ls_exit=0
-    ls_out="$(ssh $SSH_BASE_OPTS ${key_path:+-i "$key_exp"} "${user}@${host}" \
-        "ls -la '$remote_dir'/ 2>/dev/null || echo 'DIRECTORY NOT FOUND: $remote_dir'" 2>&1)" || ls_exit=$?
-    echo "$ls_out" | while IFS= read -r line; do log_info "  $line"; done
-
-    # Step 4: SCP collect output files
-    mkdir -p "$results_dir"
-    log_info "Collecting output files to $results_dir ..."
-    local collect_out
-    local collect_exit=0
-    collect_out="$(scp $SCP_BASE_OPTS ${key_path:+-i "$key_exp"} \
-        "${user}@${host}:${remote_dir}/*.txt" \
-        "${user}@${host}:${remote_dir}/*.json" \
-        "$results_dir/" 2>&1)" || collect_exit=$?
-
-    if [ $collect_exit -ne 0 ]; then
-        log_warn "SCP collection encountered issues (exit $collect_exit). Partial results may exist."
-        log_warn "SCP output: $collect_out"
-    else
-        log_info "Output files collected:"
-        ls -la "$results_dir/" | while IFS= read -r line; do log_info "  $line"; done
-    fi
-
-    # Step 5: Cleanup remote temp files
-    ssh $SSH_BASE_OPTS ${key_path:+-i "$key_exp"} "${user}@${host}" \
-        "rm -rf '$remote_dir' ~/${script_name}.tmp" 2>/dev/null || true
-
-    # Return success if we got any output files
-    local count
-    count=$(ls "$results_dir/"*.txt "$results_dir/"*.json 2>/dev/null | wc -l)
-    if [ "$count" -gt 0 ]; then
-        log_info "$label discovery: $count output file(s) collected."
-        return 0
-    else
-        log_warn "$label discovery: No output files collected."
+    log_info "  Copying script to ${host}:${REMOTE_TMP_DIR}/"
+    scp_out="$(scp ${SCP_OPTS} ${key_path:+-i "${key_path}"} \
+        "${script_path}" "${admin_user}@${host}:${REMOTE_TMP_DIR}/" 2>&1)"
+    if [[ $? -ne 0 ]]; then
+        log_error "  SCP failed: ${scp_out}"
         return 1
     fi
-}
+    log_ok "  Script copied successfully."
 
-run_local_discovery() {
-    local script_path="$1"
-    local results_dir="$2"
-
+    # 2. Execute via login shell (so .bash_profile is sourced)
+    log_info "  Executing discovery script (login shell)..."
     local script_name
-    script_name="$(basename "$script_path")"
-    local local_dir="/tmp/zdm_discovery_$$_server"
+    script_name="$(basename "${script_path}")"
 
-    log_section "RUNNING ZDM SERVER DISCOVERY (local)"
-    log_info "Script : $script_name"
-    log_info "Output : $results_dir"
+    ssh_exec_exit=0
+    ssh ${SSH_OPTS} ${key_path:+-i "${key_path}"} "${admin_user}@${host}" \
+        "mkdir -p ${REMOTE_TMP_DIR} && bash -l -s" \
+        < <(
+            echo "cd '${REMOTE_TMP_DIR}'"
+            [[ -n "${extra_env}" ]] && echo "export ${extra_env}"
+            cat "${script_path}"
+        ) 2>&1 | tee -a /dev/stdout
+    ssh_exec_exit=${PIPESTATUS[0]}
 
-    mkdir -p "$local_dir"
-    mkdir -p "$results_dir"
-
-    # Build env args to pass host connectivity variables
-    local env_args="SOURCE_HOST='${SOURCE_HOST}' TARGET_HOST='${TARGET_HOST}' ZDM_USER='${ZDM_USER}'"
-    [ -n "${ZDM_REMOTE_ZDM_HOME:-}" ]  && env_args="$env_args ZDM_HOME='${ZDM_REMOTE_ZDM_HOME}'"
-    [ -n "${ZDM_REMOTE_JAVA_HOME:-}" ] && env_args="$env_args JAVA_HOME='${ZDM_REMOTE_JAVA_HOME}'"
-    [ -n "${ORACLE_USER:-}" ]          && env_args="$env_args ORACLE_USER='${ORACLE_USER}'"
-
-    log_info "Executing $script_name locally in $local_dir ..."
-    local exec_exit=0
-    (
-        cd "$local_dir"
-        eval "export $env_args"
-        bash "$script_path"
-    ) || exec_exit=$?
-
-    if [ $exec_exit -ne 0 ]; then
-        log_warn "Local ZDM server discovery returned exit code $exec_exit"
+    if [[ ${ssh_exec_exit} -ne 0 ]]; then
+        log_warn "  Discovery script on ${host} exited with code ${ssh_exec_exit} (partial results may still be present)"
     fi
 
-    # Collect output files
-    log_info "Listing output directory ($local_dir) ..."
-    ls -la "$local_dir"/ 2>/dev/null | while IFS= read -r line; do log_info "  $line"; done
+    # 3. Verify output files were created before attempting SCP
+    log_info "  Verifying output files on remote host..."
+    remote_files_out="$(ssh ${SSH_OPTS} ${key_path:+-i "${key_path}"} "${admin_user}@${host}" \
+        "ls -la ${REMOTE_TMP_DIR}/" 2>&1)"
+    log_info "  Remote directory contents:"
+    echo "${remote_files_out}" | while IFS= read -r line; do log_raw "    ${line}"; done
+    echo "${remote_files_out}" >> /dev/null  # suppress unused variable warning
 
-    if ls "$local_dir/"*.txt "$local_dir/"*.json 2>/dev/null | grep -q .; then
-        cp "$local_dir/"*.txt "$local_dir/"*.json "$results_dir/" 2>/dev/null && \
-            log_info "Output files collected to $results_dir"
-        ls -la "$results_dir/" | while IFS= read -r line; do log_info "  $line"; done
-    else
-        log_warn "No output files found in $local_dir"
+    txt_count="$(ssh ${SSH_OPTS} ${key_path:+-i "${key_path}"} "${admin_user}@${host}" \
+        "ls ${REMOTE_TMP_DIR}/*.txt 2>/dev/null | wc -l" 2>/dev/null | tr -d '[:space:]')"
+    if [[ "${txt_count:-0}" -eq 0 ]]; then
+        log_warn "  No .txt output files found on ${host}:${REMOTE_TMP_DIR}/ — discovery may have failed"
     fi
 
-    rm -rf "$local_dir" 2>/dev/null || true
+    # 4. SCP results back
+    log_info "  Copying results from ${host} to ${local_output_dir}/"
+    scp_back_out="$(scp ${SCP_OPTS} ${key_path:+-i "${key_path}"} \
+        "${admin_user}@${host}:${REMOTE_TMP_DIR}/*.txt" \
+        "${admin_user}@${host}:${REMOTE_TMP_DIR}/*.json" \
+        "${local_output_dir}/" 2>&1)"
+    scp_back_exit=$?
 
-    local count
-    count=$(ls "$results_dir/"*.txt "$results_dir/"*.json 2>/dev/null | wc -l)
-    [ "$count" -gt 0 ] && return 0 || return 1
-}
-
-# =============================================================================
-# MAIN
-# =============================================================================
-main() {
-    echo ""
-    echo -e "${BOLD}${CYAN}============================================================${NC}"
-    echo -e "${BOLD}${CYAN}  ZDM Phase 10 â€” Step 2: Discovery Orchestration${NC}"
-    echo -e "${BOLD}${CYAN}  Started  : $(date)${NC}"
-    echo -e "${BOLD}${CYAN}  Run by   : $(whoami)@$(hostname)${NC}"
-    echo -e "${BOLD}${CYAN}============================================================${NC}"
-
-    # SSH key diagnostics (most common failure source)
-    log_upfront_ssh_diagnostics
-
-    # Configuration summary (no exit â€” different from show_config)
-    log_section "CONFIGURATION SUMMARY"
-    log_info "SOURCE_HOST        : $SOURCE_HOST"
-    log_info "TARGET_HOST        : $TARGET_HOST"
-    log_info "SOURCE_ADMIN_USER  : $SOURCE_ADMIN_USER"
-    log_info "TARGET_ADMIN_USER  : $TARGET_ADMIN_USER"
-    log_info "ORACLE_USER        : $ORACLE_USER"
-    log_info "ZDM_USER           : $ZDM_USER"
-    log_info "SOURCE_SSH_KEY     : ${SOURCE_SSH_KEY:-<not set>}"
-    log_info "TARGET_SSH_KEY     : ${TARGET_SSH_KEY:-<not set>}"
-    log_info "OUTPUT_DIR         : $OUTPUT_DIR"
-    log_info "REPO_ROOT          : $REPO_ROOT"
-    log_info "VERBOSE            : $VERBOSE"
-
-    validate_prerequisites
-    test_all_connections
-
-    if $TEST_ONLY; then
-        log_section "TEST-ONLY MODE: Skipping discovery execution"
-        exit 0
+    if [[ ${scp_back_exit} -ne 0 ]]; then
+        log_warn "  SCP of results encountered issues (exit ${scp_back_exit}): ${scp_back_out}"
+        log_warn "  Some output files may be missing from ${local_output_dir}/"
+        return 1
     fi
 
-    # Create output subdirectories
-    mkdir -p "$OUTPUT_DIR/source" "$OUTPUT_DIR/target" "$OUTPUT_DIR/server"
-
-    # Build env args for overrides
-    SOURCE_ENV_ARGS=""
-    [ -n "${SOURCE_REMOTE_ORACLE_HOME:-}" ] && SOURCE_ENV_ARGS="SOURCE_REMOTE_ORACLE_HOME='$SOURCE_REMOTE_ORACLE_HOME' "
-    [ -n "${SOURCE_REMOTE_ORACLE_SID:-}"  ] && SOURCE_ENV_ARGS="${SOURCE_ENV_ARGS}SOURCE_REMOTE_ORACLE_SID='$SOURCE_REMOTE_ORACLE_SID' "
-    [ -n "${ORACLE_USER:-}" ]               && SOURCE_ENV_ARGS="${SOURCE_ENV_ARGS}ORACLE_USER='$ORACLE_USER' "
-
-    TARGET_ENV_ARGS=""
-    [ -n "${TARGET_REMOTE_ORACLE_HOME:-}" ] && TARGET_ENV_ARGS="TARGET_REMOTE_ORACLE_HOME='$TARGET_REMOTE_ORACLE_HOME' "
-    [ -n "${TARGET_REMOTE_ORACLE_SID:-}"  ] && TARGET_ENV_ARGS="${TARGET_ENV_ARGS}TARGET_REMOTE_ORACLE_SID='$TARGET_REMOTE_ORACLE_SID' "
-    [ -n "${ORACLE_USER:-}" ]               && TARGET_ENV_ARGS="${TARGET_ENV_ARGS}ORACLE_USER='$ORACLE_USER' "
-
-    # --- Run source discovery ---
-    SOURCE_SCRIPT="$SCRIPT_DIR/zdm_source_discovery.sh"
-    if [ -f "$SOURCE_SCRIPT" ]; then
-        run_remote_discovery \
-            "SOURCE" \
-            "$SOURCE_HOST" \
-            "$SOURCE_ADMIN_USER" \
-            "$SOURCE_SSH_KEY" \
-            "$SOURCE_SCRIPT" \
-            "$SOURCE_ENV_ARGS" \
-            "$OUTPUT_DIR/source" \
-        && SOURCE_STATUS="SUCCESS" || { SOURCE_STATUS="FAILED"; FAILURES+=("SOURCE discovery"); }
-    else
-        log_error "Source discovery script not found: $SOURCE_SCRIPT"
-        SOURCE_STATUS="FAILED"
-        FAILURES+=("SOURCE script missing")
-    fi
-
-    # --- Run target discovery ---
-    TARGET_SCRIPT="$SCRIPT_DIR/zdm_target_discovery.sh"
-    if [ -f "$TARGET_SCRIPT" ]; then
-        run_remote_discovery \
-            "TARGET" \
-            "$TARGET_HOST" \
-            "$TARGET_ADMIN_USER" \
-            "$TARGET_SSH_KEY" \
-            "$TARGET_SCRIPT" \
-            "$TARGET_ENV_ARGS" \
-            "$OUTPUT_DIR/target" \
-        && TARGET_STATUS="SUCCESS" || { TARGET_STATUS="FAILED"; FAILURES+=("TARGET discovery"); }
-    else
-        log_error "Target discovery script not found: $TARGET_SCRIPT"
-        TARGET_STATUS="FAILED"
-        FAILURES+=("TARGET script missing")
-    fi
-
-    # --- Run ZDM server discovery (local) ---
-    SERVER_SCRIPT="$SCRIPT_DIR/zdm_server_discovery.sh"
-    if [ -f "$SERVER_SCRIPT" ]; then
-        run_local_discovery \
-            "$SERVER_SCRIPT" \
-            "$OUTPUT_DIR/server" \
-        && SERVER_STATUS="SUCCESS" || { SERVER_STATUS="FAILED"; FAILURES+=("SERVER discovery"); }
-    else
-        log_error "Server discovery script not found: $SERVER_SCRIPT"
-        SERVER_STATUS="FAILED"
-        FAILURES+=("SERVER script missing")
-    fi
-
-    # =========================================================================
-    # FINAL SUMMARY
-    # =========================================================================
-    log_section "DISCOVERY SUMMARY"
-
-    local success_icon fail_icon
-    success_icon="âœ…"
-    fail_icon="âŒ"
-
-    echo ""
-    printf "  %-20s  %s\n" "Server" "Status"
-    printf "  %-20s  %s\n" "--------------------" "-------"
-    printf "  %-20s  %s\n" "Source (${SOURCE_HOST})" \
-        "$([ "$SOURCE_STATUS" = "SUCCESS" ] && echo "$success_icon SUCCESS" || echo "$fail_icon FAILED")"
-    printf "  %-20s  %s\n" "Target (${TARGET_HOST})" \
-        "$([ "$TARGET_STATUS" = "SUCCESS" ] && echo "$success_icon SUCCESS" || echo "$fail_icon FAILED")"
-    printf "  %-20s  %s\n" "ZDM Server (local)" \
-        "$([ "$SERVER_STATUS" = "SUCCESS" ] && echo "$success_icon SUCCESS" || echo "$fail_icon FAILED")"
-    echo ""
-
-    log_info "Output directory: $OUTPUT_DIR"
-    echo ""
-    log_info "Collected files:"
-    find "$OUTPUT_DIR" -name '*.txt' -o -name '*.json' 2>/dev/null | sort | while IFS= read -r f; do
-        log_info "  $f"
+    log_ok "  Results collected in ${local_output_dir}/"
+    ls -la "${local_output_dir}/" | grep "zdm_" | while IFS= read -r line; do
+        log_info "    ${line}"
     done
 
-    if [ ${#FAILURES[@]} -gt 0 ]; then
-        log_warn "Failures encountered: ${FAILURES[*]}"
-        log_warn "Review logs above for details. Partial discovery results have been saved."
-        echo ""
-        echo -e "${YELLOW}âš ï¸  Discovery completed with failures.${NC}"
-        echo    "   Commit the available results and review failures before proceeding."
-        echo    "   Next step: @Phase10-ZDM-Step3-Discovery-Questionnaire"
-        exit 1
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+# Helper: run ZDM server discovery locally
+# ---------------------------------------------------------------------------
+run_server_discovery() {
+    log_info ""
+    log_info "=========================================="
+    log_info " Running ZDM server discovery (local)"
+    log_info "=========================================="
+
+    local server_output_dir="${OUTPUT_BASE}/server"
+    local tmp_dir="/tmp/zdm_server_discovery_${TIMESTAMP}"
+    mkdir -p "${tmp_dir}"
+
+    log_info "  Running ${SERVER_DISCOVERY_SCRIPT} in ${tmp_dir}..."
+
+    # Run server discovery, passing host env vars for connectivity tests
+    (
+        cd "${tmp_dir}" || exit 1
+        SOURCE_HOST="${SOURCE_HOST}" \
+        TARGET_HOST="${TARGET_HOST}" \
+        ZDM_USER="${ZDM_USER}" \
+        bash "${SERVER_DISCOVERY_SCRIPT}"
+    )
+    local run_exit=$?
+
+    if [[ ${run_exit} -ne 0 ]]; then
+        log_warn "  ZDM server discovery exited with code ${run_exit}"
+    fi
+
+    # Verify output files
+    log_info "  Output files in ${tmp_dir}:"
+    ls -la "${tmp_dir}/" | grep "zdm_" | while IFS= read -r line; do
+        log_info "    ${line}"
+    done
+
+    # Copy to server output dir
+    txt_count="$(ls "${tmp_dir}"/*.txt 2>/dev/null | wc -l | tr -d '[:space:]')"
+    if [[ "${txt_count:-0}" -gt 0 ]]; then
+        cp "${tmp_dir}"/*.txt "${tmp_dir}"/*.json "${server_output_dir}/" 2>/dev/null
+        log_ok "  Results collected in ${server_output_dir}/"
+        ls -la "${server_output_dir}/" | grep "zdm_" | while IFS= read -r line; do
+            log_info "    ${line}"
+        done
+        return 0
     else
-        echo -e "${GREEN}âœ… Discovery completed successfully for all servers.${NC}"
-        echo    "   Commit the discovery output before proceeding."
-        echo    "   Next step: @Phase10-ZDM-Step3-Discovery-Questionnaire"
-        exit 0
+        log_warn "  No output files found in ${tmp_dir}/ — server discovery may have failed"
+        return 1
     fi
 }
 
-main "$@"
+# ---------------------------------------------------------------------------
+# Run source discovery
+# ---------------------------------------------------------------------------
+SOURCE_EXTRA_ENV=""
+[[ -n "${SOURCE_REMOTE_ORACLE_HOME}" ]] && SOURCE_EXTRA_ENV="${SOURCE_EXTRA_ENV} SOURCE_REMOTE_ORACLE_HOME=${SOURCE_REMOTE_ORACLE_HOME}"
+[[ -n "${SOURCE_ORACLE_SID}"         ]] && SOURCE_EXTRA_ENV="${SOURCE_EXTRA_ENV} SOURCE_ORACLE_SID=${SOURCE_ORACLE_SID}"
+[[ -n "${ORACLE_USER}"               ]] && SOURCE_EXTRA_ENV="${SOURCE_EXTRA_ENV} ORACLE_USER=${ORACLE_USER}"
+
+run_remote_discovery \
+    "SOURCE" \
+    "${SOURCE_HOST}" \
+    "${SOURCE_ADMIN_USER}" \
+    "${SOURCE_SSH_KEY}" \
+    "${SOURCE_DISCOVERY_SCRIPT}" \
+    "${OUTPUT_BASE}/source" \
+    "${SOURCE_EXTRA_ENV# }" \
+    && SOURCE_SUCCESS=true || log_warn "Source discovery encountered errors — continuing to target..."
+
+# ---------------------------------------------------------------------------
+# Run target discovery
+# ---------------------------------------------------------------------------
+TARGET_EXTRA_ENV=""
+[[ -n "${TARGET_REMOTE_ORACLE_HOME}" ]] && TARGET_EXTRA_ENV="${TARGET_EXTRA_ENV} TARGET_REMOTE_ORACLE_HOME=${TARGET_REMOTE_ORACLE_HOME}"
+[[ -n "${TARGET_ORACLE_SID}"         ]] && TARGET_EXTRA_ENV="${TARGET_EXTRA_ENV} TARGET_ORACLE_SID=${TARGET_ORACLE_SID}"
+[[ -n "${ORACLE_USER}"               ]] && TARGET_EXTRA_ENV="${TARGET_EXTRA_ENV} ORACLE_USER=${ORACLE_USER}"
+
+run_remote_discovery \
+    "TARGET" \
+    "${TARGET_HOST}" \
+    "${TARGET_ADMIN_USER}" \
+    "${TARGET_SSH_KEY}" \
+    "${TARGET_DISCOVERY_SCRIPT}" \
+    "${OUTPUT_BASE}/target" \
+    "${TARGET_EXTRA_ENV# }" \
+    && TARGET_SUCCESS=true || log_warn "Target discovery encountered errors — continuing to ZDM server..."
+
+# ---------------------------------------------------------------------------
+# Run ZDM server discovery (local)
+# ---------------------------------------------------------------------------
+run_server_discovery \
+    && SERVER_SUCCESS=true || log_warn "ZDM server discovery encountered errors."
+
+# ---------------------------------------------------------------------------
+# Final summary
+# ---------------------------------------------------------------------------
+echo ""
+echo "============================================================"
+echo "  ZDM Step 2 Discovery Orchestrator — Complete"
+echo "  Finished : $(date)"
+echo "============================================================"
+echo "  Server Results:"
+echo "    Source (${SOURCE_HOST})  : $([ "${SOURCE_SUCCESS}" == "true" ] && echo "SUCCESS" || echo "PARTIAL/FAILED")"
+echo "    Target (${TARGET_HOST}) : $([ "${TARGET_SUCCESS}" == "true" ] && echo "SUCCESS" || echo "PARTIAL/FAILED")"
+echo "    ZDM server (local)      : $([ "${SERVER_SUCCESS}" == "true" ] && echo "SUCCESS" || echo "PARTIAL/FAILED")"
+echo ""
+echo "  Discovery output saved to:"
+echo "    ${OUTPUT_BASE}/source/"
+echo "    ${OUTPUT_BASE}/target/"
+echo "    ${OUTPUT_BASE}/server/"
+echo ""
+echo "  Next steps:"
+echo "    1. Review discovery reports in the Discovery/ directories"
+echo "    2. Commit the discovery output files to the repository"
+echo "    3. Continue with: @Phase10-ZDM-Step3-Discovery-Questionnaire"
+echo "============================================================"
+
+# Exit non-zero if any discovery failed
+if [[ "${SOURCE_SUCCESS}" != "true" || "${TARGET_SUCCESS}" != "true" || "${SERVER_SUCCESS}" != "true" ]]; then
+    exit 1
+fi
+exit 0
