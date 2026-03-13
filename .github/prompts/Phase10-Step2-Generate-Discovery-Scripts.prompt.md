@@ -263,24 +263,34 @@ ZDM does NOT support a `-version` flag. To verify ZDM is installed and to determ
 Do NOT use `zdmcli -version` as this is an invalid command.
 
 **IMPORTANT: ZDM Version Capture — Required for Latest-Version Validation:**
-The discovery script MUST attempt to determine the exact installed ZDM version and report it prominently so Step 3 can flag outdated installations. Use the following methods in priority order:
+The discovery script MUST attempt to determine the exact installed ZDM version and report it prominently so Step 3 can flag outdated installations. Since the script runs as `zdmuser`, file access does NOT require `sudo` — access ZDM files directly. Use the following methods in priority order:
 
 ```bash
+# Determine whether to use sudo for file access (only when NOT already zdmuser)
+_ZDM_SUDO=""
+if [ "$(id -un)" != "${ZDM_USER:-zdmuser}" ]; then
+    _ZDM_SUDO="sudo"
+fi
+
 # Method 1: Oracle Inventory XML (most reliable)
-if sudo test -f "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null; then
-    ZDM_VERSION=$(sudo grep -oP '(?<=VER=")[0-9.]+' "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null | head -1)
+if ${_ZDM_SUDO} test -f "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null; then
+    ZDM_VERSION=$(${_ZDM_SUDO} grep -oP '(?<=VER=")[0-9.]+' "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null | head -1)
 fi
 
 # Method 2: OPatch installed patches list
-if [ -z "${ZDM_VERSION:-}" ] && sudo test -x "${ZDM_HOME}/OPatch/opatch" 2>/dev/null; then
-    ZDM_OPATCH=$(sudo su - "${ZDM_USER:-zdmuser}" -c "${ZDM_HOME}/OPatch/opatch lspatches" 2>/dev/null | head -20)
+if [ -z "${ZDM_VERSION:-}" ] && ${_ZDM_SUDO} test -x "${ZDM_HOME}/OPatch/opatch" 2>/dev/null; then
+    if [ -z "${_ZDM_SUDO}" ]; then
+        ZDM_OPATCH=$("${ZDM_HOME}/OPatch/opatch" lspatches 2>/dev/null | head -20)
+    else
+        ZDM_OPATCH=$(sudo su - "${ZDM_USER:-zdmuser}" -c "${ZDM_HOME}/OPatch/opatch lspatches" 2>/dev/null | head -20)
+    fi
 fi
 
 # Method 3: version.txt or similar files in ZDM_HOME
 if [ -z "${ZDM_VERSION:-}" ]; then
     for vfile in "${ZDM_HOME}/version.txt" "${ZDM_HOME}/VERSION" "${ZDM_HOME}/rhp/version.txt"; do
-        if sudo test -f "$vfile" 2>/dev/null; then
-            ZDM_VERSION=$(sudo cat "$vfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
+        if ${_ZDM_SUDO} test -f "$vfile" 2>/dev/null; then
+            ZDM_VERSION=$(${_ZDM_SUDO} cat "$vfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
             break
         fi
     done
@@ -289,8 +299,8 @@ fi
 # Method 4: zdmbase log/build files
 if [ -z "${ZDM_VERSION:-}" ]; then
     for bfile in "${ZDM_HOME}/../../zdmbase/rhp/version.txt" "${ZDM_HOME}/../zdmbase/rhp/version.txt"; do
-        if sudo test -f "$bfile" 2>/dev/null; then
-            ZDM_VERSION=$(sudo cat "$bfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
+        if ${_ZDM_SUDO} test -f "$bfile" 2>/dev/null; then
+            ZDM_VERSION=$(${_ZDM_SUDO} cat "$bfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
             break
         fi
     done
@@ -321,11 +331,11 @@ The JSON summary output MUST include a `zdm_version` field in the `zdm_installat
 ```
 
 **IMPORTANT: ZDM Detection Requirements:**
-The script may be executed as a different user (e.g., azureuser) than the ZDM software owner (zdmuser). The script MUST detect ZDM using these methods in priority order:
-1. **Get ZDM_HOME from zdmuser's environment** - Use `sudo su - zdmuser -c 'echo $ZDM_HOME'` to get the environment variable from the zdmuser's login shell
+The ZDM server discovery script runs as `zdmuser` (the expected case — see the upfront SSH key diagnostic). The script MUST detect ZDM using these methods in priority order, **avoiding `sudo` when already running as `zdmuser`**:
+1. **Get ZDM_HOME from the current environment** - If already running as `zdmuser`, `$ZDM_HOME` is available directly from the login shell environment without any `sudo`. Only fall back to `sudo su - zdmuser -c 'echo $ZDM_HOME'` if running as a different user.
 2. **Check zdmuser's home directory** - Look for common paths like `~zdmuser/zdmhome`, `~zdmuser/app/zdmhome`
-3. **Search common system paths** - Check `/u01/app/zdmhome`, `/u01/zdm`, `/opt/zdm`, etc.
-4. **Find zdmcli binary** - Use `sudo find` to locate the zdmcli binary and derive ZDM_HOME from it
+3. **Search common system paths** - Check `/u01/app/zdmhome`, `/u01/zdm`, `/opt/zdm`, etc. Access directly (no `sudo`) when running as `zdmuser`.
+4. **Find zdmcli binary** - Use `find` (no `sudo` when running as `zdmuser`) to locate the zdmcli binary and derive ZDM_HOME from it
 5. **Check for ZDM's bundled JDK** - ZDM often includes its own JDK at `$ZDM_HOME/jdk`
 
 **Java Configuration:**
@@ -433,7 +443,7 @@ Generate a bash script that runs on the ZDM box to orchestrate discovery across 
   - ZDM server: local execution as `zdmuser` (no SSH)
 - OS-level discovery commands run as the respective admin user
 - Oracle SQL commands run as ORACLE_USER (default: "oracle") via `sudo -u oracle`
-- ZDM CLI commands run as ZDM_USER (default: "zdmuser") via `sudo su - zdmuser`
+- ZDM CLI commands run as ZDM_USER (default: "zdmuser") — called directly when already running as `zdmuser`; via `sudo su - zdmuser` only if running as a different user
 
 **Environment Variable Defaults in Orchestration Script:**
 ```bash
@@ -744,14 +754,24 @@ All scripts should include:
       if [ -n "${ZDM_HOME:-}" ] && [ -n "${JAVA_HOME:-}" ]; then
           return 0
       fi
-      
+
+      # When running as zdmuser, no sudo is needed — use direct access.
+      # When running as a different user, prefix file-access commands with sudo.
+      local _zdm_sudo=""
+      if [ "$(id -un)" != "${ZDM_USER:-zdmuser}" ]; then
+          _zdm_sudo="sudo"
+      fi
+
       # Detect ZDM_HOME using multiple methods
       if [ -z "${ZDM_HOME:-}" ]; then
-          # Method 1: Get ZDM_HOME from zdmuser's environment
-          # This is the most reliable method as ZDM is typically installed under zdmuser
           local zdm_user="${ZDM_USER:-zdmuser}"
-          if id "$zdm_user" &>/dev/null; then
-              # Try to get ZDM_HOME from zdmuser's login shell environment
+
+          # Method 1: If already zdmuser, $ZDM_HOME may already be set in login env.
+          # If running as a different user, query zdmuser's login shell.
+          if [ -z "${_zdm_sudo}" ]; then
+              # Already zdmuser — ZDM_HOME is available directly (set by .bash_profile)
+              : # ZDM_HOME is already inherited from the login shell; nothing to do here
+          elif id "$zdm_user" &>/dev/null; then
               local zdm_home_from_user
               zdm_home_from_user=$(sudo su - "$zdm_user" -c 'echo $ZDM_HOME' 2>/dev/null)
               if [ -n "$zdm_home_from_user" ] && [ -d "$zdm_home_from_user" ] && [ -f "$zdm_home_from_user/bin/zdmcli" ]; then
@@ -777,8 +797,8 @@ All scripts should include:
           # Method 3: Check common ZDM installation locations system-wide
           if [ -z "${ZDM_HOME:-}" ]; then
               for path in /u01/app/zdmhome /u01/zdm /u01/app/zdm /opt/zdm /home/zdmuser/zdmhome /home/*/zdmhome ~/zdmhome ~/zdm "$HOME/zdmhome"; do
-                  # Use sudo to check paths that may not be readable by current user
-                  if sudo test -d "$path" 2>/dev/null && sudo test -f "$path/bin/zdmcli" 2>/dev/null; then
+                  # Use sudo only when NOT already zdmuser
+                  if ${_zdm_sudo} test -d "$path" 2>/dev/null && ${_zdm_sudo} test -f "$path/bin/zdmcli" 2>/dev/null; then
                       export ZDM_HOME="$path"
                       break
                   elif [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
@@ -791,7 +811,7 @@ All scripts should include:
           # Method 4: Search for zdmcli binary and derive ZDM_HOME
           if [ -z "${ZDM_HOME:-}" ]; then
               local zdmcli_path
-              zdmcli_path=$(sudo find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
+              zdmcli_path=$(${_zdm_sudo} find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
               if [ -n "$zdmcli_path" ]; then
                   # zdmcli is in $ZDM_HOME/bin/zdmcli, so go up two levels
                   export ZDM_HOME="$(dirname "$(dirname "$zdmcli_path")")"

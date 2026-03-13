@@ -69,14 +69,25 @@ detect_zdm_env() {
         return 0
     fi
 
+    # When running as zdmuser, no sudo needed — use direct file access.
+    # When running as a different user, prefix file-access commands with sudo.
+    local _zdm_sudo=""
+    if [ "$(id -un)" != "${ZDM_USER:-zdmuser}" ]; then
+        _zdm_sudo="sudo"
+    fi
+
     if [ -z "${ZDM_HOME:-}" ]; then
         local zdm_user="${ZDM_USER:-zdmuser}"
 
-        # Method 1: Get ZDM_HOME from zdmuser's login shell
-        if id "$zdm_user" >/dev/null 2>&1; then
+        # Method 1: If already zdmuser, $ZDM_HOME is set in the login env directly.
+        # If running as a different user, query zdmuser's login shell via sudo.
+        if [ -z "$_zdm_sudo" ]; then
+            # Already zdmuser — ZDM_HOME is inherited from the login shell; nothing to do here
+            :
+        elif id "$zdm_user" >/dev/null 2>&1; then
             local zdm_home_from_user
             zdm_home_from_user=$(sudo su - "$zdm_user" -c 'echo $ZDM_HOME' 2>/dev/null)
-            if [ -n "$zdm_home_from_user" ] && sudo test -f "$zdm_home_from_user/bin/zdmcli" 2>/dev/null; then
+            if [ -n "$zdm_home_from_user" ] && [ -d "$zdm_home_from_user" ] && [ -f "$zdm_home_from_user/bin/zdmcli" ]; then
                 ZDM_HOME="$zdm_home_from_user"
             fi
         fi
@@ -88,7 +99,7 @@ detect_zdm_env() {
             if [ -n "$zdm_user_home" ]; then
                 for subdir in zdmhome zdm app/zdmhome; do
                     local candidate="$zdm_user_home/$subdir"
-                    if sudo test -d "$candidate" 2>/dev/null && sudo test -f "$candidate/bin/zdmcli" 2>/dev/null; then
+                    if [ -d "$candidate" ] && [ -f "$candidate/bin/zdmcli" ]; then
                         ZDM_HOME="$candidate"
                         break
                     fi
@@ -100,7 +111,10 @@ detect_zdm_env() {
         if [ -z "${ZDM_HOME:-}" ]; then
             for path in /u01/app/zdmhome /u01/zdm /u01/app/zdm /opt/zdm /home/zdmuser/zdmhome \
                         "/home/${ZDM_USER:-zdmuser}/zdmhome" "$HOME/zdmhome"; do
-                if sudo test -d "$path" 2>/dev/null && sudo test -f "$path/bin/zdmcli" 2>/dev/null; then
+                if ${_zdm_sudo:+$_zdm_sudo} test -d "$path" 2>/dev/null && ${_zdm_sudo:+$_zdm_sudo} test -f "$path/bin/zdmcli" 2>/dev/null; then
+                    ZDM_HOME="$path"
+                    break
+                elif [ -d "$path" ] && [ -f "$path/bin/zdmcli" ]; then
                     ZDM_HOME="$path"
                     break
                 fi
@@ -110,7 +124,7 @@ detect_zdm_env() {
         # Method 4: Find zdmcli binary
         if [ -z "${ZDM_HOME:-}" ]; then
             local zdmcli_path
-            zdmcli_path=$(sudo find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
+            zdmcli_path=$(${_zdm_sudo:+$_zdm_sudo} find /u01 /opt /home -name "zdmcli" -type f 2>/dev/null | head -1)
             if [ -n "$zdmcli_path" ]; then
                 ZDM_HOME="$(dirname "$(dirname "$zdmcli_path")")"
             fi
@@ -148,21 +162,31 @@ detect_zdm_version() {
         return
     fi
 
-    # Method 1: Oracle Inventory XML
-    if sudo test -f "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null; then
-        ZDM_VERSION=$(sudo grep -oP '(?<=VER=")[0-9.]+' "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null | head -1)
+    # Avoid sudo when already running as zdmuser
+    local _ZDM_SUDO=""
+    if [ "$(id -un)" != "${ZDM_USER:-zdmuser}" ]; then
+        _ZDM_SUDO="sudo"
     fi
 
-    # Method 2: OPatch
-    if [ -z "${ZDM_VERSION:-}" ] && sudo test -x "${ZDM_HOME}/OPatch/opatch" 2>/dev/null; then
-        ZDM_OPATCH=$(sudo su - "${ZDM_USER:-zdmuser}" -c "${ZDM_HOME}/OPatch/opatch lspatches" 2>/dev/null | head -20)
+    # Method 1: Oracle Inventory XML (most reliable)
+    if ${_ZDM_SUDO:+$_ZDM_SUDO} test -f "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null; then
+        ZDM_VERSION=$(${_ZDM_SUDO:+$_ZDM_SUDO} grep -oP '(?<=VER=")[0-9.]+' "${ZDM_HOME}/inventory/ContentsXML/comps.xml" 2>/dev/null | head -1)
     fi
 
-    # Method 3: version.txt files
+    # Method 2: OPatch installed patches list
+    if [ -z "${ZDM_VERSION:-}" ] && ${_ZDM_SUDO:+$_ZDM_SUDO} test -x "${ZDM_HOME}/OPatch/opatch" 2>/dev/null; then
+        if [ -z "$_ZDM_SUDO" ]; then
+            ZDM_OPATCH=$("${ZDM_HOME}/OPatch/opatch" lspatches 2>/dev/null | head -20)
+        else
+            ZDM_OPATCH=$(sudo su - "${ZDM_USER:-zdmuser}" -c "${ZDM_HOME}/OPatch/opatch lspatches" 2>/dev/null | head -20)
+        fi
+    fi
+
+    # Method 3: version.txt or similar files in ZDM_HOME
     if [ -z "${ZDM_VERSION:-}" ]; then
         for vfile in "${ZDM_HOME}/version.txt" "${ZDM_HOME}/VERSION" "${ZDM_HOME}/rhp/version.txt"; do
-            if sudo test -f "$vfile" 2>/dev/null; then
-                ZDM_VERSION=$(sudo cat "$vfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
+            if ${_ZDM_SUDO:+$_ZDM_SUDO} test -f "$vfile" 2>/dev/null; then
+                ZDM_VERSION=$(${_ZDM_SUDO:+$_ZDM_SUDO} cat "$vfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
                 break
             fi
         done
@@ -171,14 +195,14 @@ detect_zdm_version() {
     # Method 4: zdmbase log/build files
     if [ -z "${ZDM_VERSION:-}" ]; then
         for bfile in "${ZDM_HOME}/../../zdmbase/rhp/version.txt" "${ZDM_HOME}/../zdmbase/rhp/version.txt"; do
-            if sudo test -f "$bfile" 2>/dev/null; then
-                ZDM_VERSION=$(sudo cat "$bfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
+            if ${_ZDM_SUDO:+$_ZDM_SUDO} test -f "$bfile" 2>/dev/null; then
+                ZDM_VERSION=$(${_ZDM_SUDO:+$_ZDM_SUDO} cat "$bfile" 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9.]+' | head -1)
                 break
             fi
         done
     fi
 
-    # Method 5: Derive major version from ZDM_HOME path
+    # Method 5: Derive major version from ZDM_HOME path (e.g., /u01/app/zdmhome21 → 21)
     if [ -z "${ZDM_VERSION:-}" ]; then
         ZDM_VERSION=$(echo "${ZDM_HOME}" | grep -oP '[0-9]+' | tail -1)
         [ -n "${ZDM_VERSION:-}" ] && ZDM_VERSION="(derived from path: ${ZDM_VERSION})"
