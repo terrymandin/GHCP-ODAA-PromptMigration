@@ -1,0 +1,62 @@
+# ZDM Server Discovery Report
+
+| Field | Value |
+|-------|-------|
+| Generated | Fri Mar 13 06:20:50 PM EDT 2026 |
+| Hostname  | tm-vm-odaa-oracle-jumpbox |
+| Run by    | zdmuser |
+
+
+## OS Information
+
+  Hostname (FQDN): tm-vm-odaa-oracle-jumpbox.s15cwnltpnyuher1lvdjg5qxtd.zx.internal.cloudapp.net
+  Hostname (short): tm-vm-odaa-oracle-jumpbox
+  Current user: zdmuser
+  Home directory: /home/zdmuser
+  
+  OS Release:
+NAME="Oracle Linux Server"
+VERSION="9.5"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="9.5"
+PLATFORM_ID="platform:el9"
+PRETTY_NAME="Oracle Linux Server 9.5"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:9:5:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 9"
+ORACLE_BUGZILLA_PRODUCT_VERSION=9.5
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=9.5
+  
+  Kernel: 5.15.0-307.178.5.el9uek.x86_64
+  
+  Disk Space (df -h) — warn if any filesystem < 50 GB free:
+Filesystem                  Size  Used Avail Use% Mounted on
+devtmpfs                    4.0M     0  4.0M   0% /dev
+tmpfs                       3.8G     0  3.8G   0% /dev/shm
+tmpfs                       1.5G  164M  1.4G  11% /run
+/dev/mapper/rootvg-rootlv    39G   16G   23G  41% /
+/dev/sda2                   736M  388M  349M  53% /boot
+/dev/mapper/rootvg-crashlv   10G  104M  9.9G   2% /var/crash
+/dev/sda5                    99M  6.3M   93M   7% /boot/efi
+/dev/sdb1                    16G   28K   15G   1% /mnt
+tmpfs                       760M     0  760M   0% /run/user/1000
+  WARNING: Filesystem /dev has only 4.0M free (< 50 GB threshold)
+  WARNING: Filesystem /dev/shm has only 3.8G free (< 50 GB threshold)
+  WARNING: Filesystem /run has only 1.4G free (< 50 GB threshold)
+  WARNING: Filesystem / has only 23G free (< 50 GB threshold)
+  WARNING: Filesystem /boot has only 349M free (< 50 GB threshold)
+  WARNING: Filesystem /var/crash has only 9.9G free (< 50 GB threshold)
+  WARNING: Filesystem /boot/efi has only 93M free (< 50 GB threshold)
+  WARNING: Filesystem /mnt has only 15G free (< 50 GB threshold)
+  WARNING: Filesystem /run/user/1000 has only 760M free (< 50 GB threshold)
+
+## ZDM Installation
+
+  ZDM_HOME: /u01/app/zdmhome
