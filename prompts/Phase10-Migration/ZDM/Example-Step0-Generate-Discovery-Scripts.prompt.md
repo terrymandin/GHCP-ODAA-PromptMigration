@@ -382,9 +382,9 @@ ZDM_HOST="zdm-jumpbox.corp.example.com"
 ZDM_USER="zdmuser"
 
 # SSH Keys - typically different for each server environment
-SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-~/.ssh/source_db_key}"
-TARGET_SSH_KEY="${TARGET_SSH_KEY:-~/.ssh/oda_azure_key}"
-ZDM_SSH_KEY="${ZDM_SSH_KEY:-~/.ssh/zdm_jumpbox_key}"
+SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-}"   # Optional: set to path of SSH private key for source server
+TARGET_SSH_KEY="${TARGET_SSH_KEY:-}"   # Optional: set to path of SSH private key for target server
+ZDM_SSH_KEY="${ZDM_SSH_KEY:-}"         # Optional: set to path of SSH private key for ZDM server
 
 # Explicit environment variable overrides (optional - use when profile sourcing fails)
 # These are passed to remote scripts via environment
@@ -423,7 +423,7 @@ run_discovery() {
     
     # Use bash -l -c to simulate login shell (ensures profile files are sourced)
     # This is critical because non-interactive SSH does NOT source .bashrc by default
-    ssh $SSH_OPTS -i "$ssh_key" "$user@$host" "bash -l -c '
+    ssh $SSH_OPTS ${ssh_key:+-i "$ssh_key"} "$user@$host" "bash -l -c '
         # Pass explicit environment overrides if provided
         $env_overrides
         
@@ -476,34 +476,39 @@ cd Artifacts/Phase10-Migration/ZDM/PRODDB/Step0/Scripts
 
 ### Option 2: Run Scripts Individually
 ```bash
-# Define SSH keys for each environment
+# Define SSH keys for each environment (leave empty to use SSH agent or default key)
 SOURCE_SSH_KEY=~/.ssh/source_db_key
 TARGET_SSH_KEY=~/.ssh/oda_azure_key
 ZDM_SSH_KEY=~/.ssh/zdm_jumpbox_key
 
+# Build key args — only includes -i flag when the key variable is non-empty
+SOURCE_KEY_ARG=${SOURCE_SSH_KEY:+-i $SOURCE_SSH_KEY}
+TARGET_KEY_ARG=${TARGET_SSH_KEY:+-i $TARGET_SSH_KEY}
+ZDM_KEY_ARG=${ZDM_SSH_KEY:+-i $ZDM_SSH_KEY}
+
 # 1. Copy and run on source database server
 # Note: Scripts source environment files automatically for ORACLE_HOME, etc.
-scp -i $SOURCE_SSH_KEY zdm_source_discovery.sh oracle@proddb01.corp.example.com:/tmp/zdm_discovery/
-ssh -i $SOURCE_SSH_KEY oracle@proddb01.corp.example.com "cd /tmp/zdm_discovery && chmod +x zdm_source_discovery.sh && ./zdm_source_discovery.sh"
+scp $SOURCE_KEY_ARG zdm_source_discovery.sh oracle@proddb01.corp.example.com:/tmp/zdm_discovery/
+ssh $SOURCE_KEY_ARG oracle@proddb01.corp.example.com "cd /tmp/zdm_discovery && chmod +x zdm_source_discovery.sh && ./zdm_source_discovery.sh"
 
 # 2. Copy and run on target server
 # Note: Scripts source environment files automatically for ORACLE_HOME, etc.
-scp -i $TARGET_SSH_KEY zdm_target_discovery.sh opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_discovery/
-ssh -i $TARGET_SSH_KEY opc@proddb-oda.eastus.azure.example.com "cd /tmp/zdm_discovery && chmod +x zdm_target_discovery.sh && ./zdm_target_discovery.sh"
+scp $TARGET_KEY_ARG zdm_target_discovery.sh opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_discovery/
+ssh $TARGET_KEY_ARG opc@proddb-oda.eastus.azure.example.com "cd /tmp/zdm_discovery && chmod +x zdm_target_discovery.sh && ./zdm_target_discovery.sh"
 
 # 3. Copy and run on ZDM server
 # Note: Scripts source environment files automatically for ZDM_HOME, JAVA_HOME, etc.
-scp -i $ZDM_SSH_KEY zdm_server_discovery.sh zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_discovery/
-ssh -i $ZDM_SSH_KEY zdmuser@zdm-jumpbox.corp.example.com "cd /tmp/zdm_discovery && chmod +x zdm_server_discovery.sh && ./zdm_server_discovery.sh"
+scp $ZDM_KEY_ARG zdm_server_discovery.sh zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_discovery/
+ssh $ZDM_KEY_ARG zdmuser@zdm-jumpbox.corp.example.com "cd /tmp/zdm_discovery && chmod +x zdm_server_discovery.sh && ./zdm_server_discovery.sh"
 
 # 4. Collect results to Step0/Discovery/
 # Note: Scripts write to current directory, not /tmp
-scp -i $SOURCE_SSH_KEY oracle@proddb01.corp.example.com:/tmp/zdm_discovery/zdm_source_discovery_*.txt ../Discovery/source/
-scp -i $SOURCE_SSH_KEY oracle@proddb01.corp.example.com:/tmp/zdm_discovery/zdm_source_discovery_*.json ../Discovery/source/
-scp -i $TARGET_SSH_KEY opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_discovery/zdm_target_discovery_*.txt ../Discovery/target/
-scp -i $TARGET_SSH_KEY opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_discovery/zdm_target_discovery_*.json ../Discovery/target/
-scp -i $ZDM_SSH_KEY zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_discovery/zdm_server_discovery_*.txt ../Discovery/server/
-scp -i $ZDM_SSH_KEY zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_discovery/zdm_server_discovery_*.json ../Discovery/server/
+scp $SOURCE_KEY_ARG oracle@proddb01.corp.example.com:/tmp/zdm_discovery/zdm_source_discovery_*.txt ../Discovery/source/
+scp $SOURCE_KEY_ARG oracle@proddb01.corp.example.com:/tmp/zdm_discovery/zdm_source_discovery_*.json ../Discovery/source/
+scp $TARGET_KEY_ARG opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_discovery/zdm_target_discovery_*.txt ../Discovery/target/
+scp $TARGET_KEY_ARG opc@proddb-oda.eastus.azure.example.com:/tmp/zdm_discovery/zdm_target_discovery_*.json ../Discovery/target/
+scp $ZDM_KEY_ARG zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_discovery/zdm_server_discovery_*.txt ../Discovery/server/
+scp $ZDM_KEY_ARG zdmuser@zdm-jumpbox.corp.example.com:/tmp/zdm_discovery/zdm_server_discovery_*.json ../Discovery/server/
 ```
 
 ---
