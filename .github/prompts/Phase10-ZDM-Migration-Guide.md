@@ -54,11 +54,11 @@ Step 5: Generate Migration Artifacts & Run Migration
 
 | Step | File | Example | Purpose |
 |------|------|---------|---------|
-| 1 | [Step1-Test-SSH-Connectivity.prompt.md](Step1-Test-SSH-Connectivity.prompt.md) | [Example](Example-Step1-Test-SSH-Connectivity.prompt.md) | Validate SSH hosts and keys before discovery |
-| 2 | [Step2-Generate-Discovery-Scripts.prompt.md](Step2-Generate-Discovery-Scripts.prompt.md) | [Example](Example-Step2-Generate-Discovery-Scripts.prompt.md) | Generate and run discovery scripts |
-| 3 | [Step3-Discovery-Questionnaire.prompt.md](Step3-Discovery-Questionnaire.prompt.md) | [Example](Example-Step3-Discovery-Questionnaire.prompt.md) | Analyze discovery, complete questionnaire |
-| 4 | [Step4-Fix-Issues.prompt.md](Step4-Fix-Issues.prompt.md) | [Example](Example-Step4-Fix-Issues.prompt.md) | Address blockers, iterate until resolved |
-| 5 | [Step5-Generate-Migration-Artifacts.prompt.md](Step5-Generate-Migration-Artifacts.prompt.md) | [Example](Example-Step5-Generate-Migration-Artifacts.prompt.md) | Generate RSP file, CLI commands, runbook |
+| 1 | [Phase10-ZDM-Step1-Test-SSH-Connectivity.prompt.md](Phase10-ZDM-Step1-Test-SSH-Connectivity.prompt.md) | [Example](Phase10-ZDM-Example-Step1-Test-SSH-Connectivity.prompt.md) | Validate SSH hosts and keys before discovery |
+| 2 | [Phase10-ZDM-Step2-Generate-Discovery-Scripts.prompt.md](Phase10-ZDM-Step2-Generate-Discovery-Scripts.prompt.md) | [Example](Phase10-ZDM-Example-Step2-Generate-Discovery-Scripts.prompt.md) | Generate and run discovery scripts |
+| 3 | [Phase10-ZDM-Step3-Discovery-Questionnaire.prompt.md](Phase10-ZDM-Step3-Discovery-Questionnaire.prompt.md) | [Example](Phase10-ZDM-Example-Step3-Discovery-Questionnaire.prompt.md) | Analyze discovery, complete questionnaire |
+| 4 | [Phase10-ZDM-Step4-Fix-Issues.prompt.md](Phase10-ZDM-Step4-Fix-Issues.prompt.md) | [Example](Phase10-ZDM-Example-Step4-Fix-Issues.prompt.md) | Address blockers, iterate until resolved |
+| 5 | [Phase10-ZDM-Step5-Generate-Migration-Artifacts.prompt.md](Phase10-ZDM-Step5-Generate-Migration-Artifacts.prompt.md) | [Example](Phase10-ZDM-Example-Step5-Generate-Migration-Artifacts.prompt.md) | Generate RSP file, CLI commands, runbook |
 
 ## Example Files
 
@@ -66,11 +66,11 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 | Example | Description |
 |---------|-------------|
-| [Example-Step1](Example-Step1-Test-SSH-Connectivity.prompt.md) | Shows SSH host/key connectivity validation before discovery |
-| [Example-Step2](Example-Step2-Generate-Discovery-Scripts.prompt.md) | Shows how to request discovery scripts with custom requirements |
-| [Example-Step3](Example-Step3-Discovery-Questionnaire.prompt.md) | Shows a fully completed questionnaire for online physical migration |
-| [Example-Step4](Example-Step4-Fix-Issues.prompt.md) | Shows iterative issue resolution and verification |
-| [Example-Step5](Example-Step5-Generate-Migration-Artifacts.prompt.md) | Shows expected RSP file, CLI script, and runbook output |
+| [Example-Step1](Phase10-ZDM-Example-Step1-Test-SSH-Connectivity.prompt.md) | Shows SSH host/key connectivity validation before discovery |
+| [Example-Step2](Phase10-ZDM-Example-Step2-Generate-Discovery-Scripts.prompt.md) | Shows how to request discovery scripts with custom requirements |
+| [Example-Step3](Phase10-ZDM-Example-Step3-Discovery-Questionnaire.prompt.md) | Shows a fully completed questionnaire for online physical migration |
+| [Example-Step4](Phase10-ZDM-Example-Step4-Fix-Issues.prompt.md) | Shows iterative issue resolution and verification |
+| [Example-Step5](Phase10-ZDM-Example-Step5-Generate-Migration-Artifacts.prompt.md) | Shows expected RSP file, CLI script, and runbook output |
 
 ## Detailed Workflow
 

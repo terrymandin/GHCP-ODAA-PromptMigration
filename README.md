@@ -1,4 +1,4 @@
-# GitHub Oracle Database@Azure Copilot Migration & Modernization
+﻿# GitHub Oracle Database@Azure Copilot Migration & Modernization
 
 This repository showcases how GitHub Copilot using custom prompts and chat mode can be leveraged to migrate Oracle databases to Oracle Database@Azure in Azure. The current focus is on Oracle Exadata, demonstrating end-to-end migration journeys. 
 
@@ -15,15 +15,6 @@ The GitHub Copilot Migration & Modernization for Oracle Database@Azure provides 
 
 Through a guided, AI-assisted workflow, architects can efficiently migrate on-premise databases into a managed Oracle Database@Azure Exadata instance.
 
-<!--
-TODO: Determine if Note below is required:
-
-> Note: If your workload have many repositories, consider using the Phase0-Multi-repo-assessment.prompt.md to assess multiple repositories in a single workflow.
-> Start by creating a file named `codebase-repos.md` in the root folder, listing all the repositories to assess.
-> Then, use the command `/phase0-multirepoassessment` to start the multi-repo assessment process.
->
--->
-
 ## Requirements
 
 - GitHub Copilot License
@@ -38,28 +29,28 @@ TODO: Determine if Note below is required:
 
 ## Avoiding Hallucinations
 
-To reduce hallucinations during the migration, the guided prompts use two files in the repository's `reports/` folder:
+To reduce hallucinations during the migration, use `@GetStatus` to maintain a `reports/Report-Status.md` file that tracks the current state of your migration. Prompts read from and write to this file to preserve context between sessions.
 
-- `reports/Report-Status.md` — overall migration status dashboard
-- `reports/Application-Assessment-Report.md` — application assessment summary
+During each phase, read the AI's response summary carefully to understand what will be delivered and what inputs are needed.
 
-You can update these files at any phase to fit your requirements.
-
-During each phase, read the summary carefully to understand what will be delivered by the model and what inputs are needed.
-
-- Pro tip: for the rewrite migration process, some unnecessary files may be created (Class1.cs); clean them up before your final check-in.
-- Pro tip 2: use the @terminal command to ask the agent to solve issues during your tests.
-- Pro tip 3: Don't assume anything, always verify with the documentation.
+- **Pro tip**: Use `#file:zdm-env.md` to automatically attach your environment config to ZDM prompts.
+- **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
+- **Pro tip**: Don't assume anything â€” always verify ZDM requirements and OCI identifiers with the documentation.
 
 ## Repository Structure
 
-- **`.github/`**: Contains custom prompts and chat modes that enable GitHub Copilot to assist with migration
-  - **`chatmodes/`**: Defines specialized chat experiences for migration scenarios
-  - **`prompts/`**: Structured prompts for each phase of the migration process
+- **`.github/prompts/`**: Copilot prompt files for each migration phase â€” invoke with `@PromptName` in Copilot Chat
+  - `00-Start-Here.prompt.md` â€” onboarding guide and navigation
+  - `GetStatus.prompt.md` â€” check current migration progress
+  - `Phase0-ODAA-Readiness.prompt.md` â€” readiness assessment
+  - `Phase5-CIDR-Planning.prompt.md` â€” CIDR range planning
+  - `Phase6-IaC.prompt.md` â€” Terraform infrastructure generation
+  - `ZDM-Step1` through `ZDM-Step5` â€” ZDM migration workflow
+  - `Phase10-ZDM-Migration-Guide.md` â€” ZDM reference documentation
 
-- **`Use-cases/`**: Example applications representing different migration scenarios
-  - **`01-MultiZoneSilver/`**: Oracle Silver MAA Architecture
-  - **`02-MultiRegionGold/`**: Oracle Gold MAA Architecture
+- **`Artifacts/`**: Generated output from running prompts (git-ignored content)
+
+- **`zdm-env.example.md`**: Template for ZDM environment configuration â€” copy to `zdm-env.md` and fill in your values
 
 ## Migration & Modernization Process
 
@@ -137,64 +128,25 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 
 ## Getting Started
 
-1. Clone this repository
-2. Install [GitHub Copilot](https://copilot.github.com/) in your Visual Studio Code
-3. Open one of the use case projects in VS Code
-4. Start a chat with GitHub Copilot using the prompt:  "`/phase1-planandassess` under the folder #file:02-NetFramework30-ASPNET-WEB" to begin the migration planning and assessment
-5. Use `/getstatus` at any time to check the current migration status
-6. Follow the guided prompts to complete each phase of the migration process
+1. Clone this repository and open it in VS Code
+2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
+3. Install the **Azure MCP Server** and **GitHub Copilot for Azure** extensions
+4. Copy `zdm-env.example.md` â†’ `zdm-env.md` and fill in your environment values
+5. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
+6. Use `@GetStatus` at any time to check the current migration progress
 
-## Use Cases
+## ZDM Migration Quick Reference
 
-This repository contains example applications that can be used to test prompts and understand how GitHub Copilot works in the context of migration and modernization:
+The Phase 10 ZDM migration uses a 5-step workflow that alternates between VS Code (generating scripts) and the ZDM server (running them):
 
-- **Simple Database**: Migration path for legacy ASP applications
-
-## Improved Prompt Structure
-
-The custom prompts have been significantly enhanced with:
-
-### Enhanced Structured Workflow
-
-- **Planning Phase**: Added a dedicated planning phase to gather requirements before starting the assessment
-- **Status Command**: New `/getstatus` command to check migration progress at any time
-- **Report Generation**: Automatic creation of assessment, validation, and status reports
-- **Incremental Validation**: Step-by-step validation checks throughout the migration process
-- **Context Preservation**: Better context retention between phases of the migration
-
-### Technical Improvements
-
-- GitHub Copilot Migration \& Modernization for Azure
-  - Overview
-  - Requirements
-  - Avoiding Hallucinations
-  - Repository Structure
-  - Migration \& Modernization Process
-    - Phase 1: Planning \& Assessment
-    - Phase 2: Code Migration
-    - Phase 3: Infrastructure Generation
-    - Phase 4: Deployment to Azure
-    - Phase 5: CI/CD Pipeline Setup
-  - Key Features
-  - Migration Status Tracking
-  - Getting Started
-  - Target Azure Hosting Platforms
-  - Authentication \& Authorization
-  - Use Cases
-  - Improved Prompt Structure
-    - Enhanced Structured Workflow
-    - Technical Improvements
-    - Documentation and Reporting
-  - Contributing
-  - License
-
-### Documentation and Reporting
-
-- **Detailed Reports**: More comprehensive reports with actionable recommendations
-- **Visual Progress**: Visual progress tracking with completion percentages
-- **Risk Management**: Enhanced risk identification and mitigation guidance
-- **Architecture Diagrams**: Support for generating before/after architecture diagrams
-- **Performance Metrics**: Added performance baseline recommendations and validation
+| Step | Run In | Purpose |
+|------|--------|---------|
+| `@Phase10-ZDM-Step1-Test-SSH-Connectivity` | VS Code | Generate SSH precheck script |
+| `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` | VS Code | Generate database discovery scripts |
+| Run discovery scripts | ZDM Server | Collect source/target/ZDM facts |
+| `@Phase10-ZDM-Step3-Discovery-Questionnaire` | VS Code | Analyze results, create migration plan |
+| `@Phase10-ZDM-Step4-Fix-Issues` | VS Code + ZDM | Resolve blockers iteratively |
+| `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` | VS Code | Generate RSP, runbook, and migration commands |
 
 ## Contributing
 

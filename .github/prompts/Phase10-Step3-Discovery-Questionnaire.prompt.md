@@ -1,4 +1,8 @@
-﻿# ZDM Migration Step 3: Get Manual Configuration Context
+﻿---
+mode: agent
+description: ZDM Step 3 - Analyze discovery output and create migration plan
+---
+# ZDM Migration Step 3: Get Manual Configuration Context
 
 ## Purpose
 This prompt analyzes the discovery output from Step 2 and generates:
@@ -24,8 +28,8 @@ Step 5: Generate Migration Artifacts & Run Migration
 ## Prerequisites
 
 Before running this prompt:
-1. ✅ Complete `Step1-Test-SSH-Connectivity.prompt.md` and confirm connectivity checks pass
-2. ✅ Run `Step2-Generate-Discovery-Scripts.prompt.md` to generate discovery scripts
+1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
+2. ✅ Run `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` to generate discovery scripts
 3. ✅ Execute the discovery scripts on all servers
 4. ✅ Check discovery output files into the repository
 
@@ -36,7 +40,7 @@ Before running this prompt:
 Attach the discovery files from Step2 and run this prompt:
 
 ```
-@Step3-Discovery-Questionnaire.prompt.md
+@Phase10-ZDM-Step3-Discovery-Questionnaire
 
 Please analyze the discovery results and generate:
 1. A summary of discovered configurations
@@ -348,8 +352,8 @@ These values must be obtained from the OCI Console or Azure Portal.
 After completing this questionnaire:
 1. Save this file
 2. Review the Discovery Summary for any critical actions
-3. Run `Step4-Fix-Issues.prompt.md` to address any blockers
-4. After all issues resolved, run `Step5-Generate-Migration-Artifacts.prompt.md` with:
+3. Run `@Phase10-ZDM-Step4-Fix-Issues` to address any blockers
+4. After all issues resolved, run `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` with:
    - This completed questionnaire
    - The Discovery Summary
    - The Issue Resolution Log
@@ -363,10 +367,10 @@ After Step 3 generates the outputs:
 
 1. **Review Discovery Summary** - Check for any required actions or blockers
 2. **Complete the Questionnaire** - Fill in manual items
-3. **Run Step 4**: `Step4-Fix-Issues.prompt.md`
+3. **Run Step 4**: `@Phase10-ZDM-Step4-Fix-Issues`
    - Address all blockers and required actions
    - Iterate until all issues are resolved
-4. **Run Step 5**: `Step5-Generate-Migration-Artifacts.prompt.md`
+4. **Run Step 5**: `@Phase10-ZDM-Step5-Generate-Migration-Artifacts`
    - Attach the completed questionnaire
    - Attach the Issue Resolution Log
    - This generates the RSP file, ZDM commands, and runbook

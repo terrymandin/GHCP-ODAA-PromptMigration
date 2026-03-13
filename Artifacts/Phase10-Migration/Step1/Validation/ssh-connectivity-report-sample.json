@@ -1,0 +1,22 @@
+{
+  "report": "ssh-connectivity",
+  "phase": "Phase10-ZDM-Step1",
+  "generated": "2026-03-13T00:00:00Z",
+  "run_by": "zdmuser",
+  "host": "zdm-server",
+  "overall": "PASS",
+  "source": {
+    "host": "10.1.0.11",
+    "ssh_user": "azureuser",
+    "ssh_key": "~/.ssh/odaa.pem",
+    "result": "PASS",
+    "remote_hostname": "source-db-node1"
+  },
+  "target": {
+    "host": "10.0.1.160",
+    "ssh_user": "opc",
+    "ssh_key": "~/.ssh/odaa.pem",
+    "result": "PASS",
+    "remote_hostname": "target-odaa-node1"
+  }
+}

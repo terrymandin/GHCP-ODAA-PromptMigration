@@ -1,4 +1,8 @@
-﻿# ZDM Migration Step 1: Test SSH Connectivity
+﻿---
+mode: agent
+description: ZDM Step 1 - Test SSH connectivity before discovery
+---
+# ZDM Migration Step 1: Test SSH Connectivity
 
 ## Purpose
 Run a fast precheck before Step2 to validate SSH host/IP reachability and SSH key usability, so you can catch bad connectivity inputs before generating and running the longer discovery flow.
@@ -10,7 +14,7 @@ Run a fast precheck before Step2 to validate SSH host/IP reachability and SSH ke
 Attach your project configuration:
 
 ```text
-#file:prompts/Phase10-Migration/ZDM/zdm-env.md
+#file:zdm-env.md
 ```
 
 Required values in `zdm-env.md`:
@@ -100,4 +104,4 @@ After generating the SSH test script:
 ## Next Step
 
 If Step1 passes for both source and target, continue with:
-- `Step2-Generate-Discovery-Scripts.prompt.md`
+- `@Phase10-ZDM-Step2-Generate-Discovery-Scripts`

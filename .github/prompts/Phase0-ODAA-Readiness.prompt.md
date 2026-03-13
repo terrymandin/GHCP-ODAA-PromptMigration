@@ -1,4 +1,7 @@
-````prompt
+﻿---
+mode: agent
+description: Phase 0 - Oracle Database@Azure Exadata migration readiness assessment
+---
 # Oracle Database@Azure (ODAA) Exadata Migration Readiness Assessment
 
 ## Objective
@@ -286,7 +289,7 @@ For each database identified in Phase 1, perform detailed assessment:
 
 **InfiniBand Network**:
 - **Network throughput**: [GB/s]
-- **Network latency**: [μs]
+- **Network latency**: [Î¼s]
 - **RDS (Reliable Datagram Sockets)**: [Usage]
 
 ##### 8. Database Configuration Parameters
@@ -415,7 +418,7 @@ For each database identified in Phase 1, perform detailed assessment:
 - **Private DNS zones**: [Configuration needed]
 
 **Firewall and Security**:
-- **Current firewall rules**: [Source → Database rules]
+- **Current firewall rules**: [Source â†’ Database rules]
 - **Azure NSG rules needed**: [List]
 - **Database access control lists**: [IP-based restrictions]
 - **Service endpoints**: [Required Azure services]
@@ -940,10 +943,10 @@ gantt
 | **Total** | **100%** | - | **[Score]** |
 
 **Readiness Level**: 
-- 80-100: ✅ **Ready to Migrate**
-- 60-79: ⚠️ **Ready with Conditions**
-- 40-59: ⚠️ **Significant Preparation Needed**
-- 0-39: ❌ **Not Ready**
+- 80-100: âœ… **Ready to Migrate**
+- 60-79: âš ï¸ **Ready with Conditions**
+- 40-59: âš ï¸ **Significant Preparation Needed**
+- 0-39: âŒ **Not Ready**
 
 **Assessment**: [Overall readiness determination]
 
@@ -951,14 +954,14 @@ gantt
 
 | Criteria | Status | Notes |
 |----------|--------|-------|
-| Azure subscription ready | [✅/❌] | [Notes] |
-| Network connectivity established | [✅/❌] | [Notes] |
-| ODAA capacity available | [✅/❌] | [Notes] |
-| Licenses verified (BYOL) | [✅/❌] | [Notes] |
-| Security requirements met | [✅/❌] | [Notes] |
-| Application teams aligned | [✅/❌] | [Notes] |
-| Downtime windows approved | [✅/❌] | [Notes] |
-| Rollback plan validated | [✅/❌] | [Notes] |
+| Azure subscription ready | [âœ…/âŒ] | [Notes] |
+| Network connectivity established | [âœ…/âŒ] | [Notes] |
+| ODAA capacity available | [âœ…/âŒ] | [Notes] |
+| Licenses verified (BYOL) | [âœ…/âŒ] | [Notes] |
+| Security requirements met | [âœ…/âŒ] | [Notes] |
+| Application teams aligned | [âœ…/âŒ] | [Notes] |
+| Downtime windows approved | [âœ…/âŒ] | [Notes] |
+| Rollback plan validated | [âœ…/âŒ] | [Notes] |
 
 ## Recommendations
 
@@ -1099,24 +1102,24 @@ Before starting the assessment, ensure you have:
 
 ```
 project/
-├── environment-discovery.md              # Current Exadata environment documentation
-├── database-inventory.md                 # List of all databases to assess
-├── reports/                              # Individual database assessments
-│   ├── database1-odaa-assessment.md
-│   ├── database2-odaa-assessment.md
-│   └── ...
-├── diagrams/                             # Architecture and network diagrams
-│   ├── current-architecture.png
-│   ├── target-azure-architecture.png
-│   ├── network-topology.png
-│   └── migration-architecture.png
-├── cost-analysis/                        # Cost comparison and projections
-│   └── odaa-cost-analysis.xlsx
-├── runbooks/                             # Migration procedures
-│   ├── network-setup-runbook.md
-│   ├── database-migration-runbook.md
-│   └── application-cutover-runbook.md
-└── odaa-migration-readiness-summary.md   # ✅ Final comprehensive report
+â”œâ”€â”€ environment-discovery.md              # Current Exadata environment documentation
+â”œâ”€â”€ database-inventory.md                 # List of all databases to assess
+â”œâ”€â”€ reports/                              # Individual database assessments
+â”‚   â”œâ”€â”€ database1-odaa-assessment.md
+â”‚   â”œâ”€â”€ database2-odaa-assessment.md
+â”‚   â””â”€â”€ ...
+â”œâ”€â”€ diagrams/                             # Architecture and network diagrams
+â”‚   â”œâ”€â”€ current-architecture.png
+â”‚   â”œâ”€â”€ target-azure-architecture.png
+â”‚   â”œâ”€â”€ network-topology.png
+â”‚   â””â”€â”€ migration-architecture.png
+â”œâ”€â”€ cost-analysis/                        # Cost comparison and projections
+â”‚   â””â”€â”€ odaa-cost-analysis.xlsx
+â”œâ”€â”€ runbooks/                             # Migration procedures
+â”‚   â”œâ”€â”€ network-setup-runbook.md
+â”‚   â”œâ”€â”€ database-migration-runbook.md
+â”‚   â””â”€â”€ application-cutover-runbook.md
+â””â”€â”€ odaa-migration-readiness-summary.md   # âœ… Final comprehensive report
 ```
 
 ### Documentation Quality Standards
@@ -1169,5 +1172,3 @@ project/
 **Document Version**: 1.0
 **Last Updated**: [Date]
 **Next Review**: [Date]
-
-````

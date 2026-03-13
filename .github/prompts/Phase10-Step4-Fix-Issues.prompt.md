@@ -1,4 +1,8 @@
-﻿# ZDM Migration Step 4: Fix Issues
+﻿---
+mode: agent
+description: ZDM Step 4 - Resolve blockers identified in discovery
+---
+# ZDM Migration Step 4: Fix Issues
 
 ## Purpose
 This prompt helps address blockers and critical actions identified in the Discovery Summary before proceeding to migration artifact generation. **Iteration may be required** until all issues are resolved.
@@ -8,9 +12,9 @@ This prompt helps address blockers and critical actions identified in the Discov
 ## Prerequisites
 
 Before running this prompt:
-1. ✅ Complete `Step1-Test-SSH-Connectivity.prompt.md` and confirm connectivity checks pass
-2. ✅ Complete `Step2-Generate-Discovery-Scripts.prompt.md` and run discovery scripts
-3. ✅ Complete `Step3-Discovery-Questionnaire.prompt.md` to generate Discovery Summary
+1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
+2. ✅ Complete `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` and run discovery scripts
+3. ✅ Complete `@Phase10-ZDM-Step3-Discovery-Questionnaire` to generate Discovery Summary
 4. ✅ Review Discovery Summary for critical actions and blockers
 
 ---
@@ -20,7 +24,7 @@ Before running this prompt:
 Attach the Discovery Summary and run this prompt to get remediation guidance:
 
 ```
-@Step4-Fix-Issues.prompt.md
+@Phase10-ZDM-Step4-Fix-Issues
 
 Please help me resolve the issues identified in the Discovery Summary.
 
@@ -446,7 +450,7 @@ Once all issues are resolved:
 3. ✅ Run `verify_fixes.sh` — confirm all checks PASS
 4. ✅ Run the git commands printed by the script to commit and push `Verification-Results.md`
 5. ✅ Ensure verification discovery files are saved
-6. 🔲 Run `Step5-Generate-Migration-Artifacts.prompt.md` with:
+6. 🔲 Run `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` with:
    - Completed questionnaire from Step 3
    - Issue Resolution Log from Step 4
    - `Verification-Results.md` from Step 4

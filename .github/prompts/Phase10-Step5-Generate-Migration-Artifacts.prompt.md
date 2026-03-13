@@ -1,4 +1,8 @@
-﻿# ZDM Migration Step 5: Generate Migration Artifacts
+﻿---
+mode: agent
+description: ZDM Step 5 - Generate ZDM migration RSP, runbook, and commands
+---
+# ZDM Migration Step 5: Generate Migration Artifacts
 
 ## Purpose
 This prompt takes completed questionnaire responses from Step 3, confirmed issue resolution from Step 4, and generates all required migration artifacts:
@@ -22,10 +26,10 @@ When generating artifacts, remember these user workflow requirements:
 ## Instructions
 
 ### Prerequisites
-1. ✅ Complete `Step1-Test-SSH-Connectivity.prompt.md` and confirm connectivity checks pass
-2. ✅ Complete `Step2-Generate-Discovery-Scripts.prompt.md` and run discovery scripts
-3. ✅ Complete `Step3-Discovery-Questionnaire.prompt.md` with all required information
-4. ✅ Complete `Step4-Fix-Issues.prompt.md` - all blockers must be resolved
+1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
+2. ✅ Complete `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` and run discovery scripts
+3. ✅ Complete `@Phase10-ZDM-Step3-Discovery-Questionnaire` with all required information
+4. ✅ Complete `@Phase10-ZDM-Step4-Fix-Issues` - all blockers must be resolved
 5. ✅ Attach the completed questionnaire and Issue Resolution Log
 
 ### Input Required
@@ -38,7 +42,7 @@ Provide the completed artifacts from previous steps:
 ### How to Use This Prompt
 
 ```
-@Step5-Generate-Migration-Artifacts.prompt.md
+@Phase10-ZDM-Step5-Generate-Migration-Artifacts
 
 Generate all migration artifacts for the migration to Oracle Database@Azure.
 

@@ -1,4 +1,8 @@
-﻿# ZDM Migration Step 2: Run Scripts to Get Context
+﻿---
+mode: agent
+description: ZDM Step 2 - Generate read-only database discovery scripts
+---
+# ZDM Migration Step 2: Run Scripts to Get Context
 
 ## Purpose
 This prompt generates the discovery scripts that will be used to gather technical context from the source database server, target Oracle Database@Azure server, and the local ZDM server environment. The discovery outputs form the foundation for all subsequent migration steps.
