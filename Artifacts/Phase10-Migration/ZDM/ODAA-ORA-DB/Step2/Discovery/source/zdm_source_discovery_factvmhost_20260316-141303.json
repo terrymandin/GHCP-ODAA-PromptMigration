@@ -1,0 +1,25 @@
+{
+  "report": "zdm_source_discovery",
+  "project": "ODAA-ORA-DB",
+  "timestamp": "20260316-141303",
+  "hostname": "factvmhost",
+  "run_by": "azureuser",
+  "overall_status": "partial",
+  "oracle": {
+    "oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
+    "oracle_sid": "MCKESS",
+    "db_version": "",
+    "db_name": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "db_unique_name": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "dbid": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "db_role": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "open_mode": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "log_mode": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "is_cdb": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "charset": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory",
+    "nchar_charset": "env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory"
+  },
+  "sections": ["os:success","oracle_env:partial","db_config:success","cdb_pdb:success","tde:success","tablespaces:success","redo_archive:success","network:success","auth:success","schemas:success","backup:success","dblinks:success","mviews:success","scheduler:success","dataguard:success",],
+  "warnings": ["sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus — skipping Oracle version","Database is NOT in ARCHIVELOG mode — required for online ZDM migration","Review scheduler jobs above for external hostname/path references that need post-migration updates"],
+  "report_txt": "/tmp/zdm_discovery_20260316-141302/zdm_source_discovery_factvmhost_20260316-141303.txt"
+}

@@ -1,0 +1,710 @@
+[14:13:02] [INFO]  Current user     : zdmuser
+[14:13:02] [INFO]  Home directory   : /home/zdmuser
+[14:13:02] [INFO]  Script directory : /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts
+──────────────────────────────────────────────────────────────────────
+[14:13:02] [INFO]  SSH key diagnostics:
+[14:13:02] [WARN]    No .pem or .key files found in ~/.ssh/
+[14:13:02] [INFO]    SOURCE_SSH_KEY: empty — SSH agent / default key (~/.ssh/id_rsa) will be used
+[14:13:02] [INFO]    TARGET_SSH_KEY: empty — SSH agent / default key (~/.ssh/id_rsa) will be used
+──────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────
+[14:13:02] [INFO]  Starting SOURCE discovery on azureuser@10.200.1.12
+[14:13:02] [INFO]  Creating remote temp dir: /tmp/zdm_discovery_20260316-141302
+[14:13:02] [INFO]  Copying /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts/zdm_source_discovery.sh to azureuser@10.200.1.12:/tmp/zdm_discovery_20260316-141302/
+[14:13:02] [INFO]  Executing zdm_source_discovery.sh on 10.200.1.12 (login shell) ...
+ZDM SOURCE DISCOVERY REPORT
+Project  : ODAA-ORA-DB
+Host     : factvmhost
+Timestamp: 20260316-141303
+Run by   : azureuser
+======================================================================
+
+======================================================================
+  1. OS INFORMATION
+======================================================================
+[INFO]  Hostname     : factvmhost.x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net
+[INFO]  Short name   : factvmhost
+IP Addresses :
+  127.0.0.1/8
+  10.200.1.12/24
+OS Version   :
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://bugzilla.oracle.com/"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+Kernel       : 5.4.17-2036.101.2.el7uek.x86_64
+Disk Space   :
+Filesystem                                                            Size  Used Avail Use% Mounted on
+devtmpfs                                                              7.7G     0  7.7G   0% /dev
+tmpfs                                                                 7.7G     0  7.7G   0% /dev/shm
+tmpfs                                                                 7.7G  753M  7.0G  10% /run
+tmpfs                                                                 7.7G     0  7.7G   0% /sys/fs/cgroup
+/dev/mapper/rootvg-rootlv                                             117G   98G   19G  84% /
+/dev/mapper/rootvg-crashlv                                             10G   33M   10G   1% /var/crash
+/dev/sdb1                                                             797M  242M  555M  31% /boot
+/dev/sdb15                                                            495M  8.6M  487M   2% /boot/efi
+/dev/sda1                                                              32G   17G   14G  54% /mnt
+tmpfs                                                                 1.6G     0  1.6G   0% /run/user/54322
+tmpfs                                                                 1.6G     0  1.6G   0% /run/user/0
+factsa060120226.blob.core.windows.net:/factsa060120226/odaamigration  5.0P     0  5.0P   0% /nfstest1
+saadb12feb2026.file.core.windows.net:/saadb12feb2026/adbshare01       1.0T  3.2G 1021G   1% /nfstest
+
+======================================================================
+  2. ORACLE ENVIRONMENT
+======================================================================
+[INFO]  ORACLE_HOME  : /u02/app/oracle/product/19.0.0.0/dbhome_1
+[INFO]  ORACLE_SID   : MCKESS
+[INFO]  ORACLE_BASE  :
+  unknown
+Oracle version:
+[WARN]  sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus — skipping Oracle version
+
+======================================================================
+  3. DATABASE CONFIGURATION
+======================================================================
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+[WARN]  Database is NOT in ARCHIVELOG mode — required for online ZDM migration
+
+Character Sets:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Supplemental Logging:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Force Logging:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+======================================================================
+  4. CONTAINER DATABASE (CDB/PDB)
+======================================================================
+[INFO]  Database is NOT a CDB (traditional non-container database)
+
+======================================================================
+  5. TDE (TRANSPARENT DATA ENCRYPTION)
+======================================================================
+Wallet status:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Encrypted tablespaces:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+sqlnet.ora / wallet location:
+
+======================================================================
+  6. TABLESPACES
+======================================================================
+Tablespace summary (size, autoextend):
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Datafiles with autoextend detail:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+======================================================================
+  7. REDO LOGS AND ARCHIVE
+======================================================================
+Redo log groups:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Archive log destinations:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Recent archive log activity (last 24 h):
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+======================================================================
+  8. NETWORK (LISTENER / TNS)
+======================================================================
+Listener status:
+
+tnsnames.ora:
+
+sqlnet.ora:
+
+======================================================================
+  9. AUTHENTICATION
+======================================================================
+Password file:
+
+~/.ssh directory (azureuser):
+total 88
+drwx------. 2 azureuser azureuser 4096 Mar 12 11:52 .
+drwx------. 4 azureuser azureuser 4096 Mar 13 05:31 ..
+-rw-------. 1 azureuser azureuser  569 Dec  7 07:35 authorized_keys
+-rw-------. 1 azureuser azureuser 1675 Jan 22 10:49 basedbprivate.key
+-rw-------. 1 azureuser azureuser 1675 Feb  6 11:21 id_rsa
+-rw-r--r--. 1 azureuser azureuser  402 Feb  6 11:21 id_rsa.pub
+-rw-r--r--. 1 azureuser azureuser 4022 Mar 10 05:45 known_hosts
+-rw-------. 1 azureuser azureuser 1675 Feb  2 07:52 opc@factakvclu-tff4r1
+-rw-------. 1 azureuser azureuser 1675 Mar 12 11:52 ssh-key-10.200.0.250.key
+-rw-------. 1 azureuser azureuser 1679 Nov 25 17:54 ssh-key-2025-11-25.key
+-rw-------. 1 azureuser azureuser 1679 Dec 21 06:17 ssh-key-2025-12-21.key
+-rw-------. 1 azureuser azureuser 1675 Jan 14 15:41 ssh-key-2026-01-14.key
+-rw-------. 1 azureuser azureuser 1675 Jan 21 07:40 ssh-key-2026-01-21.key
+-rwxrwxr-x. 1 azureuser azureuser  399 Jan 21 07:40 ssh-key-2026-01-21.key.pub
+-rw-------. 1 azureuser azureuser 1675 Feb  1 18:14 ssh-key-2026-02-01.key
+-rw-------. 1 azureuser azureuser 1675 Feb  3 08:04 ssh-key-2026-02-03.key
+-rwx------. 1 azureuser azureuser 1675 Feb 25 09:37 ssh-key-2026-02-25.key
+-rwx------. 1 azureuser azureuser 1675 Mar  2 15:21 ssh-key-Exascale.key
+-rwx------. 1 azureuser azureuser 1675 Mar  5 10:03 ssh-key-ExascalePOC01.key
+-rw-------. 1 azureuser azureuser 1675 Mar 10 05:42 ssh-key-exascalepoc02.key
+-rwx------. 1 azureuser azureuser 1675 Mar  2 12:18 ssh-key-ODAA_SPAIN.key
+-rwx------. 1 azureuser azureuser 1675 Mar  2 12:42 ssh-key-vmclusterpoc-ytlat1.key
+
+======================================================================
+  10. SCHEMA INFORMATION
+======================================================================
+Non-system schemas > 100 MB:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Invalid objects by owner/type:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+======================================================================
+  11. BACKUP CONFIGURATION
+======================================================================
+RMAN configuration:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Last successful backup:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+DBMS_SCHEDULER backup jobs:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Crontab (backup-related):
+
+======================================================================
+  12. DATABASE LINKS
+======================================================================
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+bash: line 486: [[: env:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory: syntax error in expression (error token is ":/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus:Nosuchfileordirectory")
+
+======================================================================
+  13. MATERIALIZED VIEWS
+======================================================================
+Materialized views:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Materialized view logs:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+======================================================================
+  14. SCHEDULER JOBS
+======================================================================
+All DBMS_SCHEDULER jobs:
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+Jobs referencing external resources (hostname/file/credential):
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+[WARN]  Review scheduler jobs above for external hostname/path references that need post-migration updates
+
+======================================================================
+  15. DATA GUARD CONFIGURATION
+======================================================================
+[INFO]  Data Guard may be configured (log_archive_dest_2 is set)
+env: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: No such file or directory
+
+======================================================================
+  SUMMARY
+======================================================================
+
+WARNINGS requiring attention:
+  [!] sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus — skipping Oracle version
+  [!] Database is NOT in ARCHIVELOG mode — required for online ZDM migration
+  [!] Review scheduler jobs above for external hostname/path references that need post-migration updates
+
+Section statuses: os:success oracle_env:partial db_config:success cdb_pdb:success tde:success tablespaces:success redo_archive:success network:success auth:success schemas:success backup:success dblinks:success mviews:success scheduler:success dataguard:success
+
+Report: /tmp/zdm_discovery_20260316-141302/zdm_source_discovery_factvmhost_20260316-141303.txt
+JSON  : /tmp/zdm_discovery_20260316-141302/zdm_source_discovery_factvmhost_20260316-141303.json
+
+======================================================================
+ SOURCE DISCOVERY COMPLETE — PARTIAL
+ Reports: /tmp/zdm_discovery_20260316-141302
+======================================================================
+[14:13:04] [INFO]  Listing remote output files:
+-rw-rw-r--. 1 azureuser azureuser  1907 Mar 16 14:13 /tmp/zdm_discovery_20260316-141302/zdm_source_discovery_factvmhost_20260316-141303.json
+-rw-rw-r--. 1 azureuser azureuser 10579 Mar 16 14:13 /tmp/zdm_discovery_20260316-141302/zdm_source_discovery_factvmhost_20260316-141303.txt
+[14:13:04] [INFO]  Retrieving output files to /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/source/
+[14:13:05] [INFO]  SOURCE discovery files retrieved successfully:
+[14:13:05] [INFO]    -rw-r--r--. 1 zdmuser zdm  1907 Mar 16 14:13 zdm_source_discovery_factvmhost_20260316-141303.json
+[14:13:05] [INFO]    -rw-r--r--. 1 zdmuser zdm 10579 Mar 16 14:13 zdm_source_discovery_factvmhost_20260316-141303.txt
+[14:13:05] [INFO]  Cleaning up remote temp dir on 10.200.1.12
+──────────────────────────────────────────────────────────────────────
+[14:13:05] [INFO]  Starting TARGET discovery on opc@10.200.0.250
+[14:13:05] [INFO]  Creating remote temp dir: /tmp/zdm_discovery_20260316-141302
+[14:13:05] [INFO]  Copying /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts/zdm_target_discovery.sh to opc@10.200.0.250:/tmp/zdm_discovery_20260316-141302/
+[14:13:06] [INFO]  Executing zdm_target_discovery.sh on 10.200.0.250 (login shell) ...
+ZDM TARGET DISCOVERY REPORT
+Project  : ODAA-ORA-DB
+Host     : vmclusterpoc-ytlat1
+Timestamp: 20260316-141306
+Run by   : opc
+======================================================================
+[INFO]  ORACLE_SID/HOME from /etc/oratab: CDBAKV_STANDBY / /u02/app/oracle/product/19.0.0.0/dbhome_1
+
+======================================================================
+  1. OS INFORMATION
+======================================================================
+[INFO]  Hostname     : vmclusterpoc-ytlat1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com
+IP Addresses :
+  127.0.0.1/8
+  10.200.0.250/24
+  10.200.0.241/24
+  10.200.0.30/24
+  10.200.0.101/24
+  10.200.2.50/26
+  169.254.200.14/30
+  100.106.64.140/16
+  100.106.64.141/16
+  100.107.0.176/16
+  100.107.0.177/16
+OS Version   :
+NAME="Oracle Linux Server"
+VERSION="8.10"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="8.10"
+PLATFORM_ID="platform:el8"
+PRETTY_NAME="Oracle Linux Server 8.10"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:8:10:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 8"
+ORACLE_BUGZILLA_PRODUCT_VERSION=8.10
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=8.10
+Kernel       : 5.15.0-308.179.6.16.el8uek.x86_64
+Disk Space   :
+Filesystem                                                                        Size  Used Avail Use% Mounted on
+devtmpfs                                                                           15G     0   15G   0% /dev
+tmpfs                                                                              15G   15M   15G   1% /run
+tmpfs                                                                              15G     0   15G   0% /sys/fs/cgroup
+/dev/mapper/VGExaDb-LVDbSys1                                                       15G  5.5G  9.5G  37% /
+/dev/mapper/VGExaDbDisk.u01.20.img-LVDBDisk                                        20G  4.2G   16G  21% /u01
+/dev/mapper/VGExaDb-LVDbVar1                                                      5.0G  2.4G  2.6G  48% /var
+/dev/mapper/VGExaDb-LVDbKdump                                                      20G  175M   20G   1% /crashfiles
+/dev/mapper/VGExaDb-LVDbTmp                                                       3.0G   62M  2.9G   3% /tmp
+/dev/mapper/VGExaDb-LVDbHome                                                      4.0G   61M  3.9G   2% /home
+/dev/mapper/VGExaDbDisk.grid--klone--Linux--x86--64--19000251021.50.img-LVDBDisk   50G   13G   38G  26% /u01/app/19.0.0.0/grid
+/dev/mapper/VGExaDb-LVDbVarLog                                                     18G  992M   17G   6% /var/log
+/dev/sda1                                                                         412M  128M  285M  31% /boot
+/dev/mapper/VGExaDb-LVDbVarLogAudit                                               3.0G  169M  2.8G   6% /var/log/audit
+/dev/mapper/VGExaDbDisk.u02_extra.img-LVDBDisk                                     57G   30G   25G  55% /u02
+tmpfs                                                                              29G  1.8G   28G   6% /dev/shm
+/dev/asm/acfsvol01-165                                                            100G   13G   88G  13% /acfs01
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/1000
+saadb12feb2026.file.core.windows.net:/saadb12feb2026/adbshare01                   1.0T  3.2G 1021G   1% /mount/saadb12feb2026/adbshare01
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/1001
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/0
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/2000
+
+======================================================================
+  2. ORACLE ENVIRONMENT
+======================================================================
+[INFO]  ORACLE_HOME  : /u02/app/oracle/product/19.0.0.0/dbhome_1
+[INFO]  ORACLE_SID   : CDBAKV_STANDBY
+[INFO]  GRID_HOME    : NOT DETECTED
+[INFO]  ASM_SID      : +ASM1
+Oracle version:
+SELECT banner FROM v$version WHERE rownum=1
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+======================================================================
+  3. DATABASE CONFIGURATION
+======================================================================
+SELECT name, db_unique_name, database_role, open_mode, log_mode, cdb, platform_name
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+Character Sets:
+SELECT parameter, value FROM nls_database_parameters
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+======================================================================
+  4. CONTAINER DATABASE (CDB/PDB)
+======================================================================
+[INFO]  Database is NOT a CDB
+
+======================================================================
+  5. TDE STATUS
+======================================================================
+SELECT wrl_type, wrl_parameter, status, wallet_type FROM v$encryption_wallet
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+======================================================================
+  6. ASM STORAGE
+======================================================================
+ASM disk groups (via v$asm_diskgroup):
+SELECT group_number, name,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+asmcmd lsdg:
+(asmcmd not available)
+
+Tablespace / ASM file storage:
+SELECT tablespace_name,
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+======================================================================
+  7. NETWORK (LISTENER / TNS)
+======================================================================
+Listener status:
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 16-MAR-2026 14:13:19
+
+Copyright (c) 1991, 2025, Oracle.  All rights reserved.
+
+Connecting to (ADDRESS=(PROTOCOL=tcp)(HOST=)(PORT=1521))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                23-FEB-2026 17:12:16
+Uptime                    20 days 21 hr. 1 min. 2 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Parameter File   /u01/app/19.0.0.0/grid/network/admin/listener.ora
+Listener Log File         /u01/app/grid/diag/tnslsnr/vmclusterpoc-ytlat1/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=ipc)(KEY=LISTENER)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=10.200.0.241)(PORT=2484)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.200.0.250)(PORT=1521)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.200.0.241)(PORT=1521)))
+Services Summary...
+Service "+APX" has 1 instance(s).
+  Instance "+APX1", status READY, has 1 handler(s) for this service...
+Service "+ASM" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_DATAC1" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_RECOC1" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "4ba99c537a412b13e063fa00c80a797d.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "4c05acc40c617614e063fa00c80a5b1a.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "CDBAKV2XDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+Service "CDBAKV_CFG.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+Service "CDBAKV_STANDBY.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+Service "DB0225XDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "DB0225_PDB1.paas.oracle.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "DB0225_UNI.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "TESTDBXDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "TESTDB_CFG.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "TESTDB_PDB1.paas.oracle.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "TESTDB_PRI.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "pdb1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+The command completed successfully
+
+SCAN listener (if RAC):
+
+tnsnames.ora:
+
+======================================================================
+  8. OCI / AZURE INTEGRATION
+======================================================================
+OCI CLI version:
+bash: line 318: oci: command not found
+
+OCI config (~/.oci/config) - masked:
+[INFO]  (~/.oci/config not found)
+
+OCI API key file:
+[INFO]  (OCI API key path not found or config missing)
+
+OCI connectivity test:
+bash: line 340: oci: command not found
+
+Azure IMDS (instance metadata):
+
+======================================================================
+  9. GRID INFRASTRUCTURE / CRS
+======================================================================
+[INFO]  Grid Infrastructure not detected (single-instance or Grid not in common paths)
+
+======================================================================
+  10. NETWORK SECURITY (FIREWALL / NSG)
+======================================================================
+iptables rules (Oracle ports 22, 1521, 2484):
+
+firewalld status:
+inactive
+
+OCI NSG rules (requires OCI CLI):
+[INFO]  (OCI instance metadata not available — skipping NSG query)
+
+======================================================================
+  SUMMARY
+======================================================================
+
+Section statuses: os:success oracle_env:success db_config:success cdb_pdb:success tde:success storage:success network:success oci_azure:success grid:skipped firewall:success
+Report: /tmp/zdm_discovery_20260316-141302/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.txt
+JSON  : /tmp/zdm_discovery_20260316-141302/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.json
+
+======================================================================
+ TARGET DISCOVERY COMPLETE — SUCCESS
+ Reports: /tmp/zdm_discovery_20260316-141302
+======================================================================
+[14:13:19] [INFO]  Listing remote output files:
+-rw-rw-r--. 1 opc opc  1482 Mar 16 14:13 /tmp/zdm_discovery_20260316-141302/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.json
+-rw-rw-r--. 1 opc opc 11418 Mar 16 14:13 /tmp/zdm_discovery_20260316-141302/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.txt
+[14:13:19] [INFO]  Retrieving output files to /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/target/
+[14:13:19] [INFO]  TARGET discovery files retrieved successfully:
+[14:13:19] [INFO]    -rw-r--r--. 1 zdmuser zdm  1482 Mar 16 14:13 zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.json
+[14:13:19] [INFO]    -rw-r--r--. 1 zdmuser zdm 11418 Mar 16 14:13 zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.txt
+[14:13:19] [INFO]  Cleaning up remote temp dir on 10.200.0.250
+──────────────────────────────────────────────────────────────────────
+[14:13:20] [INFO]  Starting ZDM SERVER discovery (local execution as zdmuser)
+ZDM SERVER DISCOVERY REPORT
+Project  : ODAA-ORA-DB
+Host     : zdmhost
+Timestamp: 20260316-141320
+Run by   : zdmuser
+======================================================================
+
+======================================================================
+  1. OS INFORMATION
+======================================================================
+[INFO]  Hostname     : zdmhost.x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net
+[INFO]  Current user : zdmuser
+[INFO]  Home dir     : /home/zdmuser
+IP Addresses :
+  127.0.0.1/8
+  10.200.1.13/24
+OS Version   :
+NAME="Red Hat Enterprise Linux"
+VERSION="8.9 (Ootpa)"
+ID="rhel"
+ID_LIKE="fedora"
+VERSION_ID="8.9"
+PLATFORM_ID="platform:el8"
+PRETTY_NAME="Red Hat Enterprise Linux 8.9 (Ootpa)"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:redhat:enterprise_linux:8::baseos"
+HOME_URL="https://www.redhat.com/"
+DOCUMENTATION_URL="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8"
+BUG_REPORT_URL="https://bugzilla.redhat.com/"
+
+REDHAT_BUGZILLA_PRODUCT="Red Hat Enterprise Linux 8"
+REDHAT_BUGZILLA_PRODUCT_VERSION=8.9
+REDHAT_SUPPORT_PRODUCT="Red Hat Enterprise Linux"
+REDHAT_SUPPORT_PRODUCT_VERSION="8.9"
+Kernel       : 4.18.0-513.5.1.el8_9.x86_64
+
+Disk space (warn if any filesystem < 50 GB free):
+Filesystem                Type      Size Avail Use% Mounted on
+devtmpfs                  devtmpfs  3.8G  3.8G   0% /dev
+tmpfs                     tmpfs     3.8G  3.8G   0% /dev/shm
+tmpfs                     tmpfs     3.8G  3.4G  11% /run
+tmpfs                     tmpfs     3.8G  3.8G   0% /sys/fs/cgroup
+/dev/mapper/rootvg-rootlv xfs       2.0G  1.2G  42% /
+/dev/mapper/rootvg-usrlv  xfs        10G  5.8G  43% /usr
+/dev/sdb1                 xfs       496M  390M  22% /boot
+/dev/mapper/rootvg-tmplv  xfs       2.0G  2.0G   3% /tmp
+/dev/mapper/rootvg-homelv xfs      1014M  967M   5% /home
+/dev/sdb15                vfat      495M  489M   2% /boot/efi
+/dev/mapper/rootvg-varlv  xfs       8.0G  7.1G  12% /var
+/dev/sda1                 ext4       16G  9.0G  40% /mnt
+tmpfs                     tmpfs     769M  769M   0% /run/user/988
+tmpfs                     tmpfs     769M  769M   0% /run/user/1000
+
+======================================================================
+  2. ZDM INSTALLATION
+======================================================================
+[WARN]  ZDM_HOME could not be detected — zdmcli checks will be skipped
+[WARN]  Skipping ZDM installation details — ZDM_HOME not detected
+
+======================================================================
+  3. JAVA
+======================================================================
+Java check:
+[WARN]  No Java executable found — ZDM requires Java
+
+======================================================================
+  4. OCI CLI
+======================================================================
+OCI CLI version:
+/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts/zdm_server_discovery.sh: line 264: oci: command not found
+
+OCI config (~/.oci/config) — API key path masked:
+[WARN]  (~/.oci/config not found)
+
+OCI API key file existence:
+
+OCI connectivity test (region list):
+/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts/zdm_server_discovery.sh: line 295: oci: command not found
+
+======================================================================
+  5. SSH KEYS AND CREDENTIALS
+======================================================================
+~/.ssh contents:
+total 24
+drwx------.  2 zdmuser zdm   80 Mar 11 14:11 .
+drwx------. 19 zdmuser zdm 4096 Mar 16 13:50 ..
+-rw-r--r--.  1 zdmuser zdm 2905 Mar 11 14:11 authorized_keys
+-rw-------.  1 zdmuser zdm 2602 Dec  7 07:33 id_rsa
+-rw-r--r--.  1 zdmuser zdm  569 Dec  7 07:33 id_rsa.pub
+-rw-r--r--.  1 zdmuser zdm 4404 Mar  9 14:45 known_hosts
+
+.pem and .key files:
+[WARN]  No .pem or .key files found in ~/.ssh/ — ZDM migration may require SSH keys for source/target
+
+Credential/password files in home:
+
+======================================================================
+  6. NETWORK
+======================================================================
+Network interfaces:
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 60:45:bd:d1:5b:8c brd ff:ff:ff:ff:ff:ff
+    inet 10.200.1.13/24 brd 10.200.1.255 scope global noprefixroute eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6245:bdff:fed1:5b8c/64 scope link 
+       valid_lft forever preferred_lft forever
+
+Routing table:
+default via 10.200.1.1 dev eth0 proto dhcp src 10.200.1.13 metric 100 
+10.200.1.0/24 dev eth0 proto kernel scope link src 10.200.1.13 metric 100 
+168.63.129.16 via 10.200.1.1 dev eth0 proto dhcp src 10.200.1.13 metric 100 
+169.254.169.254 via 10.200.1.1 dev eth0 proto dhcp src 10.200.1.13 metric 100 
+
+DNS configuration (/etc/resolv.conf):
+# Generated by NetworkManager
+search x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net
+nameserver 168.63.129.16
+
+======================================================================
+  7. CONNECTIVITY TESTS
+======================================================================
+
+--- SOURCE HOST: 10.200.1.12 ---
+  Ping test (10 packets):
+
+--- 10.200.1.12 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 9015ms
+rtt min/avg/max/mdev = 1.329/1.518/1.772/0.155 ms
+[INFO]  SOURCE avg RTT: 1.518 ms (OK)
+  Port tests:
+[INFO]    Port 22 on 10.200.1.12: OPEN
+[INFO]    Port 1521 on 10.200.1.12: OPEN
+
+--- TARGET HOST: 10.200.0.250 ---
+  Ping test (10 packets):
+
+--- 10.200.0.250 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 9011ms
+rtt min/avg/max/mdev = 1.048/1.307/1.653/0.178 ms
+[INFO]  TARGET avg RTT: 1.307 ms (OK)
+  Port tests:
+[INFO]    Port 22 on 10.200.0.250: OPEN
+[INFO]    Port 1521 on 10.200.0.250: OPEN
+
+======================================================================
+  SUMMARY
+======================================================================
+
+WARNINGS requiring attention:
+  [!] ZDM_HOME could not be detected — zdmcli checks will be skipped
+  [!] Skipping ZDM installation details — ZDM_HOME not detected
+  [!] No Java executable found — ZDM requires Java
+  [!] (~/.oci/config not found)
+  [!] No .pem or .key files found in ~/.ssh/ — ZDM migration may require SSH keys for source/target
+
+Section statuses: os:success zdm_install:partial java:success oci_cli:success ssh_creds:success network:success connectivity:success
+Report: /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260316-141320.txt
+JSON  : /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260316-141320.json
+
+======================================================================
+ ZDM SERVER DISCOVERY COMPLETE — PARTIAL
+ Reports: /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server
+======================================================================
+[14:13:38] [INFO]  ZDM server discovery output:
+[14:13:38] [INFO]    -rw-r--r--. 1 zdmuser zdm  981 Mar 16 14:13 zdm_server_discovery_zdmhost_20260316-141320.json
+[14:13:38] [INFO]    -rw-r--r--. 1 zdmuser zdm 7151 Mar 16 14:13 zdm_server_discovery_zdmhost_20260316-141320.txt
+──────────────────────────────────────────────────────────────────────
+[14:13:38] [INFO]  Succeeded : SOURCE TARGET ZDM_SERVER
+[14:13:38] [INFO]  Failed    : <none>
+[14:13:38] [INFO]  
+[14:13:38] [INFO]  Output files:
+[14:13:38] [INFO]    /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260316-141320.json
+[14:13:38] [INFO]    /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260316-141320.txt
+[14:13:38] [INFO]    /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/source/zdm_source_discovery_factvmhost_20260316-141303.json
+[14:13:38] [INFO]    /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/source/zdm_source_discovery_factvmhost_20260316-141303.txt
+[14:13:38] [INFO]    /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/target/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.json
+[14:13:38] [INFO]    /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/target/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.txt
+[14:13:38] [INFO]  
+[14:13:38] [INFO]  Orchestration log: /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/zdm_orchestration_20260316-141302.log
+[14:13:38] [INFO]  
+[14:13:38] [INFO]  All servers discovered successfully.

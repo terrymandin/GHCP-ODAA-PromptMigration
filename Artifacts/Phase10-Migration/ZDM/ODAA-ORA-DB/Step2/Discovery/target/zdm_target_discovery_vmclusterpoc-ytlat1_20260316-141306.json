@@ -1,0 +1,23 @@
+{
+  "report": "zdm_target_discovery",
+  "project": "ODAA-ORA-DB",
+  "timestamp": "20260316-141306",
+  "hostname": "vmclusterpoc-ytlat1",
+  "run_by": "opc",
+  "overall_status": "success",
+  "oracle": {
+    "oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
+    "oracle_sid": "CDBAKV_STANDBY",
+    "grid_home": "",
+    "asm_sid": "+ASM1",
+    "db_name": "SELECTnameFROMv$database*ERRORatline1:ORA-01034:ORACLEnotavailableProcessID:0SessionID:0Serialnumber:0",
+    "db_unique_name": "SELECTdb_unique_nameFROMv$database*ERRORatline1:ORA-01034:ORACLEnotavailableProcessID:0SessionID:0Serialnumber:0",
+    "db_role": "SELECTdatabase_roleFROMv$database*ERRORatline1:ORA-01034:ORACLEnotavailableProcessID:0SessionID:0Serialnumber:0",
+    "open_mode": "SELECTopen_modeFROMv$database*ERRORatline1:ORA-01034:ORACLEnotavailableProcessID:0SessionID:0Serialnumber:0",
+    "is_cdb": "SELECTcdbFROMv$database*ERRORatline1:ORA-01034:ORACLEnotavailableProcessID:0SessionID:0Serialnumber:0",
+    "charset": "SELECTvalueFROMnls_database_parametersWHEREparameter='NLS_CHARACTERSET'*ERRORatline1:ORA-01034:ORACLEnotavailableProcessID:0SessionID:0Serialnumber:0"
+  },
+  "sections": ["os:success","oracle_env:success","db_config:success","cdb_pdb:success","tde:success","storage:success","network:success","oci_azure:success","grid:skipped","firewall:success",],
+  "warnings": [],
+  "report_txt": "/tmp/zdm_discovery_20260316-141302/zdm_target_discovery_vmclusterpoc-ytlat1_20260316-141306.txt"
+}

@@ -1,0 +1,164 @@
+ZDM SERVER DISCOVERY REPORT
+Project  : ODAA-ORA-DB
+Host     : zdmhost
+Timestamp: 20260316-141320
+Run by   : zdmuser
+======================================================================
+
+======================================================================
+  1. OS INFORMATION
+======================================================================
+[INFO]  Hostname     : zdmhost.x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net
+[INFO]  Current user : zdmuser
+[INFO]  Home dir     : /home/zdmuser
+IP Addresses :
+  127.0.0.1/8
+  10.200.1.13/24
+OS Version   :
+NAME="Red Hat Enterprise Linux"
+VERSION="8.9 (Ootpa)"
+ID="rhel"
+ID_LIKE="fedora"
+VERSION_ID="8.9"
+PLATFORM_ID="platform:el8"
+PRETTY_NAME="Red Hat Enterprise Linux 8.9 (Ootpa)"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:redhat:enterprise_linux:8::baseos"
+HOME_URL="https://www.redhat.com/"
+DOCUMENTATION_URL="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8"
+BUG_REPORT_URL="https://bugzilla.redhat.com/"
+
+REDHAT_BUGZILLA_PRODUCT="Red Hat Enterprise Linux 8"
+REDHAT_BUGZILLA_PRODUCT_VERSION=8.9
+REDHAT_SUPPORT_PRODUCT="Red Hat Enterprise Linux"
+REDHAT_SUPPORT_PRODUCT_VERSION="8.9"
+Kernel       : 4.18.0-513.5.1.el8_9.x86_64
+
+Disk space (warn if any filesystem < 50 GB free):
+Filesystem                Type      Size Avail Use% Mounted on
+devtmpfs                  devtmpfs  3.8G  3.8G   0% /dev
+tmpfs                     tmpfs     3.8G  3.8G   0% /dev/shm
+tmpfs                     tmpfs     3.8G  3.4G  11% /run
+tmpfs                     tmpfs     3.8G  3.8G   0% /sys/fs/cgroup
+/dev/mapper/rootvg-rootlv xfs       2.0G  1.2G  42% /
+/dev/mapper/rootvg-usrlv  xfs        10G  5.8G  43% /usr
+/dev/sdb1                 xfs       496M  390M  22% /boot
+/dev/mapper/rootvg-tmplv  xfs       2.0G  2.0G   3% /tmp
+/dev/mapper/rootvg-homelv xfs      1014M  967M   5% /home
+/dev/sdb15                vfat      495M  489M   2% /boot/efi
+/dev/mapper/rootvg-varlv  xfs       8.0G  7.1G  12% /var
+/dev/sda1                 ext4       16G  9.0G  40% /mnt
+tmpfs                     tmpfs     769M  769M   0% /run/user/988
+tmpfs                     tmpfs     769M  769M   0% /run/user/1000
+
+======================================================================
+  2. ZDM INSTALLATION
+======================================================================
+[WARN]  ZDM_HOME could not be detected — zdmcli checks will be skipped
+[WARN]  Skipping ZDM installation details — ZDM_HOME not detected
+
+======================================================================
+  3. JAVA
+======================================================================
+Java check:
+[WARN]  No Java executable found — ZDM requires Java
+
+======================================================================
+  4. OCI CLI
+======================================================================
+OCI CLI version:
+/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts/zdm_server_discovery.sh: line 264: oci: command not found
+
+OCI config (~/.oci/config) — API key path masked:
+[WARN]  (~/.oci/config not found)
+
+OCI API key file existence:
+
+OCI connectivity test (region list):
+/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Scripts/zdm_server_discovery.sh: line 295: oci: command not found
+
+======================================================================
+  5. SSH KEYS AND CREDENTIALS
+======================================================================
+~/.ssh contents:
+total 24
+drwx------.  2 zdmuser zdm   80 Mar 11 14:11 .
+drwx------. 19 zdmuser zdm 4096 Mar 16 13:50 ..
+-rw-r--r--.  1 zdmuser zdm 2905 Mar 11 14:11 authorized_keys
+-rw-------.  1 zdmuser zdm 2602 Dec  7 07:33 id_rsa
+-rw-r--r--.  1 zdmuser zdm  569 Dec  7 07:33 id_rsa.pub
+-rw-r--r--.  1 zdmuser zdm 4404 Mar  9 14:45 known_hosts
+
+.pem and .key files:
+[WARN]  No .pem or .key files found in ~/.ssh/ — ZDM migration may require SSH keys for source/target
+
+Credential/password files in home:
+
+======================================================================
+  6. NETWORK
+======================================================================
+Network interfaces:
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 60:45:bd:d1:5b:8c brd ff:ff:ff:ff:ff:ff
+    inet 10.200.1.13/24 brd 10.200.1.255 scope global noprefixroute eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6245:bdff:fed1:5b8c/64 scope link 
+       valid_lft forever preferred_lft forever
+
+Routing table:
+default via 10.200.1.1 dev eth0 proto dhcp src 10.200.1.13 metric 100 
+10.200.1.0/24 dev eth0 proto kernel scope link src 10.200.1.13 metric 100 
+168.63.129.16 via 10.200.1.1 dev eth0 proto dhcp src 10.200.1.13 metric 100 
+169.254.169.254 via 10.200.1.1 dev eth0 proto dhcp src 10.200.1.13 metric 100 
+
+DNS configuration (/etc/resolv.conf):
+# Generated by NetworkManager
+search x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net
+nameserver 168.63.129.16
+
+======================================================================
+  7. CONNECTIVITY TESTS
+======================================================================
+
+--- SOURCE HOST: 10.200.1.12 ---
+  Ping test (10 packets):
+
+--- 10.200.1.12 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 9015ms
+rtt min/avg/max/mdev = 1.329/1.518/1.772/0.155 ms
+[INFO]  SOURCE avg RTT: 1.518 ms (OK)
+  Port tests:
+[INFO]    Port 22 on 10.200.1.12: OPEN
+[INFO]    Port 1521 on 10.200.1.12: OPEN
+
+--- TARGET HOST: 10.200.0.250 ---
+  Ping test (10 packets):
+
+--- 10.200.0.250 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 9011ms
+rtt min/avg/max/mdev = 1.048/1.307/1.653/0.178 ms
+[INFO]  TARGET avg RTT: 1.307 ms (OK)
+  Port tests:
+[INFO]    Port 22 on 10.200.0.250: OPEN
+[INFO]    Port 1521 on 10.200.0.250: OPEN
+
+======================================================================
+  SUMMARY
+======================================================================
+
+WARNINGS requiring attention:
+  [!] ZDM_HOME could not be detected — zdmcli checks will be skipped
+  [!] Skipping ZDM installation details — ZDM_HOME not detected
+  [!] No Java executable found — ZDM requires Java
+  [!] (~/.oci/config not found)
+  [!] No .pem or .key files found in ~/.ssh/ — ZDM migration may require SSH keys for source/target
+
+Section statuses: os:success zdm_install:partial java:success oci_cli:success ssh_creds:success network:success connectivity:success
+Report: /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260316-141320.txt
+JSON  : /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/ZDM/ODAA-ORA-DB/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260316-141320.json
