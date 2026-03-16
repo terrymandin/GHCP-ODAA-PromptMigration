@@ -17,19 +17,16 @@ Analyze Step 2 discovery outputs and generate:
 2) Migration Planning Questionnaire
 
 ## Step 2 Discovery Inputs
-#file:Artifacts/Phase10-Migration/Step2/Discovery/source/<source-hostname>-<timestamp>.txt
-#file:Artifacts/Phase10-Migration/Step2/Discovery/source/<source-hostname>-<timestamp>.json
-#file:Artifacts/Phase10-Migration/Step2/Discovery/target/<target-hostname>-<timestamp>.txt
-#file:Artifacts/Phase10-Migration/Step2/Discovery/target/<target-hostname>-<timestamp>.json
-#file:Artifacts/Phase10-Migration/Step2/Discovery/server/<zdm-hostname>-<timestamp>.txt
-#file:Artifacts/Phase10-Migration/Step2/Discovery/server/<zdm-hostname>-<timestamp>.json
+Search the following directories for discovery output files and read the most recent ones:
+- `Artifacts/Phase10-Migration/Step2/Discovery/source/` — source database discovery (`.txt` and `.json`)
+- `Artifacts/Phase10-Migration/Step2/Discovery/target/` — target database discovery (`.txt` and `.json`)
+- `Artifacts/Phase10-Migration/Step2/Discovery/server/` — ZDM server discovery (`.txt` and `.json`)
+
+If multiple timestamped files exist in a directory, use the one with the highest (most recent) timestamp.
 
 ## Output Directory
 Artifacts/Phase10-Migration/Step3/
 ```
-
-> Replace `<hostname>` and `<timestamp>` with the actual filenames produced by Step 2.
-> Use the most recent files if multiple runs exist.
 
 ## Expected Output
 - `Artifacts/Phase10-Migration/Step3/Discovery-Summary.md`
