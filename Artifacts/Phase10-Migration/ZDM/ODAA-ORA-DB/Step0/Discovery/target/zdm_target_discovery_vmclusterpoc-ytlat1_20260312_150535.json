@@ -1,0 +1,21 @@
+{
+  "discovery_type": "target",
+  "project": "ODAA-ORA-DB",
+  "generated": "2026-03-12T15:05:36Z",
+  "host": "vmclusterpoc-ytlat1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com",
+  "run_as_user": "opc",
+  "oracle_env": {
+    "oracle_home": "/u01/app/19.0.0.0/grid",
+    "oracle_sid": "+ASM1",
+    "oracle_base": "UNKNOWN"
+  },
+  "database": {
+    "db_name": "SELECT NAME FROM V$DATABASE",
+    "db_unique_name": "SELECT DB_UNIQUE_NAME FROM V$DATABASE",
+    "log_mode": "SELECT LOG_MODE FROM V$DATABASE",
+    "cdb": "SELECT CDB FROM V$DATABASE",
+    "characterset": "SELECT VALUE FROM NLS_DATABASE_PARAMETERS WHERE PARAMETER=NLS_CHARACTERSET"
+  },
+  "section_errors": 0,
+  "report_file": "./zdm_target_discovery_vmclusterpoc-ytlat1_20260312_150535.txt"
+}

@@ -1,0 +1,157 @@
+ZDM Source Database Discovery Report
+Generated : Thu Mar 12 15:05:32 UTC 2026
+Host      : factvmhost
+Run as    : azureuser
+
+[INFO]  Oracle env already set: ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1  ORACLE_SID=MCKESS
+
+═══════════════════════════════════════════════════
+  1. OS Information
+═══════════════════════════════════════════════════
+[INFO]  Hostname      : factvmhost.x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net
+[INFO]  Short hostname: factvmhost
+[INFO]  IP addresses  :
+  127.0.0.1/8
+  10.200.1.12/24
+[INFO]  OS version    : Oracle Linux Server 7.9
+[INFO]  Kernel        : 5.4.17-2036.101.2.el7uek.x86_64
+[INFO]  Disk space    :
+Filesystem                                                            Size  Used Avail Use% Mounted on
+devtmpfs                                                              7.7G     0  7.7G   0% /dev
+tmpfs                                                                 7.7G     0  7.7G   0% /dev/shm
+tmpfs                                                                 7.7G  817M  6.9G  11% /run
+tmpfs                                                                 7.7G     0  7.7G   0% /sys/fs/cgroup
+/dev/mapper/rootvg-rootlv                                             117G   97G   21G  83% /
+/dev/mapper/rootvg-crashlv                                             10G   33M   10G   1% /var/crash
+/dev/sdb1                                                             797M  242M  555M  31% /boot
+/dev/sdb15                                                            495M  8.6M  487M   2% /boot/efi
+/dev/sda1                                                              32G   17G   14G  54% /mnt
+tmpfs                                                                 1.6G     0  1.6G   0% /run/user/54322
+tmpfs                                                                 1.6G     0  1.6G   0% /run/user/0
+factsa060120226.blob.core.windows.net:/factsa060120226/odaamigration  5.0P     0  5.0P   0% /nfstest1
+saadb12feb2026.file.core.windows.net:/saadb12feb2026/adbshare01       1.0T  3.2G 1021G   1% /nfstest
+
+═══════════════════════════════════════════════════
+  2. Oracle Environment
+═══════════════════════════════════════════════════
+[INFO]  ORACLE_HOME : /u02/app/oracle/product/19.0.0.0/dbhome_1
+[INFO]  ORACLE_SID  : MCKESS
+[INFO]  ORACLE_BASE : NOT SET
+[INFO]  Oracle version (sqlplus): 
+[INFO]  ORACLE_HOME disk usage: 
+[INFO]  /etc/oratab contents:
+# /etc/oratab
+#Test:/u01/app/oracle/product/21.0.0/dbhome_1:N
+RUNBOOK:/u01/app/oracle/product/19.0.0/dbhome_1:N
+POCAKV:/u01/app/oracle/product/19.0.0/dbhome_1:N
+
+═══════════════════════════════════════════════════
+  3. Database Configuration
+═══════════════════════════════════════════════════
+[INFO]  --- Basic DB info ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Character sets ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Database size ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  4. Container Database (CDB/PDB)
+═══════════════════════════════════════════════════
+[INFO]  CDB: sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  5. TDE Configuration
+═══════════════════════════════════════════════════
+[INFO]  --- Wallet status ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Encrypted tablespaces ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- TDE master keys ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  6. Supplemental Logging
+═══════════════════════════════════════════════════
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  7. Redo / Archive Configuration
+═══════════════════════════════════════════════════
+[INFO]  --- Redo log groups ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Archive log destinations ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Last 5 archived logs ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  8. Network Configuration
+═══════════════════════════════════════════════════
+[INFO]  --- Listener status ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/lsnrctl: command not found
+[INFO]  --- tnsnames.ora (/tnsnames.ora) ---
+[INFO]  --- sqlnet.ora (/sqlnet.ora) ---
+[INFO]  --- listener.ora (/listener.ora) ---
+
+═══════════════════════════════════════════════════
+  9. Authentication
+═══════════════════════════════════════════════════
+[INFO]  --- Password file location ---
+[INFO]  --- SSH directory for oracle user ---
+
+═══════════════════════════════════════════════════
+  10. Data Guard Configuration
+═══════════════════════════════════════════════════
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  11. Schema Information
+═══════════════════════════════════════════════════
+[INFO]  --- Non-system schemas > 100 MB ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Invalid objects by owner/type ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  12. Tablespace Configuration
+═══════════════════════════════════════════════════
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  13. Backup Configuration
+═══════════════════════════════════════════════════
+[INFO]  --- Crontab backup jobs ---
+[INFO]  --- RMAN configuration ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Last successful backup ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- DBMS_SCHEDULER backup jobs ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  14. Database Links
+═══════════════════════════════════════════════════
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  15. Materialized Views
+═══════════════════════════════════════════════════
+[INFO]  --- Materialized views ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+[INFO]  --- Materialized view logs ---
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  16. DBMS_SCHEDULER Jobs
+═══════════════════════════════════════════════════
+sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found
+
+═══════════════════════════════════════════════════
+  Discovery Summary
+═══════════════════════════════════════════════════
+[INFO]  Section errors : 0
+[INFO]  Report file    : ./zdm_source_discovery_factvmhost_20260312_150532.txt
+[INFO]  JSON file      : ./zdm_source_discovery_factvmhost_20260312_150532.json
+[INFO]  Completed      : Thu Mar 12 15:05:33 UTC 2026
+[INFO]  JSON summary written to ./zdm_source_discovery_factvmhost_20260312_150532.json

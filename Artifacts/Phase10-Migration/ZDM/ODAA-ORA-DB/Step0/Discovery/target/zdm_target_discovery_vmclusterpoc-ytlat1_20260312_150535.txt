@@ -1,0 +1,378 @@
+ZDM Target Database Discovery Report
+Generated : Thu Mar 12 15:05:35 UTC 2026
+Host      : vmclusterpoc-ytlat1
+Run as    : opc
+
+[INFO]  Auto-detected: ORACLE_HOME=/u01/app/19.0.0.0/grid  ORACLE_SID=+ASM1
+
+═══════════════════════════════════════════════════
+  1. OS Information
+═══════════════════════════════════════════════════
+[INFO]  Hostname  : vmclusterpoc-ytlat1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com
+[INFO]  IP addresses:
+  127.0.0.1/8
+  10.200.0.250/24
+  10.200.0.241/24
+  10.200.0.30/24
+  10.200.0.101/24
+  10.200.2.50/26
+  169.254.200.14/30
+  100.106.64.140/16
+  100.106.64.141/16
+  100.107.0.176/16
+  100.107.0.177/16
+[INFO]  OS version: Oracle Linux Server 8.10
+[INFO]  Kernel    : 5.15.0-308.179.6.16.el8uek.x86_64
+
+═══════════════════════════════════════════════════
+  2. Oracle Environment
+═══════════════════════════════════════════════════
+[INFO]  ORACLE_HOME : /u01/app/19.0.0.0/grid
+[INFO]  ORACLE_SID  : +ASM1
+[INFO]  ORACLE_BASE : NOT SET
+[INFO]  Oracle version: 
+[INFO]  /etc/oratab:
+#
+# This file is used by ORACLE utilities.  It is created by root.sh
+# and updated by either Database Configuration Assistant while creating
+# a database or ASM Configuration Assistant while creating ASM instance.
+# A colon, ':', is used as the field terminator.  A new line terminates
+# the entry.  Lines beginning with a pound sign, '#', are comments.
+#
+# Entries are of the form:
+#   $ORACLE_SID:$ORACLE_HOME:<N|Y>:
+#
+# The first and second fields are the system identifier and home
+# directory of the database respectively.  The third field indicates
+# to the dbstart utility that the database should , "Y", or should not,
+# "N", be brought up at system boot time.
+#
+# Multiple entries with the same $ORACLE_SID are not allowed.
+#
+#
++ASM1:/u01/app/19.0.0.0/grid:N
+CDBAKV_STANDBY:/u02/app/oracle/product/19.0.0.0/dbhome_1:Y
+DB0225_UNI:/u02/app/oracle/product/19.0.0.0/dbhome_2:Y
+TESTDB_PRI:/u02/app/oracle/product/19.0.0.0/dbhome_1:Y
+[INFO]  Running Oracle processes (pmon):
+oracle   198221      1  0 Feb25 ?        00:01:05 ora_pmon_CDBAKV21
+oracle   243661      1  0 Mar02 ?        00:00:45 ora_pmon_TESTDB1
+oracle   264680      1  0 Feb27 ?        00:00:56 ora_pmon_DB02251
+
+═══════════════════════════════════════════════════
+  3. Database Configuration
+═══════════════════════════════════════════════════
+	     FROM V$DATABASE
+                  *
+ERROR at line 4:
+ORA-01507: database not mounted
+
+
+[INFO]  --- Character set ---
+SELECT PARAMETER, VALUE FROM NLS_DATABASE_PARAMETERS
+                             *
+ERROR at line 1:
+ORA-01219: database or pluggable database not open: queries allowed on fixed tables or views only
+
+
+
+═══════════════════════════════════════════════════
+  4. Container Database (CDB/PDB)
+═══════════════════════════════════════════════════
+[INFO]  CDB: SELECT CDB FROM V$DATABASE
+
+═══════════════════════════════════════════════════
+  5. TDE Configuration
+═══════════════════════════════════════════════════
+
+WRL_TYPE
+--------------------
+WRL_PARAMETER
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+STATUS			       WALLET_TYPE
+------------------------------ --------------------
+FILE
+/var/opt/oracle/dbaas_acfs/grid/tcps_wallets/
+OPEN_NO_MASTER_KEY	       UNKNOWN
+
+SELECT TABLESPACE_NAME, ENCRYPTED FROM DBA_TABLESPACES WHERE ENCRYPTED='YES'
+                                       *
+ERROR at line 1:
+ORA-01219: database or pluggable database not open: queries allowed on fixed tables or views only
+
+
+
+═══════════════════════════════════════════════════
+  6. Network Configuration
+═══════════════════════════════════════════════════
+[INFO]  --- Listener status ---
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 12-MAR-2026 15:05:35
+
+Copyright (c) 1991, 2025, Oracle.  All rights reserved.
+
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=LISTENER)))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                23-FEB-2026 17:12:16
+Uptime                    16 days 21 hr. 53 min. 18 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Parameter File   /u01/app/19.0.0.0/grid/network/admin/listener.ora
+Listener Log File         /u01/app/grid/diag/tnslsnr/vmclusterpoc-ytlat1/listener/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=ipc)(KEY=LISTENER)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=10.200.0.241)(PORT=2484)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.200.0.250)(PORT=1521)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.200.0.241)(PORT=1521)))
+Services Summary...
+Service "+APX" has 1 instance(s).
+  Instance "+APX1", status READY, has 1 handler(s) for this service...
+Service "+ASM" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_DATAC1" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "+ASM_RECOC1" has 1 instance(s).
+  Instance "+ASM1", status READY, has 1 handler(s) for this service...
+Service "4ba99c537a412b13e063fa00c80a797d.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "4c05acc40c617614e063fa00c80a5b1a.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "CDBAKV2XDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+Service "CDBAKV_CFG.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+Service "CDBAKV_STANDBY.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+Service "DB0225XDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "DB0225_PDB1.paas.oracle.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "DB0225_UNI.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+Service "TESTDBXDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "TESTDB_CFG.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "TESTDB_PDB1.paas.oracle.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "TESTDB_PRI.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 1 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+Service "pdb1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+The command completed successfully
+[INFO]  --- SCAN listener (RAC) ---
+
+LSNRCTL for Linux: Version 19.0.0.0.0 - Production on 12-MAR-2026 15:05:35
+
+Copyright (c) 1991, 2025, Oracle.  All rights reserved.
+
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=LISTENER_SCAN1)))
+STATUS of the LISTENER
+------------------------
+Alias                     LISTENER_SCAN1
+Version                   TNSLSNR for Linux: Version 19.0.0.0.0 - Production
+Start Date                23-FEB-2026 17:12:27
+Uptime                    16 days 21 hr. 53 min. 8 sec
+Trace Level               off
+Security                  ON: Local OS Authentication
+SNMP                      OFF
+Listener Parameter File   /u01/app/19.0.0.0/grid/network/admin/listener.ora
+Listener Log File         /u01/app/grid/diag/tnslsnr/vmclusterpoc-ytlat1/listener_scan1/alert/log.xml
+Listening Endpoints Summary...
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=ipc)(KEY=LISTENER_SCAN1)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcps)(HOST=10.200.0.30)(PORT=2484)))
+  (DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=10.200.0.30)(PORT=1521)))
+Services Summary...
+Service "4ba99c537a412b13e063fa00c80a797d.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "DB02251", status READY, has 2 handler(s) for this service...
+  Instance "DB02252", status READY, has 2 handler(s) for this service...
+Service "4c05acc40c617614e063fa00c80a5b1a.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "TESTDB1", status READY, has 2 handler(s) for this service...
+  Instance "TESTDB2", status READY, has 2 handler(s) for this service...
+Service "CDBAKV2XDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "CDBAKV21", status READY, has 1 handler(s) for this service...
+  Instance "CDBAKV22", status READY, has 1 handler(s) for this service...
+Service "CDBAKV_CFG.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "CDBAKV21", status READY, has 2 handler(s) for this service...
+  Instance "CDBAKV22", status READY, has 2 handler(s) for this service...
+Service "CDBAKV_STANDBY.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "CDBAKV21", status READY, has 2 handler(s) for this service...
+  Instance "CDBAKV22", status READY, has 2 handler(s) for this service...
+Service "DB0225XDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "DB02251", status READY, has 1 handler(s) for this service...
+  Instance "DB02252", status READY, has 1 handler(s) for this service...
+Service "DB0225_PDB1.paas.oracle.com" has 2 instance(s).
+  Instance "DB02251", status READY, has 2 handler(s) for this service...
+  Instance "DB02252", status READY, has 2 handler(s) for this service...
+Service "DB0225_UNI.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "DB02251", status READY, has 2 handler(s) for this service...
+  Instance "DB02252", status READY, has 2 handler(s) for this service...
+Service "TESTDBXDB.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "TESTDB1", status READY, has 1 handler(s) for this service...
+  Instance "TESTDB2", status READY, has 1 handler(s) for this service...
+Service "TESTDB_CFG.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "TESTDB1", status READY, has 2 handler(s) for this service...
+  Instance "TESTDB2", status READY, has 2 handler(s) for this service...
+Service "TESTDB_PDB1.paas.oracle.com" has 2 instance(s).
+  Instance "TESTDB1", status READY, has 2 handler(s) for this service...
+  Instance "TESTDB2", status READY, has 2 handler(s) for this service...
+Service "TESTDB_PRI.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 2 instance(s).
+  Instance "TESTDB1", status READY, has 2 handler(s) for this service...
+  Instance "TESTDB2", status READY, has 2 handler(s) for this service...
+Service "pdb1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com" has 4 instance(s).
+  Instance "DB02251", status READY, has 2 handler(s) for this service...
+  Instance "DB02252", status READY, has 2 handler(s) for this service...
+  Instance "TESTDB1", status READY, has 2 handler(s) for this service...
+  Instance "TESTDB2", status READY, has 2 handler(s) for this service...
+The command completed successfully
+[INFO]  --- tnsnames.ora ---
+
+═══════════════════════════════════════════════════
+  7. OCI / Azure Integration
+═══════════════════════════════════════════════════
+[INFO]  --- OCI CLI version ---
+./zdm_target_discovery.sh: line 213: oci: command not found
+[INFO]  --- OCI config ---
+[WARN]  ~/.oci/config not found
+[INFO]  --- OCI connectivity test ---
+./zdm_target_discovery.sh: line 223: oci: command not found
+[INFO]  --- OCI/Azure instance metadata ---
+
+═══════════════════════════════════════════════════
+  8. Grid Infrastructure (RAC/CRS)
+═══════════════════════════════════════════════════
+[INFO]  GRID_HOME: /u01/app/19.0.0.0/grid
+CRS-4537: Cluster Ready Services is online
+CRS-4529: Cluster Synchronization Services is online
+CRS-4533: Event Manager is online
+--------------------------------------------------------------------------------
+Name           Target  State        Server                   State details       
+--------------------------------------------------------------------------------
+Local Resources
+--------------------------------------------------------------------------------
+ora.DATAC1.ACFSVOL01.advm
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.LISTENER.lsnr
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.chad
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.datac1.acfsvol01.acfs
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      mounted on /acfs01,S
+                                                             TABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      mounted on /acfs01,S
+                                                             TABLE
+ora.net1.network
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.ons
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.proxy_advm
+               ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+               ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+--------------------------------------------------------------------------------
+Cluster Resources
+--------------------------------------------------------------------------------
+ora.ASMNET1LSNR_ASM.lsnr(ora.asmgroup)
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+      2        ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.DATAC1.dg(ora.asmgroup)
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+      2        ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.LISTENER_SCAN1.lsnr
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+ora.LISTENER_SCAN2.lsnr
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.LISTENER_SCAN3.lsnr
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+ora.RECOC1.dg(ora.asmgroup)
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+      2        ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.asm(ora.asmgroup)
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      Started,STABLE
+      2        ONLINE  ONLINE       vmclusterpoc-ytlat2      Started,STABLE
+ora.asmnet1.asmnetwork(ora.asmgroup)
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      STABLE
+      2        ONLINE  ONLINE       vmclusterpoc-ytlat2      STABLE
+ora.cdbakv_standby.db
+      1        ONLINE  ONLINE       vmclusterpoc-ytlat1      Open,HOME=/u02/app/o
+                                                             racle/product/19.0.0
+                                                             .0/dbhome_1,STABLE
+      2        ONLINE  ONLINE       vmclusterpoc-ytlat2      Open,HOME=/u02/app/o
+                                                             racle/product/19.0.0
+                                                             .0/dbhome_1,STABLE
+ora.cvu
+
+═══════════════════════════════════════════════════
+  9. Authentication
+═══════════════════════════════════════════════════
+[INFO]  SSH directory for oracle user:
+total 20
+drwx------. 2 oracle oinstall  108 Mar  9 14:37 .
+drwx------. 6 oracle oinstall 4096 Mar  2 06:29 ..
+-rw-------. 1 oracle oinstall 2691 Mar  9 14:37 authorized_keys
+-rw-------. 1 oracle oinstall    0 Feb 23 16:41 authorized_keys-orig
+-rw-------. 1 oracle oinstall 2610 Feb 23 16:49 id_rsa
+-rw-r--r--. 1 oracle oinstall  580 Feb 23 16:49 id_rsa.pub
+-rw-r--r--. 1 oracle oinstall  838 Feb 23 16:49 known_hosts
+
+═══════════════════════════════════════════════════
+  10. Exadata / Storage Capacity
+═══════════════════════════════════════════════════
+[INFO]  --- ASM disk groups ---
+
+GROUP_NUMBER NAME			    STATE	TYPE	 TOTAL_GB    FREE_GB
+------------ ------------------------------ ----------- ------ ---------- ----------
+	   1 DATAC1			    MOUNTED	HIGH	     4896     4115.2
+	   2 RECOC1			    MOUNTED	HIGH	     1224     1050.5
+[INFO]  --- asmcmd lsdg ---
+[INFO]  asmcmd not in PATH for current user
+[INFO]  --- Disk free space ---
+Filesystem                                                                        Size  Used Avail Use% Mounted on
+devtmpfs                                                                           15G     0   15G   0% /dev
+tmpfs                                                                              15G   15M   15G   1% /run
+tmpfs                                                                              15G     0   15G   0% /sys/fs/cgroup
+/dev/mapper/VGExaDb-LVDbSys1                                                       15G  5.4G  9.6G  36% /
+/dev/mapper/VGExaDbDisk.u01.20.img-LVDBDisk                                        20G  4.0G   16G  20% /u01
+/dev/mapper/VGExaDb-LVDbVar1                                                      5.0G  2.4G  2.6G  49% /var
+/dev/mapper/VGExaDb-LVDbKdump                                                      20G  175M   20G   1% /crashfiles
+/dev/mapper/VGExaDb-LVDbTmp                                                       3.0G   62M  2.9G   3% /tmp
+/dev/mapper/VGExaDb-LVDbHome                                                      4.0G   61M  3.9G   2% /home
+/dev/mapper/VGExaDbDisk.grid--klone--Linux--x86--64--19000251021.50.img-LVDBDisk   50G   13G   38G  26% /u01/app/19.0.0.0/grid
+/dev/mapper/VGExaDb-LVDbVarLog                                                     18G  770M   18G   5% /var/log
+/dev/sda1                                                                         412M  128M  285M  31% /boot
+/dev/mapper/VGExaDb-LVDbVarLogAudit                                               3.0G  160M  2.8G   6% /var/log/audit
+/dev/mapper/VGExaDbDisk.u02_extra.img-LVDBDisk                                     57G   29G   26G  54% /u02
+tmpfs                                                                              29G  1.8G   28G   6% /dev/shm
+/dev/asm/acfsvol01-165                                                            100G   13G   88G  13% /acfs01
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/1000
+saadb12feb2026.file.core.windows.net:/saadb12feb2026/adbshare01                   1.0T  3.2G 1021G   1% /mount/saadb12feb2026/adbshare01
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/1001
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/2000
+
+═══════════════════════════════════════════════════
+  11. Pre-configured PDBs
+═══════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════
+  12. Network Security / Firewall
+═══════════════════════════════════════════════════
+[INFO]  --- iptables / firewalld ---
+[INFO]  --- OCI NSG rules (if oci cli available) ---
+
+═══════════════════════════════════════════════════
+  Discovery Summary
+═══════════════════════════════════════════════════
+[INFO]  Section errors : 0
+[INFO]  Report file    : ./zdm_target_discovery_vmclusterpoc-ytlat1_20260312_150535.txt
+[INFO]  JSON file      : ./zdm_target_discovery_vmclusterpoc-ytlat1_20260312_150535.json
+[INFO]  Completed      : Thu Mar 12 15:05:36 UTC 2026
+[INFO]  JSON summary written to ./zdm_target_discovery_vmclusterpoc-ytlat1_20260312_150535.json

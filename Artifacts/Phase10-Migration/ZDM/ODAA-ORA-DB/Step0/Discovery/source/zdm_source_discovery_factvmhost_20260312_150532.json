@@ -1,0 +1,23 @@
+{
+  "discovery_type": "source",
+  "project": "ODAA-ORA-DB",
+  "generated": "2026-03-12T15:05:33Z",
+  "host": "factvmhost.x4hxgv13rquehhrpcjkae2yqea.zx.internal.cloudapp.net",
+  "run_as_user": "azureuser",
+  "oracle_env": {
+    "oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
+    "oracle_sid": "MCKESS",
+    "oracle_base": "UNKNOWN"
+  },
+  "database": {
+    "db_name": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found",
+    "db_unique_name": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found",
+    "db_role": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found",
+    "open_mode": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found",
+    "log_mode": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found",
+    "cdb": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found",
+    "characterset": "sudo: /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus: command not found"
+  },
+  "section_errors": 0,
+  "report_file": "./zdm_source_discovery_factvmhost_20260312_150532.txt"
+}

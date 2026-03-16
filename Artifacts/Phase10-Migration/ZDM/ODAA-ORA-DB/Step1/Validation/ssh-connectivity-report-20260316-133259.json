@@ -1,0 +1,41 @@
+{
+  "report": "ssh-connectivity-report",
+  "project": "ODAA-ORA-DB",
+  "timestamp": "20260316-133259",
+  "run_by": "zdmuser@zdmhost",
+  "zdm_server": "10.200.1.13",
+  "overall_status": "PASS",
+  "checks": {
+    "zdm_ssh_dir": {
+      "path": "/home/zdmuser/.ssh",
+      "status": "PASS",
+      "detail": "/home/zdmuser/.ssh exists"
+    },
+    "zdm_key": {
+      "path": "/home/zdmuser/.ssh/id_rsa",
+      "status": "PASS",
+      "detail": "/home/zdmuser/.ssh/id_rsa  permissions: 600"
+    },
+    "source_ssh": {
+      "host": "10.200.1.12",
+      "user": "azureuser",
+      "status": "PASS",
+      "remote_hostname": "factvmhost",
+      "detail": "hostname: factvmhost"
+    },
+    "target_ssh": {
+      "host": "10.200.0.250",
+      "user": "opc",
+      "status": "PASS",
+      "remote_hostname": "vmclusterpoc-ytlat1",
+      "detail": "hostname: vmclusterpoc-ytlat1"
+    }
+  },
+  "ssh_options": {
+    "BatchMode": "yes",
+    "StrictHostKeyChecking": "accept-new",
+    "ConnectTimeout": "10",
+    "PasswordAuthentication": "no",
+    "key_file": "none — public keys pre-authorised on source and target"
+  }
+}
