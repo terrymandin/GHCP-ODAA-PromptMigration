@@ -303,6 +303,12 @@ SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash 
   Accept explicit environment variable overrides as highest-priority fallback
 - **SQL execution**  run as `oracle` user; use `sudo -u oracle -E ORACLE_HOME=... ORACLE_SID=...`
   if `$(whoami)`  `$ORACLE_USER`
+- **Prevent SP2-0310 (mandatory):** do not generate SQL helpers that write a temporary SQL file
+  (for example under `/tmp`) and then invoke `sqlplus @/tmp/file.sql` as another user.
+  This can fail due to file ownership/permissions when switching to `oracle`.
+  Instead, always pass SQL to `sqlplus` via stdin (pipe or heredoc) in the same execution context,
+  for example:
+  `printf '%s\n' "$sql" | sudo -u "$ORACLE_USER" -E env ORACLE_HOME="$ORACLE_HOME" ORACLE_SID="$ORACLE_SID" PATH="$ORACLE_HOME/bin:$PATH" "$ORACLE_HOME/bin/sqlplus" -s / as sysdba`
 - **Output files**  write to current working directory:
   - `./zdm_<type>_discovery_<hostname>_<timestamp>.txt`  human-readable report
   - `./zdm_<type>_discovery_<hostname>_<timestamp>.json`  machine-parseable summary

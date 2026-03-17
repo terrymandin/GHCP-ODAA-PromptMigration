@@ -9,19 +9,27 @@ SOURCE_REMOTE_ORACLE_HOME_DEFAULT="/u01/app/oracle/product/19.0.0/dbhome_1"
 SOURCE_ORACLE_SID_DEFAULT="POCAKV"
 SOURCE_DATABASE_UNIQUE_NAME_DEFAULT="POCAKV"
 
-SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-$SOURCE_REMOTE_ORACLE_HOME_DEFAULT}"
-SOURCE_ORACLE_SID="${SOURCE_ORACLE_SID:-$SOURCE_ORACLE_SID_DEFAULT}"
-SOURCE_DATABASE_UNIQUE_NAME="${SOURCE_DATABASE_UNIQUE_NAME:-$SOURCE_DATABASE_UNIQUE_NAME_DEFAULT}"
-
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 HOSTNAME_SHORT="$(hostname -s 2>/dev/null || hostname)"
-TEXT_OUT="./zdm_source_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
-JSON_OUT="./zdm_source_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+REPORT_TXT="./zdm_source_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
+REPORT_JSON="./zdm_source_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
 
 WARNINGS=()
-PARTIAL=0
-ORACLE_HOME_RESOLVED=""
-ORACLE_SID_RESOLVED=""
+FAILED_SECTIONS=()
+
+log_header() {
+  local title="$1"
+  {
+    echo
+    echo "============================================================"
+    echo "$title"
+    echo "============================================================"
+  } >> "$REPORT_TXT"
+}
+
+log_raw() {
+  printf '%s\n' "$1" >> "$REPORT_TXT"
+}
 
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\r//g; :a;N;$!ba;s/\n/\\n/g'
@@ -29,246 +37,221 @@ json_escape() {
 
 add_warning() {
   WARNINGS+=("$1")
-  PARTIAL=1
+  log_raw "[WARN] $1"
 }
 
-log_section() {
-  printf '\n===== %s =====\n' "$1" | tee -a "$TEXT_OUT"
+add_failure() {
+  FAILED_SECTIONS+=("$1")
+  log_raw "[ERROR] Section failed: $1"
 }
 
-run_cmd() {
-  local title="$1"
+run_cmd_section() {
+  local section="$1"
   local cmd="$2"
-  log_section "$title"
-  printf '$ %s\n' "$cmd" | tee -a "$TEXT_OUT"
-  local output
-  output="$(bash -lc "$cmd" 2>&1)"
+  log_header "$section"
+  bash -lc "$cmd" >> "$REPORT_TXT" 2>&1
   local rc=$?
-  printf '%s\n' "$output" | tee -a "$TEXT_OUT"
   if [ $rc -ne 0 ]; then
-    add_warning "$title failed (rc=$rc)"
+    add_failure "$section"
   fi
 }
 
-normalize_optional() {
-  local v="$1"
-  if [ -z "$v" ] || [[ "$v" == *"<"*">"* ]]; then
-    printf '%s' ""
-  else
-    printf '%s' "$v"
-  fi
-}
-
-detect_oracle_env() {
-  local sid=""
-  local home=""
-
-  # 1) Already-set environment values
+resolve_oracle_sid() {
   if [ -n "${ORACLE_SID:-}" ]; then
-    sid="$ORACLE_SID"
+    printf '%s\n' "$ORACLE_SID"
+    return
   fi
+
+  if [ -n "${SOURCE_ORACLE_SID:-}" ]; then
+    printf '%s\n' "$SOURCE_ORACLE_SID"
+    return
+  fi
+
+  if [ -n "$SOURCE_ORACLE_SID_DEFAULT" ]; then
+    printf '%s\n' "$SOURCE_ORACLE_SID_DEFAULT"
+    return
+  fi
+
+  local sid
+  sid="$(awk -F: '$1 !~ /^#/ && NF >= 2 && $1 != "" && $2 != "" {print $1; exit}' /etc/oratab 2>/dev/null)"
+  if [ -n "$sid" ]; then
+    printf '%s\n' "$sid"
+    return
+  fi
+
+  sid="$(ps -ef | grep ora_pmon_ | grep -v grep | head -n1 | sed 's/.*ora_pmon_//')"
+  printf '%s\n' "$sid"
+}
+
+resolve_oracle_home() {
   if [ -n "${ORACLE_HOME:-}" ]; then
-    home="$ORACLE_HOME"
+    printf '%s\n' "$ORACLE_HOME"
+    return
   fi
 
-  # Explicit prompt-rendered overrides
-  if [ -z "$sid" ]; then
-    sid="$(normalize_optional "$SOURCE_ORACLE_SID")"
-  fi
-  if [ -z "$home" ]; then
-    home="$(normalize_optional "$SOURCE_REMOTE_ORACLE_HOME")"
+  if [ -n "${SOURCE_REMOTE_ORACLE_HOME:-}" ]; then
+    printf '%s\n' "$SOURCE_REMOTE_ORACLE_HOME"
+    return
   fi
 
-  # 2) /etc/oratab
-  if { [ -z "$sid" ] || [ -z "$home" ]; } && [ -r /etc/oratab ]; then
-    local entry
-    entry="$(grep -Ev '^#|^$|^\+ASM' /etc/oratab | head -n1 || true)"
-    if [ -n "$entry" ]; then
-      [ -z "$sid" ] && sid="$(printf '%s' "$entry" | cut -d: -f1)"
-      [ -z "$home" ] && home="$(printf '%s' "$entry" | cut -d: -f2)"
+  if [ -n "$SOURCE_REMOTE_ORACLE_HOME_DEFAULT" ]; then
+    printf '%s\n' "$SOURCE_REMOTE_ORACLE_HOME_DEFAULT"
+    return
+  fi
+
+  local sid="${1:-}"
+  local home
+  if [ -n "$sid" ]; then
+    home="$(awk -F: -v sid="$sid" '$1 == sid {print $2; exit}' /etc/oratab 2>/dev/null)"
+    if [ -n "$home" ]; then
+      printf '%s\n' "$home"
+      return
     fi
   fi
 
-  # 3) PMON
-  if [ -z "$sid" ]; then
-    sid="$(ps -ef | awk '/ora_pmon_/ && !/grep/ {sub(/^.*ora_pmon_/, "", $0); print $0; exit}' || true)"
+  for p in /u01/app/oracle/product/*/dbhome_1 /u02/app/oracle/product/*/dbhome_1 /opt/oracle/product/*/dbhome_1; do
+    if [ -d "$p" ]; then
+      printf '%s\n' "$p"
+      return
+    fi
+  done
+
+  if [ -f /usr/local/bin/oraenv ] || [ -f /usr/bin/oraenv ]; then
+    home="$(ORAENV_ASK=NO ORACLE_SID="${sid:-}" . oraenv >/dev/null 2>&1; printf '%s' "${ORACLE_HOME:-}")"
+    if [ -n "$home" ]; then
+      printf '%s\n' "$home"
+      return
+    fi
   fi
 
-  # 4) Common paths
-  if [ -z "$home" ]; then
-    home="$(ls -d /u01/app/oracle/product/*/dbhome_1 /u02/app/oracle/product/*/dbhome_1 2>/dev/null | head -n1 || true)"
-  fi
-
-  # 5) oraenv/coraenv best effort
-  if [ -n "$sid" ] && [ -z "$home" ] && [ -x /usr/local/bin/oraenv ]; then
-    home="$(ORACLE_SID="$sid" ORAENV_ASK=NO /usr/local/bin/oraenv >/dev/null 2>&1; printf '%s' "${ORACLE_HOME:-}")"
-  fi
-
-  ORACLE_SID_RESOLVED="$sid"
-  ORACLE_HOME_RESOLVED="$home"
-
-  if [ -z "$ORACLE_SID_RESOLVED" ]; then
-    add_warning "Unable to resolve ORACLE_SID"
-  fi
-  if [ -z "$ORACLE_HOME_RESOLVED" ]; then
-    add_warning "Unable to resolve ORACLE_HOME"
-  fi
+  printf '%s\n' ""
 }
 
-run_sql() {
-  local title="$1"
-  local sql="$2"
+run_sql_section() {
+  local section="$1"
+  local sql_text="$2"
 
-  log_section "$title"
+  log_header "$section"
 
-  if [ -z "$ORACLE_HOME_RESOLVED" ] || [ -z "$ORACLE_SID_RESOLVED" ]; then
-    printf 'Skipped: ORACLE_HOME or ORACLE_SID not resolved.\n' | tee -a "$TEXT_OUT"
-    add_warning "$title skipped due to missing Oracle environment"
+  if [ -z "$EFFECTIVE_ORACLE_HOME" ] || [ -z "$EFFECTIVE_ORACLE_SID" ]; then
+    add_failure "$section"
+    add_warning "Skipped SQL for '$section' because ORACLE_HOME/ORACLE_SID could not be resolved"
     return
   fi
 
-  if [ ! -x "$ORACLE_HOME_RESOLVED/bin/sqlplus" ]; then
-    printf 'Skipped: sqlplus not found at %s/bin/sqlplus\n' "$ORACLE_HOME_RESOLVED" | tee -a "$TEXT_OUT"
-    add_warning "$title skipped because sqlplus is missing"
+  if [ ! -x "$EFFECTIVE_ORACLE_HOME/bin/sqlplus" ]; then
+    add_failure "$section"
+    add_warning "sqlplus not executable at $EFFECTIVE_ORACLE_HOME/bin/sqlplus"
     return
   fi
 
-  local tmp_sql
-  tmp_sql="$(mktemp /tmp/zdm_source_sql_XXXX.sql)"
-  printf '%s\n' "$sql" > "$tmp_sql"
-
-  local output rc
   if [ "$(whoami)" != "$ORACLE_USER" ]; then
-    output="$(sudo -u "$ORACLE_USER" -E env ORACLE_HOME="$ORACLE_HOME_RESOLVED" ORACLE_SID="$ORACLE_SID_RESOLVED" PATH="$ORACLE_HOME_RESOLVED/bin:$PATH" "$ORACLE_HOME_RESOLVED/bin/sqlplus" -s / as sysdba @"$tmp_sql" 2>&1)"
-    rc=$?
+    printf '%s\n' "$sql_text" | sudo -u "$ORACLE_USER" -E env ORACLE_HOME="$EFFECTIVE_ORACLE_HOME" ORACLE_SID="$EFFECTIVE_ORACLE_SID" PATH="$EFFECTIVE_ORACLE_HOME/bin:$PATH" "$EFFECTIVE_ORACLE_HOME/bin/sqlplus" -s / as sysdba >> "$REPORT_TXT" 2>&1
   else
-    output="$(env ORACLE_HOME="$ORACLE_HOME_RESOLVED" ORACLE_SID="$ORACLE_SID_RESOLVED" PATH="$ORACLE_HOME_RESOLVED/bin:$PATH" "$ORACLE_HOME_RESOLVED/bin/sqlplus" -s / as sysdba @"$tmp_sql" 2>&1)"
-    rc=$?
+    printf '%s\n' "$sql_text" | env ORACLE_HOME="$EFFECTIVE_ORACLE_HOME" ORACLE_SID="$EFFECTIVE_ORACLE_SID" PATH="$EFFECTIVE_ORACLE_HOME/bin:$PATH" "$EFFECTIVE_ORACLE_HOME/bin/sqlplus" -s / as sysdba >> "$REPORT_TXT" 2>&1
   fi
 
-  rm -f "$tmp_sql"
-
-  printf '%s\n' "$output" | tee -a "$TEXT_OUT"
+  local rc=$?
   if [ $rc -ne 0 ]; then
-    add_warning "$title SQL failed (rc=$rc)"
+    add_failure "$section"
   fi
 }
 
-: > "$TEXT_OUT"
+EFFECTIVE_ORACLE_SID="$(resolve_oracle_sid)"
+EFFECTIVE_ORACLE_HOME="$(resolve_oracle_home "$EFFECTIVE_ORACLE_SID")"
 
-log_section "Script Metadata"
 {
-  echo "Timestamp: $TIMESTAMP"
-  echo "Host: $HOSTNAME_SHORT"
-  echo "Run user: $(whoami)"
-  echo "Rendered SOURCE_DATABASE_UNIQUE_NAME: $SOURCE_DATABASE_UNIQUE_NAME"
-} | tee -a "$TEXT_OUT"
+  echo "# ZDM Source Discovery Report"
+  echo "# Host: $HOSTNAME_SHORT"
+  echo "# Timestamp: $TIMESTAMP"
+  echo "# Oracle user: $ORACLE_USER"
+  echo "# Resolved ORACLE_SID: ${EFFECTIVE_ORACLE_SID:-<unset>}"
+  echo "# Resolved ORACLE_HOME: ${EFFECTIVE_ORACLE_HOME:-<unset>}"
+  echo "# Source DB Unique Name (rendered): $SOURCE_DATABASE_UNIQUE_NAME_DEFAULT"
+} > "$REPORT_TXT"
 
-detect_oracle_env
+if [ -z "$EFFECTIVE_ORACLE_SID" ]; then
+  add_warning "ORACLE_SID could not be resolved"
+fi
+if [ -z "$EFFECTIVE_ORACLE_HOME" ]; then
+  add_warning "ORACLE_HOME could not be resolved"
+fi
 
-log_section "Resolved Oracle Environment"
-{
-  echo "ORACLE_HOME: ${ORACLE_HOME_RESOLVED:-UNRESOLVED}"
-  echo "ORACLE_SID: ${ORACLE_SID_RESOLVED:-UNRESOLVED}"
-  echo "ORACLE_USER: $ORACLE_USER"
-} | tee -a "$TEXT_OUT"
+run_cmd_section "OS - Host, IP, OS version, disk" "hostname -f; ip -o -4 addr show; cat /etc/os-release; df -h"
+run_cmd_section "Oracle Environment - runtime variables" "echo ORACLE_HOME=${EFFECTIVE_ORACLE_HOME:-}; echo ORACLE_SID=${EFFECTIVE_ORACLE_SID:-}; echo ORACLE_BASE=${ORACLE_BASE:-}"
+run_cmd_section "Network files" "if [ -n '$EFFECTIVE_ORACLE_HOME' ]; then lsnrctl status; cat '$EFFECTIVE_ORACLE_HOME/network/admin/tnsnames.ora' 2>/dev/null; cat '$EFFECTIVE_ORACLE_HOME/network/admin/sqlnet.ora' 2>/dev/null; fi"
+run_cmd_section "Authentication files" "ls -la ~/.ssh 2>/dev/null; if [ -n '$EFFECTIVE_ORACLE_HOME' ]; then ls -la '$EFFECTIVE_ORACLE_HOME/dbs/orapw*' 2>/dev/null; fi"
 
-run_cmd "OS - Hostname, IP, OS Version" "hostname; hostname -I 2>/dev/null || true; cat /etc/os-release 2>/dev/null || uname -a"
-run_cmd "OS - Disk Space" "df -h"
-run_cmd "Oracle Environment - Shell Values" "env | grep -E '^(ORACLE_|TNS_ADMIN|PATH)=' || true"
-run_cmd "Oracle Environment - Oracle Version" "${ORACLE_HOME_RESOLVED:-/bin}/bin/sqlplus -v 2>/dev/null || sqlplus -v 2>/dev/null || true"
-
-run_sql "Database Configuration" "set pages 500 lines 300 trimspool on verify off
+run_sql_section "Database configuration" "set pages 200 lines 300
 col name format a20
 col db_unique_name format a30
-col database_role format a20
-col open_mode format a20
-select name, db_unique_name, dbid, database_role, open_mode, log_mode, force_logging from v\$database;
+select name, db_unique_name, dbid, database_role, open_mode, log_mode, force_logging, cdb from v\$database;
 select parameter, value from nls_database_parameters where parameter in ('NLS_CHARACTERSET','NLS_NCHAR_CHARACTERSET');
 select supplemental_log_data_min, supplemental_log_data_pk, supplemental_log_data_ui, supplemental_log_data_fk, supplemental_log_data_all from v\$database;
-"
+exit"
 
-run_sql "Container Database" "set pages 500 lines 300 trimspool on verify off
-select cdb from v\$database;
-select con_id, name, open_mode from v\$pdbs order by con_id;
-"
+run_sql_section "Container database details" "set pages 200 lines 300
+select name, open_mode from v\$pdbs;
+exit"
 
-run_sql "TDE" "set pages 500 lines 300 trimspool on verify off
-select wallet_type, status, wallet_order, wrl_type, wrl_parameter from v\$encryption_wallet;
-select tablespace_name, encrypted from dba_tablespaces order by tablespace_name;
-"
+run_sql_section "TDE and wallet status" "set pages 200 lines 300
+select wallet_type, status, wallet_order, con_id from v\$encryption_wallet;
+select tablespace_name, encrypted from dba_tablespaces where encrypted='YES';
+exit"
 
-run_sql "Tablespaces" "set pages 1000 lines 300 trimspool on verify off
+run_sql_section "Tablespace and autoextend" "set pages 200 lines 300
 col file_name format a80
-select tablespace_name, file_name, autoextensible, bytes/1024/1024 current_mb, maxbytes/1024/1024 max_mb, increment_by from dba_data_files order by tablespace_name, file_name;
-"
+select tablespace_name, autoextensible, bytes/1024/1024 current_mb, maxbytes/1024/1024 max_mb, increment_by from dba_data_files order by tablespace_name, file_name;
+exit"
 
-run_sql "Redo and Archive" "set pages 1000 lines 300 trimspool on verify off
-select l.group#, l.thread#, l.bytes/1024/1024 size_mb, l.members, l.archived, l.status from v\$log l order by l.group#;
-select group#, member from v\$logfile order by group#, member;
-select dest_id, destination, target, status, valid_now from v\$archive_dest where destination is not null order by dest_id;
-"
+run_sql_section "Redo and archive destinations" "set pages 200 lines 300
+select group#, thread#, bytes/1024/1024 size_mb, members, status from v\$log order by group#;
+select dest_id, destination, status, target from v\$archive_dest where destination is not null;
+exit"
 
-run_cmd "Network - Listener Status" "lsnrctl status"
-run_cmd "Network - tnsnames/sqlnet" "for f in \"$ORACLE_HOME_RESOLVED/network/admin/tnsnames.ora\" \"$ORACLE_HOME_RESOLVED/network/admin/sqlnet.ora\"; do echo \"--- $f ---\"; [ -r \"$f\" ] && cat \"$f\" || echo 'not found'; done"
-run_cmd "Authentication - Password File and SSH" "ls -l $ORACLE_HOME_RESOLVED/dbs/orapw* 2>/dev/null || true; ls -la ~/.ssh 2>/dev/null || true"
-
-run_sql "Schema Information" "set pages 1000 lines 300 trimspool on verify off
+run_sql_section "Schema sizing and invalid objects" "set pages 200 lines 300
 col owner format a30
-select owner, round(sum(bytes)/1024/1024,2) size_mb from dba_segments where owner not in ('SYS','SYSTEM','SYSMAN','XDB','MDSYS','CTXSYS','DBSNMP','WMSYS','OUTLN') group by owner having sum(bytes) > 100*1024*1024 order by size_mb desc;
-select owner, object_type, count(*) invalid_count from dba_objects where status <> 'VALID' group by owner, object_type order by owner, object_type;
-"
+select owner, round(sum(bytes)/1024/1024,2) size_mb from dba_segments group by owner having sum(bytes) > 100*1024*1024 and owner not in ('SYS','SYSTEM','XDB','SYSMAN','DBSNMP') order by size_mb desc;
+select owner, object_type, count(*) cnt from dba_objects where status='INVALID' group by owner, object_type order by owner, object_type;
+exit"
 
-run_sql "Backup Configuration" "set pages 1000 lines 300 trimspool on verify off
-select name, value from v\$parameter where name in ('db_recovery_file_dest','db_recovery_file_dest_size');
-select * from v\$rman_configuration;
-select max(end_time) as last_backup_end_time from v\$rman_backup_job_details where status='COMPLETED';
-select output_device_type, max(end_time) as last_success from v\$rman_backup_job_details where status='COMPLETED' group by output_device_type;
-select owner, job_name, enabled, state, repeat_interval from dba_scheduler_jobs where lower(job_name) like '%backup%' or lower(job_action) like '%backup%' order by owner, job_name;
-"
+run_sql_section "Backup configuration and recent backup" "set pages 200 lines 300
+select name, value from v\$parameter where name in ('db_recovery_file_dest','db_recovery_file_dest_size','log_archive_dest_1');
+select completion_time, input_type, status, output_device_type from v\$rman_backup_job_details order by completion_time desc fetch first 20 rows only;
+select owner, job_name, enabled, state, repeat_interval from dba_scheduler_jobs where upper(job_name) like '%BACKUP%' order by owner, job_name;
+exit"
 
-run_cmd "Backup Configuration - Crontab" "(crontab -l 2>/dev/null || true) | grep -Ei 'rman|backup|arch' || true"
-
-run_sql "Database Links" "set pages 1000 lines 300 trimspool on verify off
-col owner format a30
-col db_link format a50
-col host format a60
+run_sql_section "Database links" "set pages 200 lines 300
+col db_link format a40
 select owner, db_link, host, username from dba_db_links order by owner, db_link;
-"
+exit"
 
-run_sql "Materialized Views and Logs" "set pages 1000 lines 300 trimspool on verify off
-col owner format a30
-col mview_name format a40
-select owner, mview_name, refresh_method, refresh_mode, to_char(last_refresh_date,'YYYY-MM-DD HH24:MI:SS') last_refresh, to_char(staleness) staleness from dba_mviews order by owner, mview_name;
+run_sql_section "Materialized views and logs" "set pages 200 lines 300
+select owner, mview_name, refresh_mode, refresh_method, staleness, last_refresh_type from dba_mviews order by owner, mview_name;
 select log_owner, master, log_table from dba_mview_logs order by log_owner, master;
-"
+exit"
 
-run_sql "Scheduler Jobs" "set pages 1000 lines 300 trimspool on verify off
-col owner format a30
-col job_name format a40
-select owner, job_name, job_type, enabled, state, to_char(last_start_date,'YYYY-MM-DD HH24:MI:SS') last_start, to_char(next_run_date,'YYYY-MM-DD HH24:MI:SS') next_run, repeat_interval from dba_scheduler_jobs order by owner, job_name;
-select owner, job_name, regexp_substr(lower(nvl(job_action,'')), '(https?://[^ ]+|/[^ ''\"]+|credential[^ ]*)') possible_external_ref from dba_scheduler_jobs where regexp_like(lower(nvl(job_action,'')), '(https?://|/|credential)') order by owner, job_name;
-"
+run_sql_section "Scheduler jobs" "set pages 200 lines 300
+select owner, job_name, job_type, enabled, state, last_start_date, next_run_date from dba_scheduler_jobs order by owner, job_name;
+select owner, job_name from dba_scheduler_jobs where lower(job_action) like '%/%' or lower(job_action) like '%http%' or lower(job_action) like '%host%' order by owner, job_name;
+exit"
 
-run_sql "Data Guard Parameters" "set pages 1000 lines 300 trimspool on verify off
-select name, value from v\$parameter where name in (
-'log_archive_config','log_archive_dest_1','log_archive_dest_2','fal_client','fal_server',
-'db_file_name_convert','log_file_name_convert','standby_file_management'
-) order by name;
-"
+run_sql_section "Data Guard parameters" "set pages 200 lines 300
+select name, value from v\$parameter where name like 'log_archive_config' or name like 'fal_%' or name like 'dg_broker_start';
+exit"
 
 STATUS="success"
-if [ "$PARTIAL" -ne 0 ]; then
+if [ ${#FAILED_SECTIONS[@]} -gt 0 ] || [ ${#WARNINGS[@]} -gt 0 ]; then
   STATUS="partial"
 fi
 
 {
-  echo "{" 
+  echo "{"
   echo "  \"status\": \"$(json_escape "$STATUS")\"," 
   echo "  \"host\": \"$(json_escape "$HOSTNAME_SHORT")\"," 
   echo "  \"timestamp\": \"$(json_escape "$TIMESTAMP")\"," 
-  echo "  \"oracle_home\": \"$(json_escape "${ORACLE_HOME_RESOLVED:-}")\"," 
-  echo "  \"oracle_sid\": \"$(json_escape "${ORACLE_SID_RESOLVED:-}")\"," 
+  echo "  \"oracle_sid\": \"$(json_escape "$EFFECTIVE_ORACLE_SID")\"," 
+  echo "  \"oracle_home\": \"$(json_escape "$EFFECTIVE_ORACLE_HOME")\"," 
   echo "  \"warnings\": ["
   if [ ${#WARNINGS[@]} -gt 0 ]; then
     for i in "${!WARNINGS[@]}"; do
@@ -279,15 +262,22 @@ fi
       echo "    \"$(json_escape "${WARNINGS[$i]}")\"$comma"
     done
   fi
+  echo "  ],"
+  echo "  \"failed_sections\": ["
+  if [ ${#FAILED_SECTIONS[@]} -gt 0 ]; then
+    for i in "${!FAILED_SECTIONS[@]}"; do
+      comma=","
+      if [ "$i" -eq "$(( ${#FAILED_SECTIONS[@]} - 1 ))" ]; then
+        comma=""
+      fi
+      echo "    \"$(json_escape "${FAILED_SECTIONS[$i]}")\"$comma"
+    done
+  fi
   echo "  ]"
   echo "}"
-} > "$JSON_OUT"
+} > "$REPORT_JSON"
 
-echo "Source discovery text report: $TEXT_OUT"
-echo "Source discovery JSON report: $JSON_OUT"
-
-if [ "$STATUS" = "partial" ]; then
-  exit 1
-fi
+echo "Text report: $REPORT_TXT"
+echo "JSON report: $REPORT_JSON"
 
 exit 0
