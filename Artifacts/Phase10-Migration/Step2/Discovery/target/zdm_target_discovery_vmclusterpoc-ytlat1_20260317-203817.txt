@@ -1,0 +1,243 @@
+ZDM Step 2 Target Discovery
+Timestamp: 20260317-203817
+Host: vmclusterpoc-ytlat1
+Rendered Target DB Unique Name: POCAKV_ODAA
+Detected ORACLE_HOME: /u02/app/oracle/product/19.0.0.0/dbhome_1
+Detected ORACLE_SID: POKAKV1
+
+================================================================================
+OS - Hostname and IP
+================================================================================
+$ hostname -f || hostname; ip -brief addr || ip addr
+vmclusterpoc-ytlat1.ociexadatasubn.ocivmoraexa19c.oraclevcn.com
+lo               UNKNOWN        127.0.0.1/8 
+bondeth0         UP             10.200.0.250/24 10.200.0.241/24 10.200.0.30/24 10.200.0.101/24 
+bondeth1         UP             10.200.2.50/26 
+eth0             UP             169.254.200.14/30 
+stre0            UP             100.106.64.140/16 
+stre1            UP             100.106.64.141/16 
+clre0            UP             100.107.0.176/16 
+clre1            UP             100.107.0.177/16 
+
+================================================================================
+OS - Version
+================================================================================
+$ cat /etc/os-release
+NAME="Oracle Linux Server"
+VERSION="8.10"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="8.10"
+PLATFORM_ID="platform:el8"
+PRETTY_NAME="Oracle Linux Server 8.10"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:8:10:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 8"
+ORACLE_BUGZILLA_PRODUCT_VERSION=8.10
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=8.10
+
+================================================================================
+OS - Disk Space
+================================================================================
+$ df -h
+Filesystem                                                                        Size  Used Avail Use% Mounted on
+devtmpfs                                                                           15G     0   15G   0% /dev
+tmpfs                                                                              15G   15M   15G   1% /run
+tmpfs                                                                              15G     0   15G   0% /sys/fs/cgroup
+/dev/mapper/VGExaDb-LVDbSys1                                                       15G  5.6G  9.4G  38% /
+/dev/mapper/VGExaDbDisk.u01.20.img-LVDBDisk                                        20G  4.3G   16G  22% /u01
+/dev/mapper/VGExaDb-LVDbVar1                                                      5.0G  2.5G  2.5G  50% /var
+/dev/mapper/VGExaDb-LVDbKdump                                                      20G  175M   20G   1% /crashfiles
+/dev/mapper/VGExaDb-LVDbTmp                                                       3.0G   62M  2.9G   3% /tmp
+/dev/mapper/VGExaDb-LVDbHome                                                      4.0G   61M  3.9G   2% /home
+/dev/mapper/VGExaDbDisk.grid--klone--Linux--x86--64--19000251021.50.img-LVDBDisk   50G   13G   38G  26% /u01/app/19.0.0.0/grid
+/dev/mapper/VGExaDb-LVDbVarLog                                                     18G  1.1G   17G   6% /var/log
+/dev/sda1                                                                         412M  128M  285M  31% /boot
+/dev/mapper/VGExaDb-LVDbVarLogAudit                                               3.0G  162M  2.8G   6% /var/log/audit
+/dev/mapper/VGExaDbDisk.u02_extra.img-LVDBDisk                                     57G   30G   25G  55% /u02
+tmpfs                                                                              29G  1.8G   28G   6% /dev/shm
+/dev/asm/acfsvol01-165                                                            100G   13G   88G  13% /acfs01
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/1000
+saadb12feb2026.file.core.windows.net:/saadb12feb2026/adbshare01                   1.0T  3.2G 1021G   1% /mount/saadb12feb2026/adbshare01
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/1001
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/0
+tmpfs                                                                             3.0G     0  3.0G   0% /run/user/2000
+
+================================================================================
+Oracle Environment - Process and Env
+================================================================================
+$ echo ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1; echo ORACLE_SID=POKAKV1; ps -ef | grep -E 'pmon|tnslsnr|crsd' | grep -v grep
+ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
+ORACLE_SID=POKAKV1
+oracle    35931      1  0 14:36 ?        00:00:01 ora_pmon_POCAKV1
+grid      41801      1  0 Feb23 ?        00:01:06 asm_pmon_+ASM1
+root      44664      1  0 Feb23 ?        02:25:46 /u01/app/19.0.0.0/grid/bin/crsd.bin reboot
+grid      45056      1  0 Feb23 ?        00:01:02 /u01/app/19.0.0.0/grid/bin/tnslsnr ASMNET1LSNR_ASM -no_crs_notify -inherit
+grid      45616      1  0 Feb23 ?        00:01:16 apx_pmon_+APX1
+grid      96689      1  0 Feb23 ?        00:03:24 /u01/app/19.0.0.0/grid/bin/tnslsnr LISTENER -no_crs_notify -inherit
+grid      97741      1  0 Feb23 ?        00:01:23 /u01/app/19.0.0.0/grid/bin/tnslsnr LISTENER_SCAN1 -no_crs_notify -inherit
+grid      97882      1  0 Feb23 ?        00:01:20 /u01/app/19.0.0.0/grid/bin/tnslsnr LISTENER_SCAN3 -no_crs_notify -inherit
+oracle   198221      1  0 Feb25 ?        00:01:29 ora_pmon_CDBAKV21
+oracle   264680      1  0 Feb27 ?        00:01:20 ora_pmon_DB02251
+
+================================================================================
+Oracle Environment - Oracle Version
+================================================================================
+$ [ -x "/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus" ] && "/u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus" -v || echo sqlplus not found
+Error 6 initializing SQL*Plus
+SP2-0667: Message file sp1<lang>.msb not found
+SP2-0750: You may need to set ORACLE_HOME to your Oracle software directory
+sqlplus not found
+
+================================================================================
+Database Configuration
+================================================================================
+select name as db_name, db_unique_name, database_role, open_mode from v$database
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+select parameter, value from nls_database_parameters where parameter in ('NLS_CHARACTERSET','NLS_NCHAR_CHARACTERSET') order by parameter
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+================================================================================
+Container Database
+================================================================================
+select cdb from v$database
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+select con_id, name, open_mode from v$pdbs order by con_id
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+================================================================================
+TDE
+================================================================================
+select wallet_type, status, wallet_order, wrl_parameter from v$encryption_wallet
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+================================================================================
+Storage - ASM
+================================================================================
+select name, total_mb, free_mb, type from v$asm_diskgroup order by name
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+select name, path, total_mb, free_mb, mount_status, state from v$asm_disk order by name
+*
+ERROR at line 1:
+ORA-01034: ORACLE not available
+Process ID: 0
+Session ID: 0 Serial number: 0
+
+
+
+================================================================================
+Storage - Exadata Cell/Grid (best effort)
+================================================================================
+$ command -v asmcmd >/dev/null 2>&1 && asmcmd lsdg || echo asmcmd not found; command -v cellcli >/dev/null 2>&1 && sudo cellcli -e 'list griddisk attributes name,availableTo' || echo cellcli not available
+asmcmd not found
+DBM-01504: Invalid command syntax.
+cellcli not available
+
+================================================================================
+Network - Listener and Oracle Net
+================================================================================
+$ lsnrctl status; command -v srvctl >/dev/null 2>&1 && srvctl status scan_listener || echo srvctl or scan listener not available; [ -f "/u02/app/oracle/product/19.0.0.0/dbhome_1/network/admin/tnsnames.ora" ] && cat "/u02/app/oracle/product/19.0.0.0/dbhome_1/network/admin/tnsnames.ora" || echo tnsnames.ora not found
+bash: lsnrctl: command not found
+srvctl or scan listener not available
+tnsnames.ora not found
+
+================================================================================
+OCI and Azure Metadata
+================================================================================
+$ [ -f ~/.oci/config ] && { echo '[INFO] ~/.oci/config found'; sed -E 's/(fingerprint|tenancy|user|key_file|region).*/\1=***masked***/' ~/.oci/config; } || echo ~/.oci/config not found; curl -fsS -H Metadata:true 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' || echo Azure metadata unavailable; curl -fsS -H 'Authorization: Bearer Oracle' 'http://169.254.169.254/opc/v2/instance/' || echo OCI metadata unavailable
+/home/opc/.oci/config not found
+curl: (22) The requested URL returned error: 404 Not Found
+Azure metadata unavailable
+{
+  "availabilityDomain": "eOiF:UK-LONDON-1-AD-2",
+  "canonicalRegionName": "uk-london-1",
+  "compartmentId": "ocid1.tenancy.oc1..aaaaaaaaax76pwvum5vhn2p3v264osde3ykrudasfzjktipw3ibpvtndhtkq",
+  "displayName": "ocid1.dbnode.oc1.uk-london-1.anwgiljss56liuaaxw2fmqxj6us7vk4gf2x7nb5w7osanuzc5vlnaxqvbpba",
+  "faultDomain": "FAULT-DOMAIN-2",
+  "hostname": "vmclusterpoc-ytlat1-client1",
+  "id": "ocid1.instance.oc1.uk-london-1.anwgiljsgr62dgicbcfhrrrme66huvbqjs6u4vl4nvf3e7by3lzzewe33c4a",
+  "metadata": {
+    "agentAuth": "true",
+    "cloudProvider": "Azure",
+    "cloudProviderRegion": "UK South",
+    "dbSystemShape": "Exadata.X11M",
+    "nodeNumber": "0",
+    "ssh_authorized_keys": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDE7R/wEJc+MgPcwuPUNH/qo3Gh/v/6m+Kj7ASWCFz1HsbobjqKMylqcrh2Ri/lLrh+3a1MmdFAK88N6M3wHfXtFeD9w3ij064jc5qDWIBOsRXt9epuIQJeaEVfTA/fTD7F08mg5kyy+axHtMaqOJwkRdHTi2gGqAT34H92g1ayIWsr5LOy6LbKCu8zfR94tSVd+T5I+8AcwTgdjFq9KSxCFFK6rwfqCROkF6CelTB4s3b57sAIplwubfs+fvkNuNAlSYswj7UURuhKJQyNX4ys2Nu4Jzxf/jY2RqiMWwh2cytfcIjZVfxHZ939BpgbFatg6sATWOzuZAMMhvj4CKG7HCSdhBaXYTXt1wAaPhb22K0jyjkfKl1WtNsC+5VJ8W7AaGK4N4/9lzG+9E5jvp2opy5OZEnJffi0QnwqVxKtRASxX9FZuiLLr41148C6PWoDs7ZvtXj6ka7Yddcj20JZXIDXx9F/i+LzLBmEgKalmROrVHtzGEahmV+HWMlAfEk= ControlPlane",
+    "sshkey-resourceID": "3e6c1206",
+    "user_data": "eyJ0cnVzdF9zdG9yZSI6Ik1JSUpTQUlCQXpDQ0NRRUdDU3FHU0liM0RRRUhBYUNDQ1BJRWdnanVNSUlJNmpDQ0NPWUdDU3FHU0liM0RRRUhCcUNDQ05jd2dnalRBZ0VBTUlJSXpBWUpLb1pJaHZjTkFRY0JNR2NHQ1NxR1NJYjNEUUVGRFRCYU1Ea0dDU3FHU0liM0RRRUZEREFzQkJRbjVxUFRSUG1Da0dtUEE1Z0RCOU5HMGV0bVd3SURBTU5RQWdFUU1Bd0dDQ3FHU0liM0RRSUpCUUF3SFFZSllJWklBV1VEQkFFQ0JCRGNObE05R1hSVEtrRGNzbDFSYWdpdm9JSUlWQVNDQ0ZEUVF6QUJFZmlBRTU5MmY1ZGVVTGdVR250ZWFoK1V2WVUvQ3NIR3ZtOGN1ZHB1ekdOV2NGWWZEdEV0QVpmQldxVUY5cUt2dEN5VWRIbytVVlcvbk45RVNrMk1SZEliUUU2TEQ2QVhudnhZNm5udW5RZ2pFZEJUVGRQU2N0SjlQY1FjTitteTlwLzNYK0dZdWV4SEV2VmJBa1dwWmloSnE4ajJrODRDU0pld1NzdjQ1eGtjS0tCVERHb21PRXhYUkVhT3hTVVRtZWFkM0ZHQnA4V1EwdHV0ZE1FdVZucUtrSXE0RE4vQ1RrTm9EbkFHUlBRejVNZHQ0MFE5SW5NTGo3T01zOHl5akVtdDdsSjlQb1g0aGpuS2NPMWFIdFg4UHBWT2FkSzNLVlpiVWkxZHQ0UnFlZFJqTnMrNkQ2Y01aOWJJNTVXNG9sZ1Y5VGF0V3VBRnhNOHZyaTR4QmwvNEplaklrTEEyZUllUkx6UTZ3ZDBxVk9IUGN6OUhGSHQ1TysvOXhxSjJZS1VsZGVoQU4wZHVQemZtYXlJK3RVRnRaaTAxdnJ2VHFac1pwc2h3ZjJZeG9ZZDA2cEtvdytzY0Z5VmdLRlNDdkg2TTU4NVJ3WnJFWVJPeEVuU2RxbTFobVdvZDZNUGVmTlNRRkszU0ZHQ2dWUXUvZU9sNXgxSjViMDZySFpiVjdWcGZPWWNBMzFLb1NFUjJyendJYlRXaGt6TUdRVFVkckVySFZoOHk1N2NrSWhQVXZGZm1oUjNYQnNzcVhCN3JxelRZS3ZDQXZoaER4YTBrMEpwNHlZdHpoREZla2dYNUgrZnU0MVdxWFAwYWZ0dEtNZXRxMGk2VVdMTzR6Z1Zlb2cyQWdvcWRhczY2VEY3d2dENy9HazJGOW0wZVNNam1uRzc2WlA3bkVDaVpzcjEzTzRSYWx1OTM4c1doZ3ZYUndQQzBraGhuS2xPUEpoMGFOaG9sdnM5Um1sS25wT2dibnVOYnVuZlltVzRLWHFCU0psdlIyejcrTk1qaDJqd0dYcm0xdkJoam95Y2pENUs4dThyYkxkalNKb2ZWTkxjNVVLTjFldlBubm5NSmd3QnlaSkdlbEg4VXZycmM4M05SbktTNmp2SUFjTmlRL2IvV0p2MnMydENWNWU5T0V4NnNoeHB4ME8vanZSU1hvVko3dVpFbTJiN3VFU0gxem9Cc0trOHFsRUVnWlRCTFowdFdrRG5vR0JtT1dHL0x0VDFraFpQdTE1ZGZ4N1BrNnd2RnNWc1IwaVNmVHFXaHN0R3RUNDFYUVBuZGdqREpKMVBuZGtER3lGUVpkZjNEcEw5Y2JjaThTT3JFZWpQYjBVNUc5M2RCWllHNGhLaTlMa0Q4UitkK1F1QUpScnlvamhGdlJSN0l6VEJpWnViTU9oRmpJRlppQkFnUXpKYmZmM3h2L2JEcHoreFBvNm0yelVJV2k3MWFzQ1ptcm5UTzVNdmFVYlRWeEZISjFZRXhyTFZsdVVaU3NndE9BTVJHVkI1cENteit4cnE3K3RxTzQzYjE1UlIzR1lVWEpEeXpFcFNJUHBiMm5lMTVtdGtYU0R1TEV3dFYvRWpPczl6MExNZmJoTHJsd3VQZi9lY1RoVmd3YjU0NithWkY4Y2pZbzY3cTVVcytCai9LaE80MnBGMmpLOXJnTjd0dXNLdGRWcHJUK0dCdXlxUFl0SkM4cmJDN25ZTWZZY0JoTDFySXRuelFpWXY3My8zNGtrV1pueTAxZ3pKei9CVnhNbHF4MHJ6WXlWZWRjOEZ5Z29uUmdjdFNpVlNuTnJjbWhjNzNUMFlEeDJsNTQ3dmJzdlEzYkc1OFVscExtNDlBV1N4aFhzZkpUT1RLRnBhWDZkWjVsNXlHcnFTcFpMQjlZZjdRVVZZSTFjM0xvRGg0c0J5MXpLeFZqWlZUdGhhbzdXNGhCMEY0M2xtSmFJMGxxazlGR1p1RmJQQ2xKaG1YS29kZWNwOHhOMlA1bWpKbDRIYXFpUjA1WDFWQU12TW1GQjRRUnQxZXBqR0o0VWtjN1NZVGNNREJLRHU2TnBXSEF2TGxDRFJpVllJTEtjQTNzZVhLQjNaWlhyQ3NFeFFXdnBrNTdHOUFtand4aXlnRzVPSDkyb2dZbTRDZFVWRzU3VXBNeFErcW9ZNU10ODRLV0JIK3l6dE1wbWlLczg1VEpIRzRQWG5ydFBCODUwaVZvN0U1Y1VxdkRoZDM1aGdXZDBPL0tPa3p6d2lWdHR5Q0pLUjE3UjNPSlRXU25WOGVoendhK29FZ1pLdHBRUTVVcHlYNVlPYXlwNUorbzJaTXFFUWdaYnJoUUc3d3FFTGZFVmNZRmpQcnpCR0ZsdHhXeGlJelMzZlZuUE5VbExtWXFKTmhyZ1FaeFgrMDFZekNVYXVzdkdhU3ZPbWd0MGxuOVRzR3g1MFAzZUM5WXJhakRFZUE0QUhuRWJQTFZqNTRTTXl0am55UzhwVmtBbnJVUWxoQmJ3SGYycnRIUzRiZS9jL0luWnd3VEtBYlpCa0VqY3RuU081UTUzRjM1RWFwL3dNb0RWenB0eGNBWmY2VHJFVks2TVBlLzRBTlFqbXd2SmxVdi9XQzBrdkdDOUVLOEpadnovN0pIeTNMeEtMUWcwdk9GZzJ2ekRiaEc0MEtrVmtLd2Y4K1FEdnBNUmZzNEc5aHpwMkVhdmxweUxWT09ZVDJCS0FxazVzZmkyc3lPeDNabEVka3k3Zi9jVFVHcmZGZWFWdUo2QWJLSXlvaCtXMG5lenpLSUUzRDBuQVgvVkNjc3lJaEhNMEJRZTV1c295NUxFNGk1NWxuak5scWtTSHlEaTJsdlkvcktxcGJqcXhlOXNhYTh5cy9aeCt6NHRWajQvODJYVU9HQUNRVTlsUEJUZXl3NXpEbjEyWXhKODE2TTV4c05zampOcmxRWjNoaVhzV0NkTmhhTWU4SGxXWkw2SytUMC8wTWtVOEloZnVCMUJ4VjJ6emFmWkc4ZmNjblNLUGtqVjN5b2s3b04vck0yV01mdENCNEw4ZDZaK3QreHk2bE9UTG1MWmpiSW54M3NJQlB2cGhBK2Z4TERGamFCVkFobkFUbXd3bTFadURXdUZTc2s1TFdXR0dpMnAyTzA2TVovWVhNMHVHVllDVXd0VDRGTStQZ0ZhaVA1TTB3Y201YU5CVFhyRmtWQnB0R202Zyt1VXBBZ241Nk53cG9RUEI1c2tHM0FXQUJDeFFqc00zcnpVc1lZaTR6SXFxUVl6Sko5REkzTmRFYy9HajR6c0k4eGd5endEV0lRZWJxQ0JWajJrMld3VkhPbStXT2F0ZThGQ3A4UjR0NXl3bTBaS3BDSFNIcU9IMm9JMllQQThnNXJQU0lINHUwc1RNTFp1TGN1N3BSVmVrNjJHSnd5MUhMbnBlZnpTajlCS2dZYWtOVG5DUFZ2SlREZ05ZMFpFajc4VU9xWWtETW05ZUdla3BXcjNKQ29xOVZGVS96OWY3T0tWYUJ2UWphbjlhbytzYUU3OVJTampmeTF0eVBEVHQ5R25jaVBDYmV1b25TdXhaQ1hEL2pwQUhBaHpnc1JWQ3dMa09OSWVlZ0k3enZOcGtQZ2lNS05NTGV3TGQrQmgvcUlXcElLWWFqalhBK2k4aVFUcStXaldyZzk0MnZQd0lYSjJwUmI4QjZrcUlqMjZvVHV4ZTk1emVES3hKNTY5cFhpWmxwMUtLN1VsOEJxU1lSN2MrTGZjZFFyVFNqZVk1MUo4cjdNVEtiTDlWNGsvZTZNRDR3SVRBSkJnVXJEZ01DR2dVQUJCUjJZK3hlVlh4aTEwUEVJeDhqejFVNTRhNUprd1FVMDhDd0dSNlhlY2ZMMzNKVHR5LzJXN0RHUkNJQ0F3R0dvQT09Iiwia2V5X3N0b3JlIjoiTUlJTllRSUJBekNDRFJvR0NTcUdTSWIzRFFFSEFhQ0NEUXNFZ2cwSE1JSU5BekNDQ0FVR0NTcUdTSWIzRFFFSEFhQ0NCL1lFZ2dmeU1JSUg3akNDQitvR0N5cUdTSWIzRFFFTUNnRUNvSUlIZ1RDQ0IzMHdad1lKS29aSWh2Y05BUVVOTUZvd09RWUpLb1pJaHZjTkFRVU1NQ3dFRkhua0lEcVg3b2ZpNzhnR05ULzhQQmdpQnBPeEFnTUF3MUFDQVJBd0RBWUlLb1pJaHZjTkFna0ZBREFkQmdsZ2hrZ0JaUU1FQVFJRUVFUVhKNC9OeitEM2x6b1kwTHhmQmt3RWdnY1FpVWlrRzI4TVhyd2x4cGRuK1hEb2V1ZkFCRXhySFJTTjd0M1ZBMlR4Z2dkdHIxd1RWalRjcXZrL0dSMDVDNXd1VjBSQWpmYVo0MVMxY0xXTUFPOGx2QmdINjNHZ0sxVFF3REpCeitEWEwyVnVZRExxRyt6aXBzL0ZtM05FZHEzV25sOE9hY0hhNndDL29ERk5XeEphbjNSSlNzMkFSQWRySkpwRWJ0MkZrWXd3Tkg3RXZnT3lrWGQrd25IeUtXRUdXcGRrdlpXZ3BJRDEvZmRiSFhld0xGNEdTSDV4WUdaa2tIL1FudXo0M1pIaVJQOHlRRHNJMjY0c1A4VW1FZ3kxT2xxM3p0VENCRHRhZVpKUkV6UnBDZ1VaNGZjWHYxb3BYeGVtcDh6MEdYbVJFTmtXdUR1eW11Q29GMWNQNjVYc2plQytUM0dvcG55THdDYlVtclFNaXVacy94anZJVERKS1VxZFNzdVJ3L2VWbkVnZTExVlJXNXp4RFIyT0xQajQ5MlVrM0JxNUs5NS90R3ByS29kVG9maU5wT3lVejJLUXhRRlZHd0pHZklodCtDbzlTaU85czBlRURXUXlxL1F0NHIxcE9NckVoT1pUaHh3aWNBNjJvR1FFaHM4ekRBb0pyNlM5cmpoeFdLMzNGSFhNZ2tsRTZyNXU2VEhtWVBUMUU3RFV2MUdXVDFMYkpKelNac09iYkFtR25hbUFrMzhyS2o5MDY4a0lTV2lPbHkxeVFzMStjNVNSdytuOGp3TlVIZWpvazhMTjVWWWcxOEpzSnRLM0JxY0JVSkpSd0dYanA3MzJSYjZER2pBUVY4djlTcWtyd1VmNi9abm1SK25Pc1RGUWtmczR3ZXJpMDNmZDZGV2xmYmlmMWx1dHB2YkExcndvZzNKaHluVDRoRVoraytjMGR1THd6LzBqNzN6WGZNaU5vN3U5VWxHZndLZEdoRmxsUDU3ZThzZS9nTTlwclljZzNkWHR3SXZvMmJBS0JieTBTTVdqZWZpSVRTQWp6d1RvQ0s1Nmt1TFpLQ1J4VFNrbHNiWkxEaEcxOFMrWm9CS1M1dytXa25DTWZaZFZBdHUrb3BLZ0lVMzNIUzNsaWsvM20vRTNtSksyRFJ0QjVrSVZTR3FHQ2UzWk1RVjFIQTVvUjNwVmRrZXFhVko2d3JxRTd3UnZqZEwwcXJpOVFTalJWODNiZmRBY3hYMFV2cmlhWmJ3QjRLdzdaa0VPc3JtWjZWY3JCVnFzU1hRa1VER09yN1RUU2RVaTlSRzg0eXJ0bmk5dEg5a0x0WSsvdzFyTzRPWHZDL2FjQmMxOWQrdXozWmI5dFFkN0ZhQjJVZzFNV1NpR1dVeUVXUzZzRW5ERGQyTE9ia3FkRkhzVFJJaTdQNU1FWUtKa0FsWnoyMkY2Qjc5NW8yenNZSGtrWGM4eURmajNpSmxKMVV3T091MFRnbWZCM1NoMHhkMExNcTRsTUxzVGZEWS9xSTRpbUtBV2Rjc2pBM2hjcHlOUjl4dVN0TW5Uajk2OUdSM2Q2U0RHLzQ5NnVrY0RjRlBIY0tYayswMExJWnY1V2t0MVVjODhSQXR3dU9uL0F3a0p6Sk1Sc2JYQmNOL3lNZkYyQ3FLRVFDLzBTNCs3M0Z1Q0RxaHBXbDdPQS94SHdmamxLVDQyRUJTWUE4d1FEckRxTGNJb2VTZkMyZVRLY2RtM3psdERxWmFMd1M0YTRCcmRPY2RRSXpLNGdZU3NlQ2NYbW9qUkRJVFgra3ErMmVHVGVvRmJvM2NucXJaZDdtTGJQWitGdWZycUhvQlhsZFkrbVRCcU1oK2NVTU9UOGdjQTFIMGZ3WDZySGEvMTRjaUkrL3Vka3Q1bFExN0xmUVlNaGdXQUtRUjB4ZktwckFjUXNPRjNZcnhJTWNLdW1MUGdhcjNHUG1UZ1UzV1Vwa2FjRE50c0NXOUZxWkluSzhCSEc2SVZwbHp2N1BiOE5YdThKS1Zvc0lVR3BiTnZtVU1UeCs4R2RqcUxUcnJkQTNBS3JzaXF0RG1MaHFGMFcyWWs2MnRmLzhwN3FvZGlxRmFESk1zajhZLzQwbXMzSjc3MyszVHl1dWVGaCsrRXNzZXptZmdSV1d0eDhOV2xHcFdLM1U3VXZMVkpWb0ZNQllQZitwU1hUaURiekZMQ0ZURHArajdaMzZTTytoUHFWd1d0WXJBZW0xd1JhVkxGcjhEQ1EyRy9wd1VES2hjWFgwbGlTUUVPQXQ1dmRBNktNVTlpWU5BVU9nWUhKK3FZdDAvQWY0TUVzQjQrK09aMkhFRHU5MktJTCtZL05tMlMxT2wzSk5TUUw3d3MrL1pYYXF4OFNkcjlqRmJOLzNMRjY2ZDBQdjQ4d3AwcENYUHNPRklxK001QjdXcmpRblBpMVVDTW1tZm9veVM5ajFkWWZXcXgweU9OdXlHblFOTTVmMGw3c2xUTFVZWVh5UG5PVFlKR0pXMCsrdEJkYXFsREpCRVl1b080eXFQNXo3SEE2eEF5T0U3NkpsRHIvZFQxN1ZpeDRscnduWUN4M0l3Z1pGdnoxa1NiNTducEJLTWJaeG5RZkw4eWZQcEtQbHl0ekd0QkU3VHVIU1M0VmVhVXlleWN6T2w5UDhtQ1MwbnhMZUUxZzAwRlZSODJGa3IwWFh3RnNlMWVlY01FTmNtVmEzaDlVSkpnclhiTi9uNGo5WXAwU3lPUzBSR1ZZOGhoZjBZNVorYmM3YzlGN0VzOXlMcHRDSzQ4eGhDeFQ5LzByeGthUGM1QWxrMzMyNFQrSlEybEozUUVFUWNHN0QvOEx6TU1TR3F5OHI2bWNwMFYva3NoR3FibklIRzY0WnF5dXkzVk80QStQNm1WaTRDd29EaytGRDRaRml6cU9lc0VKd0gzS011K0xLV1luc3NKR3lDMEJWVTY2cy9pUHlUakxpSjVTMGVrSk00NGVqMDdtVHBBM1A0dk9sd3REQ3VySll5djJpOTZrSjdyZld0MEdWaks3d3k0Ni81Y2VyQyswczVWcFI3REQ4K2k3REpOYzFIMFFVRmFIbWd2UnQ2VllzQ0RGcUIvY0pDUWpNVmxIRXlvOFgvQXR3ejFvV1ZvK1JwdmlmSDkwMk5mSTEvN05XNmg2Z3paVDZVUU50eFBBYVBFSHYyTVNTM3BTbm1tOUgyUWtzUURVRDJocDFvZzJrVDJNc01lcVNnUnN2MHhWakFoQmdrcWhraUc5dzBCQ1JVeEZBUVNWR2x0WlNBeE56Y3hPRFl6T0RZeU5UUXhNREVHQ1NxR1NJYjNEUUVKRkRFa0hpSUFRUUJ5QUdJQWFRQjBBSElBWVFCeUFIa0FTd0JsQUhrQVFRQnNBR2tBWVFCek1JSUU5Z1lKS29aSWh2Y05BUWNHb0lJRTV6Q0NCT01DQVFBd2dnVGNCZ2txaGtpRzl3MEJCd0V3WndZSktvWklodmNOQVFVTk1Gb3dPUVlKS29aSWh2Y05BUVVNTUN3RUZOc1Y4S1NEZnFRTm5kMEN1am00R3J2WlZPNW5BZ01BdzFBQ0FSQXdEQVlJS29aSWh2Y05BZ2tGQURBZEJnbGdoa2dCWlFNRUFRSUVFR0hTd3daelBaMFJWa0szVHZtSW0vbWdnZ1JrQklJRVlQT2J6dS83VWZrdng3KzRzc294WjRVcDVGVnlBM0lKbVdHRHpDMjdHWlJwWm9PcDZzak53dUhGUGxZSkRLYnlEYTZtWXBYOU5DbTlWKzhScWRnS1laUmlBKzdMYXE1Vy90QkpKRVV2WklMUmN0UDVBY2lyUitPZS94T3hsNFQ3aUNiNTRoeTdJZUo5T2oyWUxrQURkcTIxOHRBMkxtd2t6enZsdHdZVmMvU295cTFJSzNlVjJwREkzS3NRa2hxZGVSU2dZMkZpVTliMDJLKzAyOE5uMDMrS1dzOUFSbDdoYkJqelkwVSt3MGdDYS9VL25Lek9wSkJtdjVZYVZPVmNLSlc5UHhaNVBBWDNJNEU2TmJYZ2J4akk3akJnMlZvYUw0TGNVRG5YKzVuZk56Q2hUWDJLRnR6M3VWS3NKdm5FUXlaVmZ3Zkt3KzhpTEdVSXpyVm9lcTBCSUJ0QjNQZ3kvaUJPZEtZMzRaRHZZUER5ME5menZiSkFVU2VXQXQzdnMvdVVxaVZiOUI4b3djODRpelVZTWYyMzdxWDU2ZlhBaWJUTUg2QU9SUWtUU2lYcUk4elNoYjZFbXZvN2pxMkNZWThIQ0Vid1RJZjZkUUNmWXJScm8zZjl6REVwNGRzOGZHdWQ4K1FzazFrSThCNkxrdEtuajdhMG94Z3ptVjJTenl0QzVnNFFUTFJCN1ZYQzlLZmJxOWVpRTNuRkt6Q1gyWEc2bmlDYUpUWnQ5QWtsbGJIZDMzdThRQWRVa1EzSVBBREllZXIrc1E5bnFOejJtdmNmTklvSk5WQTcwWU5kaU84Mk9yNytNVjl2ZTF1VHN6eStvUzJzMGE1Mk1sRlVYWmx5dy8xTzVIclVPR2MrQkxzV2hMSGlBTnlsRVhkM2pqTWR5L0VWZS82cWlUTHQrRmpMNnpheERpNE80ZjcwdS9GdU41RWs2bzJXOFJCRWhBdHNyQWJGNmpYelZQVnc3STlLRnByellPeHBIakZoeWVjTTVabTFPbTUrUjAyUXZwOG5iWlZYbEl6UmxqVTdobjVwUzJ0VmN0T3YvQ1J5cEdvd0Q5OFpvRHRSOGdISCtGanJuN3VMNFFPNW5OZ3c0Ym1MSXRmelNQMTNpYkhmTmVhWVF1TUNidDRJcnJQMnVhdE5XMmpVSVJiZHkvU01PaitzRllFa25PZnExdytxWUdqVmtvVG9JcDB2aDc0WkorUkF5Y0ZYL2swdjZVUmQzVXRxaHQ4a2Nla0ozdTlTUnF4WTc2VmRjQ0w2bk5uaE0xcDg4RkZGMm0yWFErK3R2NDNsa0RkU05IU20rOWc0K3ZTMDV0eGhpVjAzdWZsUVlIbTR3UHdvdDg5QTZseWtqSHR5Mm5rOXRsVnI4QVBpLy9GWUxSVk9aSERjYXVDWllHVnlpRmFTaE9KUTdHYkVCMjN2T0JSbHViUGdHWkMrekRlOVFqWVA1cFd4Nlp0anRNOWdvc0wvakJsSHRuejMxRkZ3dHROSEp4NW5KNjlyQW0rQzcvWWd4WmR0bC9GbnJPM25BNUtZYXlQc2Z1a01LQkJVR3FWSGlSM0R0Um9yTVNNdmNKNXNrSnpXTzZCT25vUXNVYXBUUlE1VjJvNVNOMGxZQTNBNW1zbis1WGRadXZ0YmNsV3d5Wm1JakhGTi9vV1BiT042Q0VCbnd1dU15aEFVRlR6UCtScHdEN0Z6WDBkWVEwV0J5bi9IT0F5WG1OQ1c3eXVKcmZCMU90ZThlL3dNY01lcEFwZU1mUVhTSjdMQTcwdE1HYXBQMTYycERGTFpVMFBieWxGMmVkM3VLRGprZHNmTVdnNlc0eWlhc2szSlZtSHkzdy8xeWMzdXgxcXUzNHA5SDl3V1BTclJJdlROR0JMc2R1eC8rckVFODRPVlZiSTYwc3ZBdmtybzlSb3dYQnc3K1h2bDllNTJDeDRySDVTSkpyaSszMzJRT0loSTMvRkdJK1gyVC84WU1wK3c0VU13UGpBaE1Ba0dCU3NPQXdJYUJRQUVGRVdBRjl5Z1ROTVBIeEc2dUJYaUh5cGpVTDV4QkJROGlhYStod3pKREllbzNGZlVjVjZoM1N6aklBSURBWWFnIiwidGxzX21hdGVyaWFsX3Bhc3N3b3JkIjoiTm9uU2VjcmV0UGFzc3dvcmQifQ=="
+  },
+  "ociAdName": "uk-london-1-ad-2",
+  "region": "uk-london-1",
+  "regionInfo": {
+    "realmDomainComponent": "oraclecloud.com",
+    "realmKey": "oc1",
+    "regionIdentifier": "uk-london-1",
+    "regionKey": "LHR"
+  },
+  "shape": "ExadataVMInstance",
+  "shapeConfig": {
+    "maxVnicAttachments": 4,
+    "memoryInGBs": 0.0,
+    "ocpus": 1.0
+  },
+  "state": "Running",
+  "tenantId": "ocid1.tenancy.oc1..aaaaaaaaax76pwvum5vhn2p3v264osde3ykrudasfzjktipw3ibpvtndhtkq",
+  "timeCreated": 1771863882731
+}
+================================================================================
+Grid Infrastructure
+================================================================================
+$ command -v crsctl >/dev/null 2>&1 && crsctl stat res -t || echo crsctl not available
+crsctl not available
+
+================================================================================
+Network Security
+================================================================================
+$ (command -v iptables >/dev/null 2>&1 && iptables -L -n | grep -E 'dpt:(22|1521|2484)') || echo iptables rules not available for listener ports; (command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --list-all) || echo firewalld not available
+iptables v1.8.5 (nf_tables): Could not fetch rule set generation id: Permission denied (you must be root)
+
+iptables rules not available for listener ports
+FirewallD is not running
+firewalld not available

@@ -1,0 +1,14 @@
+{
+  "status": "partial",
+  "warnings": [
+    "Unable to compute database summary for JSON"
+  ],
+  "host": "vmclusterpoc-ytlat1",
+  "timestamp": "20260317-203817",
+  "database": {
+    "name": "unknown",
+    "unique_name": "unknown",
+    "role": "unknown",
+    "open_mode": "unknown"
+  }
+}

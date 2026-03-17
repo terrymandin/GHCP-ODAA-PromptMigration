@@ -1,0 +1,9 @@
+{
+  "status": "partial",
+  "warnings": [
+    "OCI config file not found"
+  ],
+  "host": "zdmhost",
+  "timestamp": "20260317-203823",
+  "zdm_home": "/mnt/app/zdmhome"
+}
