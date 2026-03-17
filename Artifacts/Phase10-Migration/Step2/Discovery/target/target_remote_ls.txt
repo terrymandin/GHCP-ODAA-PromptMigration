@@ -1,6 +1,0 @@
-total 24
-drwxrwxr-x.  2 opc  opc   174 Mar 17 21:52 .
-drwxrwxrwt. 22 root root 4096 Mar 17 21:52 ..
--rwxr-xr-x.  1 opc  opc  7725 Mar 17 21:52 zdm_target_discovery.sh
--rw-rw-r--.  1 opc  opc   375 Mar 17 21:52 zdm_target_discovery_vmclusterpoc-ytlat1_20260317-215235.json
--rw-rw-r--.  1 opc  opc  4719 Mar 17 21:52 zdm_target_discovery_vmclusterpoc-ytlat1_20260317-215235.txt
