@@ -1,6 +1,0 @@
-total 32
-drwxrwxr-x.  2 azureuser azureuser 4096 Mar 17 22:05 .
-drwxrwxrwt. 14 root      root      4096 Mar 17 22:05 ..
--rw-rw-r--.  1 azureuser azureuser 1583 Mar 17 22:05 zdm_source_discovery_factvmhost_20260317-220549.json
--rw-rw-r--.  1 azureuser azureuser 7978 Mar 17 22:05 zdm_source_discovery_factvmhost_20260317-220549.txt
--rwxr-xr-x.  1 azureuser azureuser 9965 Mar 17 22:05 zdm_source_discovery.sh

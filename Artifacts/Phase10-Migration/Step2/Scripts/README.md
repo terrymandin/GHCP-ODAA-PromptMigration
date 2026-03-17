@@ -1,84 +1,54 @@
-# Phase 10 - Step 2 Discovery Scripts
+# Step 2 Discovery Scripts
 
-This folder contains generated, runtime-independent Step 2 discovery scripts for ZDM migration planning.
+These scripts are generated from values in `zdm-env.md` at generation time, then committed to source control.
+They do not require `zdm-env.md` at runtime.
 
-`zdm-env.md` was used as generation input only. These scripts do not read or depend on `zdm-env.md` at runtime.
+## Files
+
+- `zdm_source_discovery.sh`: Connects to the source server, collects host/Oracle discovery data, and writes reports under `../Discovery/source`.
+- `zdm_target_discovery.sh`: Connects to the target server, collects host/Oracle discovery data, and writes reports under `../Discovery/target`.
+- `zdm_server_discovery.sh`: Collects local ZDM jumpbox/server discovery data and writes reports under `../Discovery/server`.
+- `zdm_orchestrate_discovery.sh`: Runs all three scripts and writes a summary under `../Discovery`.
+
+## Generated Output Directories
+
+- `../Discovery/source/`
+- `../Discovery/target/`
+- `../Discovery/server/`
 
 ## Prerequisites
 
-- Run on the jumpbox/ZDM server as `zdmuser`.
-- SSH connectivity from ZDM host to source and target DB hosts.
-- Required SSH keys are available in `/home/zdmuser/.ssh` with `600` permissions (or SSH agent configured).
-- `sudo -u oracle` is allowed on source/target hosts for SQL discovery.
-- ZDM software installed and accessible for local ZDM server discovery.
-- OCI config available under `~/.oci/config` when applicable.
-
-## Generated Scripts
-
-- `zdm_source_discovery.sh`
-- `zdm_target_discovery.sh`
-- `zdm_server_discovery.sh`
-- `zdm_orchestrate_discovery.sh`
-
-All scripts are read-only and only collect metadata/report output.
-
-## Environment Variables
-
-Set these before running orchestrator (examples shown with generated defaults):
-
-```bash
-export SOURCE_HOST="10.200.1.12"
-export TARGET_HOST="10.200.0.250"
-export SOURCE_ADMIN_USER="azureuser"
-export TARGET_ADMIN_USER="opc"
-export ORACLE_USER="oracle"
-export ZDM_USER="zdmuser"
-
-# Optional: leave empty to use SSH agent/default key
-export SOURCE_SSH_KEY=""
-export TARGET_SSH_KEY=""
-
-# Optional ORACLE_HOME / SID overrides passed to remote discovery scripts
-export SOURCE_REMOTE_ORACLE_HOME="/u01/app/oracle/product/19.0.0/dbhome_1"
-export SOURCE_ORACLE_SID="POCAKV"
-export TARGET_REMOTE_ORACLE_HOME="/u02/app/oracle/product/19.0.0.0/dbhome_1"
-export TARGET_ORACLE_SID="POKAKV1"
-```
+- Run from the ZDM jumpbox/server clone as user `zdmuser`.
+- SSH from jumpbox to source/target must already be working.
+- If private keys are used, place them in `~/.ssh/` for `zdmuser` and use `chmod 600`.
+- If key values were placeholders (for example `<source_key>.pem`), scripts use SSH agent/default key auth.
 
 ## Run
 
-From this directory:
-
 ```bash
-bash zdm_orchestrate_discovery.sh
+cd Artifacts/Phase10-Migration/Step2/Scripts
+chmod +x zdm_*.sh
+./zdm_orchestrate_discovery.sh
 ```
 
-Useful options:
+## Optional Runtime Overrides
+
+You can override values without editing scripts:
 
 ```bash
-bash zdm_orchestrate_discovery.sh -h   # help
-bash zdm_orchestrate_discovery.sh -c   # show effective config
-bash zdm_orchestrate_discovery.sh -t   # connectivity test only
-bash zdm_orchestrate_discovery.sh -v   # verbose mode
+SOURCE_ADMIN_USER=azureuser \
+TARGET_ADMIN_USER=opc \
+TARGET_ORACLE_SID=POCAKV1 \
+./zdm_orchestrate_discovery.sh
 ```
 
-## Output Files
+Compatibility mapping in the orchestrator:
 
-Outputs are collected under:
-
-- `Artifacts/Phase10-Migration/Step2/Discovery/source/`
-- `Artifacts/Phase10-Migration/Step2/Discovery/target/`
-- `Artifacts/Phase10-Migration/Step2/Discovery/server/`
-
-Each script generates:
-
-- `zdm_<type>_discovery_<hostname>_<timestamp>.txt`
-- `zdm_<type>_discovery_<hostname>_<timestamp>.json`
-
-JSON includes top-level `status` (`success` or `partial`) and `warnings`.
+- `SOURCE_ADMIN_USER` defaults to `SOURCE_SSH_USER`
+- `TARGET_ADMIN_USER` defaults to `TARGET_SSH_USER`
 
 ## Next Step
 
-After discovery outputs are reviewed and committed, continue with Step 3:
+After discovery files are collected, proceed with Step 3 prompt:
 
 `@Phase10-ZDM-Step3-Discovery-Questionnaire`
