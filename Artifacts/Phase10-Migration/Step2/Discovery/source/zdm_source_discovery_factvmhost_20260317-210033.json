@@ -1,0 +1,14 @@
+{
+  "status": "partial",
+  "warnings": [
+    "Backup Configuration - OS and RMAN command failed"
+  ],
+  "host": "factvmhost",
+  "timestamp": "20260317-210033",
+  "database": {
+    "name": "POCAKV",
+    "unique_name": "POCAKV",
+    "role": "PRIMARY",
+    "open_mode": "READ WRITE"
+  }
+}
