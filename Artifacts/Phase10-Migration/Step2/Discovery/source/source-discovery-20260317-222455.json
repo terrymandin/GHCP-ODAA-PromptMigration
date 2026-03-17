@@ -1,0 +1,20 @@
+{
+  "timestamp": "20260317-222455",
+  "status": "PASS",
+  "source_host": "10.200.1.12",
+  "ssh_user": "azureuser",
+  "ssh_key_mode": "agent/default",
+  "captured": {
+    "hostname": "factvmhost",
+    "os_pretty_name": "Oracle Linux Server 7.9",
+    "kernel": "Linux 5.4.17-2036.101.2.el7uek.x86_64",
+    "uptime": "up 9 weeks, 15 hours, 17 minutes",
+    "oratab_entries": "RUNBOOK:/u01/app/oracle/product/19.0.0/dbhome_1:N;POCAKV:/u01/app/oracle/product/19.0.0/dbhome_1:N",
+    "pmon_sids": "POCAKV;RUNBOOK",
+    "oracle_home_in_use": "/u01/app/oracle/product/19.0.0/dbhome_1",
+    "oracle_sid_in_use": "POCAKV",
+    "db_unique_name_config": "POCAKV",
+    "sqlplus_version": ""
+  },
+  "notes": ""
+}

@@ -1,0 +1,16 @@
+HOSTNAME=zdmhost
+OS_PRETTY_NAME=Red Hat Enterprise Linux 8.9 (Ootpa)
+KERNEL=Linux 4.18.0-513.5.1.el8_9.x86_64
+UPTIME=up 17 weeks, 3 days, 12 hours, 12 minutes
+CURRENT_USER=zdmuser
+ZDM_HOME=/mnt/app/zdmhome
+ZDM_HOME_EXISTS=yes
+ZDM_HOME_PERMS=755
+ZDMCLI_PATH=/mnt/app/zdmhome/bin/zdmcli
+ZDMCLI_VERSION=PRCG-1027 : Invalid command specified: -version
+DISK_ROOT=/dev/mapper/rootvg-rootlv  2.0G  844M  1.2G  42% /
+MEMORY_SUMMARY=7.5Gi total, 4.4Gi available
+SOURCE_HOST=10.200.1.12
+TARGET_HOST=10.200.0.250
+SOURCE_SSH_USER=azureuser
+TARGET_SSH_USER=opc

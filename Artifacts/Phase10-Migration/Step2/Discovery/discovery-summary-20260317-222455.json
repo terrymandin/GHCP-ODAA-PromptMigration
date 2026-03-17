@@ -1,0 +1,19 @@
+{
+  "timestamp": "20260317-222455",
+  "overall_status": "PASS",
+  "effective_config": {
+    "source_host": "10.200.1.12",
+    "target_host": "10.200.0.250",
+    "source_admin_user": "azureuser",
+    "target_admin_user": "opc",
+    "source_remote_oracle_home": "/u01/app/oracle/product/19.0.0/dbhome_1",
+    "target_remote_oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
+    "source_oracle_sid": "POCAKV",
+    "target_oracle_sid": "POCAKV1"
+  },
+  "scripts": {
+    "source": { "status": "PASS", "log": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/source/source-orchestrator-20260317-222455.log" },
+    "target": { "status": "PASS", "log": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/target/target-orchestrator-20260317-222455.log" },
+    "server": { "status": "PASS", "log": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/server/server-orchestrator-20260317-222455.log" }
+  }
+}
