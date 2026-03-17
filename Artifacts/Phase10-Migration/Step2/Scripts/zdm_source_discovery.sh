@@ -180,7 +180,10 @@ select tablespace_name, encrypted from dba_tablespaces where encrypted='YES' ord
 "
 
 append_sql_section "Tablespaces" "
-select tablespace_name, file_name, autoextensible, bytes/1024/1024 as current_mb, maxbytes/1024/1024 as max_mb, increment_by * (select value from v\$parameter where name='db_block_size') /1024/1024 as increment_mb
+select tablespace_name, file_name, autoextensible,
+       bytes/1024/1024 as current_mb,
+       maxbytes/1024/1024 as max_mb,
+       increment_by * (select value from v\$parameter where name='db_block_size') /1024/1024 as increment_mb
 from dba_data_files
 order by tablespace_name, file_name;
 "
@@ -222,9 +225,6 @@ select to_char(max(completion_time),'YYYY-MM-DD HH24:MI:SS') as last_backup_time
        max(output_device_type) keep (dense_rank last order by completion_time) as last_output_device
 from v\$rman_backup_job_details
 where status='COMPLETED';
-select name, value from v\$rman_configuration
-where name in ('RETENTION POLICY','ARCHIVELOG DELETION POLICY')
-order by name;
 "
 
 append_sql_section "Database Links" "
@@ -232,7 +232,8 @@ select owner, db_link, host, username from dba_db_links order by owner, db_link;
 "
 
 append_sql_section "Materialized Views" "
-select owner, mview_name, refresh_method, refresh_mode, to_char(last_refresh_date,'YYYY-MM-DD HH24:MI:SS') as last_refresh,
+select owner, mview_name, refresh_method, refresh_mode,
+       to_char(last_refresh_date,'YYYY-MM-DD HH24:MI:SS') as last_refresh,
        to_char(next,'YYYY-MM-DD HH24:MI:SS') as next_refresh
 from dba_mviews
 order by owner, mview_name;

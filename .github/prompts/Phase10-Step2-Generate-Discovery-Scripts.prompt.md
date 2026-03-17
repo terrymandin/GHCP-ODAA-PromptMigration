@@ -22,6 +22,13 @@ This prompt is generation-only.
 Attach `zdm-env.md` to this prompt to supply hostnames, SSH users, key paths, and optional
 overrides for your specific environment.
 
+Configuration precedence for artifact generation (mandatory):
+- Treat attached `zdm-env.md` values as authoritative generation input.
+- Render script configuration from `zdm-env.md` first, including host/user/key values and DB-specific values.
+- If any rendered value conflicts with template defaults, comments, or inferred values, prefer `zdm-env.md`.
+- Only use fallback defaults when a `zdm-env.md` field is missing/blank or contains a placeholder value (`<...>`).
+- Map `SOURCE_SSH_USER`/`TARGET_SSH_USER` from `zdm-env.md` into generated script admin-user variables (`SOURCE_ADMIN_USER`/`TARGET_ADMIN_USER`).
+
 `zdm-env.md` is used only while generating artifacts in VS Code. Generated scripts must be standalone and must not read, source, parse, or otherwise depend on `zdm-env.md` (or any repo-local config file) at runtime on the jumpbox/ZDM server.
 
 DB-specific value scope for Step 1-5 prompts:

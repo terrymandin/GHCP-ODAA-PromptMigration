@@ -33,6 +33,7 @@ Artifacts/Phase10-Migration/Step4/
 - `verify_fixes.sh` to confirm all blockers are resolved
 
 Step 4 prompt behavior is generation-only: do not execute remediation or verification commands during prompt execution in VS Code.
+If `zdm-env.md` is attached, generated remediation artifacts must prefer those configured values over defaults and explicitly document mismatches against discovery evidence.
 
 ## Next Step
 When all blockers are resolved and `verify_fixes.sh` reports PASS (run from the repository clone on the jumpbox/ZDM server), continue with: `@Phase10-ZDM-Step5-Generate-Migration-Artifacts`

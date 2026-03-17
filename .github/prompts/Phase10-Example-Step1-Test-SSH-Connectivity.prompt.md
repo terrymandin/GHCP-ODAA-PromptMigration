@@ -16,6 +16,7 @@ Generate a script to validate SSH connectivity later on the jumpbox/ZDM server.
 ```
 
 `zdm-env.md` is attached only to populate generated script values. The generated script must run without reading `zdm-env.md` at runtime.
+When generating artifacts, treat `zdm-env.md` values as authoritative and use defaults only for fields that are missing, blank, or placeholder values containing `<...>`.
 
 Step 1 prompt behavior is generation-only: create the script in `Artifacts/Phase10-Migration/Step1/Scripts/` and do not run SSH checks or create report files during prompt execution.
 

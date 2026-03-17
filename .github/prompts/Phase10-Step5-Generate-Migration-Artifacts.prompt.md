@@ -49,6 +49,11 @@ Provide the completed artifacts from previous steps:
 
 `zdm-env.md` can be attached to improve generation quality, but generated artifacts must remain portable and executable without access to `zdm-env.md`.
 
+Configuration precedence for artifact generation (mandatory):
+- If `zdm-env.md` is attached, treat it as authoritative for environment-specific values rendered into Step5 artifacts.
+- Prefer `zdm-env.md` values over template defaults/examples whenever both are present.
+- If Step3/Step4 artifacts contain conflicting values, explicitly flag the conflict and align generated defaults/commands with `zdm-env.md` unless the user-provided questionnaire response intentionally overrides it.
+
 ### How to Use This Prompt
 
 DB-specific value scope for Step 1-5 prompts:

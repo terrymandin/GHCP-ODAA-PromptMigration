@@ -41,6 +41,12 @@ Optional values in `zdm-env.md`:
 - `SOURCE_SSH_KEY`
 - `TARGET_SSH_KEY`
 
+Configuration precedence for artifact generation (mandatory):
+- Treat attached `zdm-env.md` values as authoritative generation input.
+- Render `SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, and `TARGET_SSH_KEY` directly from `zdm-env.md` when creating the script.
+- If a value from `zdm-env.md` conflicts with any template default/example value, prefer `zdm-env.md`.
+- Only fall back to defaults when a `zdm-env.md` field is missing/blank or still a placeholder containing `<...>`.
+
 `zdm-env.md` is a generation-time input only. The generated script must be self-contained and must not read, source, parse, or depend on `zdm-env.md` (or any repo-local config file) at runtime.
 
 Placeholder values containing `<...>` (for example `~/.ssh/<source_key>.pem`) must be treated as unset.

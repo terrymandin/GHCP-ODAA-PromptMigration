@@ -30,6 +30,11 @@ Before running this prompt:
 
 Attach the Discovery Summary and run this prompt to get remediation guidance:
 
+Configuration precedence for artifact generation (mandatory):
+- If `zdm-env.md` is attached, treat it as authoritative generation input for environment-specific values in scripts and documentation.
+- Prefer `zdm-env.md` over template defaults/examples when generating hostnames, users, key paths, Oracle homes, SIDs, unique names, and ZDM paths.
+- If `zdm-env.md` conflicts with prior discovery evidence, keep both: generate fixes aligned to `zdm-env.md` intent and explicitly document the mismatch and verification step.
+
 DB-specific value scope for Step 1-5 prompts:
 - `SOURCE_REMOTE_ORACLE_HOME`
 - `SOURCE_ORACLE_SID`

@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Phase 10 ZDM Step 3 example - analyze discovery output and generate migration plan
 ---
 # Example: Discovery Analysis and Migration Planning (Step 3)
@@ -31,6 +31,8 @@ Artifacts/Phase10-Migration/Step3/
 ## Expected Output
 - `Artifacts/Phase10-Migration/Step3/Discovery-Summary.md`
 - `Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md`
+
+If `zdm-env.md` is attached, use it as the configured baseline when creating Step3 artifacts and explicitly call out mismatches between configured values and discovered runtime values.
 
 ## Next Step
 After completing the questionnaire, continue with: `@Phase10-ZDM-Step4-Fix-Issues`

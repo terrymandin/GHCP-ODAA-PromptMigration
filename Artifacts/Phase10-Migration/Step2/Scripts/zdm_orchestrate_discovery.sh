@@ -12,6 +12,12 @@ ORACLE_USER="${ORACLE_USER:-oracle}"
 ZDM_USER="${ZDM_USER:-zdmuser}"
 SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-~/.ssh/<source_key>.pem}"
 TARGET_SSH_KEY="${TARGET_SSH_KEY:-~/.ssh/<target_key>.pem}"
+SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-/u01/app/oracle/product/19.0.0/dbhome_1}"
+SOURCE_ORACLE_SID="${SOURCE_ORACLE_SID:-POCAKV}"
+SOURCE_DATABASE_UNIQUE_NAME="${SOURCE_DATABASE_UNIQUE_NAME:-POCAKV}"
+TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-/u02/app/oracle/product/19.0.0.0/dbhome_1}"
+TARGET_ORACLE_SID="${TARGET_ORACLE_SID:-POKAKV1}"
+TARGET_DATABASE_UNIQUE_NAME="${TARGET_DATABASE_UNIQUE_NAME:-POCAKV_ODAA}"
 VERBOSE=0
 TEST_ONLY=0
 
@@ -40,11 +46,7 @@ is_placeholder() { [[ "$1" == *"<"*">"* ]]; }
 
 normalize_key() {
   local key="$1"
-  if [ -z "$key" ]; then
-    printf '%s\n' ""
-    return
-  fi
-  if is_placeholder "$key"; then
+  if [ -z "$key" ] || is_placeholder "$key"; then
     printf '%s\n' ""
     return
   fi
@@ -58,17 +60,9 @@ normalize_key() {
 SOURCE_SSH_KEY="$(normalize_key "$SOURCE_SSH_KEY")"
 TARGET_SSH_KEY="$(normalize_key "$TARGET_SSH_KEY")"
 
-log_info() {
-  echo "[INFO] $*"
-}
-
-log_warn() {
-  echo "[WARN] $*"
-}
-
-log_error() {
-  echo "[ERROR] $*"
-}
+log_info() { echo "[INFO] $*"; }
+log_warn() { echo "[WARN] $*"; }
+log_error() { echo "[ERROR] $*"; }
 
 show_help() {
   cat <<'EOF'
@@ -90,37 +84,24 @@ show_config() {
   echo "TARGET_ADMIN_USER=$TARGET_ADMIN_USER"
   echo "ORACLE_USER=$ORACLE_USER"
   echo "ZDM_USER=$ZDM_USER"
-  if [ -n "$SOURCE_SSH_KEY" ]; then
-    echo "SOURCE_SSH_KEY=$SOURCE_SSH_KEY"
-  else
-    echo "SOURCE_SSH_KEY=(agent/default)"
-  fi
-  if [ -n "$TARGET_SSH_KEY" ]; then
-    echo "TARGET_SSH_KEY=$TARGET_SSH_KEY"
-  else
-    echo "TARGET_SSH_KEY=(agent/default)"
-  fi
+  if [ -n "$SOURCE_SSH_KEY" ]; then echo "SOURCE_SSH_KEY=$SOURCE_SSH_KEY"; else echo "SOURCE_SSH_KEY=(agent/default)"; fi
+  if [ -n "$TARGET_SSH_KEY" ]; then echo "TARGET_SSH_KEY=$TARGET_SSH_KEY"; else echo "TARGET_SSH_KEY=(agent/default)"; fi
+  echo "SOURCE_REMOTE_ORACLE_HOME=${SOURCE_REMOTE_ORACLE_HOME:-<empty>}"
+  echo "SOURCE_ORACLE_SID=${SOURCE_ORACLE_SID:-<empty>}"
+  echo "SOURCE_DATABASE_UNIQUE_NAME=${SOURCE_DATABASE_UNIQUE_NAME:-<empty>}"
+  echo "TARGET_REMOTE_ORACLE_HOME=${TARGET_REMOTE_ORACLE_HOME:-<empty>}"
+  echo "TARGET_ORACLE_SID=${TARGET_ORACLE_SID:-<empty>}"
+  echo "TARGET_DATABASE_UNIQUE_NAME=${TARGET_DATABASE_UNIQUE_NAME:-<empty>}"
   exit 0
 }
 
 while getopts ":hctv" opt; do
   case "$opt" in
-    h)
-      show_help
-      ;;
-    c)
-      show_config
-      ;;
-    t)
-      TEST_ONLY=1
-      ;;
-    v)
-      VERBOSE=1
-      ;;
-    ?)
-      log_error "Invalid option: -$OPTARG"
-      show_help
-      ;;
+    h) show_help ;;
+    c) show_config ;;
+    t) TEST_ONLY=1 ;;
+    v) VERBOSE=1 ;;
+    ?) log_error "Invalid option: -$OPTARG"; show_help ;;
   esac
 done
 
@@ -133,32 +114,11 @@ if [ "$(whoami)" != "$ZDM_USER" ]; then
   log_warn "This script is expected to run as $ZDM_USER"
 fi
 
-ssh_key_files="$(find "$HOME/.ssh" -maxdepth 1 -type f \( -name '*.pem' -o -name '*.key' \) 2>/dev/null)"
-if [ -z "$ssh_key_files" ]; then
-  log_warn "No .pem or .key files found in $HOME/.ssh"
-else
-  log_info "Key files detected in $HOME/.ssh:"
-  echo "$ssh_key_files"
+if [ -n "$SOURCE_SSH_KEY" ] && [ ! -f "$SOURCE_SSH_KEY" ]; then
+  log_warn "SOURCE_SSH_KEY is set but missing: $SOURCE_SSH_KEY"
 fi
-
-if [ -n "$SOURCE_SSH_KEY" ]; then
-  if [ -f "$SOURCE_SSH_KEY" ]; then
-    log_info "SOURCE_SSH_KEY exists: $SOURCE_SSH_KEY"
-  else
-    log_warn "SOURCE_SSH_KEY is set but missing: $SOURCE_SSH_KEY"
-  fi
-else
-  log_info "SOURCE_SSH_KEY empty/placeholder: using SSH agent or default key"
-fi
-
-if [ -n "$TARGET_SSH_KEY" ]; then
-  if [ -f "$TARGET_SSH_KEY" ]; then
-    log_info "TARGET_SSH_KEY exists: $TARGET_SSH_KEY"
-  else
-    log_warn "TARGET_SSH_KEY is set but missing: $TARGET_SSH_KEY"
-  fi
-else
-  log_info "TARGET_SSH_KEY empty/placeholder: using SSH agent or default key"
+if [ -n "$TARGET_SSH_KEY" ] && [ ! -f "$TARGET_SSH_KEY" ]; then
+  log_warn "TARGET_SSH_KEY is set but missing: $TARGET_SSH_KEY"
 fi
 
 test_connectivity_host() {
@@ -185,7 +145,6 @@ if [ "$TEST_ONLY" -eq 1 ]; then
     log_error "Connectivity test-only mode finished with failures: $failed"
     exit 1
   fi
-
   log_info "Connectivity test-only mode completed successfully"
   exit 0
 fi
@@ -197,7 +156,16 @@ run_remote_discovery() {
   local key_path="$4"
   local local_script="$5"
   local local_output_dir="$6"
+  shift 6
+  local remote_env=("$@")
   local remote_dir="/tmp/zdm_step2_${type}_${TIMESTAMP}"
+  local remote_exec_cmd="mkdir -p '$remote_dir' && env"
+
+  local kv
+  for kv in "${remote_env[@]}"; do
+    remote_exec_cmd+=" $(printf '%q' "$kv")"
+  done
+  remote_exec_cmd+=" bash -l -s"
 
   if [ ! -f "$local_script" ]; then
     log_error "Missing local script: $local_script"
@@ -217,14 +185,9 @@ run_remote_discovery() {
   fi
 
   log_info "Executing $type discovery script via login shell"
-  if ! ssh "${SSH_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}" "mkdir -p '$remote_dir' && bash -l -s" < <(echo "cd '$remote_dir'"; cat "$local_script"); then
+  if ! ssh "${SSH_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}" "$remote_exec_cmd" < <(echo "cd '$remote_dir'"; cat "$local_script"); then
     log_error "$type discovery script execution failed"
     return 1
-  fi
-
-  log_info "Listing remote output files for $type"
-  if ! ssh "${SSH_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}" "ls -la '$remote_dir'"; then
-    log_warn "Could not list remote output directory for $type"
   fi
 
   log_info "Copying $type outputs to $local_output_dir"
@@ -251,9 +214,6 @@ run_local_zdm_discovery() {
     return 1
   fi
 
-  log_info "Listing local server temporary output files"
-  ls -la "$tmp_dir" || true
-
   log_info "Copying server outputs to $local_output_dir"
   if ! cp "$tmp_dir"/zdm_server_discovery_* "$local_output_dir/"; then
     log_error "Failed to copy server discovery outputs"
@@ -268,13 +228,28 @@ source_result="FAILED"
 target_result="FAILED"
 server_result="FAILED"
 
+source_remote_env=(
+  "ORACLE_USER=$ORACLE_USER"
+  "SOURCE_REMOTE_ORACLE_HOME=$SOURCE_REMOTE_ORACLE_HOME"
+  "SOURCE_ORACLE_SID=$SOURCE_ORACLE_SID"
+  "SOURCE_DATABASE_UNIQUE_NAME=$SOURCE_DATABASE_UNIQUE_NAME"
+)
+
+target_remote_env=(
+  "ORACLE_USER=$ORACLE_USER"
+  "TARGET_REMOTE_ORACLE_HOME=$TARGET_REMOTE_ORACLE_HOME"
+  "TARGET_ORACLE_SID=$TARGET_ORACLE_SID"
+  "TARGET_DATABASE_UNIQUE_NAME=$TARGET_DATABASE_UNIQUE_NAME"
+)
+
 run_remote_discovery \
   "source" \
   "$SOURCE_HOST" \
   "$SOURCE_ADMIN_USER" \
   "$SOURCE_SSH_KEY" \
   "$SCRIPT_DIR/zdm_source_discovery.sh" \
-  "$SOURCE_OUT_DIR" && source_result="SUCCESS"
+  "$SOURCE_OUT_DIR" \
+  "${source_remote_env[@]}" && source_result="SUCCESS"
 
 run_remote_discovery \
   "target" \
@@ -282,7 +257,8 @@ run_remote_discovery \
   "$TARGET_ADMIN_USER" \
   "$TARGET_SSH_KEY" \
   "$SCRIPT_DIR/zdm_target_discovery.sh" \
-  "$TARGET_OUT_DIR" && target_result="SUCCESS"
+  "$TARGET_OUT_DIR" \
+  "${target_remote_env[@]}" && target_result="SUCCESS"
 
 run_local_zdm_discovery \
   "$SCRIPT_DIR/zdm_server_discovery.sh" \
