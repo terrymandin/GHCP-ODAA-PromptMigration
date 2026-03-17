@@ -30,7 +30,7 @@ Step 5: Generate Migration Artifacts & Run Migration
 Before running this prompt:
 1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
 2. ✅ Run `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` to generate discovery scripts
-3. ✅ Execute the discovery scripts on all servers
+3. ✅ Commit/push Step2 scripts, then execute them from the repository clone on the jumpbox/ZDM server
 4. ✅ Check discovery output files into the repository
 
 ---

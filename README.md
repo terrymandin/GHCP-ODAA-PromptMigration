@@ -34,6 +34,7 @@ To reduce hallucinations during the migration, use `@GetStatus` to maintain a `r
 During each phase, read the AI's response summary carefully to understand what will be delivered and what inputs are needed.
 
 - **Pro tip**: Use `#file:zdm-env.md` to automatically attach your environment config to ZDM prompts.
+- **Pro tip**: `zdm-env.md` is local generation input only. Generated scripts/artifacts must be self-contained and must not depend on `zdm-env.md` at runtime.
 - **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
 - **Pro tip**: Don't assume anything â€” always verify ZDM requirements and OCI identifiers with the documentation.
 
@@ -51,6 +52,7 @@ During each phase, read the AI's response summary carefully to understand what w
 - **`Artifacts/`**: Generated output from running prompts (git-ignored content)
 
 - **`zdm-env.example.md`**: Template for ZDM environment configuration â€” copy to `zdm-env.md` and fill in your values
+- **`zdm-env.md`** (local only): Prompt-generation input file used to populate generated artifacts; do not rely on it at script runtime
 
 ## Migration & Modernization Process
 
@@ -132,8 +134,9 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
 3. Install the **Azure MCP Server** and **GitHub Copilot for Azure** extensions
 4. Copy `zdm-env.example.md` â†’ `zdm-env.md` and fill in your environment values
-5. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
-6. Use `@GetStatus` at any time to check the current migration progress
+5. Keep generated scripts portable: they should execute on jumpbox/ZDM without requiring `zdm-env.md`
+6. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
+7. Use `@GetStatus` at any time to check the current migration progress
 
 ## ZDM Migration Quick Reference
 

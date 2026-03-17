@@ -43,7 +43,7 @@ Step 5: Generate Migration Artifacts & Run Migration
 
 | Information Type | Captured In Step | Examples |
 |-----------------|------------------|----------|
-| **SSH Connectivity Readiness** | Step 1 - SSH Connectivity Test (auto) | Reachability, key file validation, SSH auth precheck |
+| **SSH Connectivity Readiness** | Step 1 - SSH Connectivity Test (auto) | Reachability, optional key file validation, SSH auth precheck |
 | **Technical Configuration** | Step 2 - Discovery Scripts (auto) | DB version, character set, TDE status, storage |
 | **Business Decisions** | Step 3 - Migration Questionnaire (manual) | Online vs Offline, timeline, downtime tolerance |
 | **OCI/Azure IDs** | Step 3 - Migration Questionnaire (manual) | OCIDs, subscription IDs |
@@ -86,7 +86,7 @@ Each step has a corresponding example file showing a completed prompt for a fict
   - `ssh-connectivity-report-<timestamp>.json`
 
 **Usage**:
-1. Fill SSH host/user/key values in `zdm-env.md`
+1. Fill SSH host/user values in `zdm-env.md`; key paths are optional
 2. Run the Step 1 prompt to generate the precheck script
 3. Execute the script on the ZDM server as `zdmuser`
 4. Resolve any SSH failures before proceeding to Step 2

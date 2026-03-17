@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Phase 10 ZDM Step 2 example - generate discovery scripts for a sample environment
 ---
 # Example: Generate Discovery Scripts (Step 2)
@@ -15,7 +15,11 @@ description: Phase 10 ZDM Step 2 example - generate discovery scripts for a samp
 Generate Step 2 discovery scripts.
 ```
 
-> After generation, copy the scripts to the ZDM server and run them to collect discovery output.
+`zdm-env.md` is generation input only. Generated scripts should be checked into GitHub, retrieved from the repo clone on the jumpbox/ZDM server, and run there without any runtime dependency on `zdm-env.md`.
+
+Step 2 prompt behavior is generation-only: create scripts and placeholder directories only. Do not execute discovery commands or generate discovery output files during prompt execution.
+
+> After generation, commit and push the Step2 scripts. On the jumpbox/ZDM server, pull the repo and run the scripts to collect discovery output.
 
 ## Expected Output
 

@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Phase 10 ZDM Step 4 example - resolve blockers identified in discovery
 ---
 # Example: Fix Issues (Step 4)
@@ -32,5 +32,7 @@ Artifacts/Phase10-Migration/Step4/
 - Remediation scripts (one per blocker) each with a companion `README.md`
 - `verify_fixes.sh` to confirm all blockers are resolved
 
+Step 4 prompt behavior is generation-only: do not execute remediation or verification commands during prompt execution in VS Code.
+
 ## Next Step
-When all blockers are resolved and `verify_fixes.sh` reports PASS, continue with: `@Phase10-ZDM-Step5-Generate-Migration-Artifacts`
+When all blockers are resolved and `verify_fixes.sh` reports PASS (run from the repository clone on the jumpbox/ZDM server), continue with: `@Phase10-ZDM-Step5-Generate-Migration-Artifacts`

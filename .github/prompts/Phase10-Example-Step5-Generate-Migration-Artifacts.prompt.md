@@ -1,6 +1,6 @@
 ---
-mode: agent
-description: Phase 10 ZDM Step 5 example - generate migration artifacts ready to execute
+agent: agent
+description: Phase 10 ZDM Step 5 example - generate migration artifacts for jumpbox execution
 ---
 # Example: Generate Migration Artifacts (Step 5)
 
@@ -30,6 +30,12 @@ Generate migration artifacts.
 ## Output Directory
 Artifacts/Phase10-Migration/Step5/
 ```
+
+`zdm-env.md` is optional generation context only. Generated artifacts must be executable on the jumpbox/ZDM server without reading `zdm-env.md`.
+
+Step 5 prompt behavior is generation-only: create Step5 artifact files only. Do not execute ZDM commands or migration commands during prompt execution.
+
+Commit generated Step5 artifacts to GitHub, then run them from the repository clone on the jumpbox/ZDM server.
 
 > Replace `<hostname>` and `<timestamp>` with the actual filenames from Step 2.
 

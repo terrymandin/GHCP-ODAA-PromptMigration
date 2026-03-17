@@ -4,6 +4,8 @@
 >
 > All Example prompts attach `zdm-env.md` with `#file:zdm-env.md` so
 > GitHub Copilot will use these values automatically when generating scripts and artifacts.
+> `zdm-env.md` is generation-time input only. Generated scripts/artifacts must not read, source,
+> or depend on `zdm-env.md` at runtime on the jumpbox/ZDM server.
 ---
 ## Remote Server Hostnames
 - SOURCE_HOST: <SOURCE_HOST_IP_OR_FQDN>
@@ -15,6 +17,7 @@
 ---
 ## SSH Key Paths (for remote source/target servers)
 > Keys must be stored in `~/.ssh/` under the **zdmuser** account on the ZDM server, since Step1 and Step2 scripts run as zdmuser on the ZDM box (`~` = `/home/zdmuser`). Ensure each file has permissions `600`.
+> If you leave the example placeholder format (values containing `<...>`), scripts treat the key as unset and use SSH agent/default key authentication (no `-i`).
 - SOURCE_SSH_KEY: ~/.ssh/<source_key>.pem
 - TARGET_SSH_KEY: ~/.ssh/<target_key>.pem
 ---

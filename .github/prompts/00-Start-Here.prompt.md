@@ -37,6 +37,7 @@ Before starting, ensure you have:
 1. Copy `zdm-env.example.md` to `zdm-env.md` in the repo root
 2. Fill in your environment values (source host, target host, SSH keys, OCI identifiers)
 3. `zdm-env.md` is git-ignored â€” your values will never be committed
+4. `zdm-env.md` is for prompt-time generation only; generated scripts/artifacts should not read it at runtime on the jumpbox/ZDM server
 
 ## Where Are You in the Migration?
 

@@ -3,29 +3,47 @@
 set -u
 set -o pipefail
 
+# Rendered from zdm-env.md at generation time. This script is runtime-independent.
+SOURCE_HOST="10.200.1.12"
+TARGET_HOST="10.200.0.250"
+SOURCE_SSH_USER="azureuser"
+TARGET_SSH_USER="opc"
+SOURCE_SSH_KEY_RAW="~/.ssh/<source_key>.pem"
+TARGET_SSH_KEY_RAW="~/.ssh/<target_key>.pem"
+REQUIRED_RUN_USER="zdmuser"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STEP1_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-ENV_FILE="${ZDM_ENV_FILE:-$PROJECT_ROOT/zdm-env.md}"
 VALIDATION_DIR="$STEP1_DIR/Validation"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 REPORT_MD="$VALIDATION_DIR/ssh-connectivity-report-$TIMESTAMP.md"
 REPORT_JSON="$VALIDATION_DIR/ssh-connectivity-report-$TIMESTAMP.json"
 
+SSH_OPTS=(
+  -o BatchMode=yes
+  -o StrictHostKeyChecking=accept-new
+  -o ConnectTimeout=10
+  -o PasswordAuthentication=no
+)
+
 mkdir -p "$VALIDATION_DIR"
 
 failures=()
+source_status="SKIPPED"
+target_status="SKIPPED"
+source_message="Not executed"
+target_message="Not executed"
+source_hostname=""
+target_hostname=""
+source_key_mode="agent/default"
+target_key_mode="agent/default"
 
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\r//g; :a;N;$!ba;s/\n/\\n/g'
 }
 
-get_env_value() {
-  local key="$1"
-  local line
-  line="$(grep -E "^- ${key}:" "$ENV_FILE" | head -n 1 || true)"
-  line="${line#- ${key}:}"
-  echo "${line}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+is_placeholder() {
+  [[ "$1" == *"<"*">"* ]]
 }
 
 expand_home() {
@@ -37,31 +55,26 @@ expand_home() {
   fi
 }
 
-is_placeholder() {
-  [[ "$1" == *"<"*">"* ]]
+normalize_optional_key() {
+  local raw="$1"
+  if [[ -z "$raw" ]] || is_placeholder "$raw"; then
+    printf '%s\n' ""
+    return
+  fi
+  expand_home "$raw"
 }
 
 is_key_perm_strict() {
   local perm="$1"
-  [[ "$perm" =~ ^[0-7]00$ ]]
+  [[ "$perm" =~ ^[0-6]00$ ]]
 }
 
-check_key_file() {
+validate_key_if_set() {
   local label="$1"
-  local key_path_raw="$2"
-  local key_path
-  local perm
+  local key_path="$2"
 
-  key_path="$(expand_home "$key_path_raw")"
-
-  if [[ -z "$key_path_raw" ]]; then
-    failures+=("$label key path is empty")
-    return 1
-  fi
-
-  if is_placeholder "$key_path_raw"; then
-    failures+=("$label key path still contains a placeholder: $key_path_raw")
-    return 1
+  if [[ -z "$key_path" ]]; then
+    return 0
   fi
 
   if [[ ! -e "$key_path" ]]; then
@@ -74,7 +87,8 @@ check_key_file() {
     return 1
   fi
 
-  perm="$(stat -c '%a' "$key_path" 2>/dev/null || stat -f '%Lp' "$key_path" 2>/dev/null || true)"
+  local perm
+  perm="$(stat -c '%a' "$key_path" 2>/dev/null || true)"
   if [[ -z "$perm" ]]; then
     failures+=("$label key permissions could not be determined: $key_path")
     return 1
@@ -92,84 +106,72 @@ run_ssh_check() {
   local label="$1"
   local user="$2"
   local host="$3"
-  local key_path_raw="$4"
-  local key_path
-  local output
-  local rc
+  local key_path="$4"
 
-  key_path="$(expand_home "$key_path_raw")"
-  output="$(ssh -i "$key_path" \
-    -o BatchMode=yes \
-    -o StrictHostKeyChecking=accept-new \
-    -o ConnectTimeout=10 \
-    -o PasswordAuthentication=no \
-    "${user}@${host}" hostname 2>&1)"
+  if [[ -z "$user" || -z "$host" ]]; then
+    printf '%s\n' "FAIL|Missing required user or host"
+    return 1
+  fi
+
+  local output rc
+  if [[ -n "$key_path" ]]; then
+    output="$(ssh -i "$key_path" "${SSH_OPTS[@]}" "${user}@${host}" hostname 2>&1)"
+  else
+    output="$(ssh "${SSH_OPTS[@]}" "${user}@${host}" hostname 2>&1)"
+  fi
   rc=$?
 
   if [[ $rc -ne 0 ]]; then
     failures+=("$label SSH failed for ${user}@${host}: $output")
-    printf '%s\n' "fail|$output"
+    printf '%s\n' "FAIL|$output"
     return 1
   fi
 
-  printf '%s\n' "pass|$output"
+  printf '%s\n' "PASS|$output"
   return 0
 }
 
-overall_status="PASS"
-source_status="SKIPPED"
-target_status="SKIPPED"
-source_message="Not executed"
-target_message="Not executed"
-source_hostname=""
-target_hostname=""
+SOURCE_SSH_KEY="$(normalize_optional_key "$SOURCE_SSH_KEY_RAW")"
+TARGET_SSH_KEY="$(normalize_optional_key "$TARGET_SSH_KEY_RAW")"
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  failures+=("Configuration file not found: $ENV_FILE")
+if [[ -n "$SOURCE_SSH_KEY" ]]; then
+  source_key_mode="$SOURCE_SSH_KEY"
 else
-  SOURCE_HOST="$(get_env_value SOURCE_HOST)"
-  TARGET_HOST="$(get_env_value TARGET_HOST)"
-  SOURCE_SSH_USER="$(get_env_value SOURCE_SSH_USER)"
-  TARGET_SSH_USER="$(get_env_value TARGET_SSH_USER)"
-  SOURCE_SSH_KEY="$(get_env_value SOURCE_SSH_KEY)"
-  TARGET_SSH_KEY="$(get_env_value TARGET_SSH_KEY)"
-
-  for var_name in SOURCE_HOST TARGET_HOST SOURCE_SSH_USER TARGET_SSH_USER SOURCE_SSH_KEY TARGET_SSH_KEY; do
-    value="${!var_name:-}"
-    if [[ -z "$value" ]]; then
-      failures+=("Missing required configuration value: $var_name")
-    fi
-  done
-
-  check_key_file "SOURCE" "$SOURCE_SSH_KEY" || true
-  check_key_file "TARGET" "$TARGET_SSH_KEY" || true
-
-  if [[ ${#failures[@]} -eq 0 ]]; then
-    result="$(run_ssh_check "SOURCE" "$SOURCE_SSH_USER" "$SOURCE_HOST" "$SOURCE_SSH_KEY")"
-    source_status="${result%%|*}"
-    source_message="${result#*|}"
-    if [[ "$source_status" == "pass" ]]; then
-      source_status="PASS"
-      source_hostname="$source_message"
-      source_message="SSH ok"
-    else
-      source_status="FAIL"
-    fi
-
-    result="$(run_ssh_check "TARGET" "$TARGET_SSH_USER" "$TARGET_HOST" "$TARGET_SSH_KEY")"
-    target_status="${result%%|*}"
-    target_message="${result#*|}"
-    if [[ "$target_status" == "pass" ]]; then
-      target_status="PASS"
-      target_hostname="$target_message"
-      target_message="SSH ok"
-    else
-      target_status="FAIL"
-    fi
-  fi
+  source_key_mode="agent/default"
 fi
 
-if [[ ${#failures[@]} -gt 0 || "$source_status" == "FAIL" || "$target_status" == "FAIL" ]]; then
+if [[ -n "$TARGET_SSH_KEY" ]]; then
+  target_key_mode="$TARGET_SSH_KEY"
+else
+  target_key_mode="agent/default"
+fi
+
+current_user="$(whoami)"
+if [[ "$current_user" != "$REQUIRED_RUN_USER" ]]; then
+  failures+=("Script must run as '$REQUIRED_RUN_USER' (current user: '$current_user')")
+fi
+
+validate_key_if_set "SOURCE" "$SOURCE_SSH_KEY" || true
+validate_key_if_set "TARGET" "$TARGET_SSH_KEY" || true
+
+result="$(run_ssh_check "SOURCE" "$SOURCE_SSH_USER" "$SOURCE_HOST" "$SOURCE_SSH_KEY")"
+source_status="${result%%|*}"
+source_message="${result#*|}"
+if [[ "$source_status" == "PASS" ]]; then
+  source_hostname="$source_message"
+  source_message="SSH ok"
+fi
+
+result="$(run_ssh_check "TARGET" "$TARGET_SSH_USER" "$TARGET_HOST" "$TARGET_SSH_KEY")"
+target_status="${result%%|*}"
+target_message="${result#*|}"
+if [[ "$target_status" == "PASS" ]]; then
+  target_hostname="$target_message"
+  target_message="SSH ok"
+fi
+
+overall_status="PASS"
+if [[ ${#failures[@]} -gt 0 || "$source_status" != "PASS" || "$target_status" != "PASS" ]]; then
   overall_status="FAIL"
 fi
 
@@ -177,15 +179,15 @@ fi
   echo "# SSH Connectivity Report"
   echo
   echo "- Timestamp: $TIMESTAMP"
-  echo "- Env file: $ENV_FILE"
   echo "- Overall status: $overall_status"
+  echo "- Executed by user: $current_user"
   echo
   echo "## Endpoint Results"
   echo
-  echo "| Endpoint | User | Host | Status | Remote Hostname | Notes |"
-  echo "|---|---|---|---|---|---|"
-  echo "| SOURCE | ${SOURCE_SSH_USER:-N/A} | ${SOURCE_HOST:-N/A} | $source_status | ${source_hostname:-N/A} | ${source_message:-N/A} |"
-  echo "| TARGET | ${TARGET_SSH_USER:-N/A} | ${TARGET_HOST:-N/A} | $target_status | ${target_hostname:-N/A} | ${target_message:-N/A} |"
+  echo "| Endpoint | User | Host | Key Mode | Status | Remote Hostname | Notes |"
+  echo "|---|---|---|---|---|---|---|"
+  echo "| SOURCE | ${SOURCE_SSH_USER:-N/A} | ${SOURCE_HOST:-N/A} | ${source_key_mode:-N/A} | ${source_status:-N/A} | ${source_hostname:-N/A} | ${source_message:-N/A} |"
+  echo "| TARGET | ${TARGET_SSH_USER:-N/A} | ${TARGET_HOST:-N/A} | ${target_key_mode:-N/A} | ${target_status:-N/A} | ${target_hostname:-N/A} | ${target_message:-N/A} |"
 
   if [[ ${#failures[@]} -gt 0 ]]; then
     echo
@@ -200,19 +202,21 @@ fi
 {
   echo "{"
   echo "  \"timestamp\": \"$(json_escape "$TIMESTAMP")\"," 
-  echo "  \"env_file\": \"$(json_escape "$ENV_FILE")\"," 
   echo "  \"overall_status\": \"$(json_escape "$overall_status")\"," 
+  echo "  \"executed_by\": \"$(json_escape "$current_user")\"," 
   echo "  \"results\": {"
   echo "    \"source\": {"
-  echo "      \"user\": \"$(json_escape "${SOURCE_SSH_USER:-}")\"," 
-  echo "      \"host\": \"$(json_escape "${SOURCE_HOST:-}")\"," 
+  echo "      \"user\": \"$(json_escape "$SOURCE_SSH_USER")\"," 
+  echo "      \"host\": \"$(json_escape "$SOURCE_HOST")\"," 
+  echo "      \"key_mode\": \"$(json_escape "$source_key_mode")\"," 
   echo "      \"status\": \"$(json_escape "$source_status")\"," 
   echo "      \"remote_hostname\": \"$(json_escape "$source_hostname")\"," 
   echo "      \"message\": \"$(json_escape "$source_message")\""
   echo "    },"
   echo "    \"target\": {"
-  echo "      \"user\": \"$(json_escape "${TARGET_SSH_USER:-}")\"," 
-  echo "      \"host\": \"$(json_escape "${TARGET_HOST:-}")\"," 
+  echo "      \"user\": \"$(json_escape "$TARGET_SSH_USER")\"," 
+  echo "      \"host\": \"$(json_escape "$TARGET_HOST")\"," 
+  echo "      \"key_mode\": \"$(json_escape "$target_key_mode")\"," 
   echo "      \"status\": \"$(json_escape "$target_status")\"," 
   echo "      \"remote_hostname\": \"$(json_escape "$target_hostname")\"," 
   echo "      \"message\": \"$(json_escape "$target_message")\""
@@ -222,10 +226,10 @@ fi
   if [[ ${#failures[@]} -gt 0 ]]; then
     for i in "${!failures[@]}"; do
       comma=","
-      if [[ "$i" -eq "$((${#failures[@]} - 1))" ]]; then
+      if [[ "$i" -eq "$(( ${#failures[@]} - 1 ))" ]]; then
         comma=""
       fi
-      echo "    \"$(json_escape "${failures[$i]}")\"${comma}"
+      echo "    \"$(json_escape "${failures[$i]}")\"$comma"
     done
   fi
   echo "  ]"

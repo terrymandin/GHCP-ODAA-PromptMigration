@@ -1,5 +1,5 @@
 ﻿---
-mode: agent
+agent: agent
 description: ZDM Step 2 - Generate read-only database discovery scripts
 ---
 # ZDM Migration Step 2: Generate Discovery Scripts
@@ -10,8 +10,18 @@ Generate four bash scripts that gather technical context from the source databas
 Oracle Database@Azure server, and ZDM server. These outputs form the foundation for all subsequent
 migration steps.
 
+## Execution Boundary (Critical)
+
+This prompt is generation-only.
+- Generate Step2 scripts and placeholder output directories under `Artifacts/Phase10-Migration/Step2/`
+- Do not execute SSH, SCP, SQL, or discovery commands from VS Code
+- Do not generate discovery output `.txt`/`.json` files during prompt execution
+- Discovery output files are created only when the generated scripts are run on the jumpbox/ZDM server
+
 Attach `zdm-env.md` to this prompt to supply hostnames, SSH users, key paths, and optional
 overrides for your specific environment.
+
+`zdm-env.md` is used only while generating artifacts in VS Code. Generated scripts must be standalone and must not read, source, parse, or otherwise depend on `zdm-env.md` (or any repo-local config file) at runtime on the jumpbox/ZDM server.
 
 DB-specific value scope for Step 1-5 prompts:
 - `SOURCE_REMOTE_ORACLE_HOME`
@@ -215,11 +225,15 @@ SOURCE_ADMIN_USER="${SOURCE_ADMIN_USER:-azureuser}"
 TARGET_ADMIN_USER="${TARGET_ADMIN_USER:-azureuser}"
 ORACLE_USER="${ORACLE_USER:-oracle}"
 ZDM_USER="${ZDM_USER:-zdmuser}"
-SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-}"   # empty = use SSH agent / default key
-TARGET_SSH_KEY="${TARGET_SSH_KEY:-}"   # empty = use SSH agent / default key
+SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-}"   # empty or <...> placeholder = use SSH agent / default key
+TARGET_SSH_KEY="${TARGET_SSH_KEY:-}"   # empty or <...> placeholder = use SSH agent / default key
+
+is_placeholder() { [[ "$1" == *"<"*">"* ]]; }
+[ -n "$SOURCE_SSH_KEY" ] && is_placeholder "$SOURCE_SSH_KEY" && SOURCE_SSH_KEY=""
+[ -n "$TARGET_SSH_KEY" ] && is_placeholder "$TARGET_SSH_KEY" && TARGET_SSH_KEY=""
 ```
 
-**SSH key rule**  only include `-i` when the key variable is non-empty:
+**SSH key rule**  only include `-i` when the normalized key variable is non-empty (placeholders like `<...>` must be treated as empty):
 ```bash
 ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_ADMIN_USER}@${SOURCE_HOST}" ...
 scp $SCP_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "$script" "${SOURCE_ADMIN_USER}@${SOURCE_HOST}:$remote_dir/"
@@ -244,8 +258,8 @@ SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash 
 **Startup diagnostic**  before attempting any connections, log:
 1. Current user and home directory (warn if not `zdmuser`)
 2. `.pem` and `.key` files found in `~/.ssh/` (warn if none found)
-3. For each SSH key variable: if empty, note that SSH agent/default key will be used;
-   if non-empty, resolve the path and report whether the file exists or is missing
+3. For each SSH key variable: if empty or placeholder (`<...>`), note that SSH agent/default key will be used;
+  if non-empty after placeholder normalization, resolve the path and report whether the file exists or is missing
 
 **Resilience requirements:**
 - Continue if one server fails  track which servers succeeded/failed and report at the end
@@ -280,6 +294,7 @@ SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash 
   - `./zdm_<type>_discovery_<hostname>_<timestamp>.json`  machine-parseable summary
 - Each JSON summary must include a top-level `status` field (`"success"` or `"partial"`) and a
   `warnings` array listing any conditions that need attention before migration
+- Runtime independence: scripts must not read `zdm-env.md`; all required values must come from rendered constants and/or explicit environment variables exported before execution
 
 ---
 
@@ -299,6 +314,9 @@ Also create `Artifacts/Phase10-Migration/Step2/Scripts/README.md` explaining:
 - How to set required environment variables (`SOURCE_HOST`, `TARGET_HOST`, SSH users, SSH keys)
 - How to run: `bash zdm_orchestrate_discovery.sh`
 - Where to find output files and what to do next (Step 3)
+- That `zdm-env.md` is generation input only and is not required on the ZDM server at runtime
+
+After generation, do not run scripts directly from the local VS Code workspace. Commit and push Step2 artifacts to GitHub, then clone/pull the repository on the jumpbox/ZDM server and run from that repo clone.
 
 > **Note:** Only create files under `Step2/`. Directories for Step3 and Step4 are created by
 > their respective prompts.
