@@ -1,0 +1,35 @@
+{
+  "status": "partial",
+  "host": "factvmhost",
+  "timestamp": "20260317-220549",
+  "oracle_sid": "MCKESS",
+  "oracle_home": "/u02/app/oracle/product/19.0.0.0/dbhome_1",
+  "warnings": [
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus",
+    "sqlplus not executable at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus"
+  ],
+  "failed_sections": [
+    "Network files",
+    "Authentication files",
+    "Database configuration",
+    "Container database details",
+    "TDE and wallet status",
+    "Tablespace and autoextend",
+    "Redo and archive destinations",
+    "Schema sizing and invalid objects",
+    "Backup configuration and recent backup",
+    "Database links",
+    "Materialized views and logs",
+    "Scheduler jobs",
+    "Data Guard parameters"
+  ]
+}
