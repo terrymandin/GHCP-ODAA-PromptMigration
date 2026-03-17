@@ -39,6 +39,17 @@ Before running this prompt:
 
 Attach the discovery files from Step2 and run this prompt:
 
+DB-specific value scope for Step 1-5 prompts:
+- `SOURCE_REMOTE_ORACLE_HOME`
+- `SOURCE_ORACLE_SID`
+- `TARGET_REMOTE_ORACLE_HOME`
+- `TARGET_ORACLE_SID`
+- `SOURCE_DATABASE_UNIQUE_NAME`
+- `TARGET_DATABASE_UNIQUE_NAME`
+
+ZDM-specific value scope for Step 1-5 prompts:
+- `ZDM_HOME`
+
 ```
 @Phase10-ZDM-Step3-Discovery-Questionnaire
 

@@ -22,12 +22,18 @@
 - ORACLE_USER: oracle
 - ZDM_SOFTWARE_USER: zdmuser
 ---
-## Oracle Path Overrides - Optional
-Leave blank to allow auto-detection via `/etc/oratab` and common paths. Set only if auto-detection fails.
+## Database Variables
+Set these values to keep Step 1-5 prompt generation focused on a consistent variable set.
 - SOURCE_REMOTE_ORACLE_HOME: 
 - SOURCE_ORACLE_SID: 
 - TARGET_REMOTE_ORACLE_HOME: 
 - TARGET_ORACLE_SID:
+- SOURCE_DATABASE_UNIQUE_NAME:
+- TARGET_DATABASE_UNIQUE_NAME:
+---
+## ZDM Variables
+- ZDM_HOME:
+> Leave path/SID values blank to allow auto-detection via `/etc/oratab` and common paths.
 > **ODAA / Exadata RAC note:** Scripts that SSH in remotely read `/etc/oratab`, which returns the
 > `db_name` (e.g. `oradb01`) — not the running RAC instance name (e.g. `oradb011`). This causes
 > `ORA-01034: ORACLE not available` in both Step2 orchestrated discovery and Step4 fix scripts.

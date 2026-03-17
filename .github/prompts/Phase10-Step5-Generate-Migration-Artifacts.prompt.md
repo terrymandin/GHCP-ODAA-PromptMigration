@@ -41,6 +41,17 @@ Provide the completed artifacts from previous steps:
 
 ### How to Use This Prompt
 
+DB-specific value scope for Step 1-5 prompts:
+- `SOURCE_REMOTE_ORACLE_HOME`
+- `SOURCE_ORACLE_SID`
+- `TARGET_REMOTE_ORACLE_HOME`
+- `TARGET_ORACLE_SID`
+- `SOURCE_DATABASE_UNIQUE_NAME`
+- `TARGET_DATABASE_UNIQUE_NAME`
+
+ZDM-specific value scope for Step 1-5 prompts:
+- `ZDM_HOME`
+
 ```
 @Phase10-ZDM-Step5-Generate-Migration-Artifacts
 
@@ -109,7 +120,7 @@ The following environment variables must be set on the ZDM server before running
 
 | Environment Variable | Description | When Required | How to Obtain |
 |---------------------|-------------|---------------|---------------|
-| `TARGET_OBJECT_STORAGE_NAMESPACE` | Object Storage namespace | **OFFLINE_PHYSICAL only** - Not required for ONLINE_PHYSICAL migrations to Oracle Database@Azure (uses direct Data Guard) | OCI Console > Profile > Tenancy Details, or `oci os ns get` |
+| `TARGET_OBJECT_STORAGE_NAMESPACE` | Object Storage namespace | **OFFLINE_PHYSICAL only** - Not required for ONLINE_PHYSICAL migrations to Oracle Database@Azure (uses direct Data Guard) | OCI Console > Profile > Tenancy Details |
 
 ### Optional Source Environment Variables (if migrating from OCI source)
 
@@ -171,7 +182,7 @@ Generate a README that provides:
    **Step 4 Blockers Checklist** — populate using `Verification-Results.md` if provided:
    - For each of the 3 blockers, use `[x]` if the Blocker Status table shows ✅ PASS, or `[ ]` if ❌ FAIL or not yet verified
    - If no verification results file is provided, all 3 blockers must show `[ ]`
-   - Always show the blocker note: *OCI config is needed for ZDM to authenticate to OCI; OCI CLI is not required — ZDM uses its own OCI SDK with credentials from the RSP file*
+    - Always show the blocker note: *OCI config is needed for ZDM to authenticate to OCI; ZDM uses its own OCI SDK with credentials from the RSP file*
    - Show recommended items (Issues 4–5) with ⚠️ status from the results file if available
 
 3. **Generated Artifacts List**
