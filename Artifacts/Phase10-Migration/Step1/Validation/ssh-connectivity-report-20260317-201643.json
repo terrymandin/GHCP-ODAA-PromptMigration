@@ -1,0 +1,25 @@
+{
+  "timestamp": "20260317-201643",
+  "overall_status": "PASS",
+  "executed_by": "zdmuser",
+  "results": {
+    "source": {
+      "user": "azureuser",
+      "host": "10.200.1.12",
+      "key_mode": "agent/default",
+      "status": "PASS",
+      "remote_hostname": "factvmhost",
+      "message": "SSH ok"
+    },
+    "target": {
+      "user": "opc",
+      "host": "10.200.0.250",
+      "key_mode": "agent/default",
+      "status": "PASS",
+      "remote_hostname": "vmclusterpoc-ytlat1",
+      "message": "SSH ok"
+    }
+  },
+  "failures": [
+  ]
+}

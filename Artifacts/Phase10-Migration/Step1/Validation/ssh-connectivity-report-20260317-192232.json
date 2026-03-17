@@ -1,0 +1,24 @@
+{
+  "timestamp": "20260317-192232",
+  "env_file": "/home/zdmuser/GHCP-ODAA-PromptMigration/zdm-env.md",
+  "overall_status": "FAIL",
+  "results": {
+    "source": {
+      "user": "",
+      "host": "",
+      "status": "SKIPPED",
+      "remote_hostname": "",
+      "message": "Not executed"
+    },
+    "target": {
+      "user": "",
+      "host": "",
+      "status": "SKIPPED",
+      "remote_hostname": "",
+      "message": "Not executed"
+    }
+  },
+  "failures": [
+    "Configuration file not found: /home/zdmuser/GHCP-ODAA-PromptMigration/zdm-env.md"
+  ]
+}
