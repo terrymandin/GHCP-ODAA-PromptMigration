@@ -18,6 +18,7 @@ Generate Step 2 discovery scripts.
 `zdm-env.md` is generation input only. Generated scripts should be checked into GitHub, retrieved from the repo clone on the jumpbox/ZDM server, and run there without any runtime dependency on `zdm-env.md`.
 
 Step 2 prompt behavior is generation-only: create scripts and placeholder directories only. Do not execute discovery commands or generate discovery output files during prompt execution.
+Any "run" wording in generated README/scripts refers to later manual execution on the jumpbox/ZDM server by the user.
 
 > After generation, commit and push the Step2 scripts. On the jumpbox/ZDM server, pull the repo and run the scripts to collect discovery output.
 

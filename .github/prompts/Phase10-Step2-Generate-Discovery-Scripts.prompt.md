@@ -17,6 +17,7 @@ This prompt is generation-only.
 - Do not execute SSH, SCP, SQL, or discovery commands from VS Code
 - Do not generate discovery output `.txt`/`.json` files during prompt execution
 - Discovery output files are created only when the generated scripts are run on the jumpbox/ZDM server
+- Any wording below that says a script "runs", "copies", or "executes" describes runtime behavior of the generated script after handoff, not actions to perform during prompt execution
 
 Attach `zdm-env.md` to this prompt to supply hostnames, SSH users, key paths, and optional
 overrides for your specific environment.
@@ -67,7 +68,9 @@ Scripts SSH as an admin user (not `oracle` directly), then run SQL via `sudo -u 
 
 ### 1. `zdm_source_discovery.sh`  Source Database Server
 
-Executed via SSH as `SOURCE_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u oracle`. Collect:
+Generated script runtime behavior (when user runs orchestrator on jumpbox/ZDM server):
+- Execute via SSH as `SOURCE_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u oracle`
+- Collect:
 
 **OS**
 - Hostname, IP addresses, OS version, disk space
@@ -121,7 +124,9 @@ Executed via SSH as `SOURCE_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u 
 
 ### 2. `zdm_target_discovery.sh`  Target Oracle Database@Azure
 
-Executed via SSH as `TARGET_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u oracle`. Collect:
+Generated script runtime behavior (when user runs orchestrator on jumpbox/ZDM server):
+- Execute via SSH as `TARGET_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u oracle`
+- Collect:
 
 **OS**
 - Hostname, IP addresses, OS version
@@ -160,8 +165,9 @@ Executed via SSH as `TARGET_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u 
 
 ### 3. `zdm_server_discovery.sh`  ZDM Server
 
-Runs **locally on the ZDM box** as `zdmuser`. This script is called by the orchestration script,
-which runs as `zdmuser`, so it always executes as `zdmuser`.
+Generated script runtime behavior (when user runs orchestrator on jumpbox/ZDM server):
+- Runs **locally on the ZDM box** as `zdmuser`
+- Called by the orchestration script, which runs as `zdmuser`, so it always executes as `zdmuser`
 
 **User guard  add near the top and exit immediately if check fails:**
 ```bash
@@ -214,8 +220,9 @@ Collect:
 
 ### 4. `zdm_orchestrate_discovery.sh`  Master Orchestration Script
 
-Runs on the ZDM box as `zdmuser`. Copies and executes the three discovery scripts and collects
-results into the output directory.
+Generated script runtime behavior (when user runs it manually on the ZDM box as `zdmuser`):
+- Copies and executes the three discovery scripts
+- Collects results into the output directory
 
 **Environment Variables (with defaults):**
 ```bash
@@ -316,7 +323,7 @@ Also create `Artifacts/Phase10-Migration/Step2/Scripts/README.md` explaining:
 - Where to find output files and what to do next (Step 3)
 - That `zdm-env.md` is generation input only and is not required on the ZDM server at runtime
 
-After generation, do not run scripts directly from the local VS Code workspace. Commit and push Step2 artifacts to GitHub, then clone/pull the repository on the jumpbox/ZDM server and run from that repo clone.
+After generation, stop. Do not run scripts from VS Code or the local workspace. Commit and push Step2 artifacts to GitHub, then clone/pull the repository on the jumpbox/ZDM server and run from that repo clone when ready.
 
 > **Note:** Only create files under `Step2/`. Directories for Step3 and Step4 are created by
 > their respective prompts.
