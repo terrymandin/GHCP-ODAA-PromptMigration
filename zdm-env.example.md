@@ -2,7 +2,7 @@
 > **Setup:** Copy this file to `zdm-env.md` in the same directory and fill in your real values.
 > `zdm-env.md` is git-ignored so your environment-specific values are never committed.
 >
-> All Example prompts attach `zdm-env.md` with `#file:prompts/Phase10-Migration/ZDM/zdm-env.md` so
+> All Example prompts attach `zdm-env.md` with `#file:zdm-env.md` so
 > GitHub Copilot will use these values automatically when generating scripts and artifacts.
 ---
 ## Remote Server Hostnames
