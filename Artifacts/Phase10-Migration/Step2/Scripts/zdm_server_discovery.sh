@@ -4,165 +4,190 @@
 set -u
 set -o pipefail
 
-SOURCE_HOST="${SOURCE_HOST:-10.200.1.12}"
-TARGET_HOST="${TARGET_HOST:-10.200.0.250}"
 ZDM_USER="${ZDM_USER:-zdmuser}"
-ZDM_HOME_DEFAULT="/mnt/app/zdmhome"
+ZDM_HOME_HINT="${ZDM_HOME:-/mnt/app/zdmhome}"
+SOURCE_HOST="${SOURCE_HOST:-}"
+TARGET_HOST="${TARGET_HOST:-}"
 
 CURRENT_USER="$(whoami)"
-if [ "$CURRENT_USER" != "$ZDM_USER" ]; then
-  echo "[ERROR] This script must run as '${ZDM_USER}'. Currently running as '${CURRENT_USER}'."
-  echo "        Switch to the correct user first: sudo su - ${ZDM_USER}"
-  exit 1
+if [ "$CURRENT_USER" != "${ZDM_USER:-zdmuser}" ]; then
+    echo "[ERROR] This script must run as '${ZDM_USER:-zdmuser}'. Currently running as '${CURRENT_USER}'."
+    echo "        Switch to the correct user first: sudo su - ${ZDM_USER:-zdmuser}"
+    exit 1
 fi
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-HOSTNAME_SHORT="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
-OUT_TXT="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
-OUT_JSON="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
+HOSTNAME_SHORT="$(hostname -s 2>/dev/null || hostname)"
+TEXT_OUT="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
+JSON_OUT="./zdm_server_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
 
-warnings=()
-status="success"
-
-add_warning() {
-  warnings+=("$1")
-  status="partial"
-}
+WARNINGS=()
+PARTIAL=0
+RESOLVED_ZDM_HOME=""
 
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\r//g; :a;N;$!ba;s/\n/\\n/g'
 }
 
-append_header() {
-  local title="$1"
-  {
-    echo
-    echo "================================================================================"
-    echo "$title"
-    echo "================================================================================"
-  } >> "$OUT_TXT"
+add_warning() {
+  WARNINGS+=("$1")
+  PARTIAL=1
 }
 
-append_command() {
+log_section() {
+  printf '\n===== %s =====\n' "$1" | tee -a "$TEXT_OUT"
+}
+
+run_cmd() {
   local title="$1"
   local cmd="$2"
-  append_header "$title"
-  {
-    echo "$ $cmd"
-    bash -lc "$cmd" 2>&1 || {
-      local rc=$?
-      echo "[WARN] Command failed with rc=$rc"
-      add_warning "$title command failed"
-    }
-  } >> "$OUT_TXT"
+  log_section "$title"
+  printf '$ %s\n' "$cmd" | tee -a "$TEXT_OUT"
+  local output
+  output="$(bash -lc "$cmd" 2>&1)"
+  local rc=$?
+  printf '%s\n' "$output" | tee -a "$TEXT_OUT"
+  if [ $rc -ne 0 ]; then
+    add_warning "$title failed (rc=$rc)"
+  fi
 }
 
-detect_zdm_home() {
-  if [ -n "${ZDM_HOME:-}" ] && [ -d "${ZDM_HOME}" ]; then
-    printf '%s\n' "${ZDM_HOME}"
-    return
+find_zdm_home() {
+  local candidate=""
+
+  if [ -n "${ZDM_HOME_HINT:-}" ] && [ -d "$ZDM_HOME_HINT" ]; then
+    candidate="$ZDM_HOME_HINT"
   fi
-  if [ -d "$ZDM_HOME_DEFAULT" ]; then
-    printf '%s\n' "$ZDM_HOME_DEFAULT"
-    return
+
+  if [ -z "$candidate" ] && [ -n "${ZDM_HOME:-}" ] && [ -d "$ZDM_HOME" ]; then
+    candidate="$ZDM_HOME"
   fi
-  for p in /u01/app/zdmhome /opt/zdmhome /app/zdmhome /u01/zdmhome; do
-    if [ -d "$p" ]; then
-      printf '%s\n' "$p"
-      return
-    fi
-  done
-  printf '%s\n' ""
-}
 
-ZDM_HOME_EFFECTIVE="$(detect_zdm_home)"
-if [ -z "$ZDM_HOME_EFFECTIVE" ]; then
-  add_warning "ZDM_HOME could not be detected"
-fi
-
-extract_zdm_version() {
-  local home="$1"
-  local v=""
-
-  if [ -n "$home" ] && [ -f "$home/inventory/ContentsXML/comps.xml" ]; then
-    v="$(grep -i 'zero.*downtime\|zdm' "$home/inventory/ContentsXML/comps.xml" 2>/dev/null | head -n 1 | sed -E 's/.*VER=\"([^\"]+)\".*/\1/')"
-  fi
-  if [ -z "$v" ] && [ -n "$home" ] && [ -x "$home/OPatch/opatch" ]; then
-    v="$($home/OPatch/opatch lspatches 2>/dev/null | grep -Eo '[0-9]{2}\.[0-9]+' | head -n 1)"
-  fi
-  if [ -z "$v" ] && [ -n "$home" ] && [ -f "$home/version.txt" ]; then
-    v="$(head -n 1 "$home/version.txt" 2>/dev/null)"
-  fi
-  if [ -z "$v" ] && [ -n "$home" ]; then
-    v="$(echo "$home" | grep -Eo '[0-9]{2}\.[0-9]+' | head -n 1)"
-  fi
-  if [ -z "$v" ]; then
-    v="UNDETERMINED"
-  fi
-  printf '%s\n' "$v"
-}
-
-ZDM_VERSION="$(extract_zdm_version "$ZDM_HOME_EFFECTIVE")"
-
-{
-  echo "ZDM Step 2 Server Discovery"
-  echo "Timestamp: $TIMESTAMP"
-  echo "Host: $HOSTNAME_SHORT"
-  echo "Current User: $CURRENT_USER"
-  echo "Detected ZDM_HOME: ${ZDM_HOME_EFFECTIVE:-<empty>}"
-  echo "Detected ZDM Version: ${ZDM_VERSION}"
-} > "$OUT_TXT"
-
-append_command "OS - Host and Version" "hostname -f || hostname; cat /etc/os-release"
-append_command "OS - Disk Space" "df -h"
-append_command "OS - Users and Context" "whoami; id; echo HOME=$HOME"
-append_command "OS - Network" "ip route; cat /etc/resolv.conf; ip -brief addr || ip addr"
-
-append_command "ZDM Installation" "echo ZDM_HOME=$ZDM_HOME_EFFECTIVE; [ -x \"$ZDM_HOME_EFFECTIVE/bin/zdmcli\" ] && echo zdmcli=present || echo zdmcli=missing; [ -x \"$ZDM_HOME_EFFECTIVE/bin/zdmservice\" ] && \"$ZDM_HOME_EFFECTIVE/bin/zdmservice\" status || echo zdmservice not available"
-append_command "ZDM Jobs and Templates" "[ -x \"$ZDM_HOME_EFFECTIVE/bin/zdmcli\" ] && \"$ZDM_HOME_EFFECTIVE/bin/zdmcli\" query job -all || echo zdmcli query skipped; [ -d \"$ZDM_HOME_EFFECTIVE/rhp/zdm/template\" ] && ls -la \"$ZDM_HOME_EFFECTIVE/rhp/zdm/template\" || echo template dir not found"
-
-append_command "Java" "[ -x \"$ZDM_HOME_EFFECTIVE/jdk/bin/java\" ] && \"$ZDM_HOME_EFFECTIVE/jdk/bin/java\" -version || java -version"
-
-append_command "OCI Authentication" "[ -f ~/.oci/config ] && { echo '[INFO] ~/.oci/config found'; sed -E 's/(fingerprint|tenancy|user|key_file|region).*/\\1=***masked***/' ~/.oci/config; } || echo ~/.oci/config not found"
-append_command "SSH and Credentials" "ls -la ~/.ssh 2>/dev/null || echo ~/.ssh not found; ls -la ~/creds 2>/dev/null || echo ~/creds not found"
-
-if [ -n "$SOURCE_HOST" ]; then
-  append_command "Connectivity - SOURCE ping" "ping -c 10 $SOURCE_HOST"
-  append_command "Connectivity - SOURCE ports" "timeout 5 bash -lc '</dev/tcp/$SOURCE_HOST/22' && echo 'SOURCE 22 open' || echo 'SOURCE 22 closed'; timeout 5 bash -lc '</dev/tcp/$SOURCE_HOST/1521' && echo 'SOURCE 1521 open' || echo 'SOURCE 1521 closed'"
-fi
-
-if [ -n "$TARGET_HOST" ]; then
-  append_command "Connectivity - TARGET ping" "ping -c 10 $TARGET_HOST"
-  append_command "Connectivity - TARGET ports" "timeout 5 bash -lc '</dev/tcp/$TARGET_HOST/22' && echo 'TARGET 22 open' || echo 'TARGET 22 closed'; timeout 5 bash -lc '</dev/tcp/$TARGET_HOST/1521' && echo 'TARGET 1521 open' || echo 'TARGET 1521 closed'"
-fi
-
-free_low_count="$(df -BG --output=avail,target 2>/dev/null | awk 'NR>1 {gsub(/G/,"",$1); if ($1+0 < 50) c++} END {print c+0}')"
-if [ "${free_low_count:-0}" -gt 0 ]; then
-  add_warning "One or more filesystems have less than 50GB free"
-fi
-
-{
-  echo "{"
-  echo "  \"status\": \"$(json_escape "$status")\"," 
-  echo "  \"warnings\": ["
-  if [ ${#warnings[@]} -gt 0 ]; then
-    for i in "${!warnings[@]}"; do
-      comma=","
-      if [ "$i" -eq "$(( ${#warnings[@]} - 1 ))" ]; then
-        comma=""
+  if [ -z "$candidate" ]; then
+    for p in /u01/app /u02/app /mnt/app /opt /home; do
+      if [ -d "$p" ]; then
+        candidate="$(find "$p" -maxdepth 4 -type f -name zdmcli 2>/dev/null | head -n1 | sed 's#/rhp/bin/zdmcli##')"
+        [ -n "$candidate" ] && break
       fi
-      echo "    \"$(json_escape "${warnings[$i]}")\"$comma"
     done
   fi
-  echo "  ],"
+
+  RESOLVED_ZDM_HOME="$candidate"
+  if [ -z "$RESOLVED_ZDM_HOME" ]; then
+    add_warning "Unable to auto-detect ZDM_HOME"
+  fi
+}
+
+collect_disk_warning() {
+  log_section "OS - Disk Space"
+  df -Pk | tee -a "$TEXT_OUT"
+  while read -r fs kb used avail pct mountp; do
+    [ "$fs" = "Filesystem" ] && continue
+    if [ "$avail" -lt 52428800 ]; then
+      add_warning "Filesystem $mountp has less than 50 GB free"
+    fi
+  done < <(df -Pk)
+}
+
+check_connectivity() {
+  local label="$1"
+  local host="$2"
+
+  if [ -z "$host" ]; then
+    log_section "Connectivity - $label"
+    echo "Skipped: $label host not provided" | tee -a "$TEXT_OUT"
+    return
+  fi
+
+  log_section "Connectivity - $label ping"
+  local ping_out avg_rtt
+  ping_out="$(ping -c 10 "$host" 2>&1)"
+  echo "$ping_out" | tee -a "$TEXT_OUT"
+  if ! echo "$ping_out" | grep -q "min/avg/max"; then
+    add_warning "$label ping failed"
+  else
+    avg_rtt="$(echo "$ping_out" | awk -F'/' '/min\/avg\/max/ {print $5}')"
+    if [ -n "$avg_rtt" ]; then
+      awk -v avg="$avg_rtt" 'BEGIN {if (avg > 10.0) exit 1; exit 0}' || add_warning "$label average RTT is above 10 ms ($avg_rtt ms)"
+    fi
+  fi
+
+  log_section "Connectivity - $label ports"
+  for port in 22 1521; do
+    if bash -lc "timeout 3 bash -c '</dev/tcp/$host/$port'" 2>/dev/null; then
+      echo "Port $port on $host: open" | tee -a "$TEXT_OUT"
+    else
+      echo "Port $port on $host: closed/unreachable" | tee -a "$TEXT_OUT"
+      add_warning "$label port $port is closed or unreachable"
+    fi
+  done
+}
+
+: > "$TEXT_OUT"
+
+log_section "Script Metadata"
+{
+  echo "Timestamp: $TIMESTAMP"
+  echo "Host: $HOSTNAME_SHORT"
+  echo "Run user: $CURRENT_USER"
+} | tee -a "$TEXT_OUT"
+
+run_cmd "OS - Hostname/User/OS Version" "hostname; whoami; cat /etc/os-release 2>/dev/null || uname -a"
+collect_disk_warning
+
+find_zdm_home
+log_section "ZDM Installation - Home Detection"
+echo "ZDM_HOME resolved: ${RESOLVED_ZDM_HOME:-UNRESOLVED}" | tee -a "$TEXT_OUT"
+
+run_cmd "ZDM Installation - Version Sources" "if [ -n '$RESOLVED_ZDM_HOME' ]; then find '$RESOLVED_ZDM_HOME' -maxdepth 4 -type f \( -name 'inventory.xml' -o -name 'version.txt' -o -name '*build*' \) 2>/dev/null | head -n 20; fi"
+run_cmd "ZDM Installation - Oracle Inventory XML" "if [ -n '$RESOLVED_ZDM_HOME' ]; then grep -Rin 'zdm\|version' '$RESOLVED_ZDM_HOME'/*inventory* 2>/dev/null | head -n 20; fi"
+run_cmd "ZDM Installation - OPatch lspatches" "if [ -n '$RESOLVED_ZDM_HOME' ] && [ -x '$RESOLVED_ZDM_HOME/OPatch/opatch' ]; then '$RESOLVED_ZDM_HOME/OPatch/opatch' lspatches; else echo 'OPatch not found'; fi"
+run_cmd "ZDM Installation - zdmcli executable" "if [ -n '$RESOLVED_ZDM_HOME' ] && [ -x '$RESOLVED_ZDM_HOME/rhp/bin/zdmcli' ]; then ls -l '$RESOLVED_ZDM_HOME/rhp/bin/zdmcli'; else command -v zdmcli || echo 'zdmcli not found'; fi"
+run_cmd "ZDM Service Status" "if [ -n '$RESOLVED_ZDM_HOME' ] && [ -x '$RESOLVED_ZDM_HOME/rhp/bin/zdmservice' ]; then '$RESOLVED_ZDM_HOME/rhp/bin/zdmservice' status; else zdmservice status 2>/dev/null || echo 'zdmservice command not found'; fi"
+run_cmd "ZDM Active Jobs" "if [ -n '$RESOLVED_ZDM_HOME' ] && [ -x '$RESOLVED_ZDM_HOME/rhp/bin/zdmcli' ]; then '$RESOLVED_ZDM_HOME/rhp/bin/zdmcli' query job; else zdmcli query job 2>/dev/null || echo 'zdmcli command not found'; fi"
+run_cmd "ZDM Templates" "if [ -n '$RESOLVED_ZDM_HOME' ]; then ls -la '$RESOLVED_ZDM_HOME/rhp/zdm/template/' 2>/dev/null || true; fi"
+
+run_cmd "Java - Version and JAVA_HOME" "if [ -n '$RESOLVED_ZDM_HOME' ] && [ -x '$RESOLVED_ZDM_HOME/jdk/bin/java' ]; then '$RESOLVED_ZDM_HOME/jdk/bin/java' -version; echo 'JAVA_HOME=$RESOLVED_ZDM_HOME/jdk'; else java -version; echo \"JAVA_HOME=${JAVA_HOME:-unset}\"; fi"
+
+run_cmd "OCI Authentication Config" "for f in ~/.oci/config /home/$CURRENT_USER/.oci/config; do if [ -f \"$f\" ]; then echo \"--- $f ---\"; sed -E 's/(key_file|fingerprint|tenancy|user)=.*/\\1=<masked>/g' \"$f\"; fi; done"
+run_cmd "OCI API Key Permissions" "find ~/.oci -maxdepth 2 -type f -name '*.pem' -exec ls -l {} + 2>/dev/null || true"
+run_cmd "SSH and Credential Files" "ls -la ~/.ssh 2>/dev/null || true; find ~ -maxdepth 2 -type f \( -name '*cred*' -o -name '*pass*' -o -name '*.pwd' \) 2>/dev/null || true"
+
+run_cmd "Network - IP, Route, DNS" "hostname -I 2>/dev/null || true; ip route 2>/dev/null || route -n 2>/dev/null || true; cat /etc/resolv.conf 2>/dev/null || true"
+
+check_connectivity "SOURCE" "$SOURCE_HOST"
+check_connectivity "TARGET" "$TARGET_HOST"
+
+STATUS="success"
+if [ "$PARTIAL" -ne 0 ]; then
+  STATUS="partial"
+fi
+
+{
+  echo "{" 
+  echo "  \"status\": \"$(json_escape "$STATUS")\"," 
   echo "  \"host\": \"$(json_escape "$HOSTNAME_SHORT")\"," 
   echo "  \"timestamp\": \"$(json_escape "$TIMESTAMP")\"," 
-  echo "  \"zdm_home\": \"$(json_escape "${ZDM_HOME_EFFECTIVE:-}")\"," 
-  echo "  \"zdm_version\": \"$(json_escape "$ZDM_VERSION")\""
+  echo "  \"zdm_home\": \"$(json_escape "${RESOLVED_ZDM_HOME:-}")\"," 
+  echo "  \"warnings\": ["
+  if [ ${#WARNINGS[@]} -gt 0 ]; then
+    for i in "${!WARNINGS[@]}"; do
+      comma=","
+      if [ "$i" -eq "$(( ${#WARNINGS[@]} - 1 ))" ]; then
+        comma=""
+      fi
+      echo "    \"$(json_escape "${WARNINGS[$i]}")\"$comma"
+    done
+  fi
+  echo "  ]"
   echo "}"
-} > "$OUT_JSON"
+} > "$JSON_OUT"
 
-echo "Server discovery text report: $OUT_TXT"
-echo "Server discovery json report: $OUT_JSON"
+echo "Server discovery text report: $TEXT_OUT"
+echo "Server discovery JSON report: $JSON_OUT"
+
+if [ "$STATUS" = "partial" ]; then
+  exit 1
+fi
 
 exit 0

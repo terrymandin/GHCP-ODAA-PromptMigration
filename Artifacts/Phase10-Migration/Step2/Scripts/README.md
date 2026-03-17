@@ -1,59 +1,79 @@
 # Step 2 Discovery Scripts
 
-These scripts are generated using zdm-env.md values at creation time.
-They are runtime-independent and do not read zdm-env.md when executed on the jumpbox/ZDM server.
+These scripts are generated for ZDM migration Step 2 and are designed to run on the jumpbox/ZDM server.
 
-## Generated Scripts
+## Prerequisites
 
-- zdm_source_discovery.sh
-- zdm_target_discovery.sh
-- zdm_server_discovery.sh
-- zdm_orchestrate_discovery.sh
+- Run as `zdmuser` on the ZDM server
+- SSH access from ZDM server to source and target DB servers
+- SSH keys available in `~/.ssh/` when key-based auth is used
+- Oracle and ZDM utilities available on their respective hosts
+- OCI configuration available on the ZDM host if required for your environment
 
-All scripts are read-only and only collect discovery information.
+## Runtime Configuration
 
-## Defaults Rendered From zdm-env.md
+Set environment variables before running if your runtime values differ from the rendered defaults:
 
-- SOURCE_HOST=10.200.1.12
-- TARGET_HOST=10.200.0.250
-- SOURCE_ADMIN_USER=azureuser
-- TARGET_ADMIN_USER=opc
-- ORACLE_USER=oracle
-- ZDM_USER=zdmuser
-- SOURCE_REMOTE_ORACLE_HOME=/u01/app/oracle/product/19.0.0/dbhome_1
-- SOURCE_ORACLE_SID=POCAKV
-- SOURCE_DATABASE_UNIQUE_NAME=POCAKV
-- TARGET_REMOTE_ORACLE_HOME=/u02/app/oracle/product/19.0.0.0/dbhome_1
-- TARGET_ORACLE_SID=POKAKV1
-- TARGET_DATABASE_UNIQUE_NAME=POCAKV_ODAA
+```bash
+export SOURCE_HOST="10.200.1.12"
+export TARGET_HOST="10.200.0.250"
 
-SSH key placeholders (<...>) are treated as unset; scripts omit -i in that case.
+# Admin SSH users used for remote access
+export SOURCE_ADMIN_USER="azureuser"
+export TARGET_ADMIN_USER="opc"
 
-## Usage (on jumpbox/ZDM server)
+# Optional SSH keys. Leave empty to use SSH agent/default key.
+# Placeholder values (<...>) are treated as empty.
+export SOURCE_SSH_KEY=""
+export TARGET_SSH_KEY=""
 
-Run as zdmuser from repo clone:
+# Optional Oracle and ZDM user overrides
+export ORACLE_USER="oracle"
+export ZDM_USER="zdmuser"
+```
+
+You can display the effective runtime settings with:
+
+```bash
+bash zdm_orchestrate_discovery.sh -c
+```
+
+## Run Discovery
 
 ```bash
 cd Artifacts/Phase10-Migration/Step2/Scripts
-chmod +x *.sh
-./zdm_orchestrate_discovery.sh -c
-./zdm_orchestrate_discovery.sh
+bash zdm_orchestrate_discovery.sh
 ```
 
-Test connectivity only:
+Optional modes:
 
 ```bash
-./zdm_orchestrate_discovery.sh -t
+bash zdm_orchestrate_discovery.sh -t   # connectivity checks only
+bash zdm_orchestrate_discovery.sh -v   # verbose
+bash zdm_orchestrate_discovery.sh -h   # help
 ```
 
-## Output Locations
+## Output Files
 
-- Source outputs: Artifacts/Phase10-Migration/Step2/Discovery/source/
-- Target outputs: Artifacts/Phase10-Migration/Step2/Discovery/target/
-- ZDM server outputs: Artifacts/Phase10-Migration/Step2/Discovery/server/
+The orchestrator collects outputs into:
 
-## Notes
+- `Artifacts/Phase10-Migration/Step2/Discovery/source/`
+- `Artifacts/Phase10-Migration/Step2/Discovery/target/`
+- `Artifacts/Phase10-Migration/Step2/Discovery/server/`
 
-- Scripts SSH as admin users and run SQL as oracle via sudo -u oracle.
-- If SQL sections fail with ORA-01034, validate ORACLE_SID against pmon on the remote host.
-- If sqlplus is not found, validate ORACLE_HOME and install path.
+Each script writes:
+
+- `zdm_<type>_discovery_<hostname>_<timestamp>.txt`
+- `zdm_<type>_discovery_<hostname>_<timestamp>.json`
+
+## Important Notes
+
+- Scripts are read-only and gather discovery details only
+- `zdm-env.md` is generation-time input only; these scripts do not read it at runtime
+- If any discovery report has `"status": "partial"`, review warnings before continuing
+
+## Next Step
+
+After collecting discovery outputs, continue with:
+
+- `@Phase10-ZDM-Step3-Discovery-Questionnaire`

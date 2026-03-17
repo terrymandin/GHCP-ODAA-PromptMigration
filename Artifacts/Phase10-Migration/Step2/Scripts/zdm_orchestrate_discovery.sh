@@ -14,12 +14,13 @@ SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-~/.ssh/<source_key>.pem}"
 TARGET_SSH_KEY="${TARGET_SSH_KEY:-~/.ssh/<target_key>.pem}"
 SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-/u01/app/oracle/product/19.0.0/dbhome_1}"
 SOURCE_ORACLE_SID="${SOURCE_ORACLE_SID:-POCAKV}"
-SOURCE_DATABASE_UNIQUE_NAME="${SOURCE_DATABASE_UNIQUE_NAME:-POCAKV}"
 TARGET_REMOTE_ORACLE_HOME="${TARGET_REMOTE_ORACLE_HOME:-/u02/app/oracle/product/19.0.0.0/dbhome_1}"
 TARGET_ORACLE_SID="${TARGET_ORACLE_SID:-POKAKV1}"
+SOURCE_DATABASE_UNIQUE_NAME="${SOURCE_DATABASE_UNIQUE_NAME:-POCAKV}"
 TARGET_DATABASE_UNIQUE_NAME="${TARGET_DATABASE_UNIQUE_NAME:-POCAKV_ODAA}"
+
 VERBOSE=0
-TEST_ONLY=0
+CONNECTIVITY_ONLY=0
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STEP2_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -33,36 +34,51 @@ SSH_OPTS=(
   -o BatchMode=yes
   -o StrictHostKeyChecking=accept-new
   -o ConnectTimeout=15
-  -o PasswordAuthentication=no
 )
+
 SCP_OPTS=(
   -o BatchMode=yes
   -o StrictHostKeyChecking=accept-new
   -o ConnectTimeout=15
-  -o PasswordAuthentication=no
 )
 
-is_placeholder() { [[ "$1" == *"<"*">"* ]]; }
+SOURCE_OK=0
+TARGET_OK=0
+SERVER_OK=0
+
+is_placeholder() {
+  [[ "$1" == *"<"*">"* ]]
+}
+
+expand_home() {
+  local p="$1"
+  if [[ "$p" == ~/* ]]; then
+    printf '%s\n' "${HOME}/${p#~/}"
+  else
+    printf '%s\n' "$p"
+  fi
+}
 
 normalize_key() {
-  local key="$1"
-  if [ -z "$key" ] || is_placeholder "$key"; then
+  local raw="$1"
+  if [ -z "$raw" ] || is_placeholder "$raw"; then
     printf '%s\n' ""
     return
   fi
-  if [[ "$key" == ~/* ]]; then
-    printf '%s\n' "${HOME}/${key#~/}"
-    return
-  fi
-  printf '%s\n' "$key"
+  expand_home "$raw"
 }
 
-SOURCE_SSH_KEY="$(normalize_key "$SOURCE_SSH_KEY")"
-TARGET_SSH_KEY="$(normalize_key "$TARGET_SSH_KEY")"
+log_info() {
+  printf '[INFO] %s\n' "$1"
+}
 
-log_info() { echo "[INFO] $*"; }
-log_warn() { echo "[WARN] $*"; }
-log_error() { echo "[ERROR] $*"; }
+log_warn() {
+  printf '[WARN] %s\n' "$1"
+}
+
+log_error() {
+  printf '[ERROR] %s\n' "$1" >&2
+}
 
 show_help() {
   cat <<'EOF'
@@ -71,211 +87,272 @@ Usage: bash zdm_orchestrate_discovery.sh [options]
 Options:
   -h    Show help and exit
   -c    Show effective configuration and exit
-  -t    Connectivity tests only
-  -v    Verbose logging
+  -t    Connectivity test only (no discovery execution)
+  -v    Verbose output
 EOF
   exit 0
 }
 
 show_config() {
-  echo "SOURCE_HOST=$SOURCE_HOST"
-  echo "TARGET_HOST=$TARGET_HOST"
-  echo "SOURCE_ADMIN_USER=$SOURCE_ADMIN_USER"
-  echo "TARGET_ADMIN_USER=$TARGET_ADMIN_USER"
-  echo "ORACLE_USER=$ORACLE_USER"
-  echo "ZDM_USER=$ZDM_USER"
-  if [ -n "$SOURCE_SSH_KEY" ]; then echo "SOURCE_SSH_KEY=$SOURCE_SSH_KEY"; else echo "SOURCE_SSH_KEY=(agent/default)"; fi
-  if [ -n "$TARGET_SSH_KEY" ]; then echo "TARGET_SSH_KEY=$TARGET_SSH_KEY"; else echo "TARGET_SSH_KEY=(agent/default)"; fi
-  echo "SOURCE_REMOTE_ORACLE_HOME=${SOURCE_REMOTE_ORACLE_HOME:-<empty>}"
-  echo "SOURCE_ORACLE_SID=${SOURCE_ORACLE_SID:-<empty>}"
-  echo "SOURCE_DATABASE_UNIQUE_NAME=${SOURCE_DATABASE_UNIQUE_NAME:-<empty>}"
-  echo "TARGET_REMOTE_ORACLE_HOME=${TARGET_REMOTE_ORACLE_HOME:-<empty>}"
-  echo "TARGET_ORACLE_SID=${TARGET_ORACLE_SID:-<empty>}"
-  echo "TARGET_DATABASE_UNIQUE_NAME=${TARGET_DATABASE_UNIQUE_NAME:-<empty>}"
+  cat <<EOF
+Effective Configuration:
+  SOURCE_HOST=$SOURCE_HOST
+  TARGET_HOST=$TARGET_HOST
+  SOURCE_ADMIN_USER=$SOURCE_ADMIN_USER
+  TARGET_ADMIN_USER=$TARGET_ADMIN_USER
+  ORACLE_USER=$ORACLE_USER
+  ZDM_USER=$ZDM_USER
+  SOURCE_SSH_KEY=${SOURCE_SSH_KEY_NORM:-agent/default}
+  TARGET_SSH_KEY=${TARGET_SSH_KEY_NORM:-agent/default}
+  SOURCE_REMOTE_ORACLE_HOME=$SOURCE_REMOTE_ORACLE_HOME
+  SOURCE_ORACLE_SID=$SOURCE_ORACLE_SID
+  TARGET_REMOTE_ORACLE_HOME=$TARGET_REMOTE_ORACLE_HOME
+  TARGET_ORACLE_SID=$TARGET_ORACLE_SID
+  SOURCE_DATABASE_UNIQUE_NAME=$SOURCE_DATABASE_UNIQUE_NAME
+  TARGET_DATABASE_UNIQUE_NAME=$TARGET_DATABASE_UNIQUE_NAME
+EOF
   exit 0
 }
 
-while getopts ":hctv" opt; do
-  case "$opt" in
-    h) show_help ;;
-    c) show_config ;;
-    t) TEST_ONLY=1 ;;
-    v) VERBOSE=1 ;;
-    ?) log_error "Invalid option: -$OPTARG"; show_help ;;
-  esac
-done
+run_ssh_probe() {
+  local label="$1"
+  local user="$2"
+  local host="$3"
+  local key_path="$4"
 
-mkdir -p "$SOURCE_OUT_DIR" "$TARGET_OUT_DIR" "$SERVER_OUT_DIR"
+  local cmd=(ssh "${SSH_OPTS[@]}")
+  if [ -n "$key_path" ]; then
+    cmd+=( -i "$key_path" )
+  fi
+  cmd+=("${user}@${host}" "hostname")
 
-log_info "Startup diagnostic"
-log_info "Current user: $(whoami)"
-log_info "Home directory: $HOME"
-if [ "$(whoami)" != "$ZDM_USER" ]; then
-  log_warn "This script is expected to run as $ZDM_USER"
-fi
+  local output
+  output="$("${cmd[@]}" 2>&1)"
+  local rc=$?
 
-if [ -n "$SOURCE_SSH_KEY" ] && [ ! -f "$SOURCE_SSH_KEY" ]; then
-  log_warn "SOURCE_SSH_KEY is set but missing: $SOURCE_SSH_KEY"
-fi
-if [ -n "$TARGET_SSH_KEY" ] && [ ! -f "$TARGET_SSH_KEY" ]; then
-  log_warn "TARGET_SSH_KEY is set but missing: $TARGET_SSH_KEY"
-fi
+  if [ $rc -ne 0 ]; then
+    log_error "$label SSH probe failed: $output"
+    return 1
+  fi
 
-test_connectivity_host() {
+  log_info "$label SSH probe succeeded (remote host: $output)"
+  return 0
+}
+
+remote_run_discovery() {
   local label="$1"
   local host="$2"
   local admin_user="$3"
   local key_path="$4"
+  local local_script="$5"
+  local out_dir="$6"
 
-  log_info "Testing SSH connectivity to $label ($admin_user@$host)"
-  if ssh "${SSH_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}" "echo connected to $(hostname -f || hostname)"; then
-    log_info "$label connectivity test passed"
+  local remote_dir="/tmp/zdm_step2_${label,,}_${TIMESTAMP}"
+  local remote_script="$remote_dir/$(basename "$local_script")"
+
+  log_info "$label: preparing remote directory $remote_dir"
+
+  local ssh_cmd=(ssh "${SSH_OPTS[@]}")
+  local scp_cmd=(scp "${SCP_OPTS[@]}")
+  if [ -n "$key_path" ]; then
+    ssh_cmd+=( -i "$key_path" )
+    scp_cmd+=( -i "$key_path" )
+  fi
+
+  local mk_output
+  mk_output="$("${ssh_cmd[@]}" "${admin_user}@${host}" "mkdir -p '$remote_dir'" 2>&1)"
+  if [ $? -ne 0 ]; then
+    log_error "$label: failed to create remote directory: $mk_output"
+    return 1
+  fi
+
+  local cp_output
+  cp_output="$("${scp_cmd[@]}" "$local_script" "${admin_user}@${host}:$remote_script" 2>&1)"
+  if [ $? -ne 0 ]; then
+    log_error "$label: failed to copy script: $cp_output"
+    return 1
+  fi
+
+  log_info "$label: executing script via login shell"
+  local exec_output
+  exec_output="$("${ssh_cmd[@]}" "${admin_user}@${host}" "bash -l -s" < <(
+    echo "cd '$remote_dir'"
+    echo "chmod +x '$remote_script'"
+    echo "ORACLE_USER='$ORACLE_USER' SOURCE_REMOTE_ORACLE_HOME='$SOURCE_REMOTE_ORACLE_HOME' SOURCE_ORACLE_SID='$SOURCE_ORACLE_SID' TARGET_REMOTE_ORACLE_HOME='$TARGET_REMOTE_ORACLE_HOME' TARGET_ORACLE_SID='$TARGET_ORACLE_SID' SOURCE_DATABASE_UNIQUE_NAME='$SOURCE_DATABASE_UNIQUE_NAME' TARGET_DATABASE_UNIQUE_NAME='$TARGET_DATABASE_UNIQUE_NAME' bash '$remote_script'"
+  ) 2>&1)"
+  local exec_rc=$?
+  printf '%s\n' "$exec_output"
+
+  if [ $exec_rc -ne 0 ]; then
+    log_warn "$label: remote script returned non-zero exit code ($exec_rc)"
+  fi
+
+  log_info "$label: listing remote temp files"
+  local list_output
+  list_output="$("${ssh_cmd[@]}" "${admin_user}@${host}" "ls -la '$remote_dir'" 2>&1)"
+  if [ $? -ne 0 ]; then
+    log_warn "$label: unable to list remote temp directory: $list_output"
+  else
+    printf '%s\n' "$list_output"
+  fi
+
+  mkdir -p "$out_dir"
+
+  log_info "$label: copying discovery output files"
+  local fetch_output
+  fetch_output="$("${scp_cmd[@]}" "${admin_user}@${host}:$remote_dir/zdm_*_discovery_*.txt" "$out_dir/" 2>&1)"
+  if [ $? -ne 0 ]; then
+    log_warn "$label: failed to copy text output: $fetch_output"
+  fi
+
+  fetch_output="$("${scp_cmd[@]}" "${admin_user}@${host}:$remote_dir/zdm_*_discovery_*.json" "$out_dir/" 2>&1)"
+  if [ $? -ne 0 ]; then
+    log_warn "$label: failed to copy JSON output: $fetch_output"
+  fi
+
+  if [ $exec_rc -eq 0 ]; then
     return 0
   fi
-  log_error "$label connectivity test failed"
+
   return 1
 }
 
-if [ "$TEST_ONLY" -eq 1 ]; then
-  failed=0
-  test_connectivity_host "SOURCE" "$SOURCE_HOST" "$SOURCE_ADMIN_USER" "$SOURCE_SSH_KEY" || failed=$((failed + 1))
-  test_connectivity_host "TARGET" "$TARGET_HOST" "$TARGET_ADMIN_USER" "$TARGET_SSH_KEY" || failed=$((failed + 1))
+run_server_local() {
+  local server_script="$SCRIPT_DIR/zdm_server_discovery.sh"
+  mkdir -p "$SERVER_OUT_DIR"
 
-  if [ "$failed" -gt 0 ]; then
-    log_error "Connectivity test-only mode finished with failures: $failed"
-    exit 1
+  if [ ! -x "$server_script" ]; then
+    chmod +x "$server_script" 2>/dev/null || true
   fi
-  log_info "Connectivity test-only mode completed successfully"
-  exit 0
+
+  log_info "SERVER: running local ZDM discovery"
+  local output
+  output="$(cd "$SERVER_OUT_DIR" && SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash "$server_script" 2>&1)"
+  local rc=$?
+  printf '%s\n' "$output"
+
+  if [ $rc -ne 0 ]; then
+    log_warn "SERVER: local discovery returned non-zero exit code ($rc)"
+    return 1
+  fi
+
+  return 0
+}
+
+startup_diagnostics() {
+  log_info "Current user: $(whoami)"
+  log_info "Home directory: $HOME"
+  if [ "$(whoami)" != "$ZDM_USER" ]; then
+    log_warn "Script should normally run as $ZDM_USER"
+  fi
+
+  local ssh_list
+  ssh_list="$(ls -1 "$HOME/.ssh"/*.{pem,key} 2>/dev/null || true)"
+  if [ -z "$ssh_list" ]; then
+    log_warn "No .pem or .key files found in $HOME/.ssh"
+  else
+    log_info "Discovered SSH key files in $HOME/.ssh:"
+    printf '%s\n' "$ssh_list"
+  fi
+
+  if [ -z "$SOURCE_SSH_KEY_NORM" ]; then
+    log_info "SOURCE_SSH_KEY: using SSH agent/default key"
+  else
+    if [ -f "$SOURCE_SSH_KEY_NORM" ]; then
+      log_info "SOURCE_SSH_KEY resolved and found: $SOURCE_SSH_KEY_NORM"
+    else
+      log_warn "SOURCE_SSH_KEY resolved but missing: $SOURCE_SSH_KEY_NORM"
+    fi
+  fi
+
+  if [ -z "$TARGET_SSH_KEY_NORM" ]; then
+    log_info "TARGET_SSH_KEY: using SSH agent/default key"
+  else
+    if [ -f "$TARGET_SSH_KEY_NORM" ]; then
+      log_info "TARGET_SSH_KEY resolved and found: $TARGET_SSH_KEY_NORM"
+    else
+      log_warn "TARGET_SSH_KEY resolved but missing: $TARGET_SSH_KEY_NORM"
+    fi
+  fi
+}
+
+while getopts ":hctv" opt; do
+  case "$opt" in
+    h)
+      show_help
+      ;;
+    c)
+      CONNECTIVITY_ONLY=0
+      ;;
+    t)
+      CONNECTIVITY_ONLY=1
+      ;;
+    v)
+      VERBOSE=1
+      ;;
+    :) 
+      log_error "Option -$OPTARG requires an argument"
+      exit 1
+      ;;
+    \?)
+      log_error "Invalid option: -$OPTARG"
+      exit 1
+      ;;
+  esac
+done
+
+SOURCE_SSH_KEY_NORM="$(normalize_key "$SOURCE_SSH_KEY")"
+TARGET_SSH_KEY_NORM="$(normalize_key "$TARGET_SSH_KEY")"
+
+if printf '%s' "$*" | grep -q -- ' -c'; then
+  show_config
 fi
 
-run_remote_discovery() {
-  local type="$1"
-  local host="$2"
-  local admin_user="$3"
-  local key_path="$4"
-  local local_script="$5"
-  local local_output_dir="$6"
-  shift 6
-  local remote_env=("$@")
-  local remote_dir="/tmp/zdm_step2_${type}_${TIMESTAMP}"
-  local remote_exec_cmd="mkdir -p '$remote_dir' && env"
+mkdir -p "$SOURCE_OUT_DIR" "$TARGET_OUT_DIR" "$SERVER_OUT_DIR"
 
-  local kv
-  for kv in "${remote_env[@]}"; do
-    remote_exec_cmd+=" $(printf '%q' "$kv")"
-  done
-  remote_exec_cmd+=" bash -l -s"
+startup_diagnostics
 
-  if [ ! -f "$local_script" ]; then
-    log_error "Missing local script: $local_script"
-    return 1
-  fi
-
-  log_info "Preparing remote directory on $type host: $remote_dir"
-  if ! ssh "${SSH_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}" "mkdir -p '$remote_dir'"; then
-    log_error "Failed to create remote directory on $type host"
-    return 1
-  fi
-
-  log_info "Copying $local_script to $type host"
-  if ! scp "${SCP_OPTS[@]}" ${key_path:+-i "$key_path"} "$local_script" "${admin_user}@${host}:$remote_dir/"; then
-    log_error "SCP failed for $type script"
-    return 1
-  fi
-
-  log_info "Executing $type discovery script via login shell"
-  if ! ssh "${SSH_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}" "$remote_exec_cmd" < <(echo "cd '$remote_dir'"; cat "$local_script"); then
-    log_error "$type discovery script execution failed"
-    return 1
-  fi
-
-  log_info "Copying $type outputs to $local_output_dir"
-  if ! scp "${SCP_OPTS[@]}" ${key_path:+-i "$key_path"} "${admin_user}@${host}:$remote_dir/zdm_${type}_discovery_*" "$local_output_dir/"; then
-    log_error "Failed to copy $type outputs from remote host"
-    return 1
-  fi
-
-  log_info "$type discovery completed successfully"
-  return 0
-}
-
-run_local_zdm_discovery() {
-  local local_script="$1"
-  local local_output_dir="$2"
-  local tmp_dir="/tmp/zdm_step2_server_${TIMESTAMP}"
-
-  mkdir -p "$tmp_dir"
-  cp "$local_script" "$tmp_dir/"
-
-  log_info "Running server discovery locally as $ZDM_USER"
-  if ! (cd "$tmp_dir" && SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash "$(basename "$local_script")"); then
-    log_error "Local server discovery failed"
-    return 1
-  fi
-
-  log_info "Copying server outputs to $local_output_dir"
-  if ! cp "$tmp_dir"/zdm_server_discovery_* "$local_output_dir/"; then
-    log_error "Failed to copy server discovery outputs"
-    return 1
-  fi
-
-  log_info "Server discovery completed successfully"
-  return 0
-}
-
-source_result="FAILED"
-target_result="FAILED"
-server_result="FAILED"
-
-source_remote_env=(
-  "ORACLE_USER=$ORACLE_USER"
-  "SOURCE_REMOTE_ORACLE_HOME=$SOURCE_REMOTE_ORACLE_HOME"
-  "SOURCE_ORACLE_SID=$SOURCE_ORACLE_SID"
-  "SOURCE_DATABASE_UNIQUE_NAME=$SOURCE_DATABASE_UNIQUE_NAME"
-)
-
-target_remote_env=(
-  "ORACLE_USER=$ORACLE_USER"
-  "TARGET_REMOTE_ORACLE_HOME=$TARGET_REMOTE_ORACLE_HOME"
-  "TARGET_ORACLE_SID=$TARGET_ORACLE_SID"
-  "TARGET_DATABASE_UNIQUE_NAME=$TARGET_DATABASE_UNIQUE_NAME"
-)
-
-run_remote_discovery \
-  "source" \
-  "$SOURCE_HOST" \
-  "$SOURCE_ADMIN_USER" \
-  "$SOURCE_SSH_KEY" \
-  "$SCRIPT_DIR/zdm_source_discovery.sh" \
-  "$SOURCE_OUT_DIR" \
-  "${source_remote_env[@]}" && source_result="SUCCESS"
-
-run_remote_discovery \
-  "target" \
-  "$TARGET_HOST" \
-  "$TARGET_ADMIN_USER" \
-  "$TARGET_SSH_KEY" \
-  "$SCRIPT_DIR/zdm_target_discovery.sh" \
-  "$TARGET_OUT_DIR" \
-  "${target_remote_env[@]}" && target_result="SUCCESS"
-
-run_local_zdm_discovery \
-  "$SCRIPT_DIR/zdm_server_discovery.sh" \
-  "$SERVER_OUT_DIR" && server_result="SUCCESS"
-
-log_info "Discovery orchestration summary"
-log_info "Source: $source_result"
-log_info "Target: $target_result"
-log_info "Server: $server_result"
-log_info "Outputs:"
-log_info "  Source -> $SOURCE_OUT_DIR"
-log_info "  Target -> $TARGET_OUT_DIR"
-log_info "  Server -> $SERVER_OUT_DIR"
-
-if [ "$source_result" != "SUCCESS" ] || [ "$target_result" != "SUCCESS" ] || [ "$server_result" != "SUCCESS" ]; then
-  log_warn "One or more discovery runs failed; review logs and re-run as needed"
+if [ -z "$SOURCE_HOST" ] || [ -z "$TARGET_HOST" ]; then
+  log_error "SOURCE_HOST and TARGET_HOST must be set"
   exit 1
 fi
 
-exit 0
+log_info "Testing source and target SSH connectivity"
+run_ssh_probe "SOURCE" "$SOURCE_ADMIN_USER" "$SOURCE_HOST" "$SOURCE_SSH_KEY_NORM" || true
+run_ssh_probe "TARGET" "$TARGET_ADMIN_USER" "$TARGET_HOST" "$TARGET_SSH_KEY_NORM" || true
+
+if [ "$CONNECTIVITY_ONLY" -eq 1 ]; then
+  log_info "Connectivity test mode complete"
+  exit 0
+fi
+
+if remote_run_discovery "SOURCE" "$SOURCE_HOST" "$SOURCE_ADMIN_USER" "$SOURCE_SSH_KEY_NORM" "$SCRIPT_DIR/zdm_source_discovery.sh" "$SOURCE_OUT_DIR"; then
+  SOURCE_OK=1
+else
+  SOURCE_OK=0
+fi
+
+if remote_run_discovery "TARGET" "$TARGET_HOST" "$TARGET_ADMIN_USER" "$TARGET_SSH_KEY_NORM" "$SCRIPT_DIR/zdm_target_discovery.sh" "$TARGET_OUT_DIR"; then
+  TARGET_OK=1
+else
+  TARGET_OK=0
+fi
+
+if run_server_local; then
+  SERVER_OK=1
+else
+  SERVER_OK=0
+fi
+
+log_info "Discovery Summary"
+log_info "SOURCE: $([ "$SOURCE_OK" -eq 1 ] && echo SUCCESS || echo FAILED)"
+log_info "TARGET: $([ "$TARGET_OK" -eq 1 ] && echo SUCCESS || echo FAILED)"
+log_info "SERVER: $([ "$SERVER_OK" -eq 1 ] && echo SUCCESS || echo FAILED)"
+
+if [ "$SOURCE_OK" -eq 1 ] && [ "$TARGET_OK" -eq 1 ] && [ "$SERVER_OK" -eq 1 ]; then
+  log_info "Step2 discovery completed successfully"
+  exit 0
+fi
+
+log_warn "Step2 discovery completed with failures. Review logs and outputs in $DISCOVERY_DIR"
+exit 1
