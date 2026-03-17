@@ -1,0 +1,77 @@
+
+===== Script Metadata =====
+Timestamp: 20260317-214217
+Host: factvmhost
+Run user: azureuser
+Rendered SOURCE_DATABASE_UNIQUE_NAME: POCAKV
+
+===== Resolved Oracle Environment =====
+ORACLE_HOME: /u02/app/oracle/product/19.0.0.0/dbhome_1
+ORACLE_SID: MCKESS
+ORACLE_USER: oracle
+
+===== OS - Hostname, IP, OS Version =====
+$ hostname; hostname -I 2>/dev/null || true; cat /etc/os-release 2>/dev/null || uname -a
+factvmhost
+10.200.1.12 
+NAME="Oracle Linux Server"
+VERSION="7.9"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="7.9"
+PRETTY_NAME="Oracle Linux Server 7.9"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:7:9:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://bugzilla.oracle.com/"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 7"
+ORACLE_BUGZILLA_PRODUCT_VERSION=7.9
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=7.9
+
+===== OS - Disk Space =====
+$ df -h
+Filesystem                                                            Size  Used Avail Use% Mounted on
+devtmpfs                                                              7.7G     0  7.7G   0% /dev
+tmpfs                                                                 7.7G     0  7.7G   0% /dev/shm
+tmpfs                                                                 7.7G  761M  7.0G  10% /run
+tmpfs                                                                 7.7G     0  7.7G   0% /sys/fs/cgroup
+/dev/mapper/rootvg-rootlv                                             117G   99G   19G  85% /
+/dev/mapper/rootvg-crashlv                                             10G   33M   10G   1% /var/crash
+/dev/sdb1                                                             797M  242M  555M  31% /boot
+/dev/sdb15                                                            495M  8.6M  487M   2% /boot/efi
+/dev/sda1                                                              32G   17G   14G  54% /mnt
+tmpfs                                                                 1.6G     0  1.6G   0% /run/user/54322
+tmpfs                                                                 1.6G     0  1.6G   0% /run/user/0
+factsa060120226.blob.core.windows.net:/factsa060120226/odaamigration  5.0P     0  5.0P   0% /nfstest1
+saadb12feb2026.file.core.windows.net:/saadb12feb2026/adbshare01       1.0T  3.2G 1021G   1% /nfstest
+
+===== Oracle Environment - Shell Values =====
+$ env | grep -E '^(ORACLE_|TNS_ADMIN|PATH)=' || true
+PATH=/u02/app/oracle/product/19.0.0.0/dbhome_1/bin:/u02/app/oracle/product/19.0.0.0/dbhome_1/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/azureuser/.local/bin:/home/azureuser/bin:/home/azureuser/.local/bin:/home/azureuser/bin
+
+===== Oracle Environment - Oracle Version =====
+$ /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus -v 2>/dev/null || sqlplus -v 2>/dev/null || true
+
+
+===== Database Configuration =====
+Skipped: sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus
+
+===== Container Database =====
+Skipped: sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus
+
+===== TDE =====
+Skipped: sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus
+
+===== Tablespaces =====
+Skipped: sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus
+
+===== Redo and Archive =====
+Skipped: sqlplus not found at /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus
+
+===== Network - Listener Status =====
+$ lsnrctl status
+bash: lsnrctl: command not found

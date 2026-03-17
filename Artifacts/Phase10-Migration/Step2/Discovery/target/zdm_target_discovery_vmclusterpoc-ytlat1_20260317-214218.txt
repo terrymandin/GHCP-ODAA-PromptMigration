@@ -1,0 +1,62 @@
+
+===== Script Metadata =====
+Timestamp: 20260317-214218
+Host: vmclusterpoc-ytlat1
+Run user: opc
+Rendered TARGET_DATABASE_UNIQUE_NAME: POCAKV_ODAA
+
+===== Resolved Oracle Environment =====
+ORACLE_HOME: /u02/app/oracle/product/19.0.0.0/dbhome_1
+ORACLE_SID: POKAKV1
+ORACLE_USER: oracle
+
+===== OS - Hostname, IP, OS Version =====
+$ hostname; hostname -I 2>/dev/null || true; cat /etc/os-release 2>/dev/null || uname -a
+vmclusterpoc-ytlat1
+10.200.0.250 10.200.0.241 10.200.0.30 10.200.0.101 10.200.2.50 169.254.200.14 100.106.64.140 100.106.64.141 100.107.0.176 100.107.0.177 
+NAME="Oracle Linux Server"
+VERSION="8.10"
+ID="ol"
+ID_LIKE="fedora"
+VARIANT="Server"
+VARIANT_ID="server"
+VERSION_ID="8.10"
+PLATFORM_ID="platform:el8"
+PRETTY_NAME="Oracle Linux Server 8.10"
+ANSI_COLOR="0;31"
+CPE_NAME="cpe:/o:oracle:linux:8:10:server"
+HOME_URL="https://linux.oracle.com/"
+BUG_REPORT_URL="https://github.com/oracle/oracle-linux"
+
+ORACLE_BUGZILLA_PRODUCT="Oracle Linux 8"
+ORACLE_BUGZILLA_PRODUCT_VERSION=8.10
+ORACLE_SUPPORT_PRODUCT="Oracle Linux"
+ORACLE_SUPPORT_PRODUCT_VERSION=8.10
+
+===== Oracle Environment - Shell Values =====
+$ env | grep -E '^(ORACLE_|TNS_ADMIN|PATH)=' || true
+PATH=/home/opc/.local/bin:/home/opc/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin
+
+===== Oracle Environment - Oracle Version =====
+$ /u02/app/oracle/product/19.0.0.0/dbhome_1/bin/sqlplus -v 2>/dev/null || sqlplus -v 2>/dev/null || true
+
+
+===== Database Configuration =====
+SP2-0310: unable to open file "/tmp/zdm_target_sql_oQLv.sql"
+
+===== Container Database =====
+SP2-0310: unable to open file "/tmp/zdm_target_sql_uE4r.sql"
+
+===== TDE Wallet =====
+SP2-0310: unable to open file "/tmp/zdm_target_sql_kyZ7.sql"
+
+===== ASM Diskgroup =====
+SP2-0310: unable to open file "/tmp/zdm_target_sql_6SQl.sql"
+
+===== Storage - ASM and Exadata free space =====
+$ asmcmd lsdg 2>/dev/null || true; cellcli -e 'list griddisk attributes name,size,freespace' 2>/dev/null || true; cellcli -e 'list celldisk attributes name,size,freespace' 2>/dev/null || true
+
+
+===== Network - Listener and SCAN =====
+$ lsnrctl status; srvctl status scan_listener 2>/dev/null || true
+bash: lsnrctl: command not found
