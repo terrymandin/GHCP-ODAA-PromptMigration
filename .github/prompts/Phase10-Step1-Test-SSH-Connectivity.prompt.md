@@ -25,6 +25,17 @@ Required values in `zdm-env.md`:
 - `SOURCE_SSH_KEY`
 - `TARGET_SSH_KEY`
 
+DB-specific value scope for Step 1-5 prompts:
+- `SOURCE_REMOTE_ORACLE_HOME`
+- `SOURCE_ORACLE_SID`
+- `TARGET_REMOTE_ORACLE_HOME`
+- `TARGET_ORACLE_SID`
+- `SOURCE_DATABASE_UNIQUE_NAME`
+- `TARGET_DATABASE_UNIQUE_NAME`
+
+ZDM-specific value scope for Step 1-5 prompts:
+- `ZDM_HOME`
+
 ---
 
 ## Instructions

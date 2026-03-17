@@ -23,6 +23,17 @@ Before running this prompt:
 
 Attach the Discovery Summary and run this prompt to get remediation guidance:
 
+DB-specific value scope for Step 1-5 prompts:
+- `SOURCE_REMOTE_ORACLE_HOME`
+- `SOURCE_ORACLE_SID`
+- `TARGET_REMOTE_ORACLE_HOME`
+- `TARGET_ORACLE_SID`
+- `SOURCE_DATABASE_UNIQUE_NAME`
+- `TARGET_DATABASE_UNIQUE_NAME`
+
+ZDM-specific value scope for Step 1-5 prompts:
+- `ZDM_HOME`
+
 ```
 @Phase10-ZDM-Step4-Fix-Issues
 
@@ -79,7 +90,7 @@ Analyze the Discovery Summary and categorize issues:
 | Category | Priority | Examples |
 |----------|----------|----------|
 | ❌ **Blockers** | Critical | Database not in ARCHIVELOG mode, version incompatibility |
-| ⚠️ **Required Actions** | High | Supplemental logging not enabled, OCI CLI not installed |
+| ⚠️ **Required Actions** | High | Supplemental logging not enabled, OCI config missing for zdmuser |
 | ⚡ **Recommendations** | Medium | Performance optimizations, security improvements |
 
 ### Part 2: Generate Remediation Scripts
@@ -295,7 +306,7 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
 | Issue | Status | Date Resolved | Verified By |
 |-------|--------|---------------|-------------|
 | Enable supplemental logging | 🔲 Pending | | |
-| Install OCI CLI | 🔲 Pending | | |
+| Configure OCI authentication for zdmuser | 🔲 Pending | | |
 | Configure network connectivity | 🔲 Pending | | |
 
 ## Issue Details
@@ -362,16 +373,16 @@ SELECT FORCE_LOGGING FROM V$DATABASE;
 
 ### ZDM Server Issues
 
-#### 4. OCI CLI Not Installed
+#### 4. OCI Authentication Config Missing or Invalid
 ```bash
-# Install OCI CLI
-bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
+# Check OCI config for zdmuser on ZDM server
+ls -l ~/.oci/config ~/.oci/oci_api_key.pem
 
-# Configure
-oci setup config
+# Validate expected key settings exist
+grep -E '^(user|fingerprint|tenancy|region|key_file)=' ~/.oci/config
 
-# Verify
-oci os ns get
+# Verify key file permissions
+stat -c '%a %n' ~/.oci/oci_api_key.pem
 ```
 
 #### 5. SSH Key Authentication Issues

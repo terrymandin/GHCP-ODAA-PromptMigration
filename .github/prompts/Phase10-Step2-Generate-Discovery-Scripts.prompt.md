@@ -13,6 +13,17 @@ migration steps.
 Attach `zdm-env.md` to this prompt to supply hostnames, SSH users, key paths, and optional
 overrides for your specific environment.
 
+DB-specific value scope for Step 1-5 prompts:
+- `SOURCE_REMOTE_ORACLE_HOME`
+- `SOURCE_ORACLE_SID`
+- `TARGET_REMOTE_ORACLE_HOME`
+- `TARGET_ORACLE_SID`
+- `SOURCE_DATABASE_UNIQUE_NAME`
+- `TARGET_DATABASE_UNIQUE_NAME`
+
+ZDM-specific value scope for Step 1-5 prompts:
+- `ZDM_HOME`
+
 ---
 
 ## Read-Only Constraint
@@ -125,7 +136,7 @@ Executed via SSH as `TARGET_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u 
 - Listener status, SCAN listener (if RAC), `tnsnames.ora` contents
 
 **OCI/Azure Integration**
-- OCI CLI version, config file location, connectivity test
+- OCI config file location and profile metadata (masked/sanitized)
 - Instance metadata (OCI and Azure)
 
 **Grid Infrastructure**
@@ -133,7 +144,7 @@ Executed via SSH as `TARGET_ADMIN_USER`; SQL runs as `oracle` user via `sudo -u 
 
 **Network Security**
 - `iptables` / `firewalld` rules affecting Oracle listener ports (22, 1521, 2484)
-- OCI NSG rules if accessible via OCI CLI
+- OCI/Azure NSG references if metadata is available from host context
 
 ---
 
@@ -173,9 +184,9 @@ Collect:
 **Java**
 - Java version and JAVA_HOME (check ZDM bundled JDK at `$ZDM_HOME/jdk` first)
 
-**OCI CLI**
-- Version, config file location and masked contents, configured profiles/regions
-- API key file existence, connectivity test
+**OCI Authentication Configuration**
+- Config file location and masked contents, configured profiles/regions
+- API key file existence and file permissions
 
 **SSH / Credentials**
 - SSH keys in `~/.ssh/`; credential/password files in zdmuser's home
@@ -284,7 +295,7 @@ Artifacts/Phase10-Migration/Step2/Discovery/server/
 ```
 
 Also create `Artifacts/Phase10-Migration/Step2/Scripts/README.md` explaining:
-- Prerequisites (zdmuser account, SSH keys in place, OCI CLI configured)
+- Prerequisites (zdmuser account, SSH keys in place, OCI config available for ZDM if required)
 - How to set required environment variables (`SOURCE_HOST`, `TARGET_HOST`, SSH users, SSH keys)
 - How to run: `bash zdm_orchestrate_discovery.sh`
 - Where to find output files and what to do next (Step 3)

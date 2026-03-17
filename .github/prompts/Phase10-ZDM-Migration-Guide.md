@@ -150,7 +150,7 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 **Common Issues to Address:**
 - Enable supplemental logging on source database
-- Install and configure OCI CLI on ZDM server
+- Configure OCI authentication files for zdmuser on ZDM server
 - Configure network connectivity (NSG/firewall rules)
 - Set up SSH key authentication
 - Verify TDE wallet configuration
@@ -373,7 +373,7 @@ Artifacts/Phase10-Migration/
 
 ### ZDM Server
 - ZDM 21c or later installed
-- OCI CLI configured with API key authentication
+- OCI authentication files configured with API key authentication for zdmuser
 - SSH key access to source and target servers
 - Java 8+ installed
 
@@ -414,4 +414,4 @@ Artifacts/Phase10-Migration/
 
 - [Oracle ZDM Documentation](https://docs.oracle.com/en/database/oracle/zero-downtime-migration/)
 - [Oracle Database@Azure Documentation](https://docs.oracle.com/en-us/iaas/Content/multicloud/oaa.htm)
-- [OCI CLI Documentation](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/cliconcepts.htm)
+- [OCI API Signing Key and Config Documentation](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm)
