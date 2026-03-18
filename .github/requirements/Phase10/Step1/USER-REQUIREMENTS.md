@@ -6,9 +6,10 @@ Generate a single SSH validation script for pre-discovery connectivity checks.
 
 ## S1-01: Output contract
 
-Required generated file:
+Required generated files:
 
 - `Artifacts/Phase10-Migration/Step1/Scripts/zdm_test_ssh_connectivity.sh`
+- `Artifacts/Phase10-Migration/Step1/README.md`
 
 Do not generate runtime report files during prompt execution.
 
@@ -29,6 +30,20 @@ Step1 report outputs should include at least:
 4. Source connectivity check result (`hostname` probe) with pass/fail status.
 5. Target connectivity check result (`hostname` probe) with pass/fail status.
 6. Final summary status and non-zero exit behavior when any check fails.
+
+## S1-02B: Report completeness and parity gates
+
+When the runtime script writes Step1 reports, it must ensure both output files are complete and aligned:
+
+1. Markdown and JSON report files must both exist and be non-empty.
+2. Markdown report must include populated value lines for each required section, not only section headers.
+3. Markdown and JSON summary values must match for overall status and failure count.
+4. If any completeness/parity check fails, script must print a clear fail reason and exit non-zero.
+
+## S1-02C: Runtime report-write error handling
+
+1. If runtime report generation fails, script output must show a clear, actionable error message to the user.
+2. Any runtime report-write error must be treated as a Step1 failure and force non-zero exit.
 
 ## S1-04: Required input values
 

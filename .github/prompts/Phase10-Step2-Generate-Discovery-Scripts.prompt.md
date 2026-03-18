@@ -51,6 +51,7 @@ Generate exactly these files:
 - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_target_discovery.sh`
 - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh`
 - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_orchestrate_discovery.sh`
+- `Artifacts/Phase10-Migration/Step2/README.md`
 - `Artifacts/Phase10-Migration/Step2/Scripts/README.md`
 
 Create placeholder directories:
@@ -60,6 +61,12 @@ Create placeholder directories:
 
 `Artifacts/Phase10-Migration/Step2/Scripts/README.md` must summarize:
 - generated files for Step2,
+- what the user should run later on jumpbox/ZDM server,
+- where runtime outputs/logs/reports are written,
+- success/failure signals to check.
+
+`Artifacts/Phase10-Migration/Step2/README.md` must summarize:
+- generated files and directories for Step2,
 - what the user should run later on jumpbox/ZDM server,
 - where runtime outputs/logs/reports are written,
 - success/failure signals to check.

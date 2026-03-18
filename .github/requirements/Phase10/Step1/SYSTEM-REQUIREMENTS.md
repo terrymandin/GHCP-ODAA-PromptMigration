@@ -32,3 +32,21 @@ Minimum expectation:
 
 1. The generated script is intended to run as `zdmuser` on the jumpbox/ZDM server.
 2. Step1 documentation must state the required runtime user explicitly.
+
+## S1-08: Shell-safe report rendering
+
+When writing markdown/json report content from shell:
+
+1. Formatting logic must be safe for lines that start with `-` or other option-like prefixes.
+2. Avoid `printf` option parsing hazards by using shell-safe patterns (for example `printf -- '...\n'` or equivalent `%s`-based formatting for leading-dash literals).
+3. Report rendering must not emit raw shell usage/invalid-option noise to users; rendering failures must be surfaced as explicit Step1 validation errors.
+4. Report rendering must behave consistently under bash on Oracle Linux/RHEL-family systems used for ZDM jumpboxes.
+
+## S1-09: Runtime report write verification
+
+After writing runtime reports, script must run explicit verification checks:
+
+1. Confirm markdown and JSON report files exist and are non-empty.
+2. Confirm markdown contains populated value lines for each required report section.
+3. Confirm markdown/json summary parity for overall status and failure count.
+4. If any verification fails, print fail reason to console and exit non-zero.

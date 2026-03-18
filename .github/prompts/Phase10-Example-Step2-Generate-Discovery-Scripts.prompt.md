@@ -19,6 +19,7 @@ Generate Step 2 discovery scripts.
 
 ```
 Artifacts/Phase10-Migration/Step2/
+├── README.md
 ├── Scripts/
 │   ├── zdm_source_discovery.sh
 │   ├── zdm_target_discovery.sh
@@ -36,7 +37,7 @@ Artifacts/Phase10-Migration/Step2/
 - Generation-only step: create files and placeholder directories only; do not run SSH/SQL/discovery in VS Code.
 - If `zdm-env.md` is attached, treat it as authoritative input, prefer it over defaults, and report conflicts with evidence instead of silently overriding.
 - Generated scripts are runtime-independent from `zdm-env.md`; runtime outputs are created later on jumpbox/ZDM server.
-- Output contract: four scripts plus `Artifacts/Phase10-Migration/Step2/Scripts/README.md`, and placeholder directories under `Artifacts/Phase10-Migration/Step2/Discovery/{source,target,server}`.
+- Output contract: four scripts plus `Artifacts/Phase10-Migration/Step2/README.md` and `Artifacts/Phase10-Migration/Step2/Scripts/README.md`, and placeholder directories under `Artifacts/Phase10-Migration/Step2/Discovery/{source,target,server}`.
 - Scripts are strictly read-only (`SELECT`-only SQL, no mutation commands) and include a read-only banner comment.
 - Auth model: source/target SSH as admin user then SQL as `oracle` via `sudo -u oracle`; ZDM server script runs locally as `zdmuser` with a user guard.
 - SSH key normalization is required: empty/placeholder key values are treated as unset, and `-i` is included only when the normalized key path is non-empty.

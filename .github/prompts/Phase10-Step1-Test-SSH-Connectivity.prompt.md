@@ -94,13 +94,23 @@ Generated script behavior requirements:
    - source connectivity (`hostname`) pass/fail,
    - target connectivity (`hostname`) pass/fail,
    - final summary status and non-zero behavior when any check fails.
-8. Runtime console output must include:
+8. When writing markdown/json report content from shell, use shell-safe rendering patterns that cannot misinterpret leading `-` literals as command options.
+   - Avoid `printf` option parsing hazards by using safe patterns such as `printf -- '...\n'` or `%s`-based formatting for option-like literals.
+   - Report rendering must not emit raw shell usage/invalid-option noise; rendering failures must be surfaced as explicit Step1 validation errors.
+   - Rendering must behave consistently under bash on Oracle Linux/RHEL-family ZDM jumpboxes.
+9. After writing runtime markdown/json reports, run explicit report verification checks:
+   - confirm both report files exist and are non-empty,
+   - confirm markdown includes populated value lines for each required report section (not section headers only),
+   - confirm markdown/json summary parity for overall status and failure count.
+   If any verification fails, print a clear fail reason and exit non-zero.
+10. If runtime report generation/write fails for any reason, print a clear actionable error message and force non-zero exit.
+11. Runtime console output must include:
    - per-check pass/fail status for major checks (minimum: source probe and target probe),
    - final overall pass/fail summary.
-9. Exit code contract:
+12. Exit code contract:
    - `0` when all checks pass,
    - non-zero when any check fails.
-10. Include single-line manual SSH test commands for both endpoints in script output/help comments:
+13. Include single-line manual SSH test commands for both endpoints in script output/help comments:
     - default key/agent mode: `ssh user@host ...`
     - explicit key mode: `ssh -i <key> user@host ...`
     Commands must use the same non-interactive options and `hostname` probe behavior as script execution.
