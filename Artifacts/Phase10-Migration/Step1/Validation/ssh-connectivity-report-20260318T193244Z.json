@@ -1,0 +1,27 @@
+{
+  "timestamp_utc": "20260318T193244Z",
+  "runtime_host": "zdmhost",
+  "runtime_user": "zdmuser",
+  "source": {
+    "user": "azureuser",
+    "host": "10.200.1.12",
+    "mode": "default_or_agent",
+    "key_path": "",
+    "key_check": "not_applicable",
+    "key_detail": "key not provided; using default/agent mode",
+    "probe_status": "pass",
+    "probe_output": "factvmhost"
+  },
+  "target": {
+    "user": "opc",
+    "host": "10.200.0.250",
+    "mode": "default_or_agent",
+    "key_path": "",
+    "key_check": "not_applicable",
+    "key_detail": "key not provided; using default/agent mode",
+    "probe_status": "pass",
+    "probe_output": "vmclusterpoc-ytlat1"
+  },
+  "failures": 0,
+  "overall_status": "PASS"
+}
