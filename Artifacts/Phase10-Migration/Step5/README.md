@@ -102,6 +102,16 @@ export TGT_TDE_PASSWORD='***'   # if required
 # 8) Execute migration
 ./zdm_commands.sh migrate
 
+# Optional: run a direct ZDM evaluation call outside the wrapper script
+envsubst < ./zdm_migrate.rsp > ~/creds/zdm_migrate.generated.rsp
+chmod 600 ~/creds/zdm_migrate.generated.rsp
+/mnt/app/zdmhome/bin/zdmcli migrate database \
+  -rsp ~/creds/zdm_migrate.generated.rsp \
+  -sourcedb POCAKV \
+  -sourcenode 10.200.1.12 \
+  -targetnode 10.200.0.250 \
+  -eval
+
 # 9) Monitor / resume / abort
 ./zdm_commands.sh monitor <job_id>
 ./zdm_commands.sh resume <job_id>

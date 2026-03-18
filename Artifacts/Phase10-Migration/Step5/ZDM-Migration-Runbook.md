@@ -229,6 +229,19 @@ source ~/zdm_oci_env.sh
 ./zdm_commands.sh eval
 ```
 
+Optional direct call outside wrapper script (for troubleshooting/manual execution):
+
+```bash
+envsubst < ./zdm_migrate.rsp > ~/creds/zdm_migrate.generated.rsp
+chmod 600 ~/creds/zdm_migrate.generated.rsp
+/mnt/app/zdmhome/bin/zdmcli migrate database \
+  -rsp ~/creds/zdm_migrate.generated.rsp \
+  -sourcedb POCAKV \
+  -sourcenode 10.200.1.12 \
+  -targetnode 10.200.0.250 \
+  -eval
+```
+
 ### 5.4 Execute Migration
 
 ```bash
