@@ -1,4 +1,4 @@
-# Step3 Requirements - Discovery Questionnaire
+# Step3 User Requirements - Discovery Questionnaire
 
 ## Objective
 
@@ -37,11 +37,6 @@ Discovery Summary must include:
 2. Readiness assessment with met requirements, required actions, and blockers.
 3. Discovered configuration reference.
 4. Migration method recommendation and rationale.
-
-## S3-05: Questionnaire constraints
-
-1. Include only items requiring manual decisions/identifiers.
-2. Each question must include a recommended default and concise justification.
 
 ## S3-06: Discovery Summary generated items
 

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
+set -u
 
-set -uo pipefail
+# ------------------------------------------------------------
+# ZDM Step1 SSH Connectivity Validation Script
+# Intended runtime host/user: jumpbox or ZDM server as zdmuser
+# ------------------------------------------------------------
 
-# Generated from zdm-env.md at prompt time. Do not edit values unless your
-# environment changes. This script does not read zdm-env.md at runtime.
+# Generated configuration values (generation-time input only)
 SOURCE_HOST="10.200.1.12"
 TARGET_HOST="10.200.0.250"
 SOURCE_SSH_USER="azureuser"
@@ -11,266 +14,327 @@ TARGET_SSH_USER="opc"
 SOURCE_SSH_KEY="~/.ssh/<source_key>.pem"
 TARGET_SSH_KEY="~/.ssh/<target_key>.pem"
 
-SSH_COMMON_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no)
-
-# Manual single-line tests (same options and hostname probe as script):
-# Default key/agent mode:
-#   ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no azureuser@10.200.1.12 hostname
-#   ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no opc@10.200.0.250 hostname
-# Explicit key mode:
-#   ssh -i ~/.ssh/<source_key>.pem -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no azureuser@10.200.1.12 hostname
-#   ssh -i ~/.ssh/<target_key>.pem -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no opc@10.200.0.250 hostname
+SSH_CONNECT_TIMEOUT=10
+PROBE_COMMAND="hostname"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STEP1_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-VALIDATION_DIR="${STEP1_DIR}/Validation"
-TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-REPORT_MD="${VALIDATION_DIR}/ssh-connectivity-report-${TIMESTAMP}.md"
-REPORT_JSON="${VALIDATION_DIR}/ssh-connectivity-report-${TIMESTAMP}.json"
-RUNTIME_HOST="$(hostname 2>/dev/null || echo unknown)"
-RUNTIME_USER="$(id -un 2>/dev/null || echo unknown)"
+STEP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VALIDATION_DIR="$STEP_DIR/Validation"
 
-FAILURES=0
-SOURCE_PROBE_STATUS="fail"
-TARGET_PROBE_STATUS="fail"
-SOURCE_PROBE_OUTPUT=""
-TARGET_PROBE_OUTPUT=""
-SOURCE_KEY_MODE="default_or_agent"
-TARGET_KEY_MODE="default_or_agent"
-SOURCE_KEY_STATUS="not_applicable"
-TARGET_KEY_STATUS="not_applicable"
-SOURCE_KEY_PATH_EFFECTIVE=""
-TARGET_KEY_PATH_EFFECTIVE=""
-SOURCE_KEY_DETAIL="key not provided; using default/agent mode"
-TARGET_KEY_DETAIL="key not provided; using default/agent mode"
+TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
+REPORT_MD="$VALIDATION_DIR/ssh-connectivity-report-${TIMESTAMP}.md"
+REPORT_JSON="$VALIDATION_DIR/ssh-connectivity-report-${TIMESTAMP}.json"
 
-is_placeholder_or_empty() {
-  local value="${1:-}"
-  [[ -z "${value}" || "${value}" == *"<"* || "${value}" == *">"* ]]
+OVERALL_STATUS="PASS"
+FAIL_COUNT=0
+
+trim() {
+  local v="${1:-}"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  printf '%s' "$v"
 }
 
-expand_path() {
-  local p="${1:-}"
-  if [[ "${p}" == ~* ]]; then
-    printf "%s" "${HOME}${p:1}"
-  else
-    printf "%s" "${p}"
+normalize_value() {
+  local v
+  v="$(trim "${1:-}")"
+  if [[ -z "$v" ]]; then
+    printf ''
+    return
   fi
+  if [[ "$v" == *"<"*">"* ]]; then
+    printf ''
+    return
+  fi
+  printf '%s' "$v"
+}
+
+normalize_key() {
+  local k
+  k="$(normalize_value "${1:-}")"
+  if [[ -z "$k" ]]; then
+    printf ''
+    return
+  fi
+  printf '%s' "${k/#\~/$HOME}"
+}
+
+log_pass() {
+  printf '[PASS] %s\n' "$1"
+}
+
+log_fail() {
+  printf '[FAIL] %s\n' "$1"
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  OVERALL_STATUS="FAIL"
 }
 
 json_escape() {
-  local s="${1:-}"
-  s="${s//\\/\\\\}"
-  s="${s//\"/\\\"}"
-  s="${s//$'\n'/\\n}"
-  s="${s//$'\r'/\\r}"
-  s="${s//$'\t'/\\t}"
-  printf "%s" "${s}"
+  printf '%s' "${1:-}" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g'
 }
 
-print_check() {
+assert_required() {
+  local key="$1"
+  local val="$2"
+  if [[ -z "$val" ]]; then
+    printf '[FAIL] Missing required value: %s\n' "$key"
+    OVERALL_STATUS="FAIL"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  else
+    log_pass "Required value present: ${key}=${val}"
+  fi
+}
+
+check_key_file() {
   local label="$1"
-  local status="$2"
-  local detail="$3"
-  printf "[%s] %s - %s\n" "${status}" "${label}" "${detail}"
-}
+  local key_path="$2"
+  local prefix="$3"
 
-validate_key_if_set() {
-  local endpoint="$1"
-  local key_raw="$2"
-  local key_mode_var="$3"
-  local key_status_var="$4"
-  local key_path_var="$5"
-  local key_detail_var="$6"
+  printf -v "${prefix}_KEY_MODE" '%s' "default_or_agent"
+  printf -v "${prefix}_KEY_EXISTS" '%s' "N/A"
+  printf -v "${prefix}_KEY_READABLE" '%s' "N/A"
+  printf -v "${prefix}_KEY_PERMISSION_OK" '%s' "N/A"
 
-  if is_placeholder_or_empty "${key_raw}"; then
-    printf -v "${key_mode_var}" "%s" "default_or_agent"
-    printf -v "${key_status_var}" "%s" "not_applicable"
-    printf -v "${key_path_var}" "%s" ""
-    printf -v "${key_detail_var}" "%s" "key not provided; using default/agent mode"
-    print_check "${endpoint} key check" "PASS" "no explicit key required"
+  if [[ -z "$key_path" ]]; then
+    log_pass "${label}: key not provided; using default key/agent mode"
     return 0
   fi
 
-  local key_expanded
-  key_expanded="$(expand_path "${key_raw}")"
-  printf -v "${key_mode_var}" "%s" "explicit_key"
-  printf -v "${key_path_var}" "%s" "${key_expanded}"
+  printf -v "${prefix}_KEY_MODE" '%s' "explicit_key"
 
-  if [[ ! -e "${key_expanded}" ]]; then
-    printf -v "${key_status_var}" "%s" "missing"
-    printf -v "${key_detail_var}" "%s" "key file not found: ${key_expanded}"
-    print_check "${endpoint} key check" "FAIL" "key file missing (${key_expanded})"
-    FAILURES=$((FAILURES + 1))
+  if [[ -f "$key_path" ]]; then
+    printf -v "${prefix}_KEY_EXISTS" '%s' "PASS"
+    log_pass "${label}: key file exists: $key_path"
+  else
+    printf -v "${prefix}_KEY_EXISTS" '%s' "FAIL"
+    log_fail "${label}: key file does not exist: $key_path"
     return 1
   fi
 
-  if [[ ! -r "${key_expanded}" ]]; then
-    printf -v "${key_status_var}" "%s" "unreadable"
-    printf -v "${key_detail_var}" "%s" "key file is not readable: ${key_expanded}"
-    print_check "${endpoint} key check" "FAIL" "key file unreadable (${key_expanded})"
-    FAILURES=$((FAILURES + 1))
+  if [[ -r "$key_path" ]]; then
+    printf -v "${prefix}_KEY_READABLE" '%s' "PASS"
+    log_pass "${label}: key file is readable"
+  else
+    printf -v "${prefix}_KEY_READABLE" '%s' "FAIL"
+    log_fail "${label}: key file is not readable"
     return 1
   fi
 
-  local perm_oct
-  perm_oct="$(stat -c '%a' "${key_expanded}" 2>/dev/null || echo unknown)"
-  if [[ "${perm_oct}" == "unknown" ]]; then
-    printf -v "${key_status_var}" "%s" "perm_unknown"
-    printf -v "${key_detail_var}" "%s" "unable to read key permissions: ${key_expanded}"
-    print_check "${endpoint} key check" "FAIL" "could not determine key permissions"
-    FAILURES=$((FAILURES + 1))
+  local perm
+  perm="$(stat -c '%a' "$key_path" 2>/dev/null || true)"
+  if [[ -z "$perm" ]]; then
+    printf -v "${prefix}_KEY_PERMISSION_OK" '%s' "FAIL"
+    log_fail "${label}: unable to read key permissions with stat"
     return 1
   fi
 
-  local perm_dec=$((8#${perm_oct}))
-  if (( (perm_dec & 63) != 0 )); then
-    printf -v "${key_status_var}" "%s" "perm_too_open"
-    printf -v "${key_detail_var}" "%s" "permissions too open (${perm_oct}); expected 600 or stricter"
-    print_check "${endpoint} key check" "FAIL" "permissions ${perm_oct} are too open"
-    FAILURES=$((FAILURES + 1))
+  local perm_oct user_bits group_other_bits
+  perm_oct=$((8#$perm))
+  user_bits=$(((perm_oct >> 6) & 7))
+  group_other_bits=$((perm_oct & 63))
+
+  if [[ $group_other_bits -eq 0 && ( $user_bits -eq 6 || $user_bits -eq 4 ) ]]; then
+    printf -v "${prefix}_KEY_PERMISSION_OK" '%s' "PASS"
+    log_pass "${label}: key permissions are secure (${perm})"
+  else
+    printf -v "${prefix}_KEY_PERMISSION_OK" '%s' "FAIL"
+    log_fail "${label}: key permissions are too open (${perm}); expected 600 or 400"
     return 1
   fi
 
-  printf -v "${key_status_var}" "%s" "ok"
-  printf -v "${key_detail_var}" "%s" "key exists/readable with permissions ${perm_oct}"
-  print_check "${endpoint} key check" "PASS" "${key_expanded} (perm ${perm_oct})"
   return 0
 }
 
-run_ssh_probe() {
-  local endpoint="$1"
+run_probe() {
+  local label="$1"
   local user="$2"
   local host="$3"
-  local key_mode="$4"
-  local key_path="$5"
-  local output_var="$6"
-  local status_var="$7"
+  local key_path="$4"
+  local prefix="$5"
 
-  local -a cmd=(ssh)
-  if [[ "${key_mode}" == "explicit_key" && -n "${key_path}" ]]; then
-    cmd+=( -i "${key_path}" )
-  fi
-  cmd+=( "${SSH_COMMON_OPTS[@]}" )
+  local -a ssh_opts
+  ssh_opts=(
+    -o BatchMode=yes
+    -o StrictHostKeyChecking=accept-new
+    -o ConnectTimeout="$SSH_CONNECT_TIMEOUT"
+    -o PasswordAuthentication=no
+  )
 
-  local probe_output
-  probe_output="$("${cmd[@]}" "${user}@${host}" hostname 2>&1)"
-  local rc=$?
+  local cmd_default cmd_with_key
+  cmd_default="ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=${SSH_CONNECT_TIMEOUT} -o PasswordAuthentication=no ${user}@${host} ${PROBE_COMMAND}"
+  cmd_with_key="ssh -i ${key_path:-<key_path>} -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=${SSH_CONNECT_TIMEOUT} -o PasswordAuthentication=no ${user}@${host} ${PROBE_COMMAND}"
 
-  printf -v "${output_var}" "%s" "${probe_output}"
-  if [[ ${rc} -eq 0 ]]; then
-    printf -v "${status_var}" "%s" "pass"
-    print_check "${endpoint} connectivity" "PASS" "hostname: ${probe_output}"
+  printf -v "${prefix}_MANUAL_DEFAULT_CMD" '%s' "$cmd_default"
+  printf -v "${prefix}_MANUAL_KEY_CMD" '%s' "$cmd_with_key"
+
+  local output rc=0
+  if [[ -n "$key_path" ]]; then
+    output="$(ssh -i "$key_path" "${ssh_opts[@]}" "${user}@${host}" "$PROBE_COMMAND" 2>&1)" || rc=$?
   else
-    printf -v "${status_var}" "%s" "fail"
-    print_check "${endpoint} connectivity" "FAIL" "ssh probe failed (rc=${rc})"
-    FAILURES=$((FAILURES + 1))
+    output="$(ssh "${ssh_opts[@]}" "${user}@${host}" "$PROBE_COMMAND" 2>&1)" || rc=$?
+  fi
+
+  printf -v "${prefix}_PROBE_EXIT_CODE" '%s' "$rc"
+  printf -v "${prefix}_PROBE_OUTPUT" '%s' "$output"
+
+  if [[ $rc -eq 0 ]]; then
+    printf -v "${prefix}_PROBE_STATUS" '%s' "PASS"
+    log_pass "${label}: SSH probe succeeded (${user}@${host} -> $(trim "$output"))"
+  else
+    printf -v "${prefix}_PROBE_STATUS" '%s' "FAIL"
+    log_fail "${label}: SSH probe failed (${user}@${host}); rc=${rc}; output=$(trim "$output")"
   fi
 }
 
-printf "Starting SSH connectivity validation...\n"
-printf "Runtime host: %s | Runtime user: %s | Timestamp (UTC): %s\n" "${RUNTIME_HOST}" "${RUNTIME_USER}" "${TIMESTAMP}"
-
-mkdir -p "${VALIDATION_DIR}"
-
-validate_key_if_set "Source" "${SOURCE_SSH_KEY}" SOURCE_KEY_MODE SOURCE_KEY_STATUS SOURCE_KEY_PATH_EFFECTIVE SOURCE_KEY_DETAIL
-validate_key_if_set "Target" "${TARGET_SSH_KEY}" TARGET_KEY_MODE TARGET_KEY_STATUS TARGET_KEY_PATH_EFFECTIVE TARGET_KEY_DETAIL
-
-run_ssh_probe "Source" "${SOURCE_SSH_USER}" "${SOURCE_HOST}" "${SOURCE_KEY_MODE}" "${SOURCE_KEY_PATH_EFFECTIVE}" SOURCE_PROBE_OUTPUT SOURCE_PROBE_STATUS
-run_ssh_probe "Target" "${TARGET_SSH_USER}" "${TARGET_HOST}" "${TARGET_KEY_MODE}" "${TARGET_KEY_PATH_EFFECTIVE}" TARGET_PROBE_OUTPUT TARGET_PROBE_STATUS
-
-OVERALL_STATUS="PASS"
-if (( FAILURES > 0 )); then
-  OVERALL_STATUS="FAIL"
-fi
-
-cat > "${REPORT_MD}" <<EOF
-# SSH Connectivity Validation Report
-
-- Timestamp (UTC): ${TIMESTAMP}
-- Runtime Host: ${RUNTIME_HOST}
-- Runtime User: ${RUNTIME_USER}
-- Script Path: ${SCRIPT_DIR}
-
-## Effective SSH Model
-
-### Source Endpoint
-- User: ${SOURCE_SSH_USER}
-- Host: ${SOURCE_HOST}
-- Mode: ${SOURCE_KEY_MODE}
-- Key Path: ${SOURCE_KEY_PATH_EFFECTIVE:-N/A}
-- Key Check: ${SOURCE_KEY_STATUS}
-- Key Detail: ${SOURCE_KEY_DETAIL}
-
-### Target Endpoint
-- User: ${TARGET_SSH_USER}
-- Host: ${TARGET_HOST}
-- Mode: ${TARGET_KEY_MODE}
-- Key Path: ${TARGET_KEY_PATH_EFFECTIVE:-N/A}
-- Key Check: ${TARGET_KEY_STATUS}
-- Key Detail: ${TARGET_KEY_DETAIL}
-
-## Connectivity Probes
-
-- Source Probe Status: ${SOURCE_PROBE_STATUS}
-- Source Probe Output: ${SOURCE_PROBE_OUTPUT}
-- Target Probe Status: ${TARGET_PROBE_STATUS}
-- Target Probe Output: ${TARGET_PROBE_OUTPUT}
-
-## Manual Single-Line SSH Tests
-
-Default key/agent mode:
-- ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no ${SOURCE_SSH_USER}@${SOURCE_HOST} hostname
-- ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no ${TARGET_SSH_USER}@${TARGET_HOST} hostname
-
-Explicit key mode:
-- ssh -i ${SOURCE_SSH_KEY} -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no ${SOURCE_SSH_USER}@${SOURCE_HOST} hostname
-- ssh -i ${TARGET_SSH_KEY} -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o PasswordAuthentication=no ${TARGET_SSH_USER}@${TARGET_HOST} hostname
-
-## Final Summary
-
-- Failures: ${FAILURES}
-- Overall Status: ${OVERALL_STATUS}
-EOF
-
-cat > "${REPORT_JSON}" <<EOF
-{
-  "timestamp_utc": "$(json_escape "${TIMESTAMP}")",
-  "runtime_host": "$(json_escape "${RUNTIME_HOST}")",
-  "runtime_user": "$(json_escape "${RUNTIME_USER}")",
-  "source": {
-    "user": "$(json_escape "${SOURCE_SSH_USER}")",
-    "host": "$(json_escape "${SOURCE_HOST}")",
-    "mode": "$(json_escape "${SOURCE_KEY_MODE}")",
-    "key_path": "$(json_escape "${SOURCE_KEY_PATH_EFFECTIVE}")",
-    "key_check": "$(json_escape "${SOURCE_KEY_STATUS}")",
-    "key_detail": "$(json_escape "${SOURCE_KEY_DETAIL}")",
-    "probe_status": "$(json_escape "${SOURCE_PROBE_STATUS}")",
-    "probe_output": "$(json_escape "${SOURCE_PROBE_OUTPUT}")"
-  },
-  "target": {
-    "user": "$(json_escape "${TARGET_SSH_USER}")",
-    "host": "$(json_escape "${TARGET_HOST}")",
-    "mode": "$(json_escape "${TARGET_KEY_MODE}")",
-    "key_path": "$(json_escape "${TARGET_KEY_PATH_EFFECTIVE}")",
-    "key_check": "$(json_escape "${TARGET_KEY_STATUS}")",
-    "key_detail": "$(json_escape "${TARGET_KEY_DETAIL}")",
-    "probe_status": "$(json_escape "${TARGET_PROBE_STATUS}")",
-    "probe_output": "$(json_escape "${TARGET_PROBE_OUTPUT}")"
-  },
-  "failures": ${FAILURES},
-  "overall_status": "$(json_escape "${OVERALL_STATUS}")"
+print_manual_commands() {
+  printf '\nManual single-line SSH test commands:\n'
+  printf 'SOURCE default/agent mode: %s\n' "$SOURCE_MANUAL_DEFAULT_CMD"
+  printf 'SOURCE explicit key mode : %s\n' "$SOURCE_MANUAL_KEY_CMD"
+  printf 'TARGET default/agent mode: %s\n' "$TARGET_MANUAL_DEFAULT_CMD"
+  printf 'TARGET explicit key mode : %s\n\n' "$TARGET_MANUAL_KEY_CMD"
 }
-EOF
 
-printf "\nValidation reports generated:\n"
-printf "- %s\n" "${REPORT_MD}"
-printf "- %s\n" "${REPORT_JSON}"
+write_markdown_report() {
+  local runtime_host runtime_user
+  runtime_host="$(hostname 2>/dev/null || echo unknown)"
+  runtime_user="$(whoami 2>/dev/null || echo unknown)"
 
-if (( FAILURES > 0 )); then
-  printf "\n[FAIL] SSH connectivity validation completed with %d failure(s).\n" "${FAILURES}"
+  {
+    printf '# SSH Connectivity Report\n\n'
+    printf '## Execution Metadata\n'
+    printf '- Timestamp (UTC): %s\n' "$TIMESTAMP"
+    printf '- Runtime host: %s\n' "$runtime_host"
+    printf '- Effective user: %s\n' "$runtime_user"
+    printf '\n'
+    printf '## Endpoint Configuration\n'
+    printf '- Source endpoint: `%s@%s`\n' "$SOURCE_SSH_USER" "$SOURCE_HOST"
+    printf '- Source key mode: %s\n' "$SOURCE_KEY_MODE"
+    printf '- Target endpoint: `%s@%s`\n' "$TARGET_SSH_USER" "$TARGET_HOST"
+    printf '- Target key mode: %s\n' "$TARGET_KEY_MODE"
+    printf '\n'
+    printf '## Key Checks\n'
+    printf '- Source key exists: %s\n' "$SOURCE_KEY_EXISTS"
+    printf '- Source key readable: %s\n' "$SOURCE_KEY_READABLE"
+    printf '- Source key permission check: %s\n' "$SOURCE_KEY_PERMISSION_OK"
+    printf '- Target key exists: %s\n' "$TARGET_KEY_EXISTS"
+    printf '- Target key readable: %s\n' "$TARGET_KEY_READABLE"
+    printf '- Target key permission check: %s\n' "$TARGET_KEY_PERMISSION_OK"
+    printf '\n'
+    printf '## Connectivity Probe Results\n'
+    printf '- Source probe status: %s\n' "$SOURCE_PROBE_STATUS"
+    printf '- Source probe exit code: %s\n' "$SOURCE_PROBE_EXIT_CODE"
+    printf '- Source probe output: `%s`\n' "$(trim "$SOURCE_PROBE_OUTPUT")"
+    printf '- Target probe status: %s\n' "$TARGET_PROBE_STATUS"
+    printf '- Target probe exit code: %s\n' "$TARGET_PROBE_EXIT_CODE"
+    printf '- Target probe output: `%s`\n' "$(trim "$TARGET_PROBE_OUTPUT")"
+    printf '\n'
+    printf '## Manual Commands\n'
+    printf '- Source default/agent mode: `%s`\n' "$SOURCE_MANUAL_DEFAULT_CMD"
+    printf '- Source explicit key mode: `%s`\n' "$SOURCE_MANUAL_KEY_CMD"
+    printf '- Target default/agent mode: `%s`\n' "$TARGET_MANUAL_DEFAULT_CMD"
+    printf '- Target explicit key mode: `%s`\n' "$TARGET_MANUAL_KEY_CMD"
+    printf '\n'
+    printf '## Final Summary\n'
+    printf '- Overall status: **%s**\n' "$OVERALL_STATUS"
+    printf '- Failure count: %s\n' "$FAIL_COUNT"
+    if [[ "$runtime_user" != "zdmuser" ]]; then
+      printf '- Runtime user note: expected `zdmuser`, current user is `%s`.\n' "$runtime_user"
+    fi
+  } > "$REPORT_MD"
+}
+
+write_json_report() {
+  local runtime_host runtime_user
+  runtime_host="$(hostname 2>/dev/null || echo unknown)"
+  runtime_user="$(whoami 2>/dev/null || echo unknown)"
+
+  {
+    printf '{\n'
+    printf '  "timestamp_utc": "%s",\n' "$(json_escape "$TIMESTAMP")"
+    printf '  "runtime_host": "%s",\n' "$(json_escape "$runtime_host")"
+    printf '  "effective_user": "%s",\n' "$(json_escape "$runtime_user")"
+    printf '  "endpoints": {\n'
+    printf '    "source": {\n'
+    printf '      "user": "%s",\n' "$(json_escape "$SOURCE_SSH_USER")"
+    printf '      "host": "%s",\n' "$(json_escape "$SOURCE_HOST")"
+    printf '      "key_mode": "%s",\n' "$(json_escape "$SOURCE_KEY_MODE")"
+    printf '      "key_checks": {\n'
+    printf '        "exists": "%s",\n' "$(json_escape "$SOURCE_KEY_EXISTS")"
+    printf '        "readable": "%s",\n' "$(json_escape "$SOURCE_KEY_READABLE")"
+    printf '        "permission_ok": "%s"\n' "$(json_escape "$SOURCE_KEY_PERMISSION_OK")"
+    printf '      },\n'
+    printf '      "probe": {\n'
+    printf '        "status": "%s",\n' "$(json_escape "$SOURCE_PROBE_STATUS")"
+    printf '        "exit_code": %s,\n' "$SOURCE_PROBE_EXIT_CODE"
+    printf '        "output": "%s"\n' "$(json_escape "$(trim "$SOURCE_PROBE_OUTPUT")")"
+    printf '      },\n'
+    printf '      "manual_default_command": "%s",\n' "$(json_escape "$SOURCE_MANUAL_DEFAULT_CMD")"
+    printf '      "manual_explicit_key_command": "%s"\n' "$(json_escape "$SOURCE_MANUAL_KEY_CMD")"
+    printf '    },\n'
+    printf '    "target": {\n'
+    printf '      "user": "%s",\n' "$(json_escape "$TARGET_SSH_USER")"
+    printf '      "host": "%s",\n' "$(json_escape "$TARGET_HOST")"
+    printf '      "key_mode": "%s",\n' "$(json_escape "$TARGET_KEY_MODE")"
+    printf '      "key_checks": {\n'
+    printf '        "exists": "%s",\n' "$(json_escape "$TARGET_KEY_EXISTS")"
+    printf '        "readable": "%s",\n' "$(json_escape "$TARGET_KEY_READABLE")"
+    printf '        "permission_ok": "%s"\n' "$(json_escape "$TARGET_KEY_PERMISSION_OK")"
+    printf '      },\n'
+    printf '      "probe": {\n'
+    printf '        "status": "%s",\n' "$(json_escape "$TARGET_PROBE_STATUS")"
+    printf '        "exit_code": %s,\n' "$TARGET_PROBE_EXIT_CODE"
+    printf '        "output": "%s"\n' "$(json_escape "$(trim "$TARGET_PROBE_OUTPUT")")"
+    printf '      },\n'
+    printf '      "manual_default_command": "%s",\n' "$(json_escape "$TARGET_MANUAL_DEFAULT_CMD")"
+    printf '      "manual_explicit_key_command": "%s"\n' "$(json_escape "$TARGET_MANUAL_KEY_CMD")"
+    printf '    }\n'
+    printf '  },\n'
+    printf '  "summary": {\n'
+    printf '    "overall_status": "%s",\n' "$(json_escape "$OVERALL_STATUS")"
+    printf '    "failure_count": %s\n' "$FAIL_COUNT"
+    printf '  }\n'
+    printf '}\n'
+  } > "$REPORT_JSON"
+}
+
+main() {
+  mkdir -p "$VALIDATION_DIR"
+
+  SOURCE_HOST="$(normalize_value "$SOURCE_HOST")"
+  TARGET_HOST="$(normalize_value "$TARGET_HOST")"
+  SOURCE_SSH_USER="$(normalize_value "$SOURCE_SSH_USER")"
+  TARGET_SSH_USER="$(normalize_value "$TARGET_SSH_USER")"
+  SOURCE_SSH_KEY="$(normalize_key "$SOURCE_SSH_KEY")"
+  TARGET_SSH_KEY="$(normalize_key "$TARGET_SSH_KEY")"
+
+  printf 'Running ZDM Step1 SSH connectivity validation...\n'
+  printf 'Validation output directory: %s\n\n' "$VALIDATION_DIR"
+
+  assert_required "SOURCE_HOST" "$SOURCE_HOST"
+  assert_required "TARGET_HOST" "$TARGET_HOST"
+  assert_required "SOURCE_SSH_USER" "$SOURCE_SSH_USER"
+  assert_required "TARGET_SSH_USER" "$TARGET_SSH_USER"
+
+  check_key_file "SOURCE" "$SOURCE_SSH_KEY" "SOURCE"
+  check_key_file "TARGET" "$TARGET_SSH_KEY" "TARGET"
+
+  run_probe "SOURCE" "$SOURCE_SSH_USER" "$SOURCE_HOST" "$SOURCE_SSH_KEY" "SOURCE"
+  run_probe "TARGET" "$TARGET_SSH_USER" "$TARGET_HOST" "$TARGET_SSH_KEY" "TARGET"
+
+  print_manual_commands
+  write_markdown_report
+  write_json_report
+
+  printf 'Markdown report: %s\n' "$REPORT_MD"
+  printf 'JSON report: %s\n' "$REPORT_JSON"
+
+  if [[ "$OVERALL_STATUS" == "PASS" ]]; then
+    printf '\nOverall result: PASS\n'
+    exit 0
+  fi
+
+  printf '\nOverall result: FAIL (failures=%s)\n' "$FAIL_COUNT"
   exit 1
-fi
+}
 
-printf "\n[PASS] SSH connectivity validation completed successfully.\n"
-exit 0
+main "$@"

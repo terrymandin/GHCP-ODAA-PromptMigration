@@ -7,11 +7,12 @@ Use this process whenever you need to change behavior in any Phase10 prompt.
 ## Workflow
 
 1. Identify affected step(s).
-2. Update the step requirement file first:
-   - ` .github/requirements/Phase10/StepX/REQUIREMENTS.md`
+2. Update step requirement input file(s) first:
+  - ` .github/requirements/Phase10/StepX/USER-REQUIREMENTS.md`
+  - ` .github/requirements/Phase10/StepX/SYSTEM-REQUIREMENTS.md`
 3. If shared behavior changed, update:
    - ` .github/requirements/Phase10/Shared/COMMON-REQUIREMENTS.md`
-4. Regenerate prompt files from requirements by running this command:
+4. Regenerate prompt files from requirements using this command pattern:
 
    ```text
    @Phase10-Generate-Step-Prompts-From-Requirements
@@ -19,10 +20,12 @@ Use this process whenever you need to change behavior in any Phase10 prompt.
    Regenerate the step prompts based on new requirements.
 
    #file:.github/requirements/Phase10/Shared/COMMON-REQUIREMENTS.md
-   #file:.github/requirements/Phase10/StepX/REQUIREMENTS.md
+   #file:.github/requirements/Phase10/StepX/USER-REQUIREMENTS.md
+   #file:.github/requirements/Phase10/StepX/SYSTEM-REQUIREMENTS.md
    ```
 
-   Replace `X` only once in the Step requirements path. The meta prompt infers target prompt files from that Step.
+  Replace `X` only in the Step requirements paths. The meta prompt infers target prompt files from the Step path.
+  Include both step files so user-facing and implementation constraints are both applied.
 
 5. Validate prompt text against requirements with the checklist below.
 6. Commit both requirement and prompt updates in the same PR.
@@ -37,6 +40,7 @@ For each updated step prompt, verify:
 4. Security/read-only/user guardrails are preserved.
 5. Variable names and scope are consistent with common requirements.
 6. "Next Step" handoff remains correct.
+7. User-facing behavior traces to `USER-REQUIREMENTS.md` and coding constraints trace to `SYSTEM-REQUIREMENTS.md`.
 
 For each updated example prompt, verify:
 

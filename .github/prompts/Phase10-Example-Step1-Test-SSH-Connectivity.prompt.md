@@ -31,11 +31,11 @@ Artifacts/Phase10-Migration/Step1/
 - Generation-only step: create files only, no SSH execution in VS Code.
 - If `zdm-env.md` is attached, treat it as authoritative generation input and prefer it over defaults.
 - If `zdm-env.md` values conflict with discovery evidence, report mismatch explicitly instead of silently overriding.
-- Generated script must not read or source `zdm-env.md` at runtime.
+- Generated script must not read or source `zdm-env.md` at runtime, and placeholder key values containing `<...>` are treated as unset.
 - Generate `Artifacts/Phase10-Migration/Step1/README.md` and `Artifacts/Phase10-Migration/Step1/Scripts/zdm_test_ssh_connectivity.sh` only.
 - Runtime report content includes execution metadata, effective SSH mode per endpoint, key checks (when keys are provided), source/target hostname probe results, and final summary with non-zero failure behavior.
-- Runtime console output must show per-check pass/fail status plus a final overall pass/fail summary.
-- Include manual single-line SSH test commands for source and target in both default key/agent mode and explicit key mode.
+- Runtime console output must show per-check pass/fail status plus a final overall pass/fail summary, and the script must use non-interactive SSH options (`BatchMode`, `StrictHostKeyChecking=accept-new`, `ConnectTimeout`, `PasswordAuthentication=no`).
+- Step1 runtime user is `zdmuser`, and output should include manual single-line SSH test commands for source and target in both default key/agent mode and explicit key mode.
 - OCI CLI is not required for this step.
 
 ## Next Steps

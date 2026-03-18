@@ -1,4 +1,4 @@
-# Step1 Requirements - Test SSH Connectivity
+# Step1 User Requirements - Test SSH Connectivity
 
 ## Objective
 
@@ -30,14 +30,6 @@ Step1 report outputs should include at least:
 5. Target connectivity check result (`hostname` probe) with pass/fail status.
 6. Final summary status and non-zero exit behavior when any check fails.
 
-## S1-03: SSH check behavior
-
-1. Validate source and target SSH connectivity.
-2. Use non-interactive SSH options.
-3. Validate optional key file existence/readability and strict permissions when key paths are provided.
-4. Treat placeholder values containing `<...>` as unset.
-5. Exit non-zero on failure.
-
 ## S1-04: Required input values
 
 Required from `zdm-env.md`:
@@ -51,17 +43,6 @@ Optional:
 
 - `SOURCE_SSH_KEY`
 - `TARGET_SSH_KEY`
-
-## S1-05: Execution output visibility
-
-The Step1 prompt must produce a script that shows validation status directly in console output when the script is run, while also saving results to report files.
-
-Minimum expectation:
-
-1. During runtime, the script prints per-check status (pass/fail) for each major validation step (at minimum: source SSH probe and target SSH probe).
-2. During runtime, the script prints a final overall summary status (pass/fail).
-3. Script exit code remains aligned to outcome: `0` when all checks pass, non-zero when any check fails.
-4. Step1 guidance should still include commands to display the saved reports from `Artifacts/Phase10-Migration/Step1/Validation` (for example, by using `cat` on the latest markdown and JSON report files) for post-run review.
 
 ## S1-06: Manual SSH single-line test commands
 

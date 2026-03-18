@@ -5,7 +5,8 @@ This directory stores source-of-truth requirements used to (re)generate and main
 ## Layout
 
 - `Shared/COMMON-REQUIREMENTS.md`: requirements that apply to Step1-Step5.
-- `Step1/REQUIREMENTS.md` ... `Step5/REQUIREMENTS.md`: step-specific requirements.
+- `StepX/USER-REQUIREMENTS.md`: step-specific user-facing requirements.
+- `StepX/SYSTEM-REQUIREMENTS.md`: step-specific implementation/script-level requirements.
 - `PROMPT-UPDATE-PROCESS.md`: standard workflow for updating requirements and regenerating prompts.
 
 ## Operating Rule

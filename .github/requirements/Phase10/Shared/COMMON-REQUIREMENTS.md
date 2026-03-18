@@ -67,3 +67,41 @@ ZDM-specific value used across Step1-Step5:
 	- where runtime outputs/logs/reports are written,
 	- the success/failure signals to check.
 3. Step-specific requirements may add extra README expectations, but may not remove this baseline requirement.
+
+## CR-09: Two-layer step requirements model
+
+1. Each Phase10 step should separate user-facing intent requirements from script/implementation coding requirements.
+2. User-facing requirements should focus on:
+	- objective,
+	- output contract,
+	- execution boundary,
+	- user-visible behavior and success criteria.
+3. Implementation requirements should focus on:
+	- coding patterns,
+	- shell/sql implementation constraints,
+	- required snippets/examples,
+	- schema/format details for machine-readable outputs.
+4. User-facing requirements are intended to be easier for non-implementation contributors to edit.
+5. Implementation requirements must remain explicit enough to preserve deterministic prompt and script generation.
+
+Recommended step-level file names:
+
+- `USER-REQUIREMENTS.md` for user-facing requirements.
+- `SYSTEM-REQUIREMENTS.md` for implementation/script-level requirements.
+
+Naming rule:
+
+- Use only `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md` for every Phase10 step.
+
+## CR-10: Regeneration inputs when requirements are split
+
+1. Prompt regeneration must include both step files plus shared common requirements.
+2. Shared/common requirements remain the global baseline and do not move into step-level files.
+3. If user-facing and implementation requirements conflict, treat implementation requirements as controlling for generated script behavior, and document the conflict for user review.
+4. Example prompts should continue to summarize combined requirements concisely, while detailed implementation constraints remain in the Step prompt.
+
+## CR-11: Legacy file policy
+
+1. `REQUIREMENTS.md` is no longer a canonical step requirement file for Phase10.
+2. Step requirements must be authored and maintained only in `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md`.
+3. Avoid duplicating the same requirement text in both files; place each requirement in exactly one layer.

@@ -1,4 +1,4 @@
-# Step2 Requirements - Generate Discovery Scripts
+# Step2 User Requirements - Generate Discovery Scripts
 
 ## Objective
 

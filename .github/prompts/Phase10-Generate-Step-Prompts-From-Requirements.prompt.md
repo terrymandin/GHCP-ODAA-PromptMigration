@@ -10,7 +10,7 @@ Use this meta prompt to generate or update the StepX prompt files directly from 
 
 ## How To Use
 
-Use this exact command pattern. Replace `X` once (in the Step requirements path) with `1` through `5`:
+Use this exact command pattern. Replace `X` in the Step requirements paths with `1` through `5`:
 
 ```text
 @Phase10-Generate-Step-Prompts-From-Requirements
@@ -19,7 +19,8 @@ Regenerate the step prompts based on new requirements.
 
 ## Required Inputs
 #file:.github/requirements/Phase10/Shared/COMMON-REQUIREMENTS.md
-#file:.github/requirements/Phase10/StepX/REQUIREMENTS.md
+#file:.github/requirements/Phase10/StepX/USER-REQUIREMENTS.md
+#file:.github/requirements/Phase10/StepX/SYSTEM-REQUIREMENTS.md
 ```
 
 Accepted natural-language trigger variants:
@@ -28,7 +29,7 @@ Accepted natural-language trigger variants:
 - `Regenerate prompt files from requirements.`
 - `Update step prompt files from requirements.`
 
-The selected Step is inferred from the attached `StepX/REQUIREMENTS.md` file.
+The selected Step is inferred from the attached `StepX/USER-REQUIREMENTS.md` or `StepX/SYSTEM-REQUIREMENTS.md` path.
 
 ## Step-to-File Mapping
 
@@ -53,7 +54,7 @@ When `X` is provided, update these files:
 ## Generation Rules
 
 1. Treat requirements as authoritative.
-   - Apply shared requirements first, then step-specific requirements.
+   - Apply shared requirements first, then step-specific user and system requirements.
 2. Keep this prompt section order in every generated prompt:
    1. Purpose
    2. Execution boundary (generation-only vs runtime)
@@ -78,7 +79,7 @@ When `X` is provided, update these files:
 
 Before finishing, verify:
 
-1. Every requirement section in `StepX/REQUIREMENTS.md` is represented in the generated prompt text.
+1. Every requirement section in `StepX/USER-REQUIREMENTS.md` and `StepX/SYSTEM-REQUIREMENTS.md` is represented in the generated prompt text.
 2. Shared constraints are present unless explicitly narrowed by StepX requirements.
 3. Output paths, filenames, and variable names match requirements exactly.
 4. Next-step handoff points to the correct next Phase10 prompt.
