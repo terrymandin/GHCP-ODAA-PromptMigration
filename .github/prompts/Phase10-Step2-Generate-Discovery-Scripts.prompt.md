@@ -25,6 +25,7 @@ Attach `zdm-env.md` when available and treat it as authoritative generation inpu
 Input precedence and handling requirements:
 - Prefer `zdm-env.md` values over prompt defaults/examples.
 - If `zdm-env.md` values conflict with discovery evidence, do not silently override; report the mismatch explicitly.
+- If step user-facing and implementation requirements conflict, treat implementation requirements as controlling for script behavior and document the conflict for user review.
 - `zdm-env.md` is generation-time input only; generated scripts must not read, source, or parse `zdm-env.md` at runtime.
 - Map `SOURCE_SSH_USER` and `TARGET_SSH_USER` to generated `SOURCE_ADMIN_USER` and `TARGET_ADMIN_USER`.
 - Normalize SSH key values: empty or placeholder values (for example `<...>`) are treated as unset.
@@ -72,6 +73,8 @@ Create placeholder directories:
 - success/failure signals to check.
 
 ## Generated Items And Runtime Content Catalog
+
+Treat this section as the prompt-level source-of-truth catalog for Step2 discovery coverage. Add or change discovery items in requirements first, then regenerate this prompt and scripts.
 
 ### Read-only enforcement (all generated scripts)
 

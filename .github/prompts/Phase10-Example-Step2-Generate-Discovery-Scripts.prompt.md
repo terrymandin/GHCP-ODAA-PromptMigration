@@ -36,6 +36,7 @@ Artifacts/Phase10-Migration/Step2/
 
 - Generation-only step: create files and placeholder directories only; do not run SSH/SQL/discovery in VS Code.
 - If `zdm-env.md` is attached, treat it as authoritative input, prefer it over defaults, and report conflicts with evidence instead of silently overriding.
+- If user-facing and implementation requirements ever conflict, implementation constraints control script behavior and the conflict should be documented for review.
 - Generated scripts are runtime-independent from `zdm-env.md`; runtime outputs are created later on jumpbox/ZDM server.
 - Output contract: four scripts plus `Artifacts/Phase10-Migration/Step2/README.md` and `Artifacts/Phase10-Migration/Step2/Scripts/README.md`, and placeholder directories under `Artifacts/Phase10-Migration/Step2/Discovery/{source,target,server}`.
 - Scripts are strictly read-only (`SELECT`-only SQL, no mutation commands) and include a read-only banner comment.
