@@ -39,5 +39,41 @@ Artifacts/Phase10-Migration/Step2/
     └── server/
 ```
 
+## Discovery Items Generated (when scripts are run on jumpbox/ZDM server)
+
+### Source Discovery
+- Connectivity and auth context: source host, SSH user, SSH key mode.
+- Remote system details: hostname, OS, kernel, uptime.
+- Oracle environment details:
+    - `/etc/oratab` entries.
+    - PMON SIDs detected.
+    - Oracle home in use.
+    - Oracle SID in use.
+    - Database unique name (config value).
+    - `sqlplus` version.
+
+### Target Discovery
+- Connectivity and auth context: target host, SSH user, SSH key mode.
+- Remote system details: hostname, OS, kernel, uptime.
+- Oracle environment details:
+    - `/etc/oratab` entries.
+    - PMON SIDs detected.
+    - Oracle home in use.
+    - Oracle SID in use.
+    - Database unique name (config value).
+    - `sqlplus` version.
+
+### ZDM Server Discovery
+- Local system details: hostname, OS, kernel, uptime, current user.
+- ZDM installation details: `ZDM_HOME`, existence, permissions, `zdmcli` path, `zdmcli` version.
+- Capacity snapshot: root disk usage, memory summary.
+- Endpoint traceability: source and target endpoint values used during discovery.
+
+### Orchestration Summary
+- Effective runtime configuration used for source/target values.
+- Per-script execution status (`PASS`/`FAIL`) and log file paths.
+- Overall Step 2 discovery status.
+- Output formats produced by each script run: raw text, markdown report, and JSON report.
+
 ## Next Step
 After collecting discovery outputs and committing them, continue with: `@Phase10-ZDM-Step3-Discovery-Questionnaire`
