@@ -51,3 +51,25 @@ Optional:
 
 - `SOURCE_SSH_KEY`
 - `TARGET_SSH_KEY`
+
+## S1-05: Execution output visibility
+
+The Step1 prompt must produce a script that shows validation status directly in console output when the script is run, while also saving results to report files.
+
+Minimum expectation:
+
+1. During runtime, the script prints per-check status (pass/fail) for each major validation step (at minimum: source SSH probe and target SSH probe).
+2. During runtime, the script prints a final overall summary status (pass/fail).
+3. Script exit code remains aligned to outcome: `0` when all checks pass, non-zero when any check fails.
+4. Step1 guidance should still include commands to display the saved reports from `Artifacts/Phase10-Migration/Step1/Validation` (for example, by using `cat` on the latest markdown and JSON report files) for post-run review.
+
+## S1-06: Manual SSH single-line test commands
+
+Step1 output must include single-line manual SSH test commands for both source and target endpoints so users can independently verify connectivity.
+
+Required command variants per endpoint:
+
+1. Default key/agent mode command (`ssh user@host ...`) when no key path is provided.
+2. Explicit key mode command (`ssh -i <key> user@host ...`) when a key path is provided.
+
+Command examples should use the same non-interactive options and probe behavior as the generated script (for example, `hostname` probe and batch/non-interactive SSH flags).

@@ -38,6 +38,14 @@ For each updated step prompt, verify:
 5. Variable names and scope are consistent with common requirements.
 6. "Next Step" handoff remains correct.
 
+For each updated example prompt, verify:
+
+1. It contains exactly four sections: `Example Prompt`, `Expected Output`, `Requirements Summary`, and `Next Steps`.
+2. It does not include extra sections (for example: `Prerequisites`, `Execution Boundary`, or detailed catalogs).
+3. `Requirements Summary` is concise and reflects shared plus step-specific requirements.
+4. `Next Steps` provides the handoff to the next Phase10 prompt.
+5. Any detailed operational guidance exists in the corresponding Step prompt, not in the Example prompt.
+
 ## Suggested PR Structure
 
 1. Commit 1: Requirements change only.
@@ -52,3 +60,4 @@ Before merging, confirm:
 2. Are runtime actions clearly separated from generation actions?
 3. Are conflicts between `zdm-env.md` and discovery evidence handled explicitly?
 4. Are all affected Step and Example prompts updated together?
+5. Do Example prompts remain lightweight while Step prompts retain all operational details?

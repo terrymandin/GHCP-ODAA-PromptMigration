@@ -24,7 +24,6 @@ Required generated files under `Artifacts/Phase10-Migration/Step5/`:
 
 1. Generated artifacts must not require `zdm-env.md` at runtime.
 2. Document admin login flow (`ZDM_ADMIN_USER` then `sudo su - zdmuser`).
-3. Note OCI CLI is optional for this flow.
 
 ## S5-04: Environment variable model
 

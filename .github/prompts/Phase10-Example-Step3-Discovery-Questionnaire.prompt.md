@@ -9,14 +9,14 @@ description: Phase 10 ZDM Step 3 example - analyze discovery output and generate
 ```text
 @Phase10-ZDM-Step3-Discovery-Questionnaire
 
-## Project Configuration
+Project Configuration:
 #file:zdm-env.md
 
 Analyze Step 2 discovery outputs and generate:
 1) Discovery Summary
 2) Migration Planning Questionnaire
 
-## Step 2 Discovery Inputs
+Step 2 Discovery Inputs:
 Search the following directories for discovery output files and read the most recent ones:
 - `Artifacts/Phase10-Migration/Step2/Discovery/source/` — source database discovery (`.txt` and `.json`)
 - `Artifacts/Phase10-Migration/Step2/Discovery/target/` — target database discovery (`.txt` and `.json`)
@@ -24,7 +24,7 @@ Search the following directories for discovery output files and read the most re
 
 If multiple timestamped files exist in a directory, use the one with the highest (most recent) timestamp.
 
-## Output Directory
+Output Directory:
 Artifacts/Phase10-Migration/Step3/
 ```
 
@@ -32,7 +32,13 @@ Artifacts/Phase10-Migration/Step3/
 - `Artifacts/Phase10-Migration/Step3/Discovery-Summary.md`
 - `Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md`
 
-If `zdm-env.md` is attached, use it as the configured baseline when creating Step3 artifacts and explicitly call out mismatches between configured values and discovered runtime values.
+## Requirements Summary
 
-## Next Step
-After completing the questionnaire, continue with: `@Phase10-ZDM-Step4-Fix-Issues`
+- Step 3 analyzes Step2 discovery outputs and produces only the two Step3 artifacts.
+- If `zdm-env.md` is attached, treat it as configured baseline and explicitly report mismatches against discovery evidence.
+- Discovery Summary must identify readiness, required actions, and blockers.
+- Migration Questionnaire must capture manual decisions with recommended defaults.
+
+## Next Steps
+
+After reviewing Discovery Summary and completing the questionnaire, continue with @Phase10-ZDM-Step4-Fix-Issues.

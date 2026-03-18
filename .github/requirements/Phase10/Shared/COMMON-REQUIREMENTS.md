@@ -40,3 +40,30 @@ DB-specific values used across Step1-Step5:
 ZDM-specific value used across Step1-Step5:
 
 - `ZDM_HOME`
+
+## CR-06: OCI CLI requirement
+
+1. OCI CLI is not required for migration execution.
+
+## CR-07: Step Prompt vs Example Prompt content boundary
+
+1. Step prompt files (`Phase10-StepX-*.prompt.md`) are the canonical location for all operational instructions, guardrails, prerequisites, execution boundaries, and handoff details.
+2. Example prompt files (`Phase10-Example-StepX-*.prompt.md`) are simplified invocation references and must contain exactly these four sections:
+	- `Example Prompt`
+	- `Expected Output`
+	- `Requirements Summary`
+	- `Next Steps`
+3. Example prompt files must not add extra sections such as Prerequisites, Execution Boundary, or detailed implementation catalogs.
+4. `Requirements Summary` in each example file must provide a concise overview derived from shared and step-specific requirements.
+5. `Next Steps` should contain a concise handoff to the following Phase10 step.
+6. If content is needed beyond those four sections, place it in the corresponding Step prompt file.
+
+## CR-08: Per-step output README requirement
+
+1. Each StepX output directory must include a `README.md` file in that step directory.
+2. The step README must summarize:
+	- generated files for that step,
+	- what the user should run later on the jumpbox/ZDM server,
+	- where runtime outputs/logs/reports are written,
+	- the success/failure signals to check.
+3. Step-specific requirements may add extra README expectations, but may not remove this baseline requirement.

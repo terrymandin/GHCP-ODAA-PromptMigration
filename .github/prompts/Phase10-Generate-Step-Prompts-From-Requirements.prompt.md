@@ -64,7 +64,12 @@ When `X` is provided, update these files:
 3. Preserve deterministic behavior.
    - Convert each must/shall requirement into explicit imperative prompt text.
 4. Keep standard and example prompts behaviorally aligned.
-   - Example prompts may be shorter, but must not remove constraints.
+    - Example prompts are simplified references and must contain exactly four sections:
+     1. `Example Prompt`
+     2. `Expected Output`
+     3. `Requirements Summary`
+       4. `Next Steps`
+   - Move all other operational details to the Step prompt file.
 5. Preserve or create valid YAML frontmatter:
    - `agent: agent`
    - Step-appropriate `description`
@@ -77,6 +82,7 @@ Before finishing, verify:
 2. Shared constraints are present unless explicitly narrowed by StepX requirements.
 3. Output paths, filenames, and variable names match requirements exactly.
 4. Next-step handoff points to the correct next Phase10 prompt.
+5. Each Example prompt has only the four required sections and no additional section headers.
 
 ## Output Expectations
 

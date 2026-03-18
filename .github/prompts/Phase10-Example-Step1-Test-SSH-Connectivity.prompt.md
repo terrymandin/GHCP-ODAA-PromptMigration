@@ -9,30 +9,35 @@ description: Phase 10 ZDM Step 1 example - test SSH connectivity for a sample en
 ```text
 @Phase10-ZDM-Step1-Test-SSH-Connectivity
 
-## Project Configuration
+Project Configuration:
 #file:zdm-env.md
 
 Generate a script to validate SSH connectivity later on the jumpbox/ZDM server.
 ```
 
-`zdm-env.md` is attached only to populate generated script values. The generated script must run without reading `zdm-env.md` at runtime.
-When generating artifacts, treat `zdm-env.md` values as authoritative and use defaults only for fields that are missing, blank, or placeholder values containing `<...>`.
-
-Step 1 prompt behavior is generation-only: create the script in `Artifacts/Phase10-Migration/Step1/Scripts/` and do not run SSH checks or create report files during prompt execution.
-
-Agent action guardrail:
-- Do not run terminal commands for SSH checks in this step.
-- Only generate the script file in the Step1 `Scripts/` directory.
-
 ## Expected Output
 
 ```
 Artifacts/Phase10-Migration/Step1/
+├── README.md
 ├── Scripts/zdm_test_ssh_connectivity.sh
-└── Validation/ (produced at runtime)
+└── Validation/ (produced when script is run on jumpbox/ZDM server)
     ├── ssh-connectivity-report-<timestamp>.md
     └── ssh-connectivity-report-<timestamp>.json
 ```
 
-## Next Step
-After generating the script, commit and push it to GitHub. Run it from the repo clone on the jumpbox/ZDM server as `zdmuser`, and if both SSH checks pass, continue with: `@Phase10-ZDM-Step2-Generate-Discovery-Scripts`
+## Requirements Summary
+
+- Generation-only step: create files only, no SSH execution in VS Code.
+- If `zdm-env.md` is attached, treat it as authoritative generation input and prefer it over defaults.
+- If `zdm-env.md` values conflict with discovery evidence, report mismatch explicitly instead of silently overriding.
+- Generated script must not read or source `zdm-env.md` at runtime.
+- Generate `Artifacts/Phase10-Migration/Step1/README.md` and `Artifacts/Phase10-Migration/Step1/Scripts/zdm_test_ssh_connectivity.sh` only.
+- Runtime report content includes execution metadata, effective SSH mode per endpoint, key checks (when keys are provided), source/target hostname probe results, and final summary with non-zero failure behavior.
+- Runtime console output must show per-check pass/fail status plus a final overall pass/fail summary.
+- Include manual single-line SSH test commands for source and target in both default key/agent mode and explicit key mode.
+- OCI CLI is not required for this step.
+
+## Next Steps
+
+After SSH connectivity passes on both source and target, continue with @Phase10-ZDM-Step2-Generate-Discovery-Scripts.
