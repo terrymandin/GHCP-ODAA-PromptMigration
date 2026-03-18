@@ -35,6 +35,7 @@ Artifacts/Phase10-Migration/Step5/
 When attached, treat `zdm-env.md` as authoritative for environment-specific values rendered into Step5 artifacts, and explicitly flag conflicts with prior-step files.
 
 Step 5 prompt behavior is generation-only: create Step5 artifact files only. Do not execute ZDM commands or migration commands during prompt execution.
+OCI CLI is optional and not required for generated Step5 artifacts; provide OCI values via environment variables.
 
 Commit generated Step5 artifacts to GitHub, then run them from the repository clone on the jumpbox/ZDM server.
 

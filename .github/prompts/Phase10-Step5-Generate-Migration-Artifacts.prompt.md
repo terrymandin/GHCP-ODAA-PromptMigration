@@ -27,6 +27,7 @@ When generating artifacts, remember these user workflow requirements:
 - Users must `sudo su - zdmuser` after login to access ZDM tools
 - The `~/creds` directory does not exist by default and must be created
 - OCI environment variables must be sourced from a file (e.g., `~/zdm_oci_env.sh`)
+- OCI CLI installation is **not** a prerequisite for Step 5 artifact generation or execution
 - `zdm-env.md` is local generation input only; generated scripts and runbooks must not require `zdm-env.md` at runtime on the jumpbox/ZDM server
 
 ---
@@ -147,6 +148,8 @@ The following environment variables must be set on the ZDM server before running
 
 ### Setting Environment Variables
 
+These values can be copied from OCI Console; OCI CLI is optional and not required.
+
 ```bash
 # Set on ZDM server before running migration
 # Target OCI Configuration (REQUIRED)
@@ -192,6 +195,7 @@ Generate a README that provides:
 2. **Prerequisites Checklist**
    - Items to complete before starting
    - Required OCI OCIDs to obtain
+    - Explicitly state OCI CLI is optional and not required
    - Password requirements
 
    **Step 4 Blockers Checklist** — populate using `Verification-Results.md` if provided:
@@ -236,7 +240,7 @@ Generate a comprehensive runbook that includes:
 3. **Target Database Configuration**
    - Configure TNS entries
    - Set up SSH keys
-   - Verify OCI connectivity
+    - Verify OCI identifiers required by the RSP/environment variables (no OCI CLI dependency)
    - Prepare for Data Guard (online migration)
 
 4. **ZDM Server Configuration**
