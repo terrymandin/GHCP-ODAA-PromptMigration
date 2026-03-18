@@ -161,23 +161,17 @@ When run later on jumpbox/ZDM server, runtime summary must include:
 3. Overall Step2 discovery status.
 4. Output format references produced by script runs (raw text, markdown report, JSON report).
 
-Runtime behavior requirements:
-- Apply key normalization consistently and include SSH `-i` only when normalized key path is non-empty.
-- Continue when one target fails and report per-target/per-script status.
-- Do not suppress SSH/SCP errors; capture and report failure context.
-
 ### Shared script implementation requirements
 
 - Use shebang `#!/bin/bash`.
 - Use Unix LF line endings.
 - Keep scripts runtime-independent from `zdm-env.md`.
 - Preserve read-only behavior throughout.
-- Ensure SQL execution remains `SELECT`-only and follows the admin-SSH plus `sudo -u oracle` model.
 - Keep runtime output generation within Step2 discovery output locations only.
 
-### Required implementation examples
+### Required implementation patterns
 
-Include and preserve the following concrete examples in generated script guidance.
+Use these exact patterns when implementing the generated scripts.
 
 ZDM server user guard example:
 
@@ -229,15 +223,18 @@ Pass endpoint values to ZDM server discovery example:
 SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash "$script_path"
 ```
 
-### Required runtime behavior details
+### Orchestrator-only runtime requirements
+
+The following requirements apply exclusively to `zdm_orchestrate_discovery.sh`.
 
 - Startup diagnostics must log current user/home, `.pem`/`.key` inventory, and normalized key resolution/existence checks.
-- Continue execution when one server fails and report per-target/per-script status.
+- Apply SSH key normalization: empty or placeholder key values are treated as unset; include `-i` only when the normalized key path is non-empty.
+- Continue execution when one server fails; report per-target/per-script status and do not abort the full run.
 - Never suppress SSH/SCP errors; capture and report failure context.
 - Confirm remote output existence before SCP retrieval.
 - Enforce shell-safe remote path handling: do not use quoted-tilde runtime paths (for example `cd '~/dir'`); use `$HOME/...` or another explicit absolute path.
 - Fail fast with an explicit error when remote working-directory setup fails before artifact checks.
-- Do not define/call `log_raw` in orchestrator; use orchestrator-safe logging only.
+- Do not define/call `log_raw`; use orchestrator-safe logging only.
 - `show_help` and `show_config` must terminate with `exit` and be called only from argument parsing.
 - Support CLI options: `-h`, `-c`, `-t`, `-v`.
 
@@ -259,18 +256,23 @@ SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash 
 
 ## Generation Quality Gate And Validation Evidence
 
-Before finalizing generated Step2 artifacts, run local non-invasive validation checks permitted by the execution boundary.
+Before finalizing generated artifacts, apply validation checks allowed by the execution boundary (CR-12).
 
-Required checks:
-- Run `bash -n` on each generated shell script:
-   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_source_discovery.sh`
-   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_target_discovery.sh`
-   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh`
-   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_orchestrate_discovery.sh`
-- If `shellcheck` is available, run it and resolve actionable findings.
-- Any failed required validation check is stop-ship; fix and re-run until checks pass.
+Platform detection and check behavior:
+- On Linux/WSL (where `bash` and `shellcheck` are available):
+  - Run `bash -n` on each generated `.sh` script.
+  - If `shellcheck` is available, run it and resolve actionable findings.
+  - Any failed check is a stop-ship condition; fix and re-run before delivering output.
+- On Windows without WSL/bash:
+  - Shell syntax checks (`bash -n`, `shellcheck`) cannot be run locally.
+  - Perform a manual pattern review: verify shebang presence, quote safety in SSH/SCP commands, placeholder normalization coverage, and required pattern parity with S2-07 and S2-08 examples.
+  - Advise the user to run `bash -n` and `shellcheck` on the jumpbox/ZDM server (Linux) after copying the generated scripts.
 
-Final output must include a concise validation evidence summary listing checks performed and pass/fail status.
+Final output must always include a validation evidence section listing:
+- Platform detected (Linux/WSL or Windows without WSL).
+- Checks run, or skipped with reason.
+- Pass/fail status for each check performed.
+- Manual review steps completed when automated checks are not available.
 
 ## Next Step Handoff
 
