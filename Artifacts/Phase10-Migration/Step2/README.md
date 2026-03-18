@@ -1,41 +1,75 @@
-# Step 2 - Discovery Script Generation
+# Phase10 Migration - Step2 Discovery Scripts
 
-This directory contains generated, read-only discovery tooling for ZDM migration preparation.
+## Purpose
+Step2 generates read-only discovery scripts for source, target, and ZDM server context collection.
+The scripts are generated in this repository now, but they are executed later on the jumpbox/ZDM server.
 
-## Generated files
-
+## Generated Files And Directories
+Generated scripts:
 - `Scripts/zdm_source_discovery.sh`
 - `Scripts/zdm_target_discovery.sh`
 - `Scripts/zdm_server_discovery.sh`
 - `Scripts/zdm_orchestrate_discovery.sh`
+
+Generated docs:
+- `README.md`
 - `Scripts/README.md`
-- `Discovery/source/` (placeholder output directory)
-- `Discovery/target/` (placeholder output directory)
-- `Discovery/server/` (placeholder output directory)
 
-## What to run later on jumpbox/ZDM server
+Runtime output directories (created as placeholders now):
+- `Discovery/source/`
+- `Discovery/target/`
+- `Discovery/server/`
 
-1. Copy this full `Step2` directory to the jumpbox or ZDM server.
-2. Ensure scripts are executable:
-   - `chmod +x Scripts/*.sh`
-3. Run orchestrator from `Scripts/`:
-   - `./zdm_orchestrate_discovery.sh -v`
+Runtime logs and orchestration reports are also written under `Discovery/` when scripts run.
 
-## Runtime outputs and logs
+## Required Runtime User
+Run Step2 from the jumpbox/ZDM server clone of this repository.
 
-At runtime, outputs are written under `Discovery/`:
+- `zdm_orchestrate_discovery.sh` should be run from the Step2 scripts folder.
+- `zdm_server_discovery.sh` enforces running as `zdmuser`.
 
-- Source artifacts: `Discovery/source/`
-- Target artifacts: `Discovery/target/`
-- Server artifacts: `Discovery/server/`
-- Orchestrator log/report files: `Discovery/discovery_orchestrator_<timestamp>.{log,md,json}`
+## What To Run Later On Jumpbox/ZDM Server
+From repository root:
 
-Per discovery script naming pattern:
+```bash
+cd Artifacts/Phase10-Migration/Step2/Scripts
+bash zdm_orchestrate_discovery.sh
+```
 
-- `zdm_<type>_discovery_<hostname>_<timestamp>.txt`
-- `zdm_<type>_discovery_<hostname>_<timestamp>.json`
+Optional helper commands:
 
-## Success and failure signals
+```bash
+bash zdm_orchestrate_discovery.sh -h
+bash zdm_orchestrate_discovery.sh -c
+bash zdm_orchestrate_discovery.sh -t source
+bash zdm_orchestrate_discovery.sh -t target
+bash zdm_orchestrate_discovery.sh -t server
+bash zdm_orchestrate_discovery.sh -v
+```
 
-- Success: orchestrator exits `0`, markdown/json report status is `success`, and each target shows `PASS`.
-- Partial/failure: orchestrator exits non-zero, report status is `partial`, and `FAIL` entries explain which target/script failed.
+## Runtime Outputs
+When executed on jumpbox/ZDM server, expected outputs are:
+
+- Source discovery raw text and JSON:
+  - `Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt`
+  - `Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json`
+- Target discovery raw text and JSON:
+  - `Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt`
+  - `Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json`
+- Server discovery raw text and JSON:
+  - `Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt`
+  - `Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json`
+- Orchestration reports:
+  - `Discovery/discovery-orchestration-report-<timestamp>.md`
+  - `Discovery/discovery-orchestration-report-<timestamp>.json`
+- Per-run logs:
+  - `Discovery/logs/source-discovery-<timestamp>.log`
+  - `Discovery/logs/target-discovery-<timestamp>.log`
+  - `Discovery/logs/server-discovery-<timestamp>.log`
+
+## Success / Failure Signals
+- Success signal: orchestrator exits with code `0`, per-script status shows `PASS`, and discovery `.txt` and `.json` files are present for each selected target.
+- Failure signal: orchestrator exits non-zero, report status is partial/fail, and one or more warnings/errors are listed in report and logs.
+
+## Next Step
+After running Step2 and validating outputs, continue with `@Phase10-ZDM-Step3-Discovery-Questionnaire`.

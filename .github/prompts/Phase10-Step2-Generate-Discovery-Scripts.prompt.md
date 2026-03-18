@@ -257,6 +257,21 @@ SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash 
    - `./zdm_<type>_discovery_<hostname>_<timestamp>.json`
 - JSON summary must include top-level `status` (`success` or `partial`) and `warnings` array.
 
+## Generation Quality Gate And Validation Evidence
+
+Before finalizing generated Step2 artifacts, run local non-invasive validation checks permitted by the execution boundary.
+
+Required checks:
+- Run `bash -n` on each generated shell script:
+   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_source_discovery.sh`
+   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_target_discovery.sh`
+   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh`
+   - `Artifacts/Phase10-Migration/Step2/Scripts/zdm_orchestrate_discovery.sh`
+- If `shellcheck` is available, run it and resolve actionable findings.
+- Any failed required validation check is stop-ship; fix and re-run until checks pass.
+
+Final output must include a concise validation evidence summary listing checks performed and pass/fail status.
+
 ## Next Step Handoff
 
 After generating Step2 artifacts, stop.

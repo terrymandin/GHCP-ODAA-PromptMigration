@@ -1,282 +1,297 @@
 #!/bin/bash
+
 # READ-ONLY DISCOVERY SCRIPT - Makes no changes to the database or OS configuration
 
 set -u
 
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-HOSTNAME_SAFE="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
-RAW_OUT="./zdm_source_discovery_${HOSTNAME_SAFE}_${TIMESTAMP}.txt"
-JSON_OUT="./zdm_source_discovery_${HOSTNAME_SAFE}_${TIMESTAMP}.json"
-
-SOURCE_HOST="${SOURCE_HOST:-}"
-SOURCE_ADMIN_USER="${SOURCE_ADMIN_USER:-${SOURCE_SSH_USER:-azureuser}}"
-SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-}"
+DISCOVERY_TYPE="source"
 ORACLE_USER="${ORACLE_USER:-oracle}"
+SOURCE_DATABASE_UNIQUE_NAME="${SOURCE_DATABASE_UNIQUE_NAME:-POCAKV}"
 SOURCE_REMOTE_ORACLE_HOME="${SOURCE_REMOTE_ORACLE_HOME:-/u01/app/oracle/product/19.0.0/dbhome_1}"
 SOURCE_ORACLE_SID="${SOURCE_ORACLE_SID:-POCAKV}"
-SOURCE_DATABASE_UNIQUE_NAME="${SOURCE_DATABASE_UNIQUE_NAME:-POCAKV}"
+SOURCE_SSH_KEY="${SOURCE_SSH_KEY:-}"
 
+HOSTNAME_SHORT="$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo unknown)"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+OUT_TXT="./zdm_${DISCOVERY_TYPE}_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.txt"
+OUT_JSON="./zdm_${DISCOVERY_TYPE}_discovery_${HOSTNAME_SHORT}_${TIMESTAMP}.json"
+
+STATUS="success"
 WARNINGS=()
-SECTION_FAILS=0
 
-is_placeholder() { [[ "$1" == *"<"*">"* ]]; }
-[ -n "$SOURCE_SSH_KEY" ] && is_placeholder "$SOURCE_SSH_KEY" && SOURCE_SSH_KEY=""
-
-log() { printf '%s\n' "$*" | tee -a "$RAW_OUT"; }
-warn() {
-  WARNINGS+=("$*")
-  printf '[WARN] %s\n' "$*" | tee -a "$RAW_OUT"
-}
-section() { log ""; log "==== $* ===="; }
-
-run_cmd() {
-  local label="$1"
-  shift
-  log "[CMD] $label"
-  if "$@" >>"$RAW_OUT" 2>&1; then
-    return 0
-  fi
-  warn "Command failed: $label"
-  SECTION_FAILS=$((SECTION_FAILS + 1))
-  return 1
-}
-
-json_escape() {
+escape_json() {
   local s="$1"
   s="${s//\\/\\\\}"
   s="${s//\"/\\\"}"
-  s="${s//$'\n'/ }"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/}"
+  s="${s//$'\t'/\\t}"
   printf '%s' "$s"
 }
 
-find_oracle_sid() {
-  if [ -n "${ORACLE_SID:-}" ]; then
-    printf '%s' "$ORACLE_SID"
-    return 0
-  fi
-  if [ -n "$SOURCE_ORACLE_SID" ] && ! is_placeholder "$SOURCE_ORACLE_SID"; then
-    printf '%s' "$SOURCE_ORACLE_SID"
-    return 0
-  fi
-
-  local sid
-  sid="$(awk -F: '$1 !~ /^#/ && $1 != "" { print $1; exit }' /etc/oratab 2>/dev/null)"
-  if [ -n "$sid" ]; then
-    printf '%s' "$sid"
-    return 0
-  fi
-
-  sid="$(ps -ef 2>/dev/null | awk '/ora_pmon_/ && !/awk/ { sub(/^.*ora_pmon_/, "", $NF); print $NF; exit }')"
-  printf '%s' "$sid"
+add_warning() {
+  WARNINGS+=("$1")
+  STATUS="partial"
 }
 
-find_oracle_home() {
-  local sid="$1"
+log_section() {
+  local title="$1"
+  {
+    echo ""
+    echo "===== ${title} ====="
+  } >> "$OUT_TXT"
+}
 
-  if [ -n "${ORACLE_HOME:-}" ] && [ -x "${ORACLE_HOME}/bin/sqlplus" ]; then
-    printf '%s' "$ORACLE_HOME"
+run_cmd() {
+  local title="$1"
+  shift
+  log_section "$title"
+  {
+    echo "$ $*"
+    "$@"
+  } >> "$OUT_TXT" 2>&1 || add_warning "Command failed: ${title}"
+}
+
+normalize_key_mode() {
+  local key="$1"
+  if [[ -z "$key" || "$key" == *"<"*">"* ]]; then
+    printf '%s\n' "default_or_agent"
+  else
+    printf '%s\n' "explicit_key"
+  fi
+}
+
+CURRENT_ORACLE_HOME=""
+CURRENT_ORACLE_SID=""
+DETECTION_SOURCE=""
+
+detect_oracle_env() {
+  if [[ -n "${ORACLE_HOME:-}" && -n "${ORACLE_SID:-}" ]]; then
+    CURRENT_ORACLE_HOME="$ORACLE_HOME"
+    CURRENT_ORACLE_SID="$ORACLE_SID"
+    DETECTION_SOURCE="environment"
     return 0
   fi
 
-  local from_oratab
-  from_oratab="$(awk -F: -v sid="$sid" 'sid=="" || $1==sid { if ($2!="" && $2!="*") { print $2; exit } }' /etc/oratab 2>/dev/null)"
-  if [ -n "$from_oratab" ] && [ -x "$from_oratab/bin/sqlplus" ]; then
-    printf '%s' "$from_oratab"
+  local oratab_sid=""
+  local oratab_home=""
+  if [[ -f /etc/oratab ]]; then
+    oratab_sid="$(awk -F: '($1 !~ /^#/ && $1 != "" && $1 !~ /^\+/){print $1; exit}' /etc/oratab 2>/dev/null || true)"
+    oratab_home="$(awk -F: '($1 !~ /^#/ && $1 != "" && $1 !~ /^\+/){print $2; exit}' /etc/oratab 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$oratab_sid" && -n "$oratab_home" ]]; then
+    CURRENT_ORACLE_SID="$oratab_sid"
+    CURRENT_ORACLE_HOME="$oratab_home"
+    DETECTION_SOURCE="oratab"
     return 0
   fi
 
   local pmon_sid
-  pmon_sid="$(ps -ef 2>/dev/null | awk '/ora_pmon_/ && !/awk/ { sub(/^.*ora_pmon_/, "", $NF); print $NF; exit }')"
-  if [ -n "$pmon_sid" ]; then
-    from_oratab="$(awk -F: -v sid="$pmon_sid" '$1==sid { if ($2!="" && $2!="*") { print $2; exit } }' /etc/oratab 2>/dev/null)"
-    if [ -n "$from_oratab" ] && [ -x "$from_oratab/bin/sqlplus" ]; then
-      printf '%s' "$from_oratab"
-      return 0
-    fi
+  pmon_sid="$(ps -ef 2>/dev/null | awk '/ora_pmon_/ {sub(/^.*ora_pmon_/, "", $0); print $0; exit}' || true)"
+  if [[ -n "$pmon_sid" ]]; then
+    CURRENT_ORACLE_SID="$pmon_sid"
+    DETECTION_SOURCE="pmon"
   fi
 
-  for p in \
-    "$SOURCE_REMOTE_ORACLE_HOME" \
-    /u01/app/oracle/product/19.0.0/dbhome_1 \
-    /u01/app/oracle/product/21.0.0/dbhome_1 \
-    /u02/app/oracle/product/19.0.0/dbhome_1 \
-    /opt/oracle/product/19c/dbhome_1
-  do
-    if [ -n "$p" ] && [ -x "$p/bin/sqlplus" ]; then
-      printf '%s' "$p"
-      return 0
+  local homes=(
+    "${SOURCE_REMOTE_ORACLE_HOME}"
+    "/u01/app/oracle/product/19.0.0/dbhome_1"
+    "/u01/app/oracle/product/21.0.0/dbhome_1"
+    "/opt/oracle/product/19c/dbhome_1"
+  )
+  local h
+  for h in "${homes[@]}"; do
+    if [[ -n "$h" && -x "$h/bin/sqlplus" ]]; then
+      CURRENT_ORACLE_HOME="$h"
+      if [[ -z "$CURRENT_ORACLE_SID" ]]; then
+        CURRENT_ORACLE_SID="${SOURCE_ORACLE_SID}"
+      fi
+      DETECTION_SOURCE="common_paths"
+      break
     fi
   done
 
-  if command -v oraenv >/dev/null 2>&1; then
-    printf '%s' "$(ORAENV_ASK=NO ORACLE_SID="$sid" . oraenv >/dev/null 2>&1; printf '%s' "${ORACLE_HOME:-}")"
-    return 0
-  fi
-  if command -v coraenv >/dev/null 2>&1; then
-    printf '%s' "$(ORAENV_ASK=NO ORACLE_SID="$sid" . coraenv >/dev/null 2>&1; printf '%s' "${ORACLE_HOME:-}")"
-    return 0
-  fi
-
-  printf ''
-}
-
-run_sql() {
-  local label="$1"
-  local sql_text="$2"
-  local oh="$3"
-  local sid="$4"
-
-  log "[SQL] $label"
-  if [ -z "$oh" ] || [ -z "$sid" ] || [ ! -x "$oh/bin/sqlplus" ]; then
-    warn "Skipping SQL section '$label' (ORACLE_HOME/ORACLE_SID/sqlplus unresolved)"
-    SECTION_FAILS=$((SECTION_FAILS + 1))
-    return 1
+  if [[ -z "$CURRENT_ORACLE_HOME" && -n "$CURRENT_ORACLE_SID" ]]; then
+    local oraenv_path=""
+    oraenv_path="$(command -v oraenv 2>/dev/null || command -v coraenv 2>/dev/null || true)"
+    if [[ -n "$oraenv_path" ]]; then
+      CURRENT_ORACLE_HOME="$(sudo -u "$ORACLE_USER" env ORACLE_SID="$CURRENT_ORACLE_SID" ORAENV_ASK=NO bash -lc '. "$0" >/dev/null 2>&1; printf "%s" "$ORACLE_HOME"' "$oraenv_path" 2>/dev/null || true)"
+      if [[ -n "$CURRENT_ORACLE_HOME" ]]; then
+        DETECTION_SOURCE="oraenv"
+      fi
+    fi
   fi
 
-  if ! printf '%s\n' "$sql_text" | sudo -u "$ORACLE_USER" env ORACLE_HOME="$oh" ORACLE_SID="$sid" PATH="$oh/bin:$PATH" bash -lc '
-set -u
-cat | "$ORACLE_HOME/bin/sqlplus" -s / as sysdba
-' >>"$RAW_OUT" 2>&1; then
-    warn "SQL section failed: $label"
-    SECTION_FAILS=$((SECTION_FAILS + 1))
+  if [[ -z "$CURRENT_ORACLE_SID" ]]; then
+    CURRENT_ORACLE_SID="$SOURCE_ORACLE_SID"
+  fi
+  if [[ -z "$CURRENT_ORACLE_HOME" ]]; then
+    CURRENT_ORACLE_HOME="$SOURCE_REMOTE_ORACLE_HOME"
+  fi
+
+  if [[ ! -x "$CURRENT_ORACLE_HOME/bin/sqlplus" ]]; then
+    add_warning "Unable to verify sqlplus executable at ${CURRENT_ORACLE_HOME}/bin/sqlplus"
     return 1
   fi
 
   return 0
 }
 
-write_json_summary() {
-  local status="success"
-  if [ "$SECTION_FAILS" -gt 0 ]; then
-    status="partial"
+run_sql_select() {
+  local title="$1"
+  local sql_body="$2"
+
+  log_section "$title"
+
+  if [[ -z "$CURRENT_ORACLE_HOME" || -z "$CURRENT_ORACLE_SID" ]]; then
+    echo "Oracle environment not detected; skipping SQL section." >> "$OUT_TXT"
+    add_warning "Skipped SQL section due to missing Oracle environment: ${title}"
+    return 1
   fi
 
   {
-    printf '{\n'
-    printf '  "status": "%s",\n' "$status"
-    printf '  "type": "source",\n'
-    printf '  "host": "%s",\n' "$(json_escape "$HOSTNAME_SAFE")"
-    printf '  "timestamp": "%s",\n' "$TIMESTAMP"
-    printf '  "raw_output": "%s",\n' "$(json_escape "$RAW_OUT")"
-    printf '  "warnings": ['
-    if [ "${#WARNINGS[@]}" -gt 0 ]; then
-      printf '\n'
-      local i
-      for i in "${!WARNINGS[@]}"; do
-        printf '    "%s"' "$(json_escape "${WARNINGS[$i]}")"
-        if [ "$i" -lt $(( ${#WARNINGS[@]} - 1 )) ]; then
-          printf ','
-        fi
-        printf '\n'
-      done
-      printf '  '
+    printf 'set pages 1000 lines 300 trimspool on feedback off verify off heading on\n'
+    printf '%s\n' "$sql_body"
+    printf 'exit\n'
+  } | sudo -u "$ORACLE_USER" env ORACLE_HOME="$CURRENT_ORACLE_HOME" ORACLE_SID="$CURRENT_ORACLE_SID" PATH="$CURRENT_ORACLE_HOME/bin:$PATH" bash -lc 'sqlplus -s / as sysdba' >> "$OUT_TXT" 2>&1 || {
+    add_warning "SQL section failed: ${title}"
+    return 1
+  }
+
+  return 0
+}
+
+{
+  echo "ZDM Step2 Source Discovery"
+  echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "Discovery Type: ${DISCOVERY_TYPE}"
+  echo "Host: ${HOSTNAME_SHORT}"
+} > "$OUT_TXT"
+
+SOURCE_KEY_MODE="$(normalize_key_mode "$SOURCE_SSH_KEY")"
+
+log_section "Connectivity and Authentication Context"
+{
+  echo "SOURCE_HOST=${SOURCE_HOST:-<unset>}"
+  echo "SOURCE_ADMIN_USER=${SOURCE_ADMIN_USER:-<unset>}"
+  echo "SOURCE_SSH_KEY_MODE=${SOURCE_KEY_MODE}"
+} >> "$OUT_TXT"
+
+run_cmd "Remote System Details" uname -a
+run_cmd "Operating System Release" bash -lc 'cat /etc/os-release 2>/dev/null || true'
+run_cmd "Uptime" uptime
+run_cmd "/etc/oratab Entries" bash -lc 'cat /etc/oratab 2>/dev/null || echo /etc/oratab-not-found'
+run_cmd "PMON SIDs" bash -lc 'ps -ef | grep pmon | grep -v grep || true'
+
+if ! detect_oracle_env; then
+  add_warning "Oracle environment detection completed with issues"
+fi
+
+log_section "Oracle Environment Details"
+{
+  echo "ORACLE_HOME=${CURRENT_ORACLE_HOME:-<unset>}"
+  echo "ORACLE_SID=${CURRENT_ORACLE_SID:-<unset>}"
+  echo "DETECTION_SOURCE=${DETECTION_SOURCE:-fallback}"
+  echo "SOURCE_DATABASE_UNIQUE_NAME=${SOURCE_DATABASE_UNIQUE_NAME}"
+} >> "$OUT_TXT"
+
+run_cmd "sqlplus Version" bash -lc '"'"${CURRENT_ORACLE_HOME}"'"/bin/sqlplus -v 2>/dev/null || echo sqlplus-unavailable'
+
+run_sql_select "Database Configuration" "
+SELECT name, db_unique_name, database_role, open_mode, cdb, log_mode, force_logging FROM v\\$database;
+SELECT parameter, value FROM nls_database_parameters WHERE parameter IN ('NLS_CHARACTERSET','NLS_NCHAR_CHARACTERSET') ORDER BY parameter;
+SELECT supplemental_log_data_min, supplemental_log_data_pk, supplemental_log_data_ui FROM v\\$database;
+"
+
+run_sql_select "CDB and PDB Posture" "
+SELECT cdb FROM v\\$database;
+SELECT name, open_mode FROM v\\$pdbs ORDER BY name;
+"
+
+run_sql_select "TDE Status" "
+SELECT wallet_type, wallet_order, status, wallet_type, wrl_parameter FROM v\\$encryption_wallet;
+SELECT ts.name AS tablespace_name, e.encryptionalg AS encryption_alg
+FROM v\\$tablespace ts LEFT JOIN v\\$encrypted_tablespaces e ON ts.ts# = e.ts#
+ORDER BY ts.name;
+"
+
+run_sql_select "Tablespace and Datafile Posture" "
+SELECT tablespace_name, status, contents FROM dba_tablespaces ORDER BY tablespace_name;
+SELECT tablespace_name, file_name, bytes, autoextensible, maxbytes FROM dba_data_files ORDER BY tablespace_name, file_name;
+"
+
+run_sql_select "Redo and Archive Posture" "
+SELECT group#, thread#, bytes, members, archived, status FROM v\\$log ORDER BY group#;
+SELECT dest_id, destination, status, target, valid_now FROM v\\$archive_dest WHERE destination IS NOT NULL ORDER BY dest_id;
+"
+
+run_cmd "Listener Status" bash -lc 'lsnrctl status 2>/dev/null || echo lsnrctl-unavailable'
+run_cmd "tnsnames.ora" bash -lc 'find "${CURRENT_ORACLE_HOME:-/tmp}" -maxdepth 4 -name tnsnames.ora -type f 2>/dev/null | head -n 5 | xargs -r -I{} sh -c "echo --- {}; sed -n 1,200p {}"'
+run_cmd "sqlnet.ora" bash -lc 'find "${CURRENT_ORACLE_HOME:-/tmp}" -maxdepth 4 -name sqlnet.ora -type f 2>/dev/null | head -n 5 | xargs -r -I{} sh -c "echo --- {}; sed -n 1,200p {}"'
+
+run_cmd "Password File and SSH Inventory" bash -lc '
+  find "${CURRENT_ORACLE_HOME:-/tmp}" -maxdepth 3 -type f \( -name "orapw*" -o -name "pwd*" \) 2>/dev/null || true
+  ls -la ~/.ssh 2>/dev/null || true
+'
+
+run_sql_select "Schema Posture" "
+SELECT owner, ROUND(SUM(bytes)/1024/1024,2) AS size_mb FROM dba_segments
+WHERE owner NOT IN ('SYS','SYSTEM','SYSMAN','DBSNMP','OUTLN')
+GROUP BY owner ORDER BY size_mb DESC FETCH FIRST 20 ROWS ONLY;
+SELECT owner, COUNT(*) AS invalid_objects FROM dba_objects
+WHERE status='INVALID' GROUP BY owner ORDER BY invalid_objects DESC FETCH FIRST 20 ROWS ONLY;
+"
+
+run_cmd "Backup Posture (RMAN and CRS traces)" bash -lc '
+  ps -ef | grep -i rman | grep -v grep || true
+  find /var/log -maxdepth 3 -type f -iname "*rman*" 2>/dev/null | head -n 20 || true
+'
+
+run_sql_select "Integration Objects" "
+SELECT owner, db_link, host FROM dba_db_links ORDER BY owner, db_link;
+SELECT owner, mview_name, staleness FROM dba_mviews ORDER BY owner, mview_name;
+SELECT owner, master, log_table FROM dba_mview_logs ORDER BY owner, master;
+SELECT owner, job_name, enabled, state FROM dba_scheduler_jobs ORDER BY owner, job_name FETCH FIRST 200 ROWS ONLY;
+"
+
+run_sql_select "Data Guard Parameters" "
+SELECT name, value FROM v\\$parameter WHERE name IN
+('log_archive_config','db_unique_name','fal_server','fal_client','standby_file_management')
+ORDER BY name;
+SELECT process, status, client_process, thread#, sequence# FROM v\\$managed_standby;
+"
+
+{
+  echo ""
+  echo "===== Summary ====="
+  echo "status=${STATUS}"
+  echo "warnings_count=${#WARNINGS[@]}"
+} >> "$OUT_TXT"
+
+{
+  printf '{\n'
+  printf '  "discovery_type": "source",\n'
+  printf '  "timestamp": "%s",\n' "$(escape_json "$(date -u +%Y-%m-%dT%H:%M:%SZ)")"
+  printf '  "host": "%s",\n' "$(escape_json "$HOSTNAME_SHORT")"
+  printf '  "status": "%s",\n' "$(escape_json "$STATUS")"
+  printf '  "oracle_home": "%s",\n' "$(escape_json "${CURRENT_ORACLE_HOME:-}")"
+  printf '  "oracle_sid": "%s",\n' "$(escape_json "${CURRENT_ORACLE_SID:-}")"
+  printf '  "database_unique_name": "%s",\n' "$(escape_json "$SOURCE_DATABASE_UNIQUE_NAME")"
+  printf '  "warnings": ['
+
+  i=0
+  while [[ $i -lt ${#WARNINGS[@]} ]]; do
+    if [[ $i -gt 0 ]]; then
+      printf ', '
     fi
-    printf ']\n'
-    printf '}\n'
-  } >"$JSON_OUT"
-}
+    printf '"%s"' "$(escape_json "${WARNINGS[$i]}")"
+    i=$((i + 1))
+  done
 
-main() {
-  : >"$RAW_OUT"
+  printf ']\n'
+  printf '}\n'
+} > "$OUT_JSON"
 
-  section "Connectivity and auth context"
-  log "source_host=${SOURCE_HOST:-unset}"
-  log "source_admin_user=$SOURCE_ADMIN_USER"
-  log "source_ssh_key_mode=$([ -n "$SOURCE_SSH_KEY" ] && echo explicit || echo default-agent)"
-
-  section "Remote system details"
-  run_cmd "hostname" hostname
-  run_cmd "uname" uname -a
-  run_cmd "uptime" uptime
-  run_cmd "os-release" bash -lc 'if [ -f /etc/os-release ]; then cat /etc/os-release; else echo /etc/os-release not found; fi'
-
-  local sid
-  local oh
-  sid="$(find_oracle_sid)"
-  oh="$(find_oracle_home "$sid")"
-
-  section "Oracle environment details"
-  log "oracle_sid=$sid"
-  log "oracle_home=$oh"
-  log "database_unique_name_config=$SOURCE_DATABASE_UNIQUE_NAME"
-  run_cmd "/etc/oratab" bash -lc 'if [ -f /etc/oratab ]; then grep -v "^#" /etc/oratab; else echo /etc/oratab not found; fi'
-  run_cmd "PMON" bash -lc 'ps -ef | awk "/ora_pmon_/ && !/awk/ {print \$NF}"'
-  run_cmd "sqlplus version" bash -lc 'if [ -x "'"$oh"'"/bin/sqlplus" ]; then "'"$oh"'"/bin/sqlplus -v; else echo sqlplus-not-found; fi'
-
-  section "Database core configuration"
-  run_sql "db identity and mode" "set pages 200 lines 300 trimspool on feedback on
-select name, db_unique_name, database_role, open_mode, platform_name from v\$database;
-select parameter, value from nls_database_parameters where parameter in ('NLS_CHARACTERSET','NLS_NCHAR_CHARACTERSET');
-select log_mode, force_logging, supplemental_log_data_min, supplemental_log_data_pk, supplemental_log_data_ui from v\$database;
-" "$oh" "$sid"
-
-  section "CDB and PDB posture"
-  run_sql "cdb pdb status" "set pages 200 lines 300 trimspool on feedback on
-select cdb from v\$database;
-select name, open_mode from v\$pdbs;
-" "$oh" "$sid"
-
-  section "TDE status"
-  run_sql "wallet and encrypted tablespaces" "set pages 200 lines 300 trimspool on feedback on
-select wallet_type, wallet_order, status, wallet_type from v\$encryption_wallet;
-select tablespace_name, encrypted from dba_tablespaces order by tablespace_name;
-" "$oh" "$sid"
-
-  section "Tablespace and datafile posture"
-  run_sql "tablespace sizing" "set pages 400 lines 300 trimspool on feedback on
-select tablespace_name, autoextensible, sum(bytes)/1024/1024 current_mb, sum(maxbytes)/1024/1024 max_mb
-from dba_data_files
-group by tablespace_name, autoextensible
-order by tablespace_name;
-" "$oh" "$sid"
-
-  section "Redo and archive posture"
-  run_sql "redo groups and archive destinations" "set pages 400 lines 300 trimspool on feedback on
-select group#, thread#, sequence#, bytes/1024/1024 size_mb, archived, status from v\$log order by group#;
-select group#, member from v\$logfile order by group#, member;
-select dest_id, status, destination, target from v\$archive_dest where status <> 'INACTIVE' order by dest_id;
-" "$oh" "$sid"
-
-  section "Network config"
-  run_cmd "listener status" bash -lc 'if command -v lsnrctl >/dev/null 2>&1; then lsnrctl status; else echo lsnrctl-not-found; fi'
-  run_cmd "tnsnames.ora" bash -lc 'if [ -n "'"$oh"'" ] && [ -f "'"$oh"'"/network/admin/tnsnames.ora ]; then cat "'"$oh"'"/network/admin/tnsnames.ora; else echo tnsnames.ora-not-found; fi'
-  run_cmd "sqlnet.ora" bash -lc 'if [ -n "'"$oh"'" ] && [ -f "'"$oh"'"/network/admin/sqlnet.ora ]; then cat "'"$oh"'"/network/admin/sqlnet.ora; else echo sqlnet.ora-not-found; fi'
-
-  section "Authentication artifacts"
-  run_cmd "password files" bash -lc 'ls -l "'"$oh"'"/dbs/orapw* 2>/dev/null || true; ls -l /etc/oracle/orapw* 2>/dev/null || true'
-  run_cmd "ssh directory" bash -lc 'ls -la ~/.ssh 2>/dev/null || echo ~/.ssh-not-found'
-
-  section "Schema posture"
-  run_sql "schema sizes and invalid objects" "set pages 400 lines 300 trimspool on feedback on
-select owner, round(sum(bytes)/1024/1024,2) mb from dba_segments
-where owner not in ('SYS','SYSTEM','XDB','SYSMAN','DBSNMP','GSMADMIN_INTERNAL')
-group by owner order by mb desc;
-select owner, object_type, count(*) invalid_count from dba_objects
-where status='INVALID'
-group by owner, object_type order by invalid_count desc;
-" "$oh" "$sid"
-
-  section "Backup posture"
-  run_cmd "crontab oracle" bash -lc 'crontab -u "'"$ORACLE_USER"'" -l 2>/dev/null || echo no-crontab'
-  run_sql "rman backup evidence" "set pages 200 lines 300 trimspool on feedback on
-select input_type, status, start_time, end_time from v\$rman_backup_job_details
-order by start_time desc fetch first 20 rows only;
-" "$oh" "$sid"
-
-  section "Integration and data guard objects"
-  run_sql "db links, mviews, scheduler jobs, dataguard params" "set pages 500 lines 300 trimspool on feedback on
-select owner, db_link, host from dba_db_links order by owner, db_link;
-select owner, mview_name, rewrite_enabled from dba_mviews order by owner, mview_name;
-select log_owner, master from dba_mview_logs order by log_owner, master;
-select owner, job_name, enabled, state from dba_scheduler_jobs order by owner, job_name;
-select name, value from v\$parameter where name in ('db_unique_name','log_archive_config','fal_server','fal_client') order by name;
-" "$oh" "$sid"
-
-  write_json_summary
-  log ""
-  log "Discovery complete"
-  log "raw_output=$RAW_OUT"
-  log "json_output=$JSON_OUT"
-}
-
-main "$@"
+echo "[INFO] Source discovery text output: ${OUT_TXT}"
+echo "[INFO] Source discovery json output: ${OUT_JSON}"

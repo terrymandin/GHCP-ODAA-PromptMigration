@@ -105,3 +105,12 @@ Naming rule:
 1. `REQUIREMENTS.md` is no longer a canonical step requirement file for Phase10.
 2. Step requirements must be authored and maintained only in `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md`.
 3. Avoid duplicating the same requirement text in both files; place each requirement in exactly one layer.
+
+## CR-12: Generation quality gate and evidence
+
+1. Before finalizing generated artifacts, run local non-invasive validation checks allowed by the execution boundary.
+2. Validation must include syntax checks for generated shell scripts (for example `bash -n` on each script).
+3. If optional linters are available in the environment (for example `shellcheck`), run them and resolve actionable findings.
+4. Any failed validation check is a stop-ship condition for generation output; fix and re-run checks until all required checks pass.
+5. Final output must include a concise validation evidence summary listing checks performed and pass/fail status.
+6. This quality gate applies to all Phase10 steps that generate executable scripts or machine-readable artifacts.

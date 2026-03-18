@@ -1,36 +1,43 @@
-# Step 2 Scripts
+# Step2 Scripts README
 
-## Generated scripts
+## Files In This Directory
+- `zdm_source_discovery.sh` - remote source database and host read-only discovery
+- `zdm_target_discovery.sh` - remote target database and host read-only discovery
+- `zdm_server_discovery.sh` - local ZDM server read-only discovery (enforces `zdmuser`)
+- `zdm_orchestrate_discovery.sh` - orchestrates source, target, and server discovery execution and artifact collection
 
-- `zdm_source_discovery.sh`
-- `zdm_target_discovery.sh`
-- `zdm_server_discovery.sh`
-- `zdm_orchestrate_discovery.sh`
+## What To Run Later On Jumpbox/ZDM Server
+Primary command:
 
-All scripts are read-only and collect discovery data only.
+```bash
+bash zdm_orchestrate_discovery.sh
+```
 
-## How to run on jumpbox/ZDM server
+CLI options:
+- `-h` show usage and exit
+- `-c` show effective runtime configuration and exit
+- `-t all|source|target|server` choose which discovery scripts to run
+- `-v` verbose mode
 
-1. `chmod +x *.sh`
-2. Run full discovery:
-   - `./zdm_orchestrate_discovery.sh -v`
-3. Optional single target run:
-   - `./zdm_orchestrate_discovery.sh -t source`
-   - `./zdm_orchestrate_discovery.sh -t target`
-   - `./zdm_orchestrate_discovery.sh -t server`
-4. Show config/help:
-   - `./zdm_orchestrate_discovery.sh -c`
-   - `./zdm_orchestrate_discovery.sh -h`
+## Runtime Output, Logs, And Reports
+All runtime outputs are written under Step2 `Discovery/`:
 
-## Runtime output locations
+- `../Discovery/source/` - source discovery txt/json outputs
+- `../Discovery/target/` - target discovery txt/json outputs
+- `../Discovery/server/` - server discovery txt/json outputs
+- `../Discovery/logs/` - orchestrator execution logs per script
+- `../Discovery/discovery-orchestration-report-<timestamp>.md`
+- `../Discovery/discovery-orchestration-report-<timestamp>.json`
 
-- Source: `../Discovery/source/`
-- Target: `../Discovery/target/`
-- Server: `../Discovery/server/`
-- Orchestrator reports/logs: `../Discovery/discovery_orchestrator_<timestamp>.{log,md,json}`
+Per-script output naming pattern:
+- `zdm_<type>_discovery_<hostname>_<timestamp>.txt`
+- `zdm_<type>_discovery_<hostname>_<timestamp>.json`
 
-## Success and failure checks
+## Success / Failure Signals
+- Success: exit code `0`, report shows overall PASS/success, selected script statuses are `PASS`, and txt/json artifacts are present.
+- Failure: non-zero exit code, report has warnings and partial/fail status, and one or more per-script statuses are `FAIL`.
 
-- `PASS` appears for each discovery target in orchestrator report.
-- JSON report top-level `status` is `success` for full success or `partial` when warnings/failures occurred.
-- Non-zero exit code indicates one or more discovery targets failed.
+## Notes
+- Scripts are read-only and do not perform remediation actions.
+- SQL statements are SELECT-only and run as `oracle` via `sudo -u oracle` on remote source/target hosts.
+- SSH `-i` is used only when normalized key paths are non-empty.

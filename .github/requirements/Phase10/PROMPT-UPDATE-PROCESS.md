@@ -43,6 +43,8 @@ For each updated step prompt, verify:
 7. User-facing behavior traces to `USER-REQUIREMENTS.md` and coding constraints trace to `SYSTEM-REQUIREMENTS.md`.
 8. Shell-script output rendering is safe for markdown/list literals that begin with `-` (no `printf` option parsing errors during runtime writes).
 9. Any runtime report contract includes explicit completeness/parity checks and non-zero exit behavior on report-write failures.
+10. Prompt instructions include a generation quality gate that requires local syntax validation before final output.
+11. Prompt output includes concise validation evidence (checks run and pass/fail state) when scripts/artifacts are generated.
 
 For each updated example prompt, verify:
 

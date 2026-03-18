@@ -44,6 +44,7 @@ Artifacts/Phase10-Migration/Step2/
 - SSH key normalization is required: empty/placeholder key values are treated as unset, and `-i` is included only when the normalized key path is non-empty.
 - Step prompt preserves required implementation examples/patterns for user guards, key normalization, conditional `-i` usage, login-shell remote execution with shell-safe absolute paths, SQL via stdin (SP2-0310 prevention), and runtime status/warnings output schema.
 - Orchestrator behavior includes startup diagnostics, per-target resilience, explicit failure when remote working-directory setup fails, and no suppression of SSH/SCP errors.
+- Generation quality gate requires local syntax validation (`bash -n` on each generated script), optional `shellcheck` when available, and concise validation evidence with pass/fail status.
 - OCI CLI is not required for migration execution.
 
 ## Next Steps
