@@ -1,0 +1,18 @@
+=== ZDM Step2 Discovery Orchestrator ===
+Timestamp: 2026-03-18T20:43:45Z
+Current user: zdmuser
+Home directory: /home/zdmuser
+Scope: all
+
+=== SSH Key Diagnostics ===
+~/.ssh inventory (.pem/.key):
+SOURCE_SSH_KEY (normalized): <unset> (default/agent mode)
+TARGET_SSH_KEY (normalized): <unset> (default/agent mode)
+
+[INFO] Running source discovery on azureuser@10.200.1.12
+[ERROR] Could not confirm remote output files for source on 10.200.1.12
+[INFO] Running target discovery on opc@10.200.0.250
+[ERROR] Could not confirm remote output files for target on 10.200.0.250
+[INFO] Summary markdown: /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/discovery-summary-20260318-204345.md
+[INFO] Summary JSON: /home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/discovery-summary-20260318-204345.json
+[INFO] Overall Step2 discovery status: FAIL

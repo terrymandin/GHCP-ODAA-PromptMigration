@@ -1,0 +1,3 @@
+bash: line 1: cd: ~/zdm-step2-target-20260318-204345: No such file or directory
+[INFO] Target discovery raw output: ./zdm_target_discovery_vmclusterpoc-ytlat1_20260318-204347.txt
+[INFO] Target discovery JSON summary: ./zdm_target_discovery_vmclusterpoc-ytlat1_20260318-204347.json
