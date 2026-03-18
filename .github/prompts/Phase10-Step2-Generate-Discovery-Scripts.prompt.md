@@ -217,9 +217,10 @@ scp $SCP_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "$script" "${SOURCE_ADMIN_
 Remote execution pattern with login shell and working-directory prelude:
 
 ```bash
+remote_dir="$HOME/zdm-step2-${dtype}-${timestamp}"
 ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" \
-      "mkdir -p $remote_dir && bash -l -s" \
-      < <(echo "cd '$remote_dir'" ; cat "$script_path")
+   "mkdir -p $remote_dir && bash -l -s" \
+   < <(printf 'cd %q\n' "$remote_dir"; cat "$script_path")
 ```
 
 Pass endpoint values to ZDM server discovery example:
@@ -234,6 +235,8 @@ SOURCE_HOST="$SOURCE_HOST" TARGET_HOST="$TARGET_HOST" ZDM_USER="$ZDM_USER" bash 
 - Continue execution when one server fails and report per-target/per-script status.
 - Never suppress SSH/SCP errors; capture and report failure context.
 - Confirm remote output existence before SCP retrieval.
+- Enforce shell-safe remote path handling: do not use quoted-tilde runtime paths (for example `cd '~/dir'`); use `$HOME/...` or another explicit absolute path.
+- Fail fast with an explicit error when remote working-directory setup fails before artifact checks.
 - Do not define/call `log_raw` in orchestrator; use orchestrator-safe logging only.
 - `show_help` and `show_config` must terminate with `exit` and be called only from argument parsing.
 - Support CLI options: `-h`, `-c`, `-t`, `-v`.

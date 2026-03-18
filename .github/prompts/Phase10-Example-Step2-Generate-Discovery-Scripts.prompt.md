@@ -42,7 +42,8 @@ Artifacts/Phase10-Migration/Step2/
 - Scripts are strictly read-only (`SELECT`-only SQL, no mutation commands) and include a read-only banner comment.
 - Auth model: source/target SSH as admin user then SQL as `oracle` via `sudo -u oracle`; ZDM server script runs locally as `zdmuser` with a user guard.
 - SSH key normalization is required: empty/placeholder key values are treated as unset, and `-i` is included only when the normalized key path is non-empty.
-- Step prompt preserves required implementation examples/patterns for user guards, key normalization, login-shell remote execution, SQL via stdin (SP2-0310 prevention), and runtime status/warnings output schema.
+- Step prompt preserves required implementation examples/patterns for user guards, key normalization, conditional `-i` usage, login-shell remote execution with shell-safe absolute paths, SQL via stdin (SP2-0310 prevention), and runtime status/warnings output schema.
+- Orchestrator behavior includes startup diagnostics, per-target resilience, explicit failure when remote working-directory setup fails, and no suppression of SSH/SCP errors.
 - OCI CLI is not required for migration execution.
 
 ## Next Steps

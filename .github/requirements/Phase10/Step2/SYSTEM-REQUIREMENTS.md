@@ -43,12 +43,13 @@ These patterns must be represented explicitly in the Step2 prompt text so genera
 	scp $SCP_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "$script" "${SOURCE_ADMIN_USER}@${SOURCE_HOST}:$remote_dir/"
 	```
 
-4. Remote execution pattern must include login shell and working-directory prelude:
+4. Remote execution pattern must include login shell and working-directory prelude using an explicit absolute path (no quoted `~`):
 
 	```bash
+	remote_dir="$HOME/zdm-step2-${dtype}-${timestamp}"
 	ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" \
 	    "mkdir -p $remote_dir && bash -l -s" \
-	    < <(echo "cd '$remote_dir'" ; cat "$script_path")
+	    < <(printf 'cd %q\n' "$remote_dir"; cat "$script_path")
 	```
 
 5. Orchestrator must pass endpoint values to local ZDM server discovery script:
@@ -66,6 +67,8 @@ These patterns must be represented explicitly in the Step2 prompt text so genera
 	- continue execution when one server fails and report per-target status,
 	- never suppress SSH/SCP errors,
 	- confirm remote output existence before SCP,
+	- enforce shell-safe remote path handling: do not use quoted-tilde paths for runtime `cd` (for example `cd '~/dir'`), and prefer `$HOME/...` or another absolute path,
+	- fail fast with explicit error if remote working-directory setup fails before artifact checks,
 	- do not define/call `log_raw` in orchestrator,
 	- `show_help` and `show_config` terminate with `exit` and are only called from argument parsing,
 	- support CLI options `-h`, `-c`, `-t`, `-v`.
