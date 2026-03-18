@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-03-18T21:19:20Z",
+  "status": "partial",
+  "effective_config": {
+    "source_host": "10.200.1.12",
+    "target_host": "10.200.0.250",
+    "source_admin_user": "azureuser",
+    "target_admin_user": "opc",
+    "oracle_user": "oracle",
+    "zdm_user": "zdmuser"
+  },
+  "scripts": {
+    "source": {"status": "FAIL", "log": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/logs/source-discovery-20260318-211916.log"},
+    "target": {"status": "FAIL", "log": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/logs/target-discovery-20260318-211916.log"},
+    "server": {"status": "PASS", "log": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/logs/server-discovery-20260318-211916.log"}
+  },
+  "outputs": {
+    "source_txt": "",
+    "source_json": "",
+    "target_txt": "",
+    "target_json": "",
+    "server_txt": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260318-211916.txt",
+    "server_json": "/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_zdmhost_20260318-211916.json"
+  },
+  "warnings": ["source discovery failed during remote execution", "target discovery failed during remote execution"]
+}
