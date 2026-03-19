@@ -1,5 +1,5 @@
 ﻿---
-mode: agent
+agent: agent
 description: ZDM Step 3 - Analyze discovery output and create migration plan
 ---
 # ZDM Migration Step 3: Get Manual Configuration Context
@@ -30,7 +30,7 @@ Step 5: Generate Migration Artifacts & Run Migration
 Before running this prompt:
 1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
 2. ✅ Run `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` to generate discovery scripts
-3. ✅ Execute the discovery scripts on all servers
+3. ✅ Commit/push Step2 scripts, then execute them from the repository clone on the jumpbox/ZDM server
 4. ✅ Check discovery output files into the repository
 
 ---
@@ -38,6 +38,11 @@ Before running this prompt:
 ## How to Use This Prompt
 
 Attach the discovery files from Step2 and run this prompt:
+
+Configuration precedence for artifact generation (mandatory):
+- If `zdm-env.md` is attached, treat it as authoritative for configured intent values used in Step3 artifacts.
+- Use discovery output as observed runtime evidence, and use `zdm-env.md` as the configured baseline when generating consistency checks and recommendations.
+- If discovery and `zdm-env.md` disagree, do not silently replace values; explicitly call out the mismatch and recommend corrective action.
 
 DB-specific value scope for Step 1-5 prompts:
 - `SOURCE_REMOTE_ORACLE_HOME`

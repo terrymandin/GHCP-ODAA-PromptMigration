@@ -1,11 +1,18 @@
 ﻿---
-mode: agent
+agent: agent
 description: ZDM Step 4 - Resolve blockers identified in discovery
 ---
 # ZDM Migration Step 4: Fix Issues
 
 ## Purpose
 This prompt helps address blockers and critical actions identified in the Discovery Summary before proceeding to migration artifact generation. **Iteration may be required** until all issues are resolved.
+
+## Execution Boundary (Critical)
+
+This prompt is generation-only.
+- Generate remediation scripts, verification scripts, and markdown artifacts under `Artifacts/Phase10-Migration/Step4/`
+- Do not execute remediation commands, SQL, SSH, or verification checks from VS Code
+- Script execution happens after commit/push, from the repository clone on the jumpbox/ZDM server
 
 ---
 
@@ -22,6 +29,11 @@ Before running this prompt:
 ## How to Use This Prompt
 
 Attach the Discovery Summary and run this prompt to get remediation guidance:
+
+Configuration precedence for artifact generation (mandatory):
+- If `zdm-env.md` is attached, treat it as authoritative generation input for environment-specific values in scripts and documentation.
+- Prefer `zdm-env.md` over template defaults/examples when generating hostnames, users, key paths, Oracle homes, SIDs, unique names, and ZDM paths.
+- If `zdm-env.md` conflicts with prior discovery evidence, keep both: generate fixes aligned to `zdm-env.md` intent and explicitly document the mismatch and verification step.
 
 DB-specific value scope for Step 1-5 prompts:
 - `SOURCE_REMOTE_ORACLE_HOME`
@@ -63,7 +75,7 @@ This step is designed to be repeated until all blockers are resolved:
 │           ↓                                             │
 │  2. Generate remediation scripts/commands               │
 │           ↓                                             │
-│  3. Execute remediation steps                           │
+│  3. Commit/push scripts and execute on jumpbox          │
 │           ↓                                             │
 │  4. Re-run relevant discovery scripts                   │
 │           ↓                                             │
@@ -109,6 +121,7 @@ For each issue, generate:
      fi
      ```
    - SSH keys are in `/home/zdmuser/.ssh/` — generated scripts must use `~/.ssh/<keyname>.pem` paths (which expand correctly when running as `zdmuser`)
+   - Runtime independence: generated scripts must not read, source, or parse `zdm-env.md`; values from `zdm-env.md` are generation-time input only
 
 2. **Verification Commands**
    - How to verify the fix was successful
@@ -136,11 +149,20 @@ When generating bash scripts that run SQL over SSH via `sudo -u oracle bash -c '
 **Always generate the `run_sql_on_source` helper using base64 encoding:**
 
 ```bash
+normalize_optional_key() {
+  local raw="$1"
+  [[ -z "$raw" || "$raw" == *"<"*">"* ]] && { echo ""; return; }
+  echo "$raw"
+}
+
+SOURCE_SSH_KEY_NORM="$(normalize_optional_key "${SOURCE_SSH_KEY:-}")"
+TARGET_SSH_KEY_NORM="$(normalize_optional_key "${TARGET_SSH_KEY:-}")"
+
 run_sql_on_source() {
   local sql_block="$1"
   local encoded_sql
   encoded_sql=$(printf '%s\n' "${sql_block}" | base64 -w 0)
-  ssh -i "${SOURCE_SSH_KEY}" \
+  ssh ${SOURCE_SSH_KEY_NORM:+-i "${SOURCE_SSH_KEY_NORM}"} \
       -o StrictHostKeyChecking=no \
       -o ConnectTimeout=10 \
       "${SOURCE_SSH_USER}@${SOURCE_HOST}" \
@@ -154,6 +176,8 @@ run_sql_on_source() {
 ```
 
 The same pattern applies to any analogous `run_sql_on_target` helper. Base64 output contains only `A–Z a–z 0–9 + / =` characters and therefore can never conflict with shell quoting delimiters.
+
+If `SOURCE_SSH_KEY` / `TARGET_SSH_KEY` are empty or placeholder values containing `<...>` in `zdm-env.md`, generated scripts must not include `-i` for that host.
 
 ### Part 3: Create Issue Resolution Log
 
@@ -392,13 +416,17 @@ stat -c '%a %n' ~/.oci/oci_api_key.pem
 > All fix scripts run **as zdmuser** on the ZDM server; SSH keys must be in `/home/zdmuser/.ssh/`.
 
 ```bash
+# Normalize keys first: empty or <...> placeholder means "no -i"
+SOURCE_SSH_KEY_NORM="$(normalize_optional_key "${SOURCE_SSH_KEY:-}")"
+TARGET_SSH_KEY_NORM="$(normalize_optional_key "${TARGET_SSH_KEY:-}")"
+
 # SSH Pattern: zdmuser on ZDM server → SSH as admin user → sudo to oracle
-# Source: ssh -i ~/.ssh/iaas.pem SOURCE_SSH_USER@host → sudo -u oracle
-# Target: ssh -i ~/.ssh/odaa.pem TARGET_SSH_USER@host → sudo -u oracle
+# Source: ssh ${SOURCE_SSH_KEY_NORM:+-i "$SOURCE_SSH_KEY_NORM"} SOURCE_SSH_USER@host → sudo -u oracle
+# Target: ssh ${TARGET_SSH_KEY_NORM:+-i "$TARGET_SSH_KEY_NORM"} TARGET_SSH_USER@host → sudo -u oracle
 
 # Test SSH connectivity (run as zdmuser on ZDM server)
-ssh -i ~/.ssh/iaas.pem ${SOURCE_SSH_USER}@<source_host> "sudo -u oracle whoami"  # Should print: oracle
-ssh -i ~/.ssh/odaa.pem ${TARGET_SSH_USER}@<target_host> "sudo -u oracle whoami"  # Should print: oracle
+ssh ${SOURCE_SSH_KEY_NORM:+-i "$SOURCE_SSH_KEY_NORM"} ${SOURCE_SSH_USER}@<source_host> "sudo -u oracle whoami"  # Should print: oracle
+ssh ${TARGET_SSH_KEY_NORM:+-i "$TARGET_SSH_KEY_NORM"} ${TARGET_SSH_USER}@<target_host> "sudo -u oracle whoami"  # Should print: oracle
 ```
 
 ### Network Issues
@@ -429,7 +457,8 @@ cd ~/Artifacts/Phase10-Migration/Step2/Scripts
 ./zdm_orchestrate_discovery.sh source
 
 # Or run individual scripts directly
-ssh -i ~/.ssh/iaas.pem ${SOURCE_SSH_USER}@${SOURCE_HOST} 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
+SOURCE_SSH_KEY_NORM="$(normalize_optional_key "${SOURCE_SSH_KEY:-}")"
+ssh ${SOURCE_SSH_KEY_NORM:+-i "$SOURCE_SSH_KEY_NORM"} ${SOURCE_SSH_USER}@${SOURCE_HOST} 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
 ```
 
 Save updated discovery outputs to:

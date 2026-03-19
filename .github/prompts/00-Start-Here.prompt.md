@@ -29,6 +29,7 @@ Run `@GetStatus` at any time to see the current migration progress.
 Before starting, ensure you have:
 - GitHub Copilot with Claude Sonnet 4.5+ model
 - Azure MCP Server Extension installed in VS Code
+- Oracle Developer Extension installed in VS Code
 - GitHub Copilot for Azure Extension installed
 - VS Code 1.101+, AZ CLI, and Terraform CLI
 
@@ -37,6 +38,7 @@ Before starting, ensure you have:
 1. Copy `zdm-env.example.md` to `zdm-env.md` in the repo root
 2. Fill in your environment values (source host, target host, SSH keys, OCI identifiers)
 3. `zdm-env.md` is git-ignored â€” your values will never be committed
+4. `zdm-env.md` is for prompt-time generation only; generated scripts/artifacts should not read it at runtime on the jumpbox/ZDM server
 
 ## Where Are You in the Migration?
 

@@ -1,0 +1,9 @@
+{
+  "discovery_type": "server",
+  "timestamp": "2026-03-18T21:19:20Z",
+  "host": "zdmhost",
+  "current_user": "zdmuser",
+  "zdm_home": "/mnt/app/zdmhome",
+  "status": "partial",
+  "warnings": ["Unable to execute zdmcli -version"]
+}

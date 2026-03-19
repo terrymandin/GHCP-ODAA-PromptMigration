@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Phase 10 ZDM Step 2 example - generate discovery scripts for a sample environment
 ---
 # Example: Generate Discovery Scripts (Step 2)
@@ -9,18 +9,17 @@ description: Phase 10 ZDM Step 2 example - generate discovery scripts for a samp
 ```text
 @Phase10-ZDM-Step2-Generate-Discovery-Scripts
 
-## Project Configuration
+Project Configuration:
 #file:zdm-env.md
 
 Generate Step 2 discovery scripts.
 ```
 
-> After generation, copy the scripts to the ZDM server and run them to collect discovery output.
-
 ## Expected Output
 
 ```
 Artifacts/Phase10-Migration/Step2/
+├── README.md
 ├── Scripts/
 │   ├── zdm_source_discovery.sh
 │   ├── zdm_target_discovery.sh
@@ -33,5 +32,21 @@ Artifacts/Phase10-Migration/Step2/
     └── server/
 ```
 
-## Next Step
-After collecting discovery outputs and committing them, continue with: `@Phase10-ZDM-Step3-Discovery-Questionnaire`
+## Requirements Summary
+
+- Generation-only step: create files and placeholder directories only; do not run SSH/SQL/discovery in VS Code.
+- If `zdm-env.md` is attached, treat it as authoritative input, prefer it over defaults, and report conflicts with evidence instead of silently overriding.
+- If user-facing and implementation requirements ever conflict, implementation constraints control script behavior and the conflict should be documented for review.
+- Generated scripts are runtime-independent from `zdm-env.md`; runtime outputs are created later on jumpbox/ZDM server.
+- Output contract: four scripts plus `Artifacts/Phase10-Migration/Step2/README.md` and `Artifacts/Phase10-Migration/Step2/Scripts/README.md`, and placeholder directories under `Artifacts/Phase10-Migration/Step2/Discovery/{source,target,server}`.
+- Scripts are strictly read-only (`SELECT`-only SQL, no mutation commands) and include a read-only banner comment.
+- Auth model: source/target SSH as admin user then SQL as `oracle` via `sudo -u oracle`; ZDM server script runs locally as `zdmuser` with a user guard.
+- SSH key normalization is required: empty/placeholder key values are treated as unset, and `-i` is included only when the normalized key path is non-empty.
+- Step prompt preserves required implementation examples/patterns for user guards, key normalization, conditional `-i` usage, login-shell remote execution with shell-safe absolute paths, SQL via stdin (SP2-0310 prevention), and runtime status/warnings output schema.
+- Orchestrator behavior includes startup diagnostics, per-target resilience, explicit failure when remote working-directory setup fails, and no suppression of SSH/SCP errors.
+- OCI CLI is not required for migration execution.
+- Generation quality gate (CR-12): on Linux/WSL, run `bash -n` on each generated script and `shellcheck` if available; any failure is stop-ship. On Windows without WSL, perform manual pattern review instead. Final output must always include a validation evidence section listing checks run (or skipped with reason) and pass/fail status.
+
+## Next Steps
+
+After running discovery scripts and collecting outputs, continue with @Phase10-ZDM-Step3-Discovery-Questionnaire.
