@@ -4,6 +4,10 @@
 >
 > All Example prompts attach `zdm-env.md` with `#file:zdm-env.md` so
 > GitHub Copilot will use these values automatically when generating scripts and artifacts.
+>
+> **VS Code Remote SSH:** When connected to the jumpbox via Remote SSH, create and edit
+> `zdm-env.md` directly on the remote host. The file will be in the repository root on
+> the jumpbox filesystem (e.g. `~/GHCP-ODAA-PromptMigration/zdm-env.md`).
 ---
 ## Remote Server Hostnames
 - SOURCE_HOST: <SOURCE_HOST_IP_OR_FQDN>

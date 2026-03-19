@@ -128,24 +128,38 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 
 ## Getting Started
 
-1. Clone this repository and open it in VS Code
+### Option A: VS Code Remote SSH (Recommended for Phase 10)
+
+1. Install the **Remote - SSH** extension in VS Code
+2. Connect to your jumpbox/ZDM server (`Ctrl+Shift+P` â†’ **Remote-SSH: Connect to Host**)
+3. Open this repository folder on the remote host
+4. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
+5. Install the **Azure MCP Server** and **GitHub Copilot for Azure** extensions
+6. Copy `zdm-env.example.md` â†’ `zdm-env.md` on the jumpbox and fill in your environment values
+7. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
+8. Use `@GetStatus` at any time to check the current migration progress
+
+### Option B: Traditional Workflow (PC only)
+
+1. Clone this repository and open it in VS Code on your PC
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
 3. Install the **Azure MCP Server** and **GitHub Copilot for Azure** extensions
 4. Copy `zdm-env.example.md` â†’ `zdm-env.md` and fill in your environment values
 5. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
 6. Use `@GetStatus` at any time to check the current migration progress
+7. For Phase 10 steps, copy generated scripts to the ZDM server and run them as `zdmuser`
 
 ## ZDM Migration Quick Reference
 
-The Phase 10 ZDM migration uses a 5-step workflow that alternates between VS Code (generating scripts) and the ZDM server (running them):
+The Phase 10 ZDM migration uses a 5-step workflow. When using **VS Code Remote SSH** (recommended), you are already on the ZDM server and can run scripts directly from the VS Code terminal — no copying required.
 
 | Step | Run In | Purpose |
 |------|--------|---------|
-| `@Phase10-ZDM-Step1-Test-SSH-Connectivity` | VS Code | Generate SSH precheck script |
-| `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` | VS Code | Generate database discovery scripts |
-| Run discovery scripts | ZDM Server | Collect source/target/ZDM facts |
+| `@Phase10-ZDM-Step1-Test-SSH-Connectivity` | VS Code (Remote SSH on ZDM server) | Generate and run SSH precheck script |
+| `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` | VS Code (Remote SSH on ZDM server) | Generate database discovery scripts |
+| Run discovery scripts | VS Code terminal (or ZDM Server directly) | Collect source/target/ZDM facts |
 | `@Phase10-ZDM-Step3-Discovery-Questionnaire` | VS Code | Analyze results, create migration plan |
-| `@Phase10-ZDM-Step4-Fix-Issues` | VS Code + ZDM | Resolve blockers iteratively |
+| `@Phase10-ZDM-Step4-Fix-Issues` | VS Code + ZDM terminal | Resolve blockers iteratively |
 | `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` | VS Code | Generate RSP, runbook, and migration commands |
 
 ## Contributing

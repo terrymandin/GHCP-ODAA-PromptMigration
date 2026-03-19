@@ -32,11 +32,22 @@ Before starting, ensure you have:
 - GitHub Copilot for Azure Extension installed
 - VS Code 1.101+, AZ CLI, and Terraform CLI
 
+## Recommended Workflow: VS Code Remote SSH
+
+For Phase 10 (ZDM migration steps), connect directly to the jumpbox/ZDM server using VS Code Remote SSH. This eliminates the need to copy scripts between your PC and the ZDM server.
+
+1. Install the **Remote - SSH** extension in VS Code
+2. Open the Remote Explorer (`Ctrl+Shift+P` → **Remote-SSH: Connect to Host**)
+3. Connect to your jumpbox (e.g. `zdmuser@<jumpbox-ip>`)
+4. Open this repository folder on the remote host
+5. VS Code integrated terminal is now a shell on the ZDM server â€” generated scripts run directly, no copying needed
+
 ## First-Time Setup
 
 1. Copy `zdm-env.example.md` to `zdm-env.md` in the repo root
 2. Fill in your environment values (source host, target host, SSH keys, OCI identifiers)
 3. `zdm-env.md` is git-ignored â€” your values will never be committed
+4. **When using Remote SSH:** `zdm-env.md` must be on the jumpbox (the file is created/edited on the remote filesystem)
 
 ## Where Are You in the Migration?
 

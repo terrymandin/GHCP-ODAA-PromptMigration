@@ -9,6 +9,27 @@ Run a fast precheck before Step2 to validate SSH host/IP reachability and SSH ke
 
 ---
 
+## Requirements
+
+### VS Code Remote SSH (Recommended)
+Connect to the jumpbox/ZDM server directly using VS Code Remote SSH:
+1. In VS Code, open the Remote Explorer (`Ctrl+Shift+P` → **Remote-SSH: Connect to Host**)
+2. Connect to your jumpbox (e.g. `zdmuser@<jumpbox-ip>`)
+3. Open this repository folder on the remote host
+4. The VS Code integrated terminal is now a shell **on the ZDM server** — scripts you generate are already there, no copying needed
+
+**Requirements for Remote SSH workflow:**
+- VS Code with the **Remote - SSH** extension installed locally
+- SSH access to the jumpbox/ZDM server from your PC
+- This repository cloned on the jumpbox (e.g. `~/GHCP-ODAA-PromptMigration/`)
+- `zdm-env.md` filled in and saved on the jumpbox (copy from `zdm-env.example.md`)
+- SSH keys for source/target hosts stored in `~/.ssh/` on the jumpbox with permissions `600`
+
+### Traditional Workflow (PC → Copy → Run)
+If not using VS Code Remote SSH, generate the script on your PC and copy it to the ZDM server manually.
+
+---
+
 ## Inputs
 
 Attach your project configuration:
@@ -104,11 +125,37 @@ Artifacts/Phase10-Migration/
 └── Step4/    # Created by Step4 prompt — Migration artifacts
 ```
 
-After generating the SSH test script:
-1. Copy `zdm_test_ssh_connectivity.sh` to the ZDM server
-2. Run it as `zdmuser` to validate connectivity to both source and target hosts
-3. Review the generated report files in `Step1/Validation/`
-4. If both checks pass, proceed to **Step 2: Generate Discovery Scripts**
+---
+
+## Running the Script
+
+### Option A: VS Code Remote SSH (Recommended)
+You are already connected to the ZDM server — no copying required.
+
+1. Open the VS Code integrated terminal (`Ctrl+`` ` or **Terminal → New Terminal**)
+2. If not already `zdmuser`, switch: `sudo su - zdmuser`
+3. Navigate to the script:
+   ```bash
+   cd ~/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step1/Scripts
+   ```
+4. Make it executable and run:
+   ```bash
+   chmod 755 zdm_test_ssh_connectivity.sh
+   bash zdm_test_ssh_connectivity.sh
+   ```
+5. Review the report files written to `Step1/Validation/`
+
+### Option B: Traditional Workflow (PC → Copy → Run)
+1. Copy `zdm_test_ssh_connectivity.sh` to the ZDM server:
+   ```bash
+   scp Artifacts/Phase10-Migration/Step1/Scripts/zdm_test_ssh_connectivity.sh zdmuser@<zdm-server>:~/
+   ```
+2. SSH into the ZDM server and run as `zdmuser`:
+   ```bash
+   ssh zdmuser@<zdm-server>
+   bash ~/zdm_test_ssh_connectivity.sh
+   ```
+3. Copy the report files back to your PC or commit them from the ZDM server
 
 ---
 
