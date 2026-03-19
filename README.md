@@ -35,22 +35,50 @@ During each phase, read the AI's response summary carefully to understand what w
 
 - **Pro tip**: Use `#file:zdm-env.md` to automatically attach your environment config to ZDM prompts.
 - **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
-- **Pro tip**: Don't assume anything â€” always verify ZDM requirements and OCI identifiers with the documentation.
+- **Pro tip**: Don't assume anything — always verify ZDM requirements and OCI identifiers with the documentation.
+
+## Working Across Multiple VS Code Instances
+
+> **Important**: GitHub Copilot chat history is stored **per VS Code instance** and is **not shared** between windows.
+
+If you open this repository in a new VS Code window — for example, when connecting to an Azure VM jumpbox via **Remote SSH**, opening a Dev Container, or simply opening a second VS Code window — the new instance starts with a blank chat history. Your previous conversations are **not accessible** from that new instance.
+
+### How to Re-Establish Context in a New Session
+
+Because chat history is not portable, this repository uses `reports/Report-Status.md` as the single source of truth for your migration state. Follow these steps whenever you open a new VS Code instance:
+
+1. **Run `@GetStatus`** — this reads `reports/Report-Status.md` and rebuilds Copilot's understanding of where you are in the migration.
+2. **Attach `#file:reports/Report-Status.md`** to your first prompt if you need the AI to reason over detailed phase history immediately.
+3. **Attach `#file:zdm-env.md`** when resuming ZDM-related phases so connection details are available without re-entering them.
+
+### Remote SSH Workflow
+
+When working on a jumpbox via VS Code Remote SSH:
+
+| Step | Action |
+|------|--------|
+| 1 | Open the repository folder in the Remote SSH VS Code window |
+| 2 | Ensure the **GitHub Copilot** and **GitHub Copilot Chat** extensions are installed in the remote context (VS Code will prompt you if not) |
+| 3 | Run `@GetStatus` to re-establish migration context |
+| 4 | Continue with the appropriate phase prompt as normal |
+
+> **Note**: The `reports/Report-Status.md` and `zdm-env.md` files live in the repository on the remote machine, so they are always up to date when you are connected via Remote SSH.
 
 ## Repository Structure
 
-- **`.github/prompts/`**: Copilot prompt files for each migration phase â€” invoke with `@PromptName` in Copilot Chat
-  - `00-Start-Here.prompt.md` â€” onboarding guide and navigation
-  - `GetStatus.prompt.md` â€” check current migration progress
-  - `Phase0-ODAA-Readiness.prompt.md` â€” readiness assessment
-  - `Phase5-CIDR-Planning.prompt.md` â€” CIDR range planning
-  - `Phase6-IaC.prompt.md` â€” Terraform infrastructure generation
-  - `ZDM-Step1` through `ZDM-Step5` â€” ZDM migration workflow
-  - `Phase10-ZDM-Migration-Guide.md` â€” ZDM reference documentation
+- **`.github/prompts/`**: Copilot prompt files for each migration phase — invoke with `@PromptName` in Copilot Chat
+  - `00-Start-Here.prompt.md` — onboarding guide and navigation
+  - `NewSession.prompt.md` — restore context when opening a new VS Code instance (Remote SSH, Dev Container, etc.)
+  - `GetStatus.prompt.md` — check current migration progress
+  - `Phase0-ODAA-Readiness.prompt.md` — readiness assessment
+  - `Phase5-CIDR-Planning.prompt.md` — CIDR range planning
+  - `Phase6-IaC.prompt.md` — Terraform infrastructure generation
+  - `ZDM-Step1` through `ZDM-Step5` — ZDM migration workflow
+  - `Phase10-ZDM-Migration-Guide.md` — ZDM reference documentation
 
 - **`Artifacts/`**: Generated output from running prompts (git-ignored content)
 
-- **`zdm-env.example.md`**: Template for ZDM environment configuration â€” copy to `zdm-env.md` and fill in your values
+- **`zdm-env.example.md`**: Template for ZDM environment configuration — copy to `zdm-env.md` and fill in your values
 
 ## Migration & Modernization Process
 
@@ -134,6 +162,7 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 4. Copy `zdm-env.example.md` â†’ `zdm-env.md` and fill in your environment values
 5. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
 6. Use `@GetStatus` at any time to check the current migration progress
+7. **Returning in a new VS Code window?** Run `@NewSession` to restore context from your saved status file
 
 ## ZDM Migration Quick Reference
 
