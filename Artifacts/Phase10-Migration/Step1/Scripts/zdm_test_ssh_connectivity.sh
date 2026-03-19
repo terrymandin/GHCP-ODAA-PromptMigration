@@ -5,10 +5,10 @@ set -u
 # ZDM Step 1 SSH connectivity precheck script
 # Runtime target: jumpbox/ZDM server under zdmuser account
 
-SOURCE_HOST="10.200.1.12"
-TARGET_HOST="10.200.0.250"
-SOURCE_SSH_USER="azureuser"
-TARGET_SSH_USER="opc"
+SOURCE_HOST="<SOURCE_HOST_IP_OR_FQDN>"
+TARGET_HOST="<TARGET_HOST_IP_OR_FQDN>"
+SOURCE_SSH_USER="<SOURCE_SSH_USER>"
+TARGET_SSH_USER="<TARGET_SSH_USER>"
 SOURCE_SSH_KEY="~/.ssh/<source_key>.pem"
 TARGET_SSH_KEY="~/.ssh/<target_key>.pem"
 

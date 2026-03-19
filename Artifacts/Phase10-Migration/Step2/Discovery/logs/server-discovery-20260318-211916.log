@@ -1,7 +1,0 @@
-/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh: line 112: tenancy: command not found
-/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh: line 112: region: command not found
-/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh: line 112: user: command not found
-/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh: line 112: fingerprint: command not found
-/home/zdmuser/GHCP-ODAA-PromptMigration/Artifacts/Phase10-Migration/Step2/Scripts/zdm_server_discovery.sh: line 112: $1: unbound variable
-[INFO] Server discovery text output: ./zdm_server_discovery_zdmhost_20260318-211916.txt
-[INFO] Server discovery json output: ./zdm_server_discovery_zdmhost_20260318-211916.json

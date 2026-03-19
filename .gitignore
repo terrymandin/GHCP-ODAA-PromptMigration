@@ -3,6 +3,17 @@
 prompts/Phase10-Migration/ZDM/zdm-env.md
 zdm-env.md
 
-# Generated migration artifacts — do not commit
-# Artifacts/ is intentionally kept empty in source control
+# Generated migration artifacts — do not commit runtime outputs
+Artifacts/Phase10-Migration/Step1/Validation/ssh-connectivity-report-*.md
+Artifacts/Phase10-Migration/Step1/Validation/ssh-connectivity-report-*.json
+Artifacts/Phase10-Migration/Step1/Validation/ssh-connectivity-run-*.log
+Artifacts/Phase10-Migration/Step2/Discovery/discovery-orchestration-report-*.md
+Artifacts/Phase10-Migration/Step2/Discovery/discovery-orchestration-report-*.json
+Artifacts/Phase10-Migration/Step2/Discovery/logs/
+Artifacts/Phase10-Migration/Step2/Discovery/source/*.txt
+Artifacts/Phase10-Migration/Step2/Discovery/source/*.json
+Artifacts/Phase10-Migration/Step2/Discovery/target/*.txt
+Artifacts/Phase10-Migration/Step2/Discovery/target/*.json
+Artifacts/Phase10-Migration/Step2/Discovery/server/*.txt
+Artifacts/Phase10-Migration/Step2/Discovery/server/*.json
 
