@@ -208,13 +208,24 @@ ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_ADMIN_USER}@${SO
 scp $SCP_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "$script" "${SOURCE_ADMIN_USER}@${SOURCE_HOST}:$remote_dir/"
 ```
 
-Remote execution pattern with login shell and working-directory prelude:
+Remote execution pattern — resolve remote home first, then construct `remote_dir`:
 
 ```bash
-remote_dir="$HOME/zdm-step2-${dtype}-${timestamp}"
+# Resolve $HOME on the remote host — do NOT use the local $HOME here.
+# The remote admin user (e.g. azureuser, opc) has a different home than local zdmuser.
+remote_home=$(ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" 'echo $HOME' 2>>"$log_file")
+if [[ -z "$remote_home" ]]; then
+    log_fail "${dtype}: Could not determine remote home for ${admin_user}@${host}. Aborting."
+    printf -- 'FAIL'; return 1
+fi
+remote_dir="${remote_home}/zdm-step2-${dtype}-${timestamp}"
+
+# mkdir and remote execution as separate SSH calls so mkdir failure is caught before running the script
 ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" \
-   "mkdir -p $remote_dir && bash -l -s" \
-   < <(printf 'cd %q\n' "$remote_dir"; cat "$script_path")
+    "mkdir -p $remote_dir" 2>>"$log_file"
+ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" \
+    "bash -l -s" \
+    < <(printf 'cd %q\n' "$remote_dir"; cat "$script_path")
 ```
 
 Pass endpoint values to ZDM server discovery example:

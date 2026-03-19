@@ -195,8 +195,6 @@ run_remote_discovery() {
   local script_name="$5"
   local extra_env="$6"
 
-  local remote_dir
-  remote_dir="${HOME}/zdm-step2-${dtype}-${ts}"
   local local_script="${script_dir}/${script_name}"
 
   if [[ ! -f "${local_script}" ]]; then
@@ -205,7 +203,20 @@ run_remote_discovery() {
     return 1
   fi
 
+  # Resolve $HOME on the remote host — the remote user (e.g. azureuser, opc) has a
+  # different home than the local zdmuser, so we must NOT use the local $HOME here.
+  local remote_home
+  remote_home=$(ssh ${SSH_OPTS} ${key_path:+-i "${key_path}"} "${admin_user}@${host}" \
+      'echo $HOME' 2>>"${log_file}")
+  if [[ -z "${remote_home}" ]]; then
+    log_fail "${dtype}: Could not determine remote home directory for ${admin_user}@${host}. Aborting ${dtype} discovery."
+    printf -- 'FAIL'
+    return 1
+  fi
+  local remote_dir="${remote_home}/zdm-step2-${dtype}-${ts}"
+
   log "---"
+  log "${dtype}: Remote home resolved to ${remote_home} for ${admin_user}@${host}"
   log "${dtype}: Copying ${script_name} to ${admin_user}@${host}:${remote_dir}/"
 
   # Setup remote working directory — fail fast if this fails

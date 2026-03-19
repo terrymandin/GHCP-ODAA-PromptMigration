@@ -43,14 +43,24 @@ These patterns must be represented explicitly in the Step2 prompt text so genera
 	scp $SCP_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "$script" "${SOURCE_ADMIN_USER}@${SOURCE_HOST}:$remote_dir/"
 	```
 
-4. Remote execution pattern must include login shell and working-directory prelude using an explicit absolute path (no quoted `~`):
+4. Remote execution pattern must resolve the remote user's home directory via a separate SSH call before constructing `remote_dir`. The local `$HOME` must never be passed to remote SSH commands because the remote admin user (for example `azureuser`, `opc`) has a different home than the local `zdmuser`:
 
 	```bash
-	remote_dir="$HOME/zdm-step2-${dtype}-${timestamp}"
+	# Resolve $HOME on the remote host first — do NOT use the local $HOME here
+	remote_home=$(ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" 'echo $HOME' 2>>"$log_file")
+	if [[ -z "$remote_home" ]]; then
+	    log_fail "${dtype}: Could not determine remote home for ${admin_user}@${host}. Aborting."
+	    printf -- 'FAIL'; return 1
+	fi
+	remote_dir="${remote_home}/zdm-step2-${dtype}-${timestamp}"
 	ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" \
-	    "mkdir -p $remote_dir && bash -l -s" \
+	    "mkdir -p $remote_dir" 2>>"$log_file"
+	ssh $SSH_OPTS ${key_path:+-i "$key_path"} "${admin_user}@${host}" \
+	    "bash -l -s" \
 	    < <(printf 'cd %q\n' "$remote_dir"; cat "$script_path")
 	```
+
+	Note: `mkdir -p` and `bash -l -s` are issued as separate SSH commands so that a `mkdir` failure is caught and reported before the script is run.
 
 5. Orchestrator must pass endpoint values to local ZDM server discovery script:
 
