@@ -29,6 +29,7 @@ Run `@GetStatus` at any time to see the current migration progress.
 Before starting, ensure you have:
 - GitHub Copilot with Claude Sonnet 4.5+ model
 - Azure MCP Server Extension installed in VS Code
+- Oracle Developer Extension installed in VS Code
 - GitHub Copilot for Azure Extension installed
 - VS Code 1.101+, AZ CLI, and Terraform CLI
 

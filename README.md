@@ -132,7 +132,7 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 
 1. Clone this repository and open it in VS Code
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
-3. Install the **Azure MCP Server** and **GitHub Copilot for Azure** extensions
+3. Install the **Azure MCP Server**, **GitHub Copilot for Azure** and **Oracle Developer** extensions
 4. Copy `zdm-env.example.md` â†’ `zdm-env.md` and fill in your environment values
 5. Keep generated scripts portable: they should execute on jumpbox/ZDM without requiring `zdm-env.md`
 6. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
