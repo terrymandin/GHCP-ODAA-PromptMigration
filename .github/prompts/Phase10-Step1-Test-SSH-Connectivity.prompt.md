@@ -16,6 +16,21 @@ This prompt is generation-only.
 - Do not generate runtime validation report files during prompt execution.
 - Runtime reports are created only when the generated script is executed later on the jumpbox/ZDM server.
 
+## Pre-Generation Environment Inspection
+
+Before generating any files, inspect the local environment:
+
+1. List the contents of `~/.ssh/` to find actual SSH key files present.
+2. Check permissions of key files found in `~/.ssh/`.
+3. Read OS version from `/etc/os-release`.
+4. Check whether `zdm-env.md` exists in the workspace and, if so, read its contents.
+
+Use the inspection results to:
+- Resolve actual SSH key file names instead of using placeholder values.
+- Confirm that discovered key file permissions match the expected `600` (or stricter) requirement.
+- Tailor the generated script for the detected OS and shell environment.
+- Populate generation-time values from `zdm-env.md` when present.
+
 ## Inputs And Precedence Rules
 
 Attach `zdm-env.md` when available and treat it as authoritative generation input.

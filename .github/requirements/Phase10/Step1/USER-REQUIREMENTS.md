@@ -69,3 +69,19 @@ Required command variants per endpoint:
 2. Explicit key mode command (`ssh -i <key> user@host ...`) when a key path is provided.
 
 Command examples should use the same non-interactive options and probe behavior as the generated script (for example, `hostname` probe and batch/non-interactive SSH flags).
+
+## S1-10: Pre-generation environment inspection
+
+Before generating the Step 1 script, inspect the local environment to improve generation accuracy:
+
+1. List the contents of `~/.ssh/` to identify actual key files present.
+2. Check permissions of key files found in `~/.ssh/`.
+3. Read OS version from `/etc/os-release`.
+4. Check whether `zdm-env.md` exists in the workspace and, if so, read its contents.
+
+Use the inspection results to:
+
+- Resolve actual SSH key file names rather than relying on placeholder values.
+- Confirm that discovered key file permissions match the expected `600` (or stricter) requirement.
+- Tailor generated script behavior for the detected OS and shell environment.
+- Populate generation-time values from `zdm-env.md` when present.

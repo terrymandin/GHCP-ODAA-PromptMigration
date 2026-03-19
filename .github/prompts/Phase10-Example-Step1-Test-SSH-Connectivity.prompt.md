@@ -28,6 +28,7 @@ Artifacts/Phase10-Migration/Step1/
 
 ## Requirements Summary
 
+- Before generating files, inspect the local environment: list `~/.ssh/` for actual key files, check their permissions, read OS version from `/etc/os-release`, and check whether `zdm-env.md` exists and read its contents.
 - Generation-only step: create files only, no SSH execution in VS Code.
 - If `zdm-env.md` is attached, treat it as authoritative generation input and prefer it over defaults.
 - If `zdm-env.md` values conflict with discovery evidence, report mismatch explicitly instead of silently overriding.
