@@ -8,6 +8,7 @@ description: ZDM Step 3 - Analyze discovery output and create migration plan
 This prompt analyzes the discovery output from Step 2 and generates:
 1. **Discovery Summary** - Auto-populated findings from the discovery scripts
 2. **Migration Planning Questionnaire** - Questions requiring manual input with recommended defaults
+3. **Step3 README** - Summary of generated files, what to review, and next steps
 
 ---
 
@@ -28,23 +29,32 @@ Step 5: Generate Migration Artifacts & Run Migration
 ## Prerequisites
 
 Before running this prompt:
-1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
-2. ✅ Run `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` to generate discovery scripts
-3. ✅ Commit/push Step2 scripts, then execute them from the repository clone on the jumpbox/ZDM server
-4. ✅ Check discovery output files into the repository
+1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` — confirm all SSH connectivity checks pass
+2. ✅ Complete `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` — confirm discovery reports were generated for source, target, and ZDM server components
+3. ✅ Confirm discovery output files exist in `Artifacts/Phase10-Migration/Step2/Discovery/` subdirectories
 
 ---
 
-## How to Use This Prompt
+## Execution Model
 
-Attach the discovery files from Step2 and run this prompt:
+This step runs under the **Remote-SSH** execution model:
+- VS Code is connected to the ZDM jumpbox via the **Remote-SSH** extension, with the terminal session running as **`zdmuser`**.
+- Copilot reads discovery files attached as inputs and writes output artifacts using file tools — no terminal commands are executed in this step.
+- All outputs are written to `Artifacts/Phase10-Migration/Step3/` (git-ignored). No generated files are committed or create PRs.
+- OCI CLI is not required for this step or any Phase10 migration execution step.
 
-Configuration precedence for artifact generation (mandatory):
-- If `zdm-env.md` is attached, treat it as authoritative for configured intent values used in Step3 artifacts.
-- Use discovery output as observed runtime evidence, and use `zdm-env.md` as the configured baseline when generating consistency checks and recommendations.
-- If discovery and `zdm-env.md` disagree, do not silently replace values; explicitly call out the mismatch and recommend corrective action.
+Input precedence rules (mandatory):
+- Treat discovery files as **observed runtime evidence**.
+- Treat `zdm-env.md` as **configured intent** when attached.
+- If they disagree, do not silently override; explicitly report the mismatch and recommend corrective action.
+- Treat placeholder values containing `<...>` in `zdm-env.md` as unset.
+- `zdm-env.md` is input to this prompt only. Generated outputs must not read or source it.
 
-DB-specific value scope for Step 1-5 prompts:
+Evidence selection when multiple discovery files exist per component:
+- Use the most recent file set by timestamp (highest timestamp = most recent).
+- Keep source, target, and server evidence references explicit in generated outputs.
+
+DB-specific value scope (Step1–Step5):
 - `SOURCE_REMOTE_ORACLE_HOME`
 - `SOURCE_ORACLE_SID`
 - `TARGET_REMOTE_ORACLE_HOME`
@@ -52,8 +62,14 @@ DB-specific value scope for Step 1-5 prompts:
 - `SOURCE_DATABASE_UNIQUE_NAME`
 - `TARGET_DATABASE_UNIQUE_NAME`
 
-ZDM-specific value scope for Step 1-5 prompts:
+ZDM-specific value scope (Step1–Step5):
 - `ZDM_HOME`
+
+---
+
+## How to Use This Prompt
+
+Attach the discovery files from Step2 and run this prompt:
 
 ```
 @Phase10-ZDM-Step3-Discovery-Questionnaire
@@ -61,23 +77,27 @@ ZDM-specific value scope for Step 1-5 prompts:
 Please analyze the discovery results and generate:
 1. A summary of discovered configurations
 2. A questionnaire for manual decisions with recommended defaults
+3. A Step3 README summarizing the outputs
 
 ## Attached Discovery Files
 
+### Project Configuration (optional)
+#file:zdm-env.md
+
 ### Source Database Discovery (from Step2)
-#file:Artifacts/Phase10-Migration/Step2/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/Step2/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md
 #file:Artifacts/Phase10-Migration/Step2/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json
 
 ### Target Database Discovery (from Step2)
-#file:Artifacts/Phase10-Migration/Step2/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/Step2/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md
 #file:Artifacts/Phase10-Migration/Step2/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json
 
 ### ZDM Server Discovery (from Step2)
-#file:Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.txt
+#file:Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md
 #file:Artifacts/Phase10-Migration/Step2/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json
 
 **Note:** Replace `<hostname>` and `<timestamp>` with actual values.
-Use the most recent discovery files if multiple exist (highest timestamp).
+Use the most recent discovery files if multiple exist per component (highest timestamp).
 ```
 
 ---
@@ -88,35 +108,46 @@ When this prompt is run with discovery files attached, perform the following:
 
 ### Part 1: Generate Discovery Summary
 
-Create a file `Discovery-Summary.md` in `Artifacts/Phase10-Migration/Step3/` that includes:
+Create `Artifacts/Phase10-Migration/Step3/Discovery-Summary.md` including:
 
-1. **Environment Overview**
-   - Source database summary (name, version, size, character set)
-   - Target environment summary (version, platform)
-   - ZDM server summary (version, status)
+1. **Generation Metadata**
+   - Date/time of analysis
+   - List of source discovery files analyzed
 
-2. **Migration Readiness Assessment**
-   - ✅ Requirements met (e.g., ARCHIVELOG mode, Force Logging)
-   - ⚠️ Actions required (e.g., enable supplemental logging)
-   - ❌ Blockers (if any)
-   
-   > **IMPORTANT: SSH Authentication**
-   > Do NOT flag "SSH directory not found for oracle user" as a blocker.
-   > ZDM uses admin users (SOURCE_ADMIN_USER, TARGET_ADMIN_USER) with `sudo -u oracle`.
-   > If discovery succeeded, SSH connectivity is already working.
+2. **Executive Summary** (table by component: Source Database, Target Environment, ZDM Server, Network)
+   - Status (✅/⚠️/❌) and key findings per component
 
-   > **IMPORTANT: ZDM Version Check**
-   > Always check `zdm_installation.zdm_version` from the server discovery JSON.
-   > If the version is UNDETERMINED or known to be outdated, add a **Required Action** item:
-   > `Verify ZDM is the latest stable release; upgrade if necessary (see My Oracle Support — 'Zero Downtime Migration').
+3. **Migration Method Recommendation**
+   - Recommended method: ONLINE_PHYSICAL or OFFLINE_PHYSICAL
+   - Explicit justification based on discovered evidence
 
-3. **Discovered Configurations**
-   - All auto-populated values from discovery scripts
-   - Organized by source/target/ZDM server
+4. **Source Database Details**
+   - Database identification (name, version, size, character set)
+   - Readiness checks: ARCHIVELOG mode, Force Logging, Supplemental Logging, TDE
+   - Configuration status table (Current State / Required State / Status)
 
-4. **Recommendations**
-   - Suggested migration method based on findings
-   - Identified risks or concerns
+5. **Target Environment Details**
+   - Platform, version, and readiness indicators relevant to migration
+
+6. **ZDM Server Details**
+   - Discovered version from `zdm_installation.zdm_version` in server discovery JSON
+   - Service posture (running/stopped, active jobs)
+   - ZDM version status assessment
+
+7. **Required Actions Before Migration**
+   - Critical (must fix before continuing)
+   - Recommended (should fix before go-live)
+
+8. **Discovered Values Reference**
+   - Complete list of all discovered values for reuse in Step4/Step5
+
+9. **Mismatch Section** (include only when `zdm-env.md` intent differs from discovery evidence)
+   - Table: Field | Configured Intent | Discovered Value | Recommended Action
+
+**Classification guardrails:**
+- If Step2 discovery completed successfully, do not classify "oracle SSH directory not found" as a blocker by itself. ZDM uses admin users (`SOURCE_ADMIN_USER`, `TARGET_ADMIN_USER`) with `sudo -u oracle`; discovery success already confirms SSH connectivity.
+- Always evaluate ZDM version evidence from `zdm_installation.zdm_version` in server discovery output.
+- If ZDM version is UNDETERMINED or known to be outdated, generate a Required Action: *Verify ZDM is the latest stable release; upgrade if necessary (see My Oracle Support — "Zero Downtime Migration").*
 
 ### Part 2: Generate Migration Planning Questionnaire
 
@@ -126,6 +157,7 @@ Create a file `Migration-Questionnaire.md` in `Artifacts/Phase10-Migration/Step3
 - Online vs Offline migration (with recommendation based on discovery)
 - Migration timeline and maintenance window
 - Maximum acceptable downtime
+- Cutover approach and switchover preferences
 
 **Section B: OCI/Azure Identifiers** (🔐 Manual Entry Required)
 - OCI Tenancy OCID
@@ -153,6 +185,22 @@ Each question should include:
 - A **recommended default** based on discovery analysis
 - Brief justification for the recommendation
 
+### Part 3: Generate Step3 README
+
+Create `Artifacts/Phase10-Migration/Step3/README.md` summarizing:
+- Generated files for this step and their purpose
+- What the operator should review before proceeding to Step4
+- Where runtime outputs and reports are written (all in `Artifacts/Phase10-Migration/Step3/`)
+- Success signals: all three files created, no unresolved critical blockers, questionnaire ready to complete
+- Failure signals: missing discovery inputs, unresolvable blockers, sections that could not be populated
+
+### Validation Evidence
+
+After writing all output files, confirm creation and provide a concise summary:
+- List each output file path written
+- Confirm each was created successfully
+- Note any sections that could not be populated due to missing discovery evidence
+
 ---
 
 ## Output Files
@@ -166,9 +214,10 @@ Artifacts/Phase10-Migration/
 │       ├── source/
 │       ├── target/
 │       └── server/
-└── Step3/                                      # NEW: Created by this step
-    ├── Discovery-Summary.md                         # NEW: Generated summary
-    └── Migration-Questionnaire.md                   # NEW: Manual items only
+└── Step3/                                      # Created by this step (git-ignored)
+    ├── README.md                                    # Step summary and navigation
+    ├── Discovery-Summary.md                         # Auto-populated discovery findings
+    └── Migration-Questionnaire.md                   # Manual decisions with recommended defaults
 ```
 
 ---
@@ -254,6 +303,12 @@ The Discovery Summary should follow this structure:
 ## Discovered Values Reference
 
 [Complete list of all discovered values for reference in Step 4]
+
+## Mismatch Report (include when zdm-env.md is attached)
+
+| Field | Configured Intent (zdm-env.md) | Discovered Value | Recommended Action |
+|-------|-------------------------------|------------------|--------------------|
+| [field] | [value] | [value] | [action] |
 ```
 
 ---
@@ -381,12 +436,12 @@ After completing this questionnaire:
 
 After Step 3 generates the outputs:
 
-1. **Review Discovery Summary** - Check for any required actions or blockers
-2. **Complete the Questionnaire** - Fill in manual items
+1. **Review Discovery Summary** — Check for any required actions or blockers
+2. **Complete the Questionnaire** — Fill in manual items with your environment specifics
 3. **Run Step 4**: `@Phase10-ZDM-Step4-Fix-Issues`
-   - Address all blockers and required actions
+   - Address all critical blockers and required actions
    - Iterate until all issues are resolved
 4. **Run Step 5**: `@Phase10-ZDM-Step5-Generate-Migration-Artifacts`
    - Attach the completed questionnaire
-   - Attach the Issue Resolution Log
+   - Attach the Discovery Summary
    - This generates the RSP file, ZDM commands, and runbook
