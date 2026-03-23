@@ -316,13 +316,13 @@ The complete workflow alternates between your local VS Code environment and the 
 
 ### VS Code Remote-SSH Setup (Step 1)
 
-Step 1 runs from VS Code connected to the ZDM jumpbox via the **Remote-SSH** extension:
+Step 1 runs from VS Code connected to the ZDM jumpbox via the **Remote-SSH** extension, with the session running as `zdmuser`:
 1. Install the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension in VS Code
-2. Add the jumpbox to your SSH config and connect: **Remote-SSH: Connect to Host...**
-3. On the jumpbox, clone your forked repo: `git clone <fork-url>`
+2. Add the jumpbox to your SSH config using the `zdmuser` account and connect: **Remote-SSH: Connect to Host...**
+3. On the jumpbox (as `zdmuser`), clone your forked repo: `git clone <fork-url>`
 4. Open the cloned folder in VS Code (File → Open Folder)
 5. Open `zdm-env.md` and fill in SSH host/user/key values
-6. Run the Step 1 prompt — Copilot runs SSH tests directly in the jumpbox terminal
+6. Run the Step 1 prompt — Copilot runs SSH tests directly in the jumpbox terminal as `zdmuser`
 
 ### Important: ZDM Server Login (Steps 2–5)
 

@@ -4,6 +4,18 @@
 
 Use this process whenever you need to change behavior in any Phase10 prompt.
 
+## Background: Execution Model
+
+All Phase10 prompts use the **Remote-SSH execution** model:
+
+1. User connects VS Code to the jumpbox repo via the **Remote-SSH** extension (as `zdmuser`).
+2. User runs the prompt — the VS Code terminal is already on the jumpbox.
+3. Copilot executes commands directly on the jumpbox, iterating and fixing errors automatically.
+4. Outputs are written to `Artifacts/` (git-ignored — no commit/pull cycle).
+5. Results are summarized inline in chat.
+
+This replaces the old workflow where scripts had to be committed, pushed, pulled onto the jumpbox, and manually run — with each error requiring another commit/push/pull/rerun cycle.
+
 ## Workflow
 
 1. Identify affected step(s).
@@ -34,17 +46,17 @@ Use this process whenever you need to change behavior in any Phase10 prompt.
 
 For each updated step prompt, verify:
 
-1. Execution boundary is explicit (generation-only vs runtime).
+1. **Remote-SSH execution prerequisites are documented** — verify the step prompt states: required user (`zdmuser`), Remote-SSH connection setup, git-ignore awareness for all created files, and iteration/retry limit for failures.
 2. Input precedence rules match requirements.
-3. Output files and directories exactly match the step output contract.
+3. All outputs land in `Artifacts/` (git-ignored) and are not tracked by git.
 4. Security/read-only/user guardrails are preserved.
 5. Variable names and scope are consistent with common requirements.
 6. "Next Step" handoff remains correct.
 7. User-facing behavior traces to `USER-REQUIREMENTS.md` and coding constraints trace to `SYSTEM-REQUIREMENTS.md`.
-8. Shell-script output rendering is safe for markdown/list literals that begin with `-` (no `printf` option parsing errors during runtime writes).
-9. Any runtime report contract includes explicit completeness/parity checks and non-zero exit behavior on report-write failures.
-10. Prompt instructions include a generation quality gate that requires local syntax validation before final output.
-11. Prompt output includes concise validation evidence (checks run and pass/fail state) when scripts/artifacts are generated.
+8. *(Applies to steps that generate shell scripts only)* Shell-script output rendering is safe for markdown/list literals that begin with `-` (no `printf` option parsing errors during runtime writes).
+9. *(Applies to steps that generate shell scripts only)* Any runtime report contract includes explicit completeness/parity checks and non-zero exit behavior on report-write failures.
+10. *(Applies to steps that generate shell scripts only)* Prompt instructions include a generation quality gate that requires local syntax validation before final output.
+11. Prompt output includes concise validation evidence (checks run and pass/fail state) when scripts/artifacts are generated or commands are executed.
 
 For each updated example prompt, verify:
 
@@ -60,12 +72,14 @@ For each updated example prompt, verify:
 2. Commit 2: Prompt regeneration/update.
 3. Commit 3 (optional): Artifact/template adjustments if required.
 
+> **Note**: All generated artifacts are git-ignored and never committed. PRs contain only prompt and requirements file changes.
+
 ## Review Questions
 
 Before merging, confirm:
 
 1. Can someone regenerate the prompt from requirements without tribal knowledge?
-2. Are runtime actions clearly separated from generation actions?
+2. Are Remote-SSH prerequisites (user, connection, git-ignore, retry limit) clearly documented in the step prompt?
 3. Are conflicts between `zdm-env.md` and discovery evidence handled explicitly?
 4. Are all affected Step and Example prompts updated together?
 5. Do Example prompts remain lightweight while Step prompts retain all operational details?
