@@ -78,17 +78,18 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 **Purpose**: Fail fast on bad SSH IP/hostname, user, key, or key permission inputs before running the longer discovery step.
 
-**Output**:
-- SSH precheck script saved to `Artifacts/Phase10-Migration/Step1/Scripts/`
-  - `zdm_test_ssh_connectivity.sh`
-- Validation outputs saved to `Artifacts/Phase10-Migration/Step1/Validation/`
+> **Prerequisite**: VS Code must be connected to the ZDM jumpbox via the **Remote-SSH** extension. Step 1 runs the SSH tests directly from the VS Code terminal (which executes on the jumpbox) — no script transfer or manual execution is required.
+
+**Output** (git-ignored, written during prompt execution):
+- Validation report saved to `Artifacts/Phase10-Migration/Step1/Validation/`
   - `ssh-connectivity-report-<timestamp>.md`
   - `ssh-connectivity-report-<timestamp>.json`
+- `Scripts/zdm_test_ssh_connectivity.sh` — only generated if direct terminal commands are insufficient; left in place for debugging if created.
 
 **Usage**:
-1. Fill SSH host/user values in `zdm-env.md`; key paths are optional
-2. Run the Step 1 prompt to generate the precheck script
-3. Execute the script on the ZDM server as `zdmuser`
+1. Connect VS Code to the ZDM jumpbox using the **Remote-SSH** extension and open the cloned repo
+2. Fill SSH host/user values in `zdm-env.md`; key paths are optional
+3. Run the Step 1 prompt — Copilot tests connectivity directly from the jumpbox terminal, iterating up to 3 times on failure
 4. Resolve any SSH failures before proceeding to Step 2
 
 ### Step 2: Generate Discovery Scripts + Run to Get Context
@@ -198,7 +199,7 @@ The complete workflow alternates between your local VS Code environment and the 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │                              ZDM MIGRATION WORKFLOW                                          │
 ├────────────────────────────────────┬────────────────────────────────────────────────────────┤
-│         💻 VS CODE (Local)         │              🖥️ ZDM SERVER                             │
+│    💻 VS CODE (Local / Remote-SSH)  │              🖥️ ZDM SERVER                             │
 ├────────────────────────────────────┼────────────────────────────────────────────────────────┤
 │                                    │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
@@ -206,47 +207,54 @@ The complete workflow alternates between your local VS Code environment and the 
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 2. Run Step2 Prompt          │  │                                                        │
+│  │ 2. Connect via Remote-SSH    │  │                                                        │
+│  │    Run Step1 Prompt          │  │                                                        │
+│  │    → Test SSH connectivity   │  │                                                        │
+│  │      (runs on jumpbox)       │  │                                                        │
+│  └──────────────┬───────────────┘  │                                                        │
+│                 ▼                  │                                                        │
+│  ┌──────────────────────────────┐  │                                                        │
+│  │ 3. Run Step2 Prompt          │  │                                                        │
 │  │    → Generate discovery      │  │                                                        │
 │  │      scripts                 │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 3. git commit & push         │──┼───────────────────┐                                    │
+│  │ 4. git commit & push         │──┼───────────────────┐                                    │
 │  └──────────────────────────────┘  │                   ▼                                    │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 4. SSH as admin user (azureuser/opc)           │    │
+│                                    │  │ 5. SSH as admin user (azureuser/opc)           │    │
 │                                    │  │    sudo su - zdmuser                           │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 5. git clone <fork-url>                        │    │
+│                                    │  │ 6. git clone <fork-url>                        │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 6. Run discovery scripts                       │    │
+│                                    │  │ 7. Run discovery scripts                       │    │
 │                                    │  │    (source, target, ZDM servers)               │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
-│                   ┌────────────────┼──│ 7. git commit & push artifacts                 │    │
+│                   ┌────────────────┼──│ 8. git commit & push artifacts                 │    │
 │                   ▼                │  └────────────────────────────────────────────────┘    │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 8. git pull                  │  │                                                        │
+│  │ 9. git pull                  │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 9. Run Step3 Prompt          │  │                                                        │
-│  │    → Analyze discovery       │  │                                                        │
-│  │    → Generate questionnaire  │  │                                                        │
+│  │ 10. Run Step3 Prompt         │  │                                                        │
+│  │     → Analyze discovery      │  │                                                        │
+│  │     → Generate questionnaire │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 10. Complete questionnaire   │  │                                                        │
+│  │ 11. Complete questionnaire   │  │                                                        │
 │  │     (manual decisions)       │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 11. Run Step4 Prompt         │  │                                                        │
+│  │ 12. Run Step4 Prompt         │  │                                                        │
 │  │     → Identify issues        │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 │                  │                                                        │
@@ -259,34 +267,34 @@ The complete workflow alternates between your local VS Code environment and the 
 │     └───────────┬───────────┘      │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 12. Run Step5 Prompt         │  │                                                        │
+│  │ 13. Run Step5 Prompt         │  │                                                        │
 │  │     → Generate RSP, CLI,     │  │                                                        │
 │  │       Runbook                │  │                                                        │
 │  └──────────────┬───────────────┘  │                                                        │
 │                 ▼                  │                                                        │
 │  ┌──────────────────────────────┐  │                                                        │
-│  │ 13. git commit & push        │──┼───────────────────┐                                    │
+│  │ 14. git commit & push        │──┼───────────────────┐                                    │
 │  └──────────────────────────────┘  │                   ▼                                    │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 14. git pull                                   │    │
+│                                    │  │ 15. git pull                                   │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 15. ./zdm_commands.sh init                     │    │
+│                                    │  │ 16. ./zdm_commands.sh init                     │    │
 │                                    │  │     → Creates ~/creds, ~/zdm_oci_env.sh        │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 16. Edit ~/zdm_oci_env.sh with OCIDs           │    │
+│                                    │  │ 17. Edit ~/zdm_oci_env.sh with OCIDs           │    │
 │                                    │  │     source ~/zdm_oci_env.sh                    │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 17. Set passwords & create-creds               │    │
+│                                    │  │ 18. Set passwords & create-creds               │    │
 │                                    │  └──────────────────────┬─────────────────────────┘    │
 │                                    │                         ▼                              │
 │                                    │  ┌────────────────────────────────────────────────┐    │
-│                                    │  │ 18. Follow Runbook                             │    │
+│                                    │  │ 19. Follow Runbook                             │    │
 │                                    │  │     → eval → migrate → resume → cleanup        │    │
 │                                    │  └────────────────────────────────────────────────┘    │
 │                                    │                                                        │
@@ -297,17 +305,29 @@ The complete workflow alternates between your local VS Code environment and the 
 
 | Phase | Location | Actions |
 |-------|----------|---------|
-| **Setup** | VS Code | Fork repo, clone, run Step1 prompt (SSH precheck), then run Step2 prompt |
-| **Discovery** | ZDM Server | Clone fork, run discovery scripts, commit artifacts |
+| **Setup** | VS Code (Local) | Fork repo |  
+| **Step 1: SSH Precheck** | VS Code via Remote-SSH (on jumpbox) | Connect Remote-SSH, clone repo on jumpbox, run Step 1 prompt — Copilot tests SSH connectivity directly |
+| **Step 2: Discovery** | VS Code (Local) | Run Step 2 prompt to generate discovery scripts, commit & push |
+| **Discovery Execution** | ZDM Server | Pull repo, run discovery scripts, commit artifacts |
 | **Analysis** | VS Code | Pull, run Step3/4 prompts, complete questionnaire |
 | **Iteration** | Both | Fix issues on servers, re-run discovery, update Step3/4 |
 | **Generation** | VS Code | Run Step5 prompt, commit artifacts |
 | **Migration** | ZDM Server | Pull, init, configure, execute migration |
 
-### Important: ZDM Server Login
+### VS Code Remote-SSH Setup (Step 1)
 
-When working on the ZDM server, you must:
-1. **SSH as your admin user** (e.g., `azureuser`, `opc`) - NOT directly as `zdmuser`
+Step 1 runs from VS Code connected to the ZDM jumpbox via the **Remote-SSH** extension:
+1. Install the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension in VS Code
+2. Add the jumpbox to your SSH config and connect: **Remote-SSH: Connect to Host...**
+3. On the jumpbox, clone your forked repo: `git clone <fork-url>`
+4. Open the cloned folder in VS Code (File → Open Folder)
+5. Open `zdm-env.md` and fill in SSH host/user/key values
+6. Run the Step 1 prompt — Copilot runs SSH tests directly in the jumpbox terminal
+
+### Important: ZDM Server Login (Steps 2–5)
+
+For Steps 2–5, when working directly on the ZDM server terminal, you must:
+1. **SSH as your admin user** (e.g., `azureuser`, `opc`) — NOT directly as `zdmuser`
 2. **Switch to zdmuser**: `sudo su - zdmuser`
 3. **First-time setup**: Run `./zdm_commands.sh init` to create required directories and files
 
@@ -319,10 +339,10 @@ Each migration creates its artifacts directly under `Artifacts/Phase10-Migration
 
 ```
 Artifacts/Phase10-Migration/
-├── Step1/                              # Step 1: Test SSH Connectivity
-│   ├── Scripts/
+├── Step1/                              # Step 1: Test SSH Connectivity (all git-ignored)
+│   ├── Scripts/                        # Only created if direct terminal commands are insufficient
 │   │   └── zdm_test_ssh_connectivity.sh
-│   └── Validation/
+│   └── Validation/                     # Written by Copilot during Step 1 prompt execution
 │       ├── ssh-connectivity-report-*.md
 │       └── ssh-connectivity-report-*.json
 ├── Step2/                              # Step 2: Run Scripts to Get Context
