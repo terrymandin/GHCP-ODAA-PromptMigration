@@ -127,8 +127,8 @@ After all artifacts are generated and the quality gate passes:
 
 ## Next-Step Handoff
 After artifacts are generated, validated, and `zdm -eval` succeeds (or is explicitly skipped):
-1. Commit Step5 artifacts to the repository.
-2. Execute runtime migration commands on the jumpbox or ZDM server only.
+1. Step5 artifacts are git-ignored and remain in `Artifacts/Phase10-Migration/Step5/` only. Do not commit them.
+2. Execute runtime migration commands on the jumpbox or ZDM server using the generated artifacts.
 3. Use `Artifacts/Phase10-Migration/Step5/ZDM-Migration-Runbook.md` and `Artifacts/Phase10-Migration/Step5/zdm_commands.sh` as the runtime execution guide.
 
 ## Usage Command
