@@ -7,22 +7,33 @@ description: ZDM Step 4 - Resolve blockers identified in discovery
 ## Purpose
 This prompt helps address blockers and critical actions identified in the Discovery Summary before proceeding to migration artifact generation. **Iteration may be required** until all issues are resolved.
 
-## Execution Boundary (Critical)
+## Execution Model
 
-This prompt is generation-only.
-- Generate remediation scripts, verification scripts, and markdown artifacts under `Artifacts/Phase10-Migration/Step4/`
-- Do not execute remediation commands, SQL, SSH, or verification checks from VS Code
-- Script execution happens after commit/push, from the repository clone on the jumpbox/ZDM server
+This step runs under the **Remote-SSH** execution model:
+- VS Code is connected to the ZDM jumpbox via the **Remote-SSH** extension, with the terminal session running as **`zdmuser`**.
+- Copilot generates all artifacts using file tools and writes them to `Artifacts/Phase10-Migration/Step4/` (git-ignored).
+- Non-destructive verification and check commands may be run inline from the jumpbox terminal.
+- Remediation commands that modify database or system state (e.g., enabling archivelog, supplemental logging) must not be executed without explicit user confirmation.
+- Generated scripts are available in the jumpbox terminal for manual or confirmed execution.
+- All outputs are git-ignored. No generated files are committed or create PRs.
+- OCI CLI is not required for this step or any Phase10 migration execution step.
+
+Input precedence rules (mandatory):
+- Treat `zdm-env.md` as authoritative generation-time input for environment-specific values (hostnames, users, key paths, Oracle homes, SIDs, ZDM paths).
+- Prefer `zdm-env.md` over template defaults/examples.
+- If `zdm-env.md` conflicts with prior discovery evidence, keep both: generate fixes aligned to `zdm-env.md` intent and explicitly document the mismatch and required verification step.
+- `zdm-env.md` is input to this prompt only. Generated scripts must not read, source, or parse it at runtime.
+- Treat placeholder values containing `<...>` in `zdm-env.md` as unset.
 
 ---
 
 ## Prerequisites
 
 Before running this prompt:
-1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` and confirm connectivity checks pass
-2. ✅ Complete `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` and run discovery scripts
-3. ✅ Complete `@Phase10-ZDM-Step3-Discovery-Questionnaire` to generate Discovery Summary
-4. ✅ Review Discovery Summary for critical actions and blockers
+1. ✅ Complete `@Phase10-ZDM-Step1-Test-SSH-Connectivity` — confirm all SSH connectivity checks pass
+2. ✅ Complete `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` — confirm discovery reports exist in `Artifacts/Phase10-Migration/Step2/Discovery/`
+3. ✅ Complete `@Phase10-ZDM-Step3-Discovery-Questionnaire` — confirm Discovery Summary exists in `Artifacts/Phase10-Migration/Step3/`
+4. ✅ Review Discovery Summary for critical blockers and required actions
 
 ---
 
@@ -30,12 +41,7 @@ Before running this prompt:
 
 Attach the Discovery Summary and run this prompt to get remediation guidance:
 
-Configuration precedence for artifact generation (mandatory):
-- If `zdm-env.md` is attached, treat it as authoritative generation input for environment-specific values in scripts and documentation.
-- Prefer `zdm-env.md` over template defaults/examples when generating hostnames, users, key paths, Oracle homes, SIDs, unique names, and ZDM paths.
-- If `zdm-env.md` conflicts with prior discovery evidence, keep both: generate fixes aligned to `zdm-env.md` intent and explicitly document the mismatch and verification step.
-
-DB-specific value scope for Step 1-5 prompts:
+DB-specific value scope (Step1–Step5):
 - `SOURCE_REMOTE_ORACLE_HOME`
 - `SOURCE_ORACLE_SID`
 - `TARGET_REMOTE_ORACLE_HOME`
@@ -43,7 +49,7 @@ DB-specific value scope for Step 1-5 prompts:
 - `SOURCE_DATABASE_UNIQUE_NAME`
 - `TARGET_DATABASE_UNIQUE_NAME`
 
-ZDM-specific value scope for Step 1-5 prompts:
+ZDM-specific value scope (Step1–Step5):
 - `ZDM_HOME`
 
 ```
@@ -52,6 +58,9 @@ ZDM-specific value scope for Step 1-5 prompts:
 Please help me resolve the issues identified in the Discovery Summary.
 
 ## Attached Files
+
+### Project Configuration (optional)
+#file:zdm-env.md
 
 ### Discovery Summary (from Step3)
 #file:Artifacts/Phase10-Migration/Step3/Discovery-Summary.md
@@ -75,9 +84,9 @@ This step is designed to be repeated until all blockers are resolved:
 │           ↓                                             │
 │  2. Generate remediation scripts/commands               │
 │           ↓                                             │
-│  3. Commit/push scripts and execute on jumpbox          │
+│  3. Confirm and execute scripts from jumpbox terminal   │
 │           ↓                                             │
-│  4. Re-run relevant discovery scripts                   │
+│  4. Re-run Step2 discovery to refresh evidence          │
 │           ↓                                             │
 │  5. Update Issue Resolution Log                         │
 │           ↓                                             │
@@ -188,6 +197,17 @@ Create the following artifacts in `Artifacts/Phase10-Migration/Step4/`:
 
 ---
 
+### Part 5: Generate Step4 README
+
+Create `Artifacts/Phase10-Migration/Step4/README.md` summarizing:
+- Generated files for this step and their purpose (Issue-Resolution-Log.md, Scripts/ directory, Verification-Results.md)
+- What the operator must review and act on before proceeding to Step5
+- Where runtime outputs are written (all under `Artifacts/Phase10-Migration/Step4/`)
+- Success signals: all blockers resolved, `verify_fixes.sh` returns all-PASS, `Verification-Results.md` present
+- Failure signals: any FAIL in verification, unresolved blockers listed in Issue-Resolution-Log.md
+
+---
+
 ### Part 4: Generate Verification Script
 
 Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved and writes a structured Markdown results file to the repo.
@@ -220,14 +240,17 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    - Issue 4 (source disk space check) → `ISSUE4_STATUS` / `ISSUE4_DETAIL`
    - Issue 5 (ZDM disk space check) → `ISSUE5_STATUS` / `ISSUE5_DETAIL`
 
-3. **Write `Verification-Results.md`** — after the summary output block and the `verify_fixes.sh completed` echo, append a section that writes a Markdown results file to the Step4 directory (parent of `Verification/`) so it can be committed to the repo:
+3. **Write `Verification-Results.md`** — after the summary output block and the `verify_fixes.sh completed` echo, append a section that writes a Markdown results file to the Step4 Artifacts directory so it is immediately visible in VS Code:
 
    ```bash
    # =============================================================================
-   # Write structured Markdown results file (commit to repo for Step 5)
+   # Write structured Markdown results file (visible in VS Code via Remote-SSH)
    # =============================================================================
+   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+   STEP4_ARTIFACTS_DIR="$(dirname "${SCRIPT_DIR}")"
+   RESULTS_FILE="${STEP4_ARTIFACTS_DIR}/Verification-Results.md"
+
    DB_NAME_UPPER="${ORACLE_SID^^}"
-   RESULTS_FILE="$(dirname "${VERIFY_DIR}")/Verification-Results.md"
 
    _icon() { case "$1" in PASS) echo "✅ PASS";; FAIL) echo "❌ FAIL";; WARN) echo "⚠️  WARN";; *) echo "❓ UNKNOWN";; esac; }
    ISSUE1_ICON=$(_icon "${ISSUE1_STATUS}")
@@ -243,10 +266,8 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
 
    if [[ "${FAIL_COUNT}" -eq 0 ]]; then
      PROCEED_LINE="✅ YES — all 3 blockers resolved"
-     COMMIT_MSG_BODY="Step4 verification passed: all blockers resolved for ${DB_NAME_UPPER}"
    else
      PROCEED_LINE="❌ NO — ${FAIL_COUNT} blocker(s) still pending"
-     COMMIT_MSG_BODY="Step4 verification: ${BLOCKERS_PASSED}/3 blockers resolved for ${DB_NAME_UPPER}"
    fi
 
    cat > "${RESULTS_FILE}" << RESULTS_EOF
@@ -261,7 +282,7 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    ## Blocker Status (Must Be Resolved Before Step 5)
 
    | # | Issue | Status | Detail |
-   |---|-------|--------|--------|
+   |---|-------|--------|---------|
    | 1 | PDB1 is OPEN (READ WRITE) on source | ${ISSUE1_ICON} | ${ISSUE1_DETAIL} |
    | 2 | ALL COLUMNS supplemental logging on source | ${ISSUE2_ICON} | ${ISSUE2_DETAIL} |
    | 3 | OCI config (~/.oci/config) for zdmuser on ZDM server | ${ISSUE3_ICON} | ${ISSUE3_DETAIL} |
@@ -269,7 +290,7 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    ## Recommended Items
 
    | # | Item | Status | Detail |
-   |---|------|--------|--------|
+   |---|------|--------|---------|
    | 4 | Source root disk space | ${ISSUE4_ICON} | ${ISSUE4_DETAIL} |
    | 5 | ZDM server root disk space | ${ISSUE5_ICON} | ${ISSUE5_DETAIL} |
 
@@ -285,41 +306,10 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
    echo "  📄 Verification results written to:"
    echo "  ${RESULTS_FILE}"
    echo ""
-   echo "  Commit to repo when ready to proceed to Step 5:"
-   echo "    git add Artifacts/Phase10-Migration/Step4/Verification-Results.md"
-   echo "    git commit -m \"${COMMIT_MSG_BODY}\""
+   echo "  Attach this file when running @Phase10-ZDM-Step5-Generate-Migration-Artifacts"
    ```
 
-4. **Write the results file into the repo clone** — use `BASH_SOURCE[0]` to locate the script, then `git rev-parse --show-toplevel` from that directory to find the repo root. Write `Verification-Results.md` there so the user can commit it without any extra copy step. Fall back to the local `~/Artifacts/...` path only if not running inside a git repo:
-
-   ```bash
-   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-   REPO_ROOT=$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || echo "")
-
-   if [[ -n "${REPO_ROOT}" ]]; then
-     RESULTS_BASE="${REPO_ROOT}/Artifacts/Phase10-Migration/Step4"
-   else
-     RESULTS_BASE="$(dirname "${VERIFY_DIR}")"
-   fi
-   mkdir -p "${RESULTS_BASE}"
-   RESULTS_FILE="${RESULTS_BASE}/Verification-Results.md"
-   ```
-
-5. **Place the results file write + git instructions** after the `verify_fixes.sh completed` echo line and before the final `exit 1` guard — so the file is always written regardless of pass/fail, enabling partial progress to be committed. After writing the file, echo the manual git commands for the user to run — do **not** run git commands automatically:
-
-   ```bash
-   echo ""
-   echo "  📄 Verification results written to:"
-   echo "  ${RESULTS_FILE}"
-   echo ""
-   echo "  Commit and push to repo before running Step 5:"
-   echo "    cd \"${REPO_ROOT:-<repo-root>}\""
-   echo "    git add Artifacts/Phase10-Migration/Step4/Verification-Results.md"
-   echo "    git commit -m \"${COMMIT_MSG_BODY}\""
-   echo "    git push"
-   ```
-
-6. **`VERIFY_DIR` path** — point the log output subdirectory at `${HOME}/Artifacts/Phase10-Migration/Step4/Verification`. Logs stay local; only the results file goes into the repo clone.
+4. **`VERIFY_DIR` path** — point the log output subdirectory at `${STEP4_ARTIFACTS_DIR}/Verification`. Logs stay local under `Artifacts/` and are visible in VS Code.
 
 **Issue Resolution Log template:**
 
@@ -446,23 +436,7 @@ nc -zv <target_ip> 1521
 
 ## Re-Running Discovery
 
-After fixing issues, re-run the relevant discovery script as `zdmuser` on the ZDM server:
-
-```bash
-# Switch to zdmuser if not already
-sudo su - zdmuser
-
-# Re-run source discovery
-cd ~/Artifacts/Phase10-Migration/Step2/Scripts
-./zdm_orchestrate_discovery.sh source
-
-# Or run individual scripts directly
-SOURCE_SSH_KEY_NORM="$(normalize_optional_key "${SOURCE_SSH_KEY:-}")"
-ssh ${SOURCE_SSH_KEY_NORM:+-i "$SOURCE_SSH_KEY_NORM"} ${SOURCE_SSH_USER}@${SOURCE_HOST} 'ORACLE_USER=oracle bash -s' < zdm_source_discovery.sh
-```
-
-Save updated discovery outputs to:
-`Artifacts/Phase10-Migration/Step4/Verification/`
+After fixing issues, refresh discovery evidence by running `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` again. The new discovery reports will be written to `Artifacts/Phase10-Migration/Step2/Discovery/` (timestamped) and can be attached when running Step3 or Step4 for a follow-up cycle.
 
 ---
 
@@ -472,12 +446,11 @@ Before proceeding to Step 5, ensure:
 
 - [ ] All ❌ Blockers are resolved
 - [ ] All ⚠️ Required Actions are completed
-- [ ] Issue Resolution Log is updated with all resolutions
+- [ ] Issue Resolution Log is updated with all resolutions, iteration history, and unresolved items
 - [ ] Each remediation script has a corresponding `README-<scriptname>.md` saved alongside it
-- [ ] Verification discovery has been re-run
-- [ ] No new blockers identified in verification
 - [ ] `verify_fixes.sh` has been run and all critical checks PASSED
-- [ ] `Verification-Results.md` committed and pushed to repo (run the git commands printed by the script)
+- [ ] `Verification-Results.md` is present in `Artifacts/Phase10-Migration/Step4/`
+- [ ] No new blockers identified in verification output
 
 ---
 
@@ -485,12 +458,11 @@ Before proceeding to Step 5, ensure:
 
 Once all issues are resolved:
 
-1. ✅ Save Issue Resolution Log
-2. ✅ Ensure each remediation script has a `README-<scriptname>.md` saved alongside it
-3. ✅ Run `verify_fixes.sh` — confirm all checks PASS
-4. ✅ Run the git commands printed by the script to commit and push `Verification-Results.md`
-5. ✅ Ensure verification discovery files are saved
-6. 🔲 Run `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` with:
+1. ✅ Confirm all ❌ Blockers resolved in Issue Resolution Log
+2. ✅ Confirm each remediation script has a `README-<scriptname>.md` saved alongside it
+3. ✅ Run `verify_fixes.sh` from the jumpbox terminal — confirm all checks PASS
+4. ✅ Confirm `Verification-Results.md` is in `Artifacts/Phase10-Migration/Step4/`
+5. 🔲 Run `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` with:
    - Completed questionnaire from Step 3
    - Issue Resolution Log from Step 4
    - `Verification-Results.md` from Step 4
