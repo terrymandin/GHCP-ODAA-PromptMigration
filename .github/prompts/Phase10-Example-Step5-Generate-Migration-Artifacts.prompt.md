@@ -39,10 +39,13 @@ Artifacts/Phase10-Migration/Step5/
 
 ## Requirements Summary
 
-- Generation-only step: create Step5 artifacts only; do not execute migration operations in VS Code.
+- Remote-SSH execution model: VS Code connected to jumpbox as `zdmuser`; all generated artifacts are git-ignored and never committed.
+- Generation phase: create Step5 artifacts; do not execute migration operations beyond `zdm -eval`.
+- Evaluation phase: run `zdm -eval` on the jumpbox and iterate fix-and-retry until evaluation passes or the user explicitly skips; log any skip decision and outstanding errors in `Issue-Resolution-Log.md`.
 - If `zdm-env.md` is attached, treat it as authoritative generation input and explicitly flag mismatches with discovery or prior artifacts.
 - Generated artifacts must be runtime-portable and must not read or source `zdm-env.md`.
-- Step 5 artifacts must include environment-variable based configuration, admin-to-zdmuser flow, and ZDM version readiness gating.
+- Step 5 artifacts must include environment-variable based configuration, admin-to-zdmuser flow, ZDM version readiness gating, and a standalone `zdmcli migrate database` command for manual execution.
+- Generation quality gate: validate `zdm_commands.sh` syntax with `bash -n` (and `shellcheck` if available) before finalizing; include validation evidence in chat output.
 
 ## Next Steps
 
