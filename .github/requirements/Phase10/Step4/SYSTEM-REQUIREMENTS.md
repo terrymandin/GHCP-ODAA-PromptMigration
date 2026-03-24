@@ -19,6 +19,12 @@ This file defines script-level coding constraints for remediation and verificati
 1. `verify_fixes.sh` tracks per-issue PASS/FAIL/WARN status.
 2. Verification writes structured markdown results to `Verification-Results.md` for Step5 consumption.
 
+## S4-09: Script creation only — no execution during prompt
+
+1. Remediation scripts and the verification script are **generated and saved to disk only**.
+2. The prompt must **not execute** any remediation or verification script as part of its run.
+3. Execution is the operator's responsibility, performed manually outside the prompt after reviewing the generated artifacts.
+
 ## S4-08: Verification-Results generated items
 
 `Verification-Results.md` should include:

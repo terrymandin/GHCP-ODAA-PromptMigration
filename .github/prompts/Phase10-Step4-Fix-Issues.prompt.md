@@ -12,9 +12,7 @@ This prompt helps address blockers and critical actions identified in the Discov
 This step runs under the **Remote-SSH** execution model:
 - VS Code is connected to the ZDM jumpbox via the **Remote-SSH** extension, with the terminal session running as **`zdmuser`**.
 - Copilot generates all artifacts using file tools and writes them to `Artifacts/Phase10-Migration/Step4/` (git-ignored).
-- Non-destructive verification and check commands may be run inline from the jumpbox terminal.
-- Remediation commands that modify database or system state (e.g., enabling archivelog, supplemental logging) must not be executed without explicit user confirmation.
-- Generated scripts are available in the jumpbox terminal for manual or confirmed execution.
+- **No scripts are executed during this prompt.** All remediation and verification scripts are generated and saved to disk only; execution is the operator's responsibility after reviewing the generated artifacts.
 - All outputs are git-ignored. No generated files are committed or create PRs.
 - OCI CLI is not required for this step or any Phase10 migration execution step.
 
@@ -316,37 +314,78 @@ Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved
 ```markdown
 # Issue Resolution Log
 
+**Last Updated:** [YYYY-MM-DD HH:MM UTC]
+
 ## Summary
-| Issue | Status | Date Resolved | Verified By |
-|-------|--------|---------------|-------------|
-| Enable supplemental logging | 🔲 Pending | | |
-| Configure OCI authentication for zdmuser | 🔲 Pending | | |
-| Configure network connectivity | 🔲 Pending | | |
+| Issue ID | Issue | Severity | Owner | Status | Last Updated |
+|----------|-------|----------|-------|--------|--------------|
+| I-01 | Enable supplemental logging | ❌ Blocker | | 🔲 Pending | |
+| I-02 | Configure OCI authentication for zdmuser | ⚠️ Required | | 🔲 Pending | |
+| I-03 | Configure network connectivity | ⚠️ Required | | 🔲 Pending | |
 
 ## Issue Details
 
-### Issue 1: [Issue Name]
+### Issue I-01: [Issue Name]
 **Category:** ❌ Blocker / ⚠️ Required / ⚡ Recommended
 **Status:** 🔲 Pending / 🔄 In Progress / ✅ Resolved
+**Last Updated:** [timestamp]
 
-**Problem:**
-[Description of the issue]
+**Evidence:**
+[Observed values, query results, or error messages from discovery]
 
-**Remediation:**
-```bash
-# Commands to fix the issue
-```
+**Remediation Plan:**
+[Step-by-step plan to fix the issue, including which server and user]
 
-**Verification:**
-```bash
-# Commands to verify the fix
-```
+**Verification Method:**
+[How to confirm the fix is applied, including expected output]
 
-**Resolution Notes:**
-[Notes about how this was resolved, date, by whom]
+**Rollback Notes:**
+[How to undo the change if needed; "N/A" if irreversible or not applicable]
 
 ---
+
+## Iteration History
+
+### Cycle 1 — [YYYY-MM-DD]
+[Summary of what was attempted, what changed, and what the verification outcome was]
+
+### Cycle N — [YYYY-MM-DD]
+[Summary of changes and outcomes from this cycle]
+
+---
+
+## Unresolved Items and Blockers (Step 5 Prerequisites)
+
+| Issue ID | Issue | Current Status | Blocking Reason |
+|----------|-------|----------------|-----------------|
+| [I-XX] | [Issue name] | 🔄 In Progress | [Why it prevents Step 5 progression] |
+
+> ⚠️ **Step 5 must not proceed until all ❌ Blocker items above are listed as ✅ Resolved.**
 ```
+
+---
+
+### Part 6: Generation Quality Gate
+
+After all scripts are written to disk, run the following non-invasive syntax validation before finalizing output. This applies to every `.sh` file generated under `Artifacts/Phase10-Migration/Step4/Scripts/`.
+
+1. **Mandatory — bash syntax check** for each generated script:
+   ```bash
+   for f in ~/Artifacts/Phase10-Migration/Step4/Scripts/*.sh; do
+     bash -n "$f" && echo "OK: $f" || echo "FAIL: $f"
+   done
+   ```
+
+2. **Optional — shellcheck** (run if available):
+   ```bash
+   if command -v shellcheck &>/dev/null; then
+     shellcheck ~/Artifacts/Phase10-Migration/Step4/Scripts/*.sh
+   fi
+   ```
+
+3. Any syntax error is a **stop-ship condition**: fix the script and re-run checks until all pass.
+
+4. Include a concise validation evidence block in the final chat output listing each script checked, the checks performed, and PASS/FAIL status for each.
 
 ---
 

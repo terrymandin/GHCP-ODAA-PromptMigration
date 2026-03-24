@@ -36,7 +36,7 @@ Artifacts/Phase10-Migration/Step4/
 
 ## Requirements Summary
 
-- Step 4 runs under the Remote-SSH execution model: VS Code is connected to the ZDM jumpbox as `zdmuser`; Copilot generates artifacts using file tools; remediation scripts requiring database changes need explicit user confirmation before execution.
+- Step 4 runs under the Remote-SSH execution model: VS Code is connected to the ZDM jumpbox as `zdmuser`; Copilot generates all artifacts using file tools; no scripts are executed during the prompt — all remediation and verification scripts are generated and saved to disk only; execution is the operator's responsibility after review (S4-09).
 - All outputs are written to `Artifacts/Phase10-Migration/Step4/` (git-ignored). No commit or push is required.
 - If `zdm-env.md` is attached, treat it as authoritative generation-time input; document mismatches with discovery evidence and include verification steps.
 - Step 4 supports iterative remediation cycles (S4-02): each cycle updates the Issue-Resolution-Log with iteration history and new verification outcomes.
@@ -45,6 +45,7 @@ Artifacts/Phase10-Migration/Step4/
 - `verify_fixes.sh` tracks per-issue PASS/FAIL/WARN status and writes `Verification-Results.md` to `Artifacts/Phase10-Migration/Step4/` at runtime (S4-05, S4-08).
 - `Verification-Results.md` includes: per-issue status table, evidence detail per issue, overall blocker resolution result, and remaining warnings (S4-08).
 - All generated scripts must include a `zdmuser` guard, use base64-wrapped SQL for SSH-based SQL helpers, and normalize optional SSH keys (S4-03, S4-04).
+- Generated scripts are syntax-validated with `bash -n` before output, and optionally with `shellcheck` if available; any syntax failure is a stop-ship condition; a validation evidence summary is included in the final output (CR-12).
 - Step4 README summarizes generated files, review steps, success/failure signals (CR-08).
 
 ## Next Steps
