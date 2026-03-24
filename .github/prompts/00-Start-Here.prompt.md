@@ -1,4 +1,4 @@
-﻿﻿---
+﻿---
 mode: agent
 description: Start here - Oracle Database@Azure migration onboarding and navigation guide
 ---
@@ -16,11 +16,7 @@ This repository provides AI-assisted Copilot prompts for each phase of the Oracl
 | Phase 0 | ODAA Readiness Assessment | `@Phase0-ODAA-Readiness` |
 | Phase 5 | CIDR Range Planning | `@Phase5-CIDR-Planning` |
 | Phase 6 | Infrastructure as Code (Terraform) | `@Phase6-IaC` |
-| Phase 10 — Step 1 | Test SSH Connectivity (ZDM) | `@Phase10-ZDM-Step1-Test-SSH-Connectivity` |
-| Phase 10 — Step 2 | Generate Discovery Scripts (ZDM) | `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` |
-| Phase 10 — Step 3 | Discovery Questionnaire (ZDM) | `@Phase10-ZDM-Step3-Discovery-Questionnaire` |
-| Phase 10 — Step 4 | Fix Issues (ZDM) | `@Phase10-ZDM-Step4-Fix-Issues` |
-| Phase 10 — Step 5 | Generate Migration Artifacts (ZDM) | `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` |
+| Phase 10 | ZDM Migration (guided, all steps) | `@Phase10-ZDM-Orchestrator` |
 
 Run `@GetStatus` at any time to see the current migration progress.
 
@@ -47,11 +43,8 @@ Tell me your current situation and I will direct you to the right prompt. Common
 - **Just starting** → Run `@Phase0-ODAA-Readiness` to assess your source databases
 - **Assessment complete, need networking** → Run `@Phase5-CIDR-Planning`
 - **CIDR defined, need infrastructure code** → Run `@Phase6-IaC` with `#file:Artifacts/Phase5-CIDR/CIDR-Definition.md`
-- **Infrastructure deployed, ready to migrate** → Run `@Phase10-ZDM-Step1-Test-SSH-Connectivity` with `#file:zdm-env.md`
-- **SSH working, need discovery** → Run `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` with `#file:zdm-env.md`
-- **Discovery done, need to plan** → Run `@Phase10-ZDM-Step3-Discovery-Questionnaire` (attach your Step 2 discovery output files)
-- **Blockers to fix** → Run `@Phase10-ZDM-Step4-Fix-Issues` (attach Step 3 output files)
-- **Ready to migrate** → Run `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` (attach Step 3 and Step 4 output files)
+- **Infrastructure deployed, ready to migrate** → Run `@Phase10-ZDM-Orchestrator` with `#file:zdm-env.md`
+- **Already part-way through migration** → Run `@Phase10-ZDM-Orchestrator` with `#file:zdm-env.md` — it will detect your current step automatically
 
 ## ZDM Workflow Overview
 
