@@ -58,14 +58,6 @@ For each updated step prompt, verify:
 10. *(Applies to steps that generate shell scripts only)* Prompt instructions include a generation quality gate that requires local syntax validation before final output.
 11. Prompt output includes concise validation evidence (checks run and pass/fail state) when scripts/artifacts are generated or commands are executed.
 
-For each updated example prompt, verify:
-
-1. It contains exactly four sections: `Example Prompt`, `Expected Output`, `Requirements Summary`, and `Next Steps`.
-2. It does not include extra sections (for example: `Prerequisites`, `Execution Boundary`, or detailed catalogs).
-3. `Requirements Summary` is concise and reflects shared plus step-specific requirements.
-4. `Next Steps` provides the handoff to the next Phase10 prompt.
-5. Any detailed operational guidance exists in the corresponding Step prompt, not in the Example prompt.
-
 ## Suggested PR Structure
 
 1. Commit 1: Requirements change only.
@@ -81,5 +73,4 @@ Before merging, confirm:
 1. Can someone regenerate the prompt from requirements without tribal knowledge?
 2. Are Remote-SSH prerequisites (user, connection, git-ignore, retry limit) clearly documented in the step prompt?
 3. Are conflicts between `zdm-env.md` and discovery evidence handled explicitly?
-4. Are all affected Step and Example prompts updated together?
-5. Do Example prompts remain lightweight while Step prompts retain all operational details?
+4. Are all affected Step prompts updated?
