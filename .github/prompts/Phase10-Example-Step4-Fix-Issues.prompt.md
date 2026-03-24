@@ -28,16 +28,25 @@ Artifacts/Phase10-Migration/Step4/
 ```
 
 ## Expected Output
+- `Artifacts/Phase10-Migration/Step4/README.md`
 - `Artifacts/Phase10-Migration/Step4/Issue-Resolution-Log.md`
-- Remediation scripts (one per blocker) each with a companion `README.md`
-- `verify_fixes.sh` to confirm all blockers are resolved
+- Remediation scripts in `Artifacts/Phase10-Migration/Step4/Scripts/` (one per blocker, each with a companion `README-<scriptname>.md`)
+- `Artifacts/Phase10-Migration/Step4/Scripts/verify_fixes.sh` (writes `Verification-Results.md` when run)
+- `Artifacts/Phase10-Migration/Step4/Verification-Results.md` (written by `verify_fixes.sh` at runtime)
 
 ## Requirements Summary
 
-- Generation-only step: produce remediation and verification artifacts without executing fixes in VS Code.
-- If `zdm-env.md` is attached, treat it as authoritative generation input and document mismatches with discovery.
-- Step 4 supports iterative remediation cycles until blockers are resolved.
-- Output contract includes issue log, remediation scripts with companion readmes, and verification results for Step5 readiness.
+- Step 4 runs under the Remote-SSH execution model: VS Code is connected to the ZDM jumpbox as `zdmuser`; Copilot generates all artifacts using file tools; no scripts are executed during the prompt — all remediation and verification scripts are generated and saved to disk only; execution is the operator's responsibility after review (S4-09).
+- All outputs are written to `Artifacts/Phase10-Migration/Step4/` (git-ignored). No commit or push is required.
+- If `zdm-env.md` is attached, treat it as authoritative generation-time input; document mismatches with discovery evidence and include verification steps.
+- Step 4 supports iterative remediation cycles (S4-02): each cycle updates the Issue-Resolution-Log with iteration history and new verification outcomes.
+- Issue-Resolution-Log must include: issue register with IDs/severity/status, per-issue evidence/remediation/verification/rollback, iteration history, and explicit unresolved blockers (S4-06).
+- Every remediation script must have a companion `README-<scriptname>.md` covering purpose, target server, prerequisites, environment variables, step-by-step behavior, execution command, expected output, and rollback guidance (S4-07).
+- `verify_fixes.sh` tracks per-issue PASS/FAIL/WARN status and writes `Verification-Results.md` to `Artifacts/Phase10-Migration/Step4/` at runtime (S4-05, S4-08).
+- `Verification-Results.md` includes: per-issue status table, evidence detail per issue, overall blocker resolution result, and remaining warnings (S4-08).
+- All generated scripts must include a `zdmuser` guard, use base64-wrapped SQL for SSH-based SQL helpers, and normalize optional SSH keys (S4-03, S4-04).
+- Generated scripts are syntax-validated with `bash -n` before output, and optionally with `shellcheck` if available; any syntax failure is a stop-ship condition; a validation evidence summary is included in the final output (CR-12).
+- Step4 README summarizes generated files, review steps, success/failure signals (CR-08).
 
 ## Next Steps
 

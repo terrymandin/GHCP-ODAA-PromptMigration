@@ -15,11 +15,15 @@ These requirements apply to all Phase10 ZDM prompts unless a step explicitly ove
 1. `zdm-env.md` is generation-time input only.
 2. Generated scripts and artifacts must not read, source, or parse `zdm-env.md` at runtime.
 
-## CR-03: Execution guardrail
+## CR-03: Execution model
 
-1. Prompts generate files only.
-2. Prompts must not run migration, SSH, SQL, discovery, or remediation commands in VS Code.
-3. Runtime actions are performed later by the user on the jumpbox/ZDM server.
+All Phase10 prompts use the **Remote-SSH execution** model:
+
+1. VS Code is connected to the ZDM jumpbox via the Remote-SSH extension, with the terminal session running as `zdmuser`.
+2. Copilot runs commands directly in the jumpbox terminal, iterating and fixing errors automatically.
+3. All outputs are written to `Artifacts/` (git-ignored) using file tools. No outputs are committed to git.
+4. Prompts must not perform irreversible or destructive actions without explicit user confirmation.
+5. `zdm-env.md` is input to the prompt only. Generated scripts and artifacts must not read, source, or parse `zdm-env.md` at runtime.
 
 ## CR-04: Requirements-to-prompt traceability
 

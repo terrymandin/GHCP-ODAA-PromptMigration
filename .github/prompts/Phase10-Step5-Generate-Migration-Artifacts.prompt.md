@@ -1,11 +1,11 @@
 ---
 agent: agent
-description: ZDM Step 5 - generate final migration artifacts from Step3 and Step4 outputs
+description: ZDM Step 5 - generate final migration artifacts and run zdm -eval on the jumpbox
 ---
 # ZDM Migration Step 5: Generate Migration Artifacts
 
 ## Purpose
-Generate final migration artifacts for execution on the jumpbox and ZDM server by deriving content from Step3 and Step4 outputs and relevant Step2 discovery evidence.
+Generate final migration artifacts for execution on the jumpbox and ZDM server by deriving content from Step3 and Step4 outputs and relevant Step2 discovery evidence. After generating artifacts, execute `zdm -eval` on the jumpbox and iterate until it succeeds or the user explicitly skips.
 
 Generate exactly these files under `Artifacts/Phase10-Migration/Step5/`:
 1. `README.md`
@@ -13,13 +13,21 @@ Generate exactly these files under `Artifacts/Phase10-Migration/Step5/`:
 3. `zdm_migrate.rsp`
 4. `zdm_commands.sh`
 
-## Execution Boundary (Generation Only)
-This prompt is generation-only.
-- Create or update files only.
-- Do not run migration, SSH, SQL, discovery, verification, or remediation commands from VS Code.
-- Runtime execution occurs later by the user on the jumpbox and ZDM server.
+## Remote-SSH Execution Prerequisites
+This prompt uses the **Remote-SSH execution** model:
+- VS Code must be connected to the ZDM jumpbox via the Remote-SSH extension.
+- All terminal commands run directly on the jumpbox as `zdmuser`.
+- Copilot iterates and fixes errors automatically; maximum retry attempts per failed command: **5**.
+- All generated outputs are written to `Artifacts/` (git-ignored) using file tools. Do not commit generated artifacts.
+- `zdm-env.md` is generation-time input only. Generated scripts and artifacts must not read, source, or parse `zdm-env.md` at runtime.
 
-`zdm-env.md` rules:
+## Execution Boundary (Generation + Evaluation)
+This prompt has two phases:
+1. **Generation phase**: Create or update the four required artifacts in `Artifacts/Phase10-Migration/Step5/`.
+2. **Evaluation phase**: After generation, run `zdm -eval` on the jumpbox and iterate remediation until evaluation passes or the user explicitly skips.
+
+Rules:
+- Do not run full migration execution (beyond `zdm -eval`), SQL, or SSH-based discovery commands from VS Code.
 - Use `zdm-env.md` only as generation-time input when attached.
 - Do not make generated artifacts read, source, or parse `zdm-env.md` at runtime.
 
@@ -50,6 +58,9 @@ Generate exactly these artifacts in `Artifacts/Phase10-Migration/Step5/`:
 2. `ZDM-Migration-Runbook.md`
 3. `zdm_migrate.rsp`
 4. `zdm_commands.sh`
+
+Conditional output:
+- `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md` — created when the user explicitly skips `zdm -eval`. Log the skip decision and all outstanding eval errors before proceeding.
 
 Portability constraints:
 1. Generated artifacts must be runtime-portable and must not depend on `zdm-env.md`.
@@ -96,10 +107,28 @@ For each artifact, generate at least the following content.
 Traceability requirement:
 1. Keep all generated Step5 artifacts explicitly aligned to shared Phase10 requirements and Step5 requirements.
 
+## Generation Quality Gate
+After generating `zdm_commands.sh`:
+1. Run `bash -n zdm_commands.sh` to validate shell syntax.
+2. If `shellcheck` is available, run it and resolve all actionable findings.
+3. Any failed validation check is a stop-ship condition; fix and re-run until all required checks pass.
+4. Include a concise validation evidence summary in chat listing checks run and pass/fail status.
+
+## zdm -eval Iteration Loop
+After all artifacts are generated and the quality gate passes:
+1. Run the `zdm -eval` command using the generated response file and capture its full output.
+2. If evaluation **succeeds** (exit code 0 / no blocking errors), surface the success output and proceed to the Next-Step Handoff.
+3. If evaluation **fails**, surface the error output, attempt remediation (re-run relevant fix scripts from Step4, adjust `zdm_migrate.rsp`), and re-run `zdm -eval`.
+4. Repeat the fix-and-retry loop until either:
+   - `zdm -eval` exits successfully, **or**
+   - The user explicitly instructs the agent to **skip** evaluation (for example, by responding with "skip eval" or confirming they want to proceed despite failures).
+5. If the user skips, log the skip decision and all outstanding eval errors in `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md` before continuing.
+6. Do not proceed to full migration execution from this prompt.
+
 ## Next-Step Handoff
-After artifacts are generated and reviewed:
-1. Commit Step5 artifacts to the repository.
-2. Execute runtime commands on the jumpbox or ZDM server only.
+After artifacts are generated, validated, and `zdm -eval` succeeds (or is explicitly skipped):
+1. Step5 artifacts are git-ignored and remain in `Artifacts/Phase10-Migration/Step5/` only. Do not commit them.
+2. Execute runtime migration commands on the jumpbox or ZDM server using the generated artifacts.
 3. Use `Artifacts/Phase10-Migration/Step5/ZDM-Migration-Runbook.md` and `Artifacts/Phase10-Migration/Step5/zdm_commands.sh` as the runtime execution guide.
 
 ## Usage Command

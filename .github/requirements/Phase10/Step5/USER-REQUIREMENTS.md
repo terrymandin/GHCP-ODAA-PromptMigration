@@ -40,3 +40,15 @@ Required generated files under `Artifacts/Phase10-Migration/Step5/`:
 4. ZDM server preparation tasks (including admin-user to zdmuser flow).
 5. Migration execution, monitoring, pause/resume, and switchover guidance.
 6. Post-migration validation and rollback procedures.
+
+## S5-08: Iterate until `zdm -eval` succeeds or user skips
+
+After running `zdm -eval`, the agent must not proceed to migration execution until the evaluation phase passes. The expected behavior is:
+
+1. Run the `zdm -eval` command and capture its output.
+2. If the evaluation **succeeds** (exit code 0 / no blocking errors), continue to the next step.
+3. If the evaluation **fails**, surface the errors from the output, attempt remediation (e.g., re-running relevant fix scripts from Step4, adjusting the response file), and re-run `zdm -eval`.
+4. Repeat the fix-and-retry loop until either:
+   - The `zdm -eval` exits successfully, **or**
+   - The user explicitly instructs the agent to **skip** the evaluation (e.g., responds with "skip eval" or confirms they want to proceed despite failures).
+5. If the user skips, log the skip decision and the outstanding eval errors in `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md` before continuing.

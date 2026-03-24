@@ -1,4 +1,0 @@
-# Placeholder directory — runtime target discovery outputs written here
-#
-# Copy files from ZDM server after running zdm_orchestrate_discovery.sh:
-#   scp "zdmuser@<zdm-server>:$HOME/zdm-step2-target-*/zdm_target_*" .
