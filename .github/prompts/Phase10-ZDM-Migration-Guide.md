@@ -119,7 +119,7 @@ Each step has a corresponding example file showing a completed prompt for a fict
 
 **Output Location**: `Artifacts/Phase10-Migration/Step3/`
 - `Discovery-Summary.md` - Auto-populated findings from discovery
-- `Migration-Questionnaire.md` - Manual decisions with recommended defaults
+- `Migration-Decisions.md` - Completed Decisions Record from migration planning interview
 
 **The Questionnaire captures:**
 - Migration type (Online Physical vs Offline Physical)
@@ -364,7 +364,7 @@ Artifacts/Phase10-Migration/
 │           └── zdm_server_discovery_*.json
 ├── Step3/                              # Step 3: Get Manual Configuration Context
 │   ├── Discovery-Summary.md
-│   └── Migration-Questionnaire.md
+│   └── Migration-Decisions.md
 ├── Step4/                              # Step 4: Fix Issues (Iterative)
 │   ├── Issue-Resolution-Log.md
 │   └── Verification/                   # Re-run discovery outputs

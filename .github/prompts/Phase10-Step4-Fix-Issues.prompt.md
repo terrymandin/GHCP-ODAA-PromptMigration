@@ -63,8 +63,8 @@ Please help me resolve the issues identified in the Discovery Summary.
 ### Discovery Summary (from Step3)
 #file:Artifacts/Phase10-Migration/Step3/Discovery-Summary.md
 
-### Migration Questionnaire (from Step3)
-#file:Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md
+### Migration Decisions (from Step3)
+#file:Artifacts/Phase10-Migration/Step3/Migration-Decisions.md
 ```
 
 ---
@@ -195,7 +195,7 @@ Create the following artifacts in `Artifacts/Phase10-Migration/Step4/`:
 
 ---
 
-### Part 5: Generate Step4 README
+### Part 4: Generate Step4 README
 
 Create `Artifacts/Phase10-Migration/Step4/README.md` summarizing:
 - Generated files for this step and their purpose (Issue-Resolution-Log.md, Scripts/ directory, Verification-Results.md)
@@ -206,7 +206,7 @@ Create `Artifacts/Phase10-Migration/Step4/README.md` summarizing:
 
 ---
 
-### Part 4: Generate Verification Script
+### Part 5: Generate Verification Script
 
 Generate `Scripts/verify_fixes.sh` that confirms all three blockers are resolved and writes a structured Markdown results file to the repo.
 
