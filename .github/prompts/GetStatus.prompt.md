@@ -9,7 +9,7 @@ description: Get the current Oracle Database@Azure migration status
 
 Retrieve and display the current status of the Oracle Database@Azure migration.
 
-### If `reports/Report-Status.md` does not exist
+### If `Artifacts/Report-Status.md` does not exist
 Create it with the following initial content, then display it:
 
 ```markdown
@@ -32,7 +32,7 @@ Create it with the following initial content, then display it:
 Run `@Phase0-ODAA-Readiness` to begin the migration readiness assessment.
 ```
 
-### If `reports/Report-Status.md` exists
+### If `Artifacts/Report-Status.md` exists
 Read its content, summarize the current state, and ensure it contains:
 
 1. **Executive Summary** â€” source database, target ODAA environment, overall completion %
