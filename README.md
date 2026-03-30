@@ -12,8 +12,22 @@ The GitHub Copilot Migration & Modernization for Oracle Database@Azure provides 
 1. Determine the appropriate migration tool
 1. Configure the migration tool
 
-
 Through a guided, AI-assisted workflow, architects can efficiently migrate on-premise databases into a managed Oracle Database@Azure Exadata instance.
+
+## Phase Completion Status
+
+| Phase | Name | Status |
+|-------|------|--------|
+| Phase 1 | Planning & Assessment | ✅ Complete |
+| Phase 2 | Sizing | Planned |
+| Phase 3 | Obtaining the Marketplace Offering | Planned |
+| Phase 4 | Architecture Validation | Planned |
+| Phase 5 | CIDR Range Evaluation | ✅ Complete |
+| Phase 6 | Infrastructure Generation | ✅ Complete |
+| Phase 7 | Deployment to Azure | Planned |
+| Phase 8 | CI/CD Pipeline Setup | Planned |
+| Phase 9 | Determine Migration Tool | Planned |
+| Phase 10 | Migrate Databases to Azure (ZDM) | ✅ Complete |
 
 ## Requirements
 
@@ -36,29 +50,29 @@ During each phase, read the AI's response summary carefully to understand what w
 - **Pro tip**: Use `#file:zdm-env.md` to automatically attach your environment config to ZDM prompts.
 - **Pro tip**: `zdm-env.md` is local generation input only. Generated scripts/artifacts must be self-contained and must not depend on `zdm-env.md` at runtime.
 - **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
-- **Pro tip**: Don't assume anything â€” always verify ZDM requirements and OCI identifiers with the documentation.
+- **Pro tip**: Don't assume anything — always verify ZDM requirements and OCI identifiers with the documentation.
 
 ## Repository Structure
 
-- **`.github/prompts/`**: Copilot prompt files for each migration phase â€” invoke with `@PromptName` in Copilot Chat
-  - `00-Start-Here.prompt.md` â€” onboarding guide and navigation
-  - `GetStatus.prompt.md` â€” check current migration progress
-  - `Phase0-ODAA-Readiness.prompt.md` â€” readiness assessment
-  - `Phase5-CIDR-Planning.prompt.md` â€” CIDR range planning
-  - `Phase6-IaC.prompt.md` â€” Terraform infrastructure generation
-  - `ZDM-Step1` through `ZDM-Step5` â€” ZDM migration workflow
-  - `Phase10-ZDM-Migration-Guide.md` â€” ZDM reference documentation
+- **`.github/prompts/`**: Copilot prompt files for each migration phase — invoke with `@PromptName` in Copilot Chat
+  - `00-Start-Here.prompt.md` — onboarding guide and navigation
+  - `GetStatus.prompt.md` — check current migration progress
+  - `Phase0-ODAA-Readiness.prompt.md` — readiness assessment
+  - `Phase5-CIDR-Planning.prompt.md` — CIDR range planning
+  - `Phase6-IaC.prompt.md` — Terraform infrastructure generation
+  - `ZDM-Step1` through `ZDM-Step5` — ZDM migration workflow
+  - `Phase10-ZDM-Migration-Guide.md` — ZDM reference documentation
 
 - **`Artifacts/`**: Generated output from running prompts (git-ignored content)
 
-- **`zdm-env.example.md`**: Template for ZDM environment configuration â€” copy to `zdm-env.md` and fill in your values
+- **`zdm-env.example.md`**: Template for ZDM environment configuration — copy to `zdm-env.md` and fill in your values
 - **`zdm-env.md`** (local only): Prompt-generation input file used to populate generated artifacts; do not rely on it at script runtime
 
 ## Migration & Modernization Process
 
 The repository implements a structured 10-phase approach to application migration:
 
-### Phase 1: Planning & Assessment
+### Phase 1: Planning & Assessment ✅
 
 Plan your migration by gathering requirements (hosting platform, IaC preferences, database needs) and generate a comprehensive assessment report analyzing the current application structure, dependencies, architecture, risk analysis, and effort estimation.
 
@@ -67,43 +81,43 @@ Plan your migration by gathering requirements (hosting platform, IaC preferences
 
 >QUESTIONNAIRE: [Questionnaire Exadata Migration.xlsx](https://microsoft.sharepoint.com/:x:/r/teams/ASDIPRelease/IP%20Release/Secure%20Infrastructure/VBD/Migrating%20Oracle%20Workloads%20to%20Azure/Architecture%20Design%20and%20Review%20Session%20for%20Migrating%20Oracle%20Workloads%20to%20Azure/OracleDB@Azure/Questionnaire%20Exadata%20Migration.xlsx?d=wc882448f3dcc4217aa6d73298c267117&csf=1&web=1&e=msZa93)
 
-### Phase 2: Sizing
+### Phase 2: Sizing *(Planned)*
 
 Use Oracle AWR or statspack reports to size the Oracle Database@Azure deployment.  
 >
 > QUESTION: Our [current guidance](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/scenarios/oracle-on-azure/oracle-landing-zone-plan#plan-your-oracle-on-azure-estate) is to consult with Oracle for sizing of Oracle Database@Azure.  Could this be replaced or augmented with AI?
 
-### Phase 3: Obtaining the Oracle Database@Azure Marketplace offering
+### Phase 3: Obtaining the Oracle Database@Azure Marketplace offering *(Planned)*
 
 Work with Oracle to obtain an Oracle Database@Azure marketplace offering.
 
-### Phase 4: Architecture Validation
+### Phase 4: Architecture Validation *(Planned)*
 
 Before generating IaC, the architecture is validated against [Cloud Adoption Framework](https://aka.ms/caf) best practices, Oracle Database@Azure networking requirements, security and compliance requirements, high availability and disaster recovery configurations, and Azure Policy compliance and governance standards.
 
-### Phase 5: CIDR Range Evaluation
+### Phase 5: CIDR Range Evaluation ✅
 
 Determine the CIDR Ranges to be used by the Oracle Database@Azure deployments
 
-### Phase 6: Infrastructure Generation
+### Phase 6: Infrastructure Generation ✅
 
 Create infrastructure as code (IaC) files (Bicep or Terraform) using [Azure Verified Modules](https://aka.ms/avm) for deploying to Azure, incorporating best practices and security configurations.
 
-### Phase 7: Deployment to Azure
+### Phase 7: Deployment to Azure *(Planned)*
 
 Deploy the validated Oracle Database@Azure architecture to Azure with comprehensive deployment monitoring and validation.
 
-### Phase 8: CI/CD Pipeline Setup
+### Phase 8: CI/CD Pipeline Setup *(Planned)*
 
 Configure automated deployment pipelines for continuous integration and delivery, with environment-specific configurations and security gates.
 
-### Phase 9: Determine the best tool to migrate on-prem databases to Azure
+### Phase 9: Determine the best tool to migrate on-prem databases to Azure *(Planned)*
 
-Determine the best tool for migrating databases to Azure such as Zero Migration Downtime (ZDM), Oracle Data Guard, Oracle Recovery Manager (RMAN), Oracle Data Pump, and Oracle GoldenGate. 
+Determine the best tool for migrating databases to Azure such as Zero Migration Downtime (ZDM), Oracle Data Guard, Oracle Recovery Manager (RMAN), Oracle Data Pump, and Oracle GoldenGate.
 
-### Phase 10: Migrate databases from on-premise to Azure
+### Phase 10: Migrate databases from on-premise to Azure ✅
 
-Use the migration tool to migrate to Azure.
+Use the migration tool to migrate to Azure. The ZDM-based workflow (Steps 1–5) is fully implemented via Copilot prompt files.
 
 ## Key Features
 
@@ -133,7 +147,7 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 1. Clone this repository and open it in VS Code
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
 3. Install the **Azure MCP Server**, **GitHub Copilot for Azure** and **Oracle Developer** extensions
-4. Copy `zdm-env.example.md` â†’ `zdm-env.md` and fill in your environment values
+4. Copy `zdm-env.example.md` → `zdm-env.md` and fill in your environment values
 5. Keep generated scripts portable: they should execute on jumpbox/ZDM without requiring `zdm-env.md`
 6. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
 7. Use `@GetStatus` at any time to check the current migration progress
