@@ -33,7 +33,7 @@ Rules:
 
 ## Inputs and Precedence Rules
 Required inputs:
-1. `Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md`
+1. `Artifacts/Phase10-Migration/Step3/Migration-Decisions.md`
 2. `Artifacts/Phase10-Migration/Step4/Issue-Resolution-Log.md`
 3. `Artifacts/Phase10-Migration/Step4/Verification-Results.md` (when available)
 4. Relevant Step2 discovery outputs
@@ -84,6 +84,8 @@ For each artifact, generate at least the following content.
 3. Artifact index and usage for each generated file.
 4. Quick-start flow from evaluation to migration and validation.
 5. Security and credential-handling notes.
+6. Where runtime outputs, logs, and reports are written.
+7. Success and failure signals to check.
 
 `ZDM-Migration-Runbook.md` must include:
 1. Pre-migration checklist and validation commands.
@@ -141,7 +143,7 @@ Generate final migration artifacts from Step3 and Step4 outputs.
 #file:zdm-env.md
 
 ## Step3 Input
-#file:Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md
+#file:Artifacts/Phase10-Migration/Step3/Migration-Decisions.md
 
 ## Step4 Inputs
 #file:Artifacts/Phase10-Migration/Step4/Issue-Resolution-Log.md

@@ -15,7 +15,7 @@ Required generated files under `Artifacts/Phase10-Migration/Step5/`:
 
 ## S5-02: Required input artifacts
 
-1. `Artifacts/Phase10-Migration/Step3/Migration-Questionnaire.md`
+1. `Artifacts/Phase10-Migration/Step3/Migration-Decisions.md`
 2. `Artifacts/Phase10-Migration/Step4/Issue-Resolution-Log.md`
 3. `Artifacts/Phase10-Migration/Step4/Verification-Results.md` (when available)
 4. Relevant Step2 discovery outputs
