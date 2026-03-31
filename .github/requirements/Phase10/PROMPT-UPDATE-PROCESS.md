@@ -72,5 +72,5 @@ Before merging, confirm:
 
 1. Can someone regenerate the prompt from requirements without tribal knowledge?
 2. Are Remote-SSH prerequisites (user, connection, git-ignore, retry limit) clearly documented in the step prompt?
-3. Are conflicts between `zdm-env.md` and discovery evidence handled explicitly?
+3. Are conflicts between step config artifacts (`ssh-config.md`, `db-config.md`) or `zdm-env.md` (legacy) and discovery evidence handled explicitly?
 4. Are all affected Step prompts updated?

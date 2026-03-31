@@ -1,37 +1,35 @@
-# Step5 System Requirements - Migration Artifact Implementation
+﻿# Step5 System Requirements - Remediation Script Implementation
 
 ## Scope
 
-This file defines implementation-level constraints for generated Step5 runtime artifacts.
+This file defines script-level coding constraints for remediation and verification artifacts generated in Step5.
 
-## S5-03: Runtime portability constraints
+## S5-03: Runtime user model
 
-1. Generated artifacts must not require `zdm-env.md` at runtime.
-2. Document admin login flow (`ZDM_ADMIN_USER` then `sudo su - zdmuser`).
+1. Generated scripts run as `zdmuser` on ZDM server.
+2. Scripts must include a user guard that exits when not running as `zdmuser`.
 
-## S5-04: Environment variable model
+## S5-04: Quoting and SQL execution safety
 
-1. Use environment variables for OCI identifiers and sensitive values.
-2. Generated RSP and command artifacts must reference env vars and include validation guidance.
+1. For SSH-based SQL helpers, use base64-wrapped SQL block execution to avoid shell quoting breakage.
+2. Normalize optional SSH keys and conditionally include `-i` only when key is set and non-placeholder.
 
-## S5-05: Version readiness gate
+## S5-05: Verification output
 
-1. Include ZDM latest-stable verification as a pre-migration gate.
-2. If ZDM version is outdated/undetermined, include a mandatory upgrade verification phase before migration execution.
+1. `verify_fixes.sh` tracks per-issue PASS/FAIL/WARN status.
+2. Verification writes structured markdown results to `Verification-Results.md` for Step6 consumption.
 
-## S5-08: RSP generated items
+## S5-09: Script creation only '€” no execution during prompt
 
-`zdm_migrate.rsp` should include:
+1. Remediation scripts and the verification script are **generated and saved to disk only**.
+2. The prompt must **not execute** any remediation or verification script as part of its run.
+3. Execution is the operator's responsibility, performed manually outside the prompt after reviewing the generated artifacts.
 
-1. Complete migration parameter set aligned to questionnaire decisions.
-2. Environment-variable based references for sensitive and tenant-specific values.
-3. Settings conditioned by migration type (online/offline) and discovered posture.
+## S5-08: Verification-Results generated items
 
-## S5-09: Command script generated items
+`Verification-Results.md` should include:
 
-`zdm_commands.sh` should include:
-
-1. Ordered command flow for precheck/evaluation/migration/monitoring.
-2. Guardrails and prerequisites checks before destructive phases.
-3. Clear placeholders or env var references for required runtime values.
-4. A standalone sample `zdmcli migrate database` call that can be executed directly (outside the wrapper script) for troubleshooting or manual execution.
+1. Per-issue status table (PASS/FAIL/WARN).
+2. Evidence detail per issue (what was checked and observed values).
+3. Overall blocker resolution result indicating Step6 readiness.
+4. Remaining warnings/recommendations that are not hard blockers.

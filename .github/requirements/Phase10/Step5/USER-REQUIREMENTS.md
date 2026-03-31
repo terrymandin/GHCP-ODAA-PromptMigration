@@ -1,54 +1,39 @@
-# Step5 User Requirements - Generate Migration Artifacts
+﻿# Step5 User Requirements - Fix Issues
 
 ## Objective
 
-Generate final migration artifacts from Step3/Step4 outputs for execution on the jumpbox/ZDM server.
+Generate remediation and verification artifacts for blockers and required actions identified in Step4.
 
 ## S5-01: Output contract
 
-Required generated files under `Artifacts/Phase10-Migration/Step5/`:
+Required generated artifacts under `Artifacts/Phase10-Migration/Step5/`:
 
-- `README.md`
-- `ZDM-Migration-Runbook.md`
-- `zdm_migrate.rsp`
-- `zdm_commands.sh`
+- `Issue-Resolution-Log.md`
+- `verify_fixes.sh`
+- Remediation scripts under `Scripts/`
+- One `README-<scriptname>.md` companion per remediation script
 
-## S5-02: Required input artifacts
+## S5-02: Iterative operation model
 
-1. `Artifacts/Phase10-Migration/Step3/Migration-Decisions.md`
-2. `Artifacts/Phase10-Migration/Step4/Issue-Resolution-Log.md`
-3. `Artifacts/Phase10-Migration/Step4/Verification-Results.md` (when available)
-4. Relevant Step2 discovery outputs
+1. Step5 supports repeated cycles until blockers are resolved.
+2. Each iteration updates issue tracking and verification outcomes.
 
-## S5-06: README generated items
+## S5-06: Issue-Resolution-Log generated items
 
-`README.md` should include at least:
+`Issue-Resolution-Log.md` should include at least:
 
-1. Migration overview and assumptions.
-2. Prerequisites checklist (including Step4 blocker resolution state when available).
-3. Generated artifact index and how each file is used.
-4. Quick-start execution flow from evaluation to migration and validation.
-5. Security and credential handling notes.
+1. Issue register with IDs, severity, owner, status, and last-updated timestamp.
+2. For each issue: evidence, remediation plan, verification method, and rollback notes.
+3. Iteration history showing what changed between remediation cycles.
+4. Explicit unresolved items and blockers preventing Step6 progression.
 
-## S5-07: Runbook generated items
+## S5-07: Remediation package generated items
 
-`ZDM-Migration-Runbook.md` should include at least:
+For each remediation script in `Scripts/`, generate a companion `README-<scriptname>.md` containing:
 
-1. Pre-migration checklist and validation commands.
-2. Source configuration tasks.
-3. Target configuration tasks.
-4. ZDM server preparation tasks (including admin-user to zdmuser flow).
-5. Migration execution, monitoring, pause/resume, and switchover guidance.
-6. Post-migration validation and rollback procedures.
-
-## S5-08: Iterate until `zdm -eval` succeeds or user skips
-
-After running `zdm -eval`, the agent must not proceed to migration execution until the evaluation phase passes. The expected behavior is:
-
-1. Run the `zdm -eval` command and capture its output.
-2. If the evaluation **succeeds** (exit code 0 / no blocking errors), continue to the next step.
-3. If the evaluation **fails**, surface the errors from the output, attempt remediation (e.g., re-running relevant fix scripts from Step4, adjusting the response file), and re-run `zdm -eval`.
-4. Repeat the fix-and-retry loop until either:
-   - The `zdm -eval` exits successfully, **or**
-   - The user explicitly instructs the agent to **skip** the evaluation (e.g., responds with "skip eval" or confirms they want to proceed despite failures).
-5. If the user skips, log the skip decision and the outstanding eval errors in `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md` before continuing.
+1. Purpose and target server.
+2. Prerequisites and required environment variables.
+3. Step-by-step behavior summary.
+4. Exact execution command and required runtime user (`zdmuser`).
+5. Expected output or success indicators.
+6. Rollback/undo guidance when applicable.
