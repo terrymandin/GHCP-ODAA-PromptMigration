@@ -6,15 +6,14 @@ This file defines implementation-level constraints for the Remote-SSH setup step
 
 ## S1-10: Extension check implementation
 
-1. Run `code --list-extensions` in the local PowerShell terminal to list installed extensions.
-2. Pipe through `Select-String` to check for `ms-vscode-remote.remote-ssh` (case-insensitive):
+1. Check for the Remote-SSH extension by testing for its directory in the VS Code extensions folder using `Test-Path`. Do **not** invoke `code` or `code.cmd` as a subprocess — doing so opens unwanted VS Code windows in the background:
 
    ```powershell
-   code --list-extensions | Select-String -Pattern "ms-vscode-remote.remote-ssh" -CaseSensitive:$false
+   $extInstalled = Test-Path "$env:USERPROFILE\.vscode\extensions\ms-vscode-remote.remote-ssh*"
    ```
 
-3. If the pattern matches, the extension is installed. Log the matched line for the report.
-4. If no match, surface the install commands from S1-03. Do not continue the setup workflow until the user confirms the extension is installed and re-runs or continues.
+2. If `$extInstalled` is `$true`, log the result as installed and continue.
+3. If `$false`, surface the install instructions from S1-03. Do not continue the setup workflow until the user confirms the extension is installed and re-runs or continues.
 
 ## S1-11: SSH config file path (Windows)
 

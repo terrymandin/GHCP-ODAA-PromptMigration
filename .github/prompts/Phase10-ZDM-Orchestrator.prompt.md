@@ -43,7 +43,10 @@ Evaluate these conditions **in order**, stopping at the first that applies:
 | `Artifacts/Phase10-Migration/Step3/Discovery/source/` AND `/target/` AND `/server/` each contain at least one `.md` file | **Proceed to Step 4** |
 | `Artifacts/Phase10-Migration/Step2/Validation/` contains an `ssh-connectivity-report-*.md` with no FAILED results | **Proceed to Step 3** |
 | `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` exists with status READY | **Proceed to Step 2** |
+| `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` does NOT exist AND running on Linux (detect via `uname -s 2>/dev/null`) | **Assume Step 1 complete (Remote-SSH context) — Proceed to Step 2** |
 | Otherwise (no artifacts, or Step 1 not yet done) | **Start at Step 1** |
+
+> **Why the Linux context check:** The Step 1 setup report is written to the local (Windows) workspace and is git-ignored. When the user re-invokes the orchestrator in the new Remote-SSH VS Code session, the jumpbox filesystem will not have this file. The presence of a Linux shell environment is a reliable indicator that the user is running inside a Remote-SSH session on the jumpbox — which is only possible if Step 1 (SSH key setup and connectivity test) already succeeded on the local machine. To detect this, run `uname -s` in a terminal: a result of `Linux` confirms the Remote-SSH context; a Windows error or `Windows_NT` confirms local context. Announce the inference clearly to the user when using this fallback.
 
 ### Step 5 Blocker Check
 

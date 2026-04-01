@@ -29,11 +29,16 @@ The report must contain:
 
 ## S1-03: Extension check
 
-1. Check whether the Remote-SSH extension (`ms-vscode-remote.remote-ssh`) is installed by running `code --list-extensions` in the local terminal.
-2. If installed, confirm and continue.
-3. If not installed, instruct the user to install it:
-   - Method A (command): `code --install-extension ms-vscode-remote.remote-ssh`
-   - Method B (UI): Open VS Code Extensions panel → search "Remote - SSH" → click Install.
+1. Check whether the Remote-SSH extension (`ms-vscode-remote.remote-ssh`) is installed by inspecting the VS Code extensions directory on disk — do **not** invoke `code` or `code.cmd` as a subprocess, as doing so opens unwanted VS Code windows:
+
+   ```powershell
+   $extInstalled = Test-Path "$env:USERPROFILE\.vscode\extensions\ms-vscode-remote.remote-ssh*"
+   ```
+
+2. If `$extInstalled` is `$true`, confirm and continue.
+3. If `$false`, instruct the user to install it:
+   - Method A (UI): Open VS Code Extensions panel (`Ctrl+Shift+X`) → search "Remote - SSH" → click Install.
+   - Method B (command): Run `code --install-extension ms-vscode-remote.remote-ssh` in a terminal outside of Copilot agent execution.
 4. Do not proceed to SSH key setup until the extension is confirmed installed.
 
 ## S1-04: Jumpbox connection variable collection
@@ -52,13 +57,14 @@ Collect or confirm these values interactively before writing the SSH config entr
 
 ## S1-05: SSH key handling
 
-1. If `JUMPBOX_SSH_KEY` points to an existing file, confirm it exists and note its path. Do not regenerate.
+1. If `JUMPBOX_SSH_KEY` points to an existing file, confirm it exists and note its path. Do not regenerate. Proceed directly to S1-06 (SSH config entry and connectivity test).
 2. If the key file does not exist or the user states they have no key yet, offer to generate one:
    - Generate an `ed25519` key pair in `$env:USERPROFILE\.ssh\` with a descriptive filename (e.g. `zdm_jumpbox_key`).
    - Prompt the user for a passphrase or offer to skip (empty passphrase for automation use).
    - After generation, remind the user to copy `zdm_jumpbox_key.pub` to the jumpbox's `~/.ssh/authorized_keys` before connecting.
 3. Set correct permissions on the private key file: `icacls "$keyPath" /inheritance:r /grant:r "$env:USERNAME:(F)"` (Windows).
 4. Do not overwrite an existing key without explicit user confirmation.
+5. **Do not enter a bootstrap or key-copy workflow based on the user describing an alternative login path** (e.g. "I SSH as `azureuser` then `sudo su - zdmuser`"). That describes the user's normal manual access pattern — it does not indicate that `zdmuser` lacks key-based SSH auth. If `JUMPBOX_SSH_KEY` is provided and the file exists, proceed directly to the connectivity test. Only offer bootstrap instructions (copy public key to `zdmuser`'s `authorized_keys` via `azureuser`) if the connectivity test fails with a key authentication error (e.g. `Permission denied (publickey)`).
 
 ## S1-06: SSH config entry
 
@@ -92,14 +98,19 @@ Copilot cannot trigger this action automatically — it requires user interactio
 
 ## S1-08: Prerequisite for subsequent steps
 
-After Step1, all subsequent steps (Step2 through Step6) must run in the Remote-SSH VS Code session connected to the ZDM jumpbox as `zdmuser`. Remind the user to confirm they have connected before invoking Step2.
+After Step1, all subsequent steps (Step2 through Step6) must run in the Remote-SSH VS Code session connected to the ZDM jumpbox as `zdmuser`.
+
+1. After delivering the Phase 7 handoff instructions, **explicitly ask the user to confirm** that they have successfully opened the Remote-SSH VS Code session and that their terminal prompt shows `zdmuser@<hostname>`.
+2. Do not declare Step 1 complete or suggest running Step 2 until the user provides that confirmation.
+3. If the user cannot connect, remain in Step 1 and help troubleshoot before proceeding.
 
 ## S1-09: Success criteria
 
-Step1 is complete when:
+Step1 is complete when **all** of the following are true:
 
 1. The Remote-SSH extension is confirmed installed.
 2. The SSH host entry is present in `~/.ssh/config`.
 3. The SSH connectivity test passes (or the user acknowledges a known failure and opts to proceed manually).
 4. `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` is written with status READY or ACTION REQUIRED.
-5. The user has been given clear instructions to connect via Remote-SSH.
+5. The user has been given clear step-by-step instructions to open a Remote-SSH session via the VS Code Command Palette.
+6. **The user has explicitly confirmed** that they have successfully opened a Remote-SSH VS Code window connected to `<JUMPBOX_ALIAS>` and that their integrated terminal prompt shows `zdmuser@<hostname>`.
