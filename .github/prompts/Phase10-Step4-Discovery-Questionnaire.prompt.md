@@ -22,6 +22,7 @@ This step runs under the **Remote-SSH execution model** (CR-03): VS Code is conn
 - All outputs are written to `Artifacts/Phase10-Migration/Step4/` (git-ignored). No generated files are committed or create PRs.
 - OCI CLI is not required for this step or any Phase10 migration execution step (CR-06).
 - Input config artifacts are read-only. Generated outputs must not read, source, or parse config artifacts at runtime (CR-02).
+- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 Input precedence rules (CR-01):
 1. Step 3 discovery files are the primary evidence source (observed runtime state).
@@ -89,7 +90,32 @@ Write `Artifacts/Phase10-Migration/Step4/Discovery-Summary.md` with the followin
 - Date/time of analysis
 - List of discovery files analyzed (filenames with timestamps)
 
-### 2. Executive Summary
+### 2. ZDM Compatibility Gate (S4-05)
+
+Evaluate the following compatibility checks using Step 3 discovery evidence **before the interview and before any questionnaire output is written**. Present results using this exact gate result block format in the Discovery Summary:
+
+```
+ZDM Compatibility Gate
+======================
+[PASS/FAIL/WARN]  <check name>:  source=<value>  target=<value>  [note if applicable]
+```
+
+| Check | Rule | Severity if failed |
+|-------|------|-----------------|
+| DB release (source vs target) | Oracle Database release (major.minor, e.g. 12.2, 19c) must be identical for physical migration. Patch level (RU/PSU) may differ — target ≥ source; ZDM runs `datapatch` automatically when target patch is higher. | BLOCKER if release differs; WARNING if patch level differs |
+| Character set | Source `NLS_CHARACTERSET` must equal target | BLOCKER |
+| `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
+| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER (online) / WARNING (offline) |
+| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER (online) / WARNING (offline) |
+| TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
+| Hostname | Source and target hostnames must differ | BLOCKER |
+| `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
+| Timezone file version | Target timezone version must be ≥ source | WARNING |
+| `SQLNET.ORA` encryption algorithm | Must match between source and target | WARNING |
+
+**Missing data handling:** If a required compatibility value was not collected in Step 3, flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER — re-run Step 3 with the updated discovery scope before proceeding.
+
+### 3. Executive Summary
 
 Table by component — Source Database, Target Environment, ZDM Server, Network:
 
@@ -100,11 +126,11 @@ Table by component — Source Database, Target Environment, ZDM Server, Network:
 | ZDM Server | ✅/⚠️/❌ | Brief status |
 | Network | ✅/⚠️/❌ | Brief status |
 
-### 3. Migration Method Recommendation
+### 4. Migration Method Recommendation
 - Recommended method: `ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`
 - Explicit justification based on discovered evidence (archivelog mode, force logging, TDE, supplemental logging, downtime window requirements)
 
-### 4. Source Database Details
+### 5. Source Database Details
 - Database identification: name, unique name, version, size, character set
 - ARCHIVELOG mode, Force Logging, Supplemental Logging, TDE — current state vs. required state with status
 
@@ -117,10 +143,10 @@ Configuration status table:
 | Supplemental Logging | YES/NO | YES (online) | ✅/⚠️ |
 | TDE Enabled | YES/NO | N/A | ✅ |
 
-### 5. Target Environment Details
+### 6. Target Environment Details
 - Platform, Oracle version, and readiness indicators relevant to migration
 
-### 6. ZDM Server Details
+### 7. ZDM Server Details
 
 - ZDM version discovered from `zdm_installation.zdm_version` in server discovery JSON
 - ZDM service posture (running/stopped, active jobs)
@@ -138,21 +164,73 @@ Configuration status table:
 - Always evaluate ZDM version evidence from `zdm_installation.zdm_version` in server discovery output.
 - If ZDM version is UNDETERMINED or outdated, generate a Required Action: *Verify ZDM is the latest stable release; upgrade if necessary (see My Oracle Support — "Zero Downtime Migration").*
 
-### 7. Required Actions Before Migration
+### 8. Required Actions Before Migration
 
 Split by severity:
 - **Critical (must fix before continuing)** — blockers that prevent migration
 - **Recommended (should fix before go-live)** — advisory items
 
-### 8. Discovered Values Reference
+### 9. Discovered Values Reference
 
 Complete list of all discovered values for reuse in Steps 5–6 (including ORACLE_HOME, SID, unique names, DB versions, ZDM home, region evidence).
 
-### 9. Mismatch Report *(include only when configured intent differs from discovery evidence)*
+### 10. Mismatch Report *(include only when configured intent differs from discovery evidence)*
 
 | Field | Configured Intent | Discovered Value | Recommended Action |
 |-------|-------------------|------------------|--------------------|
 | [field] | [value from ssh-config.md / db-config.md / zdm-env.md] | [observed value] | [action] |
+
+---
+
+## Compatibility Gate Decision (S4-05)
+
+After writing the Discovery Summary (Part 1), apply the gate outcome before proceeding to any interview or questionnaire output:
+
+**If any BLOCKER is found:**
+- Halt the migration planning interview.
+- Do not write `Migration-Decisions.md`.
+- Mark the Discovery Summary with `[BLOCKED — compatibility gate failed]`.
+- Surface each blocker explicitly with the remediation path below and stop.
+
+**If only WARNINGs are found:**
+- Continue with the interview.
+- Include warnings in the Discovery Summary required-actions section.
+- Note in `Migration-Decisions.md` that the warnings were acknowledged.
+
+**If all checks PASS:**
+- Proceed directly to Part 2 (Migration Planning Interview).
+
+### Remediation Paths for Blockers (S4-12)
+
+**DB release mismatch (source release ≠ target release, physical migration):**
+Physical migration requires both databases at the same Oracle release (major.minor — e.g., both 12.2 or both 19c). Patch-level differences (RU/PSU) are acceptable if target ≥ source — flag as WARNING only; ZDM handles this via `datapatch`. Three options for a release mismatch:
+1. Reprovision the target at the same version as source and re-run Step 3.
+2. ZDM migrate+upgrade: provision target at the same version as source and supply `ZDM_UPGRADE_TARGET_HOME` pointing to a higher-version Oracle Home already on the target. Supported for 12.2+ source to 19c target CDB (optionally `ZDM_PRE_UPGRADE_TARGET_HOME` for non-CDB to PDB conversion).
+3. Switch to logical migration (ZDM logical, DataPump, or GoldenGate) — supports cross-version and cross-platform migrations.
+
+**Character set mismatch:**
+Provision a new target with the same character set as source, or perform character set migration on source (requires extensive testing). Cross-character-set migration requires the logical migration path.
+
+**`COMPATIBLE` parameter mismatch:**
+`ALTER SYSTEM SET COMPATIBLE='<value>' SCOPE=SPFILE;` on the mismatched host, then restart. Note: lowering `COMPATIBLE` is not supported — if the target value is higher, set the source value on the target.
+
+**`ARCHIVELOG` mode:**
+`SHUTDOWN IMMEDIATE; STARTUP MOUNT; ALTER DATABASE ARCHIVELOG; ALTER DATABASE OPEN;`
+
+**SPFILE not in use:**
+`CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
+
+**TDE wallet not OPEN:**
+`ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.
+
+**Hostname collision:**
+Source and target must be on different hosts — reprovision the target on a different host.
+
+**`/tmp` missing execute permission:**
+`mount -o remount,exec /tmp`. Make permanent by removing `noexec` from the `/tmp` entry in `/etc/fstab`.
+
+**Timezone file version (target < source):**
+Apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Reference: Oracle Doc ID 1509653.1.
 
 ---
 

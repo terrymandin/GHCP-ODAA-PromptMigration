@@ -10,11 +10,14 @@ This step generates remediation and verification artifacts for all blockers and 
 
 Generated artifacts:
 - `Issue-Resolution-Log.md` — issue register with status, evidence, remediation plans, and iteration history
-- `Scripts/` — remediation scripts, each with a `README-<scriptname>.md` companion
-- `verify_fixes.sh` — generates `Verification-Results.md` for Step 6 consumption
+- `Scripts/fix_<issue-id>_<short-name>.sh` — one remediation script per remediable issue
+- `Scripts/fix_orchestrator.sh` — orchestrator that invokes individual fix scripts in dependency order
+- `Scripts/README-fix_<issue-id>_<short-name>.md` — companion README per fix script
+- `Scripts/README-fix_orchestrator.md` — companion README for the orchestrator
+- `Scripts/verify_fixes.sh` — generates `Verification-Results.md` for Step 6 consumption
 - `README.md` — step summary and review checklist
 
-**Scripts are generated and saved to disk only. No scripts are executed during this prompt** (S5-09). Execution is the operator's responsibility after reviewing the generated artifacts.
+**Scripts are generated and saved to disk by default** (S5-09). Execution is the operator's responsibility after reviewing the generated artifacts. Conditional inline execution is available after the script inventory and risk banner are presented — see Part 5.
 
 ---
 
@@ -25,6 +28,7 @@ This step runs under the **Remote-SSH execution model** (CR-03): VS Code is conn
 - All outputs are written to `Artifacts/Phase10-Migration/Step5/` (git-ignored). No generated files are committed or create PRs.
 - OCI CLI is not required for this step or any Phase10 migration execution step (CR-06).
 - Generated scripts must not read, source, or parse config artifacts at runtime (CR-02).
+- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts are safe to copy to production once reviewed and tested in development — see the risk banner in Part 5 for the script promotion path.
 
 Input precedence rules (CR-01):
 1. `Artifacts/Phase10-Migration/Step4/Discovery-Summary.md` — primary evidence input (observed runtime state).
@@ -117,7 +121,47 @@ Analyze the Discovery Summary and categorize all issues:
 
 ## Part 2: Generate Remediation Scripts
 
-For each blocker and required action, generate a remediation script under `Artifacts/Phase10-Migration/Step5/Scripts/`.
+For each blocker and required action, generate a remediation script under `Artifacts/Phase10-Migration/Step5/Scripts/`. Use this naming convention (S5-07):
+
+```
+Scripts/fix_<issue-id>_<short-name>.sh
+```
+
+Examples: `fix_B01_enable_archivelog.sh`, `fix_B02_create_spfile.sh`, `fix_W01_upgrade_timezone.sh`.
+`<issue-id>` uses the Issue-Resolution-Log ID. `<short-name>` is a 2–4 word snake_case description.
+
+### Target-first remediation preference (S5-10)
+
+When a compatibility fix can be applied to either source or target, **generate the script for the target database**. Source-side scripts are generated only when the fix is source-only by nature:
+
+| Fix type | Target for script |
+|----------|------------------|
+| `ARCHIVELOG` mode | Source (source-only) |
+| SPFILE creation | Source (source-only) |
+| RMAN configuration | Source (source-only) |
+| Source TDE wallet creation/key management | Source (source-only) |
+| `COMPATIBLE` parameter alignment | **Target** — set source value on target (lowering source not supported) |
+| Timezone file upgrade | **Target** — upgrade target to ≥ source |
+| `/tmp` execute permission | **Target** (and source if also failing) |
+| `SQLNET.ORA` encryption alignment | **Target** — update target to match source |
+| TDE wallet OPEN status | **Target** — open/configure on target |
+
+Each companion README must state which server the script targets and **why** (source-only by nature, or target-preferred per this policy).
+
+### Scope classification (S5-12)
+
+Each fix script must declare its **scope** based on the broadest system component it modifies:
+
+| Scope | Meaning | Examples |
+|-------|---------|----------|
+| `DATABASE` | Affects only the named database instance | `COMPATIBLE`, ARCHIVELOG, SPFILE, TDE wallet, RMAN config |
+| `ORACLE-HOME` | Affects all databases sharing this Oracle Home | `SQLNET.ORA` encryption settings, timezone file upgrade |
+| `OS` | Affects all processes on the host | `/tmp` mount flags |
+
+Scope must be declared in:
+1. The script header block (add `# SCOPE: DATABASE | ORACLE-HOME | OS` after `# TARGET:`).
+2. The companion `README-fix_<issue-id>_<short-name>.md` as a **Scope** field with a plain-English explanation of what else on the server could be affected.
+3. The script inventory table in Part 5 as a **Scope** column.
 
 **Script requirements (S5-03, S5-04):**
 
@@ -163,15 +207,27 @@ For each blocker and required action, generate a remediation script under `Artif
    ```
    Apply the same pattern to `run_sql_on_target`. Base64 output (`A–Z a–z 0–9 + / =`) never conflicts with shell quoting delimiters.
 
-5. **No script is executed during this prompt** (S5-09). All scripts are written to disk only. Values from config artifacts and `zdm-env.md` are generation-time input; generated scripts must not read, source, or parse them at runtime.
+5. **Scripts are written to disk by default** (S5-09). Values from config artifacts and `zdm-env.md` are generation-time input; generated scripts must not read, source, or parse them at runtime. Inline execution requires explicit user request after the Part 5 risk banner and inventory are presented.
 
-**Per-script README (S5-07):**
+### Orchestrator script (S5-07)
 
-For every script in `Scripts/`, create a companion `README-<scriptname>.md` in the same directory containing:
+Generate `Artifacts/Phase10-Migration/Step5/Scripts/fix_orchestrator.sh` that:
+1. Lists all fix scripts it will invoke, in dependency order, at the top as comments.
+2. Invokes each fix script individually (not sources them) so failures are isolated.
+3. Logs pass/fail status per script to stdout.
+4. Stops on first BLOCKER-category failure unless the `--continue-on-error` flag is passed.
+5. Accepts a `--dry-run` flag that prints what would be executed without running anything.
+
+Generate `Artifacts/Phase10-Migration/Step5/Scripts/README-fix_orchestrator.md` documenting all of the above.
+
+**Per-script companion README (S5-07):**
+
+For every `fix_<issue-id>_<short-name>.sh`, create `Scripts/README-fix_<issue-id>_<short-name>.md` containing:
 - **Purpose**: one-sentence summary
-- **Target Server**: which server to run on (source / target / ZDM)
+- **Target Server**: which server (`source-db`, `target-db`, or `zdm-server`) and why (source-only by nature or target-preferred per S5-10)
+- **Scope**: `DATABASE`, `ORACLE-HOME`, or `OS` — with plain-English explanation of what else could be affected
 - **Prerequisites**: required tools, credentials, prior steps
-- **Environment Variables**: list every variable the script reads, with description and example value
+- **Environment Variables**: every variable the script reads, with description and example value
 - **What It Does**: numbered step-by-step walkthrough
 - **How to Run**: exact command including runtime user (`zdmuser` on ZDM server)
 - **Expected Output**: description of successful output and key indicators
@@ -297,7 +353,74 @@ Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks al
 
 ---
 
-## Part 5: Generate Step 5 README
+## Part 5: Present Script Inventory, Risk Banner, and Execution Options
+
+After all scripts and companions are written to disk and the quality gate (Part 6) passes, execute this sequence.
+
+### Step 5a: Pre-execution risk banner (S5-13, CR-14)
+
+Always display the following banner. It is mandatory — do not skip or abbreviate it.
+
+```
+⚠ ENVIRONMENT SAFETY WARNING
+
+These Copilot agent prompts are intended to run in development/non-production
+environments only. Do not run this prompt directly against a production system.
+
+Generated scripts are safe to copy to production once reviewed and tested in
+development. For production use: review scripts, copy them to the production
+host, and run manually — do not re-run this prompt on production.
+
+[Include the following paragraph only when ORACLE-HOME or OS scope scripts exist:]
+  The following scripts affect Oracle Home or OS-level settings and will impact
+  ALL databases sharing that Oracle Home or host — not just the migration target:
+    - <script_name>  →  <ORACLE-HOME | OS> scope  (<what it changes>)
+
+Type CONFIRM to proceed to the execution menu, or press Enter to review scripts
+manually (Option A — no execution).
+```
+
+If no `ORACLE-HOME` or `OS` scope scripts are present, omit the blast-radius paragraph but keep the rest of the banner.
+
+Do **not** display the execution menu until the user types `CONFIRM`. If the user does not type `CONFIRM`, default to Option A (review only — no execution).
+
+### Step 5b: Script inventory table (S5-11)
+
+After `CONFIRM` is received, present the script inventory table:
+
+```
+Generated fix scripts
+---------------------
+| Script                        | Target     | Severity | Scope        | Summary                            |
+|-------------------------------|------------|----------|--------------|------------------------------------|  
+| fix_B01_enable_archivelog.sh  | source-db  | BLOCKER  | DATABASE     | Enable ARCHIVELOG mode on source   |
+| fix_B02_compatible_param.sh   | target-db  | BLOCKER  | DATABASE     | Set COMPATIBLE=12.2.0 on target    |
+| fix_W01_upgrade_timezone.sh   | target-db  | WARNING  | ORACLE-HOME  | Upgrade DST timezone file          |
+| fix_orchestrator.sh           | all        | —        | —            | Run all fixes in dependency order  |
+
+Options:
+  A (default) — Review scripts individually and run selectively outside this prompt.
+  B — Say "run all" to execute all scripts via the orchestrator (fix_orchestrator.sh).
+  C — Say "run fix_<id>" (e.g., "run fix_B01") to execute a specific script inline.
+```
+
+Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu (S5-09).
+
+### Step 5c: Conditional inline execution (S5-09)
+
+When the user triggers execution:
+- **`run all`** — invoke `fix_orchestrator.sh` inline via the terminal.
+- **`run fix_<id>`** — invoke the matching `fix_<issue-id>_*.sh` script inline.
+
+For each execution:
+1. Display the exact command being run before executing it.
+2. Capture stdout and stderr and display them in the chat.
+3. Record the exit code and execution timestamp in `Issue-Resolution-Log.md`.
+4. After execution, run `Scripts/verify_fixes.sh` automatically for the affected issue(s) and report PASS/FAIL.
+
+---
+
+## Part 6: Generate Step 5 README
 
 Write `Artifacts/Phase10-Migration/Step5/README.md` (CR-08) summarizing:
 - **Generated files** and their purpose:
@@ -315,7 +438,7 @@ Write `Artifacts/Phase10-Migration/Step5/README.md` (CR-08) summarizing:
 
 ---
 
-## Part 6: Generation Quality Gate (CR-12)
+## Part 7: Generation Quality Gate (CR-12)
 
 After all scripts are written to disk, run syntax validation in the jumpbox terminal:
 
@@ -416,13 +539,16 @@ After fixing issues, refresh evidence by re-running `@Phase10-Step3-Generate-Dis
 ```
 Artifacts/Phase10-Migration/
 └── Step5/
-    ├── README.md                        # Step summary, operator checklist, next steps
-    ├── Issue-Resolution-Log.md          # Issue register, evidence, iteration history
-    ├── Verification-Results.md          # Written by operator running verify_fixes.sh
+    ├── README.md                               # Step summary, operator checklist, next steps
+    ├── Issue-Resolution-Log.md                 # Issue register, evidence, iteration history
+    ├── Verification-Results.md                 # Written by operator running verify_fixes.sh
+    ├── Verification/                           # Verification script log output directory
     └── Scripts/
-        ├── verify_fixes.sh              # Verification script — writes Verification-Results.md
-        ├── fix_<issue>.sh               # Per-issue remediation script(s)
-        └── README-<scriptname>.md       # Companion README per script
+        ├── verify_fixes.sh                     # Verification script — writes Verification-Results.md
+        ├── fix_<issue-id>_<short-name>.sh      # Per-issue remediation script(s)
+        ├── README-fix_<issue-id>_<short-name>.md  # Companion README per fix script
+        ├── fix_orchestrator.sh                 # Orchestrator — runs all fix scripts in order
+        └── README-fix_orchestrator.md          # Companion README for the orchestrator
 ```
 
 All files are git-ignored. No outputs are committed or create PRs.

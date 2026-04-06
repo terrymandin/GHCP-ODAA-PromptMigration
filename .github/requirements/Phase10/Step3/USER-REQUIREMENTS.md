@@ -84,6 +84,12 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 12. Backup posture: schedules/policies and most recent successful backup evidence.
 13. Integration objects: database links, materialized views/logs, scheduler jobs that may require post-cutover updates.
 14. Data Guard parameters/config evidence when applicable.
+15. ZDM compatibility items (required for compatibility gate in Step4):
+	- `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
+	- `SPFILE` in use (`SHOW PARAMETER spfile` — non-empty value confirms SPFILE).
+	- Timezone file version (`SELECT * FROM v$timezone_file`).
+	- `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
+	- Full DB version banner (`SELECT * FROM v$version` or `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
 
 ### Target discovery
 
@@ -104,6 +110,12 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
+12. ZDM compatibility items (required for compatibility gate in Step4):
+	- `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
+	- Timezone file version (`SELECT * FROM v$timezone_file`).
+	- `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
+	- Full DB version banner (`SELECT * FROM v$version` or `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
+	- `SQLNET.ORA` encryption algorithm setting (already partially covered by network posture — ensure `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` are captured explicitly).
 
 ### ZDM server discovery
 

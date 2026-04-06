@@ -36,23 +36,108 @@ Optional companion inputs for configured intent/baseline comparison (see CR-13):
 Discovery Summary must include:
 
 1. Environment overview.
-2. Readiness assessment with met requirements, required actions, and blockers.
-3. Discovered configuration reference.
-4. Migration method recommendation and rationale.
+2. ZDM compatibility gate results (see S4-05) — must appear before readiness assessment.
+3. Readiness assessment with met requirements, required actions, and blockers.
+4. Discovered configuration reference.
+5. Migration method recommendation and rationale.
+
+## S4-05: ZDM compatibility gate
+
+Before conducting the migration planning interview or writing any questionnaire output, evaluate the following compatibility checks using Step3 discovery evidence. Present results in a structured table in the Discovery Summary.
+
+### Compatibility checks
+
+| Check | Rule | Severity if failed |
+|-------|------|--------------------|
+| DB release (source vs target) | Oracle Database release (major.minor, e.g. 12.2, 19c) must be identical for physical migration. Patch level (RU/PSU) may differ — target patch level must be ≥ source; ZDM runs `datapatch` automatically when target patch is higher. | BLOCKER if release differs; WARNING if patch level differs |
+| Character set | Source `NLS_CHARACTERSET` must equal target | BLOCKER |
+| `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
+| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER (online) / WARNING (offline) |
+| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER (online) / WARNING (offline) |
+| TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
+| Hostname | Source and target hostnames must differ | BLOCKER |
+| `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
+| Timezone file version | Target timezone version must be ≥ source | WARNING |
+| `SQLNET.ORA` encryption algorithm | Must match between source and target | WARNING |
+
+### Gate output format
+
+Produce a gate result block in the Discovery Summary:
+
+```
+ZDM Compatibility Gate
+======================
+[PASS/FAIL/WARN]  <check name>:  source=<value>  target=<value>  [note if applicable]
+```
+
+### Gate behavior
+
+1. If **any BLOCKER** is found:
+   - Halt the migration planning interview.
+   - Do not write `Migration-Decisions.md`.
+   - Mark the Discovery Summary with `[BLOCKED — compatibility gate failed]`.
+   - Surface each blocker explicitly with the remediation path from S4-12.
+
+2. If only WARNINGs are found:
+   - Continue with the interview.
+   - Include warnings in the Discovery Summary required-actions section.
+   - Note in `Migration-Decisions.md` that the warnings were acknowledged.
+
+3. If all checks PASS:
+   - Proceed directly to the migration planning interview.
+
+### Handling missing discovery data
+
+If a required compatibility value was not collected in Step3 (e.g., `COMPATIBLE` parameter or timezone version not present in discovery files), flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER requiring re-run of Step3 with the updated discovery scope before proceeding.
+
+## S4-12: Compatibility gate remediation paths
+
+For each BLOCKER type, provide the following guidance:
+
+**DB release mismatch (source release ≠ target release, physical migration):**
+Physical migration (ONLINE_PHYSICAL / OFFLINE_PHYSICAL) requires source and target to be at the same Oracle Database release (major.minor — e.g., both 12.2, or both 19c). A patch-level difference (RU/PSU) is acceptable as long as the target patch level is ≥ source; ZDM handles this automatically via `datapatch` — flag as WARNING only. Three remediation options for a release mismatch:
+1. Reprovision the target database at the same version as the source, then re-run Step3.
+2. Use ZDM migrate+upgrade workflow: provision the target at the same version as source, then supply `ZDM_UPGRADE_TARGET_HOME` pointing to a higher-version Oracle Home already provisioned on the target — ZDM will migrate then upgrade. Supported for 12.2+ source to 19c target CDB (requires `ZDM_UPGRADE_TARGET_HOME` and optionally `ZDM_PRE_UPGRADE_TARGET_HOME` for non-CDB to PDB conversion).
+3. Switch to logical migration (ZDM logical, DataPump, or GoldenGate) which supports cross-version and cross-platform migrations.
+
+**Character set mismatch:**
+Character set must match. Remediation: provision a new target database with the same character set as the source, or perform a character set migration on the source (requires extensive testing). Cross-character-set migration requires the logical migration path.
+
+**`COMPATIBLE` parameter mismatch:**
+Set `COMPATIBLE` to the same value on both source and target: `ALTER SYSTEM SET COMPATIBLE='<value>' SCOPE=SPFILE;` then restart. Note: lowering `COMPATIBLE` is not supported — the target must be at `≥` source value; set source value on target if target is higher.
+
+**`ARCHIVELOG` mode:**
+Enable archivelog mode on source: `SHUTDOWN IMMEDIATE; STARTUP MOUNT; ALTER DATABASE ARCHIVELOG; ALTER DATABASE OPEN;`
+
+**SPFILE not in use:**
+Create SPFILE from PFILE: `CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
+
+**TDE wallet not OPEN:**
+Open the TDE wallet: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.
+
+**Hostname collision:**
+Source and target must be on different hosts. This is a provisioning error — provision the target on a different host.
+
+**`/tmp` missing execute permission:**
+Remount `/tmp` with execute: `mount -o remount,exec /tmp`. To make permanent, update `/etc/fstab` to remove the `noexec` option for `/tmp`.
+
+**Timezone version (target < source):**
+Upgrade target timezone file before migration: apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Refer to Oracle Doc ID 1509653.1 for the upgrade procedure.
 
 ## S4-06: Discovery Summary generated items
 
 `Discovery-Summary.md` should include at least:
 
 1. Generation metadata: date/time and source discovery files analyzed.
-2. Executive summary by component (source/target/ZDM/network) with status.
-3. Migration method recommendation with explicit justification.
-4. Source database details and readiness checks (archivelog/force/supplemental/TDE and related prechecks).
-5. Target environment details relevant to migration readiness.
-6. ZDM server details including discovered version evidence and service posture.
-7. Required actions split by severity (critical vs recommended).
-8. Discovered values reference section for Step5/Step6 reuse.
-9. Mismatch section when `zdm-env.md` intent differs from discovery evidence.
+2. **ZDM compatibility gate results** (from S4-05) — structured pass/fail/warn table; must appear before executive summary.
+3. Executive summary by component (source/target/ZDM/network) with status.
+4. Migration method recommendation with explicit justification.
+5. Source database details and readiness checks (archivelog/force/supplemental/TDE and related prechecks).
+6. Target environment details relevant to migration readiness.
+7. ZDM server details including discovered version evidence and service posture.
+8. Required actions split by severity (critical vs recommended) — compatibility gate blockers appear first.
+9. Discovered values reference section for Step5/Step6 reuse.
+10. Mismatch section when `zdm-env.md` intent differs from discovery evidence.
 
 ## S4-07: Migration Planning Interview
 

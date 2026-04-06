@@ -20,6 +20,7 @@ This step uses the **Remote-SSH execution model** (CR-03): VS Code is connected 
 - All outputs land in `Artifacts/` which is git-ignored. No files are committed or create PRs.
 - Do not wrap commands with `sudo su - zdmuser -c "..."` — the session is already `zdmuser`.
 - All discovery commands must be strictly **read-only** (SELECT-only SQL; no DDL/DML; no OS mutation).
+- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 ---
 
@@ -367,6 +368,12 @@ Collect all of the following (S3-06):
 12. Backup posture: schedules/policies and most recent successful backup evidence.
 13. Integration objects: database links, materialized views/logs, scheduler jobs that may require post-cutover updates.
 14. Data Guard parameters/config evidence when applicable.
+15. ZDM compatibility items (required for compatibility gate in Step 4):
+   - `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
+   - `SPFILE` in use (`SHOW PARAMETER spfile` — non-empty value confirms SPFILE).
+   - Timezone file version (`SELECT * FROM v$timezone_file`).
+   - `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
+   - Full DB version banner (`SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
 
 ### Target Discovery
 
@@ -389,6 +396,12 @@ Collect all of the following (S3-06):
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
+12. ZDM compatibility items (required for compatibility gate in Step 4):
+   - `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
+   - Timezone file version (`SELECT * FROM v$timezone_file`).
+   - `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
+   - Full DB version banner (`SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
+   - `SQLNET.ORA` encryption settings: capture `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` explicitly (in addition to network posture coverage).
 
 ### ZDM Server Discovery
 
