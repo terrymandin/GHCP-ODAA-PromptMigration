@@ -4,34 +4,40 @@ This directory contains prompts for Zero Downtime Migration (ZDM) from on-premis
 
 ## Migration Workflow
 
-The ZDM migration process is divided into five steps, each with its own prompt:
+The ZDM migration process is divided into six steps, each with its own prompt:
 
 ```
-Step 1: Test SSH Connectivity (fail-fast precheck)
+Step 1: Setup Remote-SSH Connection (local VS Code session)
          ↓
-         ├── Validate source/target SSH hosts
-         ├── Validate SSH key files + permissions
-         └── Confirm non-interactive SSH works
+         ├── Check Remote-SSH extension is installed
+         ├── Configure ~/.ssh/config for jumpbox
+         └── Verify SSH key and test connectivity
          ↓
-Step 2: Generate Discovery Scripts + Run to Get Context
+Step 2: Configure SSH Connectivity (Remote-SSH session begins)
          ↓
-         ├── Generate discovery scripts
-         ├── Run discovery scripts on servers
-         └── Collect discovery outputs
+         ├── Collect SSH host, user, key values interactively
+         ├── Validate SSH connectivity to source/target
+         └── Write ssh-config.md artifact
          ↓
-Step 3: Get Manual Configuration Context
+Step 3: Generate Discovery + Run to Get Context
+         ↓
+         ├── Collect Oracle home, SID, unique names interactively
+         ├── Run discovery commands inline on all servers
+         └── Write discovery reports and db-config.md
+         ↓
+Step 4: Get Manual Configuration Context
          ↓
          ├── Analyze discovery results
          ├── Generate Discovery Summary
          └── Complete Migration Questionnaire (manual decisions)
          ↓
-Step 4: Fix Issues (Iteration may be required)
+Step 5: Fix Issues (Iteration may be required)
          ↓
          ├── Address critical actions from Discovery Summary
          ├── Re-run discovery to verify fixes
          └── Repeat until all blockers resolved
          ↓
-Step 5: Generate Migration Artifacts & Run Migration
+Step 6: Generate Migration Artifacts & Run Migration
          ↓
          ├── Generate RSP file
          ├── Generate ZDM CLI commands
@@ -43,81 +49,89 @@ Step 5: Generate Migration Artifacts & Run Migration
 
 | Information Type | Captured In Step | Examples |
 |-----------------|------------------|----------|
-| **SSH Connectivity Readiness** | Step 1 - SSH Connectivity Test (auto) | Reachability, optional key file validation, SSH auth precheck |
-| **Technical Configuration** | Step 2 - Discovery Scripts (auto) | DB version, character set, TDE status, storage |
-| **Business Decisions** | Step 3 - Migration Questionnaire (manual) | Online vs Offline, timeline, downtime tolerance |
-| **OCI/Azure IDs** | Step 3 - Migration Questionnaire (manual) | OCIDs, subscription IDs |
-| **Issue Resolution** | Step 4 - Fix Issues (iterative) | Enable supplemental logging, configure network |
-| **Migration Config** | Step 5 - RSP/CLI generation (auto) | Response file, commands, runbook |
+| **Remote-SSH Setup** | Step 1 - SSH Setup (local) | Extension check, ssh-config entry, key generation |
+| **SSH Connectivity Readiness** | Step 2 - SSH Connectivity (auto) | Reachability, key validation, SSH auth precheck |
+| **Technical Configuration** | Step 3 - Discovery (auto) | DB version, character set, TDE status, storage |
+| **Business Decisions** | Step 4 - Migration Questionnaire (manual) | Online vs Offline, timeline, downtime tolerance |
+| **OCI/Azure IDs** | Step 4 - Migration Questionnaire (manual) | OCIDs, subscription IDs |
+| **Issue Resolution** | Step 5 - Fix Issues (iterative) | Enable supplemental logging, configure network |
+| **Migration Config** | Step 6 - RSP/CLI generation (auto) | Response file, commands, runbook |
 
 ## Prompt Files
 
-| Step | File | Example | Purpose |
-|------|------|---------|---------|
-| 1 | [Phase10-ZDM-Step1-Test-SSH-Connectivity.prompt.md](Phase10-ZDM-Step1-Test-SSH-Connectivity.prompt.md) | [Example](Phase10-ZDM-Example-Step1-Test-SSH-Connectivity.prompt.md) | Validate SSH hosts and keys before discovery |
-| 2 | [Phase10-ZDM-Step2-Generate-Discovery-Scripts.prompt.md](Phase10-ZDM-Step2-Generate-Discovery-Scripts.prompt.md) | [Example](Phase10-ZDM-Example-Step2-Generate-Discovery-Scripts.prompt.md) | Generate and run discovery scripts |
-| 3 | [Phase10-ZDM-Step3-Discovery-Questionnaire.prompt.md](Phase10-ZDM-Step3-Discovery-Questionnaire.prompt.md) | [Example](Phase10-ZDM-Example-Step3-Discovery-Questionnaire.prompt.md) | Analyze discovery, complete questionnaire |
-| 4 | [Phase10-ZDM-Step4-Fix-Issues.prompt.md](Phase10-ZDM-Step4-Fix-Issues.prompt.md) | [Example](Phase10-ZDM-Example-Step4-Fix-Issues.prompt.md) | Address blockers, iterate until resolved |
-| 5 | [Phase10-ZDM-Step5-Generate-Migration-Artifacts.prompt.md](Phase10-ZDM-Step5-Generate-Migration-Artifacts.prompt.md) | [Example](Phase10-ZDM-Example-Step5-Generate-Migration-Artifacts.prompt.md) | Generate RSP file, CLI commands, runbook |
+| Step | File | Purpose |
+|------|------|---------|
+| 1 | [Phase10-Step1-Setup-Remote-SSH.prompt.md](Phase10-Step1-Setup-Remote-SSH.prompt.md) | Configure Remote-SSH extension, SSH key, and jumpbox host entry |
+| 2 | [Phase10-Step2-Configure-SSH-Connectivity.prompt.md](Phase10-Step2-Configure-SSH-Connectivity.prompt.md) | Collect SSH inputs interactively and validate connectivity |
+| 3 | [Phase10-Step3-Generate-Discovery-Scripts.prompt.md](Phase10-Step3-Generate-Discovery-Scripts.prompt.md) | Collect DB inputs and run discovery commands inline |
+| 4 | [Phase10-Step4-Discovery-Questionnaire.prompt.md](Phase10-Step4-Discovery-Questionnaire.prompt.md) | Analyze discovery, complete questionnaire |
+| 5 | [Phase10-Step5-Fix-Issues.prompt.md](Phase10-Step5-Fix-Issues.prompt.md) | Address blockers, iterate until resolved |
+| 6 | [Phase10-Step6-Generate-Migration-Artifacts.prompt.md](Phase10-Step6-Generate-Migration-Artifacts.prompt.md) | Generate RSP file, CLI commands, runbook |
 
 ## Example Files
 
-Each step has a corresponding example file showing a completed prompt for a fictional "PRODDB" migration:
-
-| Example | Description |
-|---------|-------------|
-| [Example-Step1](Phase10-ZDM-Example-Step1-Test-SSH-Connectivity.prompt.md) | Shows SSH host/key connectivity validation before discovery |
-| [Example-Step2](Phase10-ZDM-Example-Step2-Generate-Discovery-Scripts.prompt.md) | Shows how to request discovery scripts with custom requirements |
-| [Example-Step3](Phase10-ZDM-Example-Step3-Discovery-Questionnaire.prompt.md) | Shows a fully completed questionnaire for online physical migration |
-| [Example-Step4](Phase10-ZDM-Example-Step4-Fix-Issues.prompt.md) | Shows iterative issue resolution and verification |
-| [Example-Step5](Phase10-ZDM-Example-Step5-Generate-Migration-Artifacts.prompt.md) | Shows expected RSP file, CLI script, and runbook output |
+> Note: Example prompt files have been removed. Use `@Phase10-ZDM-Orchestrator` to auto-detect your current step and execute it.
 
 ## Detailed Workflow
 
-### Step 1: Test SSH Connectivity (Precheck)
+### Step 1: Setup Remote-SSH Connection
 
-**Purpose**: Fail fast on bad SSH IP/hostname, user, key, or key permission inputs before running the longer discovery step.
+**Purpose**: Configure the Remote-SSH extension, SSH key, and jumpbox host entry so subsequent steps (Step 2 onward) can run in the correct Remote-SSH context as `zdmuser`.
 
-> **Prerequisite**: VS Code must be connected to the ZDM jumpbox via the **Remote-SSH** extension. Step 1 runs the SSH tests directly from the VS Code terminal (which executes on the jumpbox) — no script transfer or manual execution is required.
+> **Execution context**: Step 1 runs in a **local** VS Code session (NOT via Remote-SSH). Use the local PowerShell terminal.
 
 **Output** (git-ignored, written during prompt execution):
-- Validation report saved to `Artifacts/Phase10-Migration/Step1/Validation/`
+- `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` — setup report with READY or ACTION REQUIRED status
+
+**Usage**:
+1. Open VS Code locally (not via Remote-SSH)
+2. Run the Step 1 prompt — it will check the Remote-SSH extension, configure `~/.ssh/config`, and test SSH key connectivity
+3. Follow the prompted instructions to connect via Remote-SSH: `Ctrl+Shift+P` → Remote-SSH: Connect to Host → select the jumpbox alias
+4. Once connected, proceed to Step 2 in the Remote-SSH session
+
+### Step 2: Configure SSH Connectivity
+
+**Purpose**: Confirm SSH connectivity to source, target, and ZDM servers from the jumpbox and capture SSH configuration.
+
+> **Prerequisite**: VS Code must be connected to the ZDM jumpbox via the **Remote-SSH** extension as `zdmuser`. Step 2 runs the SSH tests directly from the jumpbox terminal.
+
+**Output** (git-ignored, written during prompt execution):
+- `Artifacts/Phase10-Migration/Step2/ssh-config.md` — SSH connectivity config (pre-populate this file to skip interactive collection)
+- Validation report saved to `Artifacts/Phase10-Migration/Step2/Validation/`
   - `ssh-connectivity-report-<timestamp>.md`
   - `ssh-connectivity-report-<timestamp>.json`
 - `Scripts/zdm_test_ssh_connectivity.sh` — only generated if direct terminal commands are insufficient; left in place for debugging if created.
 
 **Usage**:
-1. Connect VS Code to the ZDM jumpbox using the **Remote-SSH** extension and open the cloned repo
-2. Fill SSH host/user values in `zdm-env.md`; key paths are optional
-3. Run the Step 1 prompt — Copilot tests connectivity directly from the jumpbox terminal, iterating up to 3 times on failure
+1. In the Remote-SSH VS Code session (as `zdmuser`), run the Step 2 prompt
+2. It will interactively collect SSH host, user, and key values, confirm them, then test connectivity directly from the jumpbox terminal, iterating up to 3 times on failure
+3. Resolve any SSH failures before proceeding to Step 3
 4. Resolve any SSH failures before proceeding to Step 2
 
-### Step 2: Generate Discovery Scripts + Run to Get Context
+### Step 3: Generate Discovery + Run to Get Context
 
-**Purpose**: Generate discovery scripts to gather technical context from all servers.
+**Purpose**: Collect Oracle home paths, SIDs, and database unique names interactively, then run discovery commands inline on all servers.
 
 **Output**: 
-- Four bash scripts saved to `Artifacts/Phase10-Migration/Step2/Scripts/`
-  - `zdm_source_discovery.sh` - Run on source database server
-  - `zdm_target_discovery.sh` - Run on target Oracle Database@Azure server
-  - `zdm_server_discovery.sh` - Run on ZDM jumpbox server
-  - `zdm_orchestrate_discovery.sh` - Master script to run all discoveries remotely
-- Discovery outputs saved to `Artifacts/Phase10-Migration/Step2/Discovery/`
-  - Source, target, and server discovery results (TXT and JSON)
+- `Artifacts/Phase10-Migration/Step3/db-config.md` — database and ZDM config (pre-populate to skip interactive collection)
+- Discovery reports saved to `Artifacts/Phase10-Migration/Step3/Discovery/`
+  - Source, target, and server discovery results (.md and .json)
+- Optional debug scripts under `Artifacts/Phase10-Migration/Step3/Scripts/`
 
 **Usage**:
-1. Run the Step 2 prompt to generate discovery scripts
-2. Copy discovery scripts to respective servers and execute
-3. Collect output files to `Artifacts/Phase10-Migration/Step2/Discovery/`
+1. Run the Step 3 prompt in the Remote-SSH session (as `zdmuser`)
+2. It will collect Oracle home, SID, and unique name values interactively if not pre-populated
+3. Discovery commands run inline — no scripts need to be manually copied or executed
+4. Discovery outputs are written automatically after each discovery stage completes
 
-### Step 3: Get Manual Configuration Context
+### Step 4: Get Manual Configuration Context
 
 **Purpose**: Analyze discovery results and collect manual configuration decisions via questionnaire.
 
 **Inputs**:
-- Discovery output files (from Step 2)
+- Discovery output files (from Step 3)
 
-**Output Location**: `Artifacts/Phase10-Migration/Step3/`
+**Output Location**: `Artifacts/Phase10-Migration/Step4/`
 - `Discovery-Summary.md` - Auto-populated findings from discovery
 - `Migration-Decisions.md` - Completed Decisions Record from migration planning interview
 
@@ -132,20 +146,20 @@ Each step has a corresponding example file showing a completed prompt for a fict
 - Rollback plans and risk mitigation
 
 **Usage**:
-1. Attach discovery output files from `Step2/Discovery/`
+1. Attach discovery output files from `Step3/Discovery/`
 2. Review generated Discovery Summary
 3. Complete the Migration Questionnaire with business decisions
-4. Note critical actions that need to be addressed in Step 4
+4. Note critical actions that need to be addressed in Step 5
 
-### Step 4: Fix Issues (Iteration May Be Required)
+### Step 5: Fix Issues (Iteration May Be Required)
 
 **Purpose**: Address blockers and critical actions identified in the Discovery Summary before proceeding.
 
 **Inputs**:
-- Discovery Summary (from Step 3)
-- Migration Questionnaire (from Step 3)
+- Discovery Summary (from Step 4)
+- Migration Questionnaire (from Step 4)
 
-**Output Location**: `Artifacts/Phase10-Migration/Step4/`
+**Output Location**: `Artifacts/Phase10-Migration/Step5/`
 - `Issue-Resolution-Log.md` - Tracking of issues and resolutions
 - Updated discovery outputs (after re-running discovery to verify fixes)
 
@@ -163,31 +177,29 @@ Each step has a corresponding example file showing a completed prompt for a fict
 3. Re-run relevant discovery scripts to verify fixes
 4. Update Issue Resolution Log
 5. Repeat until all critical actions are resolved
-6. Proceed to Step 5 only when all blockers are cleared
+6. Proceed to Step 6 only when all blockers are cleared
 
-### Step 5: Generate Migration Artifacts & Run Migration
+### Step 6: Generate Migration Artifacts & Run Migration
 
 **Purpose**: Generate all artifacts needed to execute the migration.
 
 **Inputs**:
-- Completed questionnaire (from Step 3)
-- Issue Resolution Log (from Step 4 - confirming all blockers resolved)
-- Discovery output files (from Step 2)
+- Completed questionnaire (from Step 4)
+- Issue Resolution Log (from Step 5 - confirming all blockers resolved)
+- Discovery output files (from Step 3)
 
-**Output Location**: `Artifacts/Phase10-Migration/Step5/`
+**Output Location**: `Artifacts/Phase10-Migration/Step6/`
 - `README.md` - Quick-start guide and checklist
 - `zdm_migrate.rsp` - ZDM response file
-- `zdm_commands.sh` - CLI commands script with `init`, `create-creds`, and migration commands
+- `zdm_commands.sh` - CLI commands script
 - `ZDM-Migration-Runbook.md` - Step-by-step runbook
 
 **Usage**:
-1. Ensure all issues from Step 4 are resolved
-2. Provide completed questionnaire from `Step3/`
-3. Artifacts are saved to `Step5/`
+1. Ensure all issues from Step 5 are resolved
+2. Provide completed questionnaire from `Step4/`
+3. Artifacts are saved to `Step6/`
 4. Review generated artifacts
-5. Commit and push to GitHub
-6. Pull changes on ZDM jumpbox
-7. Follow the runbook to execute migration
+5. Follow the runbook to execute migration
 
 ---
 
@@ -305,31 +317,25 @@ The complete workflow alternates between your local VS Code environment and the 
 
 | Phase | Location | Actions |
 |-------|----------|---------|
-| **Setup** | VS Code (Local) | Fork repo |  
-| **Step 1: SSH Precheck** | VS Code via Remote-SSH (on jumpbox) | Connect Remote-SSH, clone repo on jumpbox, run Step 1 prompt — Copilot tests SSH connectivity directly |
-| **Step 2: Discovery** | VS Code (Local) | Run Step 2 prompt to generate discovery scripts, commit & push |
-| **Discovery Execution** | ZDM Server | Pull repo, run discovery scripts, commit artifacts |
-| **Analysis** | VS Code | Pull, run Step3/4 prompts, complete questionnaire |
-| **Iteration** | Both | Fix issues on servers, re-run discovery, update Step3/4 |
-| **Generation** | VS Code | Run Step5 prompt, commit artifacts |
-| **Migration** | ZDM Server | Pull, init, configure, execute migration |
+| **Step 1: Remote-SSH Setup** | VS Code (Local) | Check extension, configure ssh-config, test key connectivity |
+| **Step 2: SSH Connectivity** | VS Code via Remote-SSH (on jumpbox) | Collect SSH vars interactively, test connectivity, write ssh-config.md |
+| **Step 3: Discovery** | VS Code via Remote-SSH (on jumpbox) | Collect DB vars, run discovery inline, write db-config.md |
+| **Analysis** | VS Code via Remote-SSH | Run Step 4 prompt, complete questionnaire |
+| **Iteration** | VS Code via Remote-SSH | Fix issues with Step 5, re-run discovery, iterate until clean |
+| **Generation** | VS Code via Remote-SSH | Run Step 6 prompt, write migration artifacts |
+| **Migration** | ZDM Server | Follow runbook, execute migration |
 
 ### VS Code Remote-SSH Setup (Step 1)
 
-Step 1 runs from VS Code connected to the ZDM jumpbox via the **Remote-SSH** extension, with the session running as `zdmuser`:
+Step 1 runs locally in VS Code **before** connecting to the jumpbox:
 1. Install the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension in VS Code
-2. Add the jumpbox to your SSH config using the `zdmuser` account and connect: **Remote-SSH: Connect to Host...**
-3. On the jumpbox (as `zdmuser`), clone your forked repo: `git clone <fork-url>`
-4. Open the cloned folder in VS Code (File → Open Folder)
-5. Open `zdm-env.md` and fill in SSH host/user/key values
-6. Run the Step 1 prompt — Copilot runs SSH tests directly in the jumpbox terminal as `zdmuser`
+2. Run the Step 1 prompt in the local VS Code terminal — it will check the extension, configure `~/.ssh/config`, and test connectivity
+3. Follow the prompt instructions to connect: **Remote-SSH: Connect to Host...** → select the jumpbox alias
+4. Once connected as `zdmuser`, proceed to Step 2 in the Remote-SSH session
 
-### Important: ZDM Server Login (Steps 2–5)
+### Important: ZDM Server Login (Steps 2–6)
 
-For Steps 2–5, when working directly on the ZDM server terminal, you must:
-1. **SSH as your admin user** (e.g., `azureuser`, `opc`) — NOT directly as `zdmuser`
-2. **Switch to zdmuser**: `sudo su - zdmuser`
-3. **First-time setup**: Run `./zdm_commands.sh init` to create required directories and files
+For Steps 2–6, VS Code must be connected to the ZDM jumpbox via Remote-SSH as `zdmuser`. All Copilot commands run directly in the jumpbox terminal — no manual script transfer is required.
 
 ---
 

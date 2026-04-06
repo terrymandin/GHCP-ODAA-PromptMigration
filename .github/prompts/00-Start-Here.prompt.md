@@ -31,10 +31,12 @@ Before starting, ensure you have:
 
 ## First-Time Setup
 
-1. Copy `zdm-env.example.md` to `zdm-env.md` in the repo root
-2. Fill in your environment values (source host, target host, SSH keys, OCI identifiers)
-3. `zdm-env.md` is git-ignored — your values will never be committed
-4. `zdm-env.md` is for prompt-time generation only; generated scripts/artifacts should not read it at runtime on the jumpbox/ZDM server
+1. Clone this repo locally and open it in VS Code
+2. Run `@Phase10-Step1-Setup-Remote-SSH` (in a **local** VS Code session) — it will check the Remote-SSH extension, configure `~/.ssh/config`, test SSH connectivity, and write `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`
+3. Connect VS Code to the ZDM jumpbox via the **Remote-SSH** extension (as `zdmuser`) and re-open the repo
+4. Run `@Phase10-Step2-Configure-SSH-Connectivity` — it will interactively collect source host, target host, SSH users, SSH key paths, and application user names, then test connectivity and write `Artifacts/Phase10-Migration/Step2/ssh-config.md`
+5. Run `@Phase10-Step3-Generate-Discovery-Scripts` — it will interactively collect Oracle home paths, SIDs, unique names, and ZDM home, then run discovery and write `Artifacts/Phase10-Migration/Step3/db-config.md`
+6. To speed up re-runs or testing, pre-populate either config artifact file and the interactive collection phase will be skipped automatically
 
 ## Where Are You in the Migration?
 
@@ -43,21 +45,22 @@ Tell me your current situation and I will direct you to the right prompt. Common
 - **Just starting** → Run `@Phase0-ODAA-Readiness` to assess your source databases
 - **Assessment complete, need networking** → Run `@Phase5-CIDR-Planning`
 - **CIDR defined, need infrastructure code** → Run `@Phase6-IaC` with `#file:Artifacts/Phase5-CIDR/CIDR-Definition.md`
-- **Infrastructure deployed, ready to migrate** → Run `@Phase10-ZDM-Orchestrator` with `#file:zdm-env.md`
-- **Already part-way through migration** → Run `@Phase10-ZDM-Orchestrator` with `#file:zdm-env.md` — it will detect your current step automatically
+- **Infrastructure deployed, ready to migrate** → Run `@Phase10-ZDM-Orchestrator`
+- **Already part-way through migration** → Run `@Phase10-ZDM-Orchestrator` — it will detect your current step automatically
 
 ## ZDM Workflow Overview
 
 For Phase 10 (ZDM migration), the workflow alternates between VS Code (prompt generation) and the ZDM server (script execution):
 
 ```
-VS Code                           ZDM Server
+Local VS Code                     ZDM Jumpbox (Remote-SSH)
 ------------------------------    ------------------------------
-@ZDM-Step1 -> tests SSH inline  -> writes connectivity report
-@ZDM-Step2 -> runs discovery    -> writes discovery reports
-@ZDM-Step3 -> analyzes output   -> complete questionnaire manually
-@ZDM-Step4 -> fix scripts       -> run on ZDM -> iterate until clean
-@ZDM-Step5 -> generates RSP     -> copy to ZDM -> run migration
+@ZDM-Step1 -> SSH setup (local)  -> writes remote-ssh-setup-report
+@ZDM-Step2 -> tests SSH inline   -> writes connectivity report
+@ZDM-Step3 -> runs discovery     -> writes discovery reports
+@ZDM-Step4 -> analyzes output    -> complete questionnaire manually
+@ZDM-Step5 -> fix scripts        -> run on ZDM -> iterate until clean
+@ZDM-Step6 -> generates RSP      -> copy to ZDM -> run migration
 ```
 
 See [.github/prompts/Phase10-ZDM-Migration-Guide.md](.github/prompts/Phase10-ZDM-Migration-Guide.md) for the full swimlane diagram and prerequisites.

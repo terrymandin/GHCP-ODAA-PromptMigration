@@ -1,10 +1,6 @@
-# Local environment configuration — contains real hostnames, OCIDs, and key paths.
-# Copy zdm-env.example.md to zdm-env.md and fill in your values.
-prompts/Phase10-Migration/ZDM/zdm-env.md
-zdm-env.md
-
 # Generated migration artifacts — all runtime outputs are git-ignored.
 # Artifacts/README.md is the only tracked file; everything else is local-only.
+# Step1 writes ssh-config.md and Step2 writes db-config.md into Artifacts/ — also git-ignored.
 Artifacts/*
 !Artifacts/README.md
 

@@ -47,8 +47,9 @@ To reduce hallucinations during the migration, use `@GetStatus` to maintain a `r
 
 During each phase, read the AI's response summary carefully to understand what will be delivered and what inputs are needed.
 
-- **Pro tip**: Use `#file:zdm-env.md` to automatically attach your environment config to ZDM prompts.
-- **Pro tip**: `zdm-env.md` is local generation input only. Generated scripts/artifacts must be self-contained and must not depend on `zdm-env.md` at runtime.
+- **Pro tip**: Step 1 sets up the Remote-SSH connection to the ZDM jumpbox and writes `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`.
+- **Pro tip**: Step 2 collects SSH configuration interactively and writes `Artifacts/Phase10-Migration/Step2/ssh-config.md`. Pre-populate this file to skip interactive prompting during testing.
+- **Pro tip**: Step 3 collects database variables interactively and writes `Artifacts/Phase10-Migration/Step3/db-config.md`. Pre-populate this file to skip interactive prompting during testing.
 - **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
 - **Pro tip**: Don't assume anything — always verify ZDM requirements and OCI identifiers with the documentation.
 
@@ -64,9 +65,8 @@ During each phase, read the AI's response summary carefully to understand what w
   - `Phase10-ZDM-Migration-Guide.md` — ZDM reference documentation
 
 - **`Artifacts/`**: Generated output from running prompts (git-ignored content)
-
-- **`zdm-env.example.md`**: Template for ZDM environment configuration — copy to `zdm-env.md` and fill in your values
-- **`zdm-env.md`** (local only): Prompt-generation input file used to populate generated artifacts; do not rely on it at script runtime
+  - **`Artifacts/Phase10-Migration/Step2/ssh-config.md`** — SSH connectivity config written interactively by Step 2 (pre-populate to bypass interactive collection)
+  - **`Artifacts/Phase10-Migration/Step3/db-config.md`** — database and ZDM config written interactively by Step 3 (pre-populate to bypass interactive collection)
 
 ## Migration & Modernization Process
 
@@ -147,10 +147,9 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 1. Clone this repository and open it in VS Code
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
 3. Install the **Azure MCP Server**, **GitHub Copilot for Azure** and **Oracle Developer** extensions
-4. Copy `zdm-env.example.md` → `zdm-env.md` and fill in your environment values
-5. Keep generated scripts portable: they should execute on jumpbox/ZDM without requiring `zdm-env.md`
-6. Open GitHub Copilot Chat and type `@00-Start-Here` to begin
-7. Use `@GetStatus` at any time to check the current migration progress
+4. Connect VS Code to your ZDM jumpbox via the **Remote-SSH** extension (as `zdmuser`)
+5. Open GitHub Copilot Chat and type `@00-Start-Here` to begin — Step 1 will collect all environment values interactively
+6. Use `@GetStatus` at any time to check the current migration progress
 
 ## ZDM Migration Quick Reference
 

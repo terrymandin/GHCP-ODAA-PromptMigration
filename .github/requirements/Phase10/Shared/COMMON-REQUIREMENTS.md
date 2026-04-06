@@ -1,4 +1,4 @@
-# Common Requirements for Phase 10 (Step1-Step5)
+# Common Requirements for Phase 10 (Step1-Step6)
 
 ## Scope
 
@@ -6,9 +6,12 @@ These requirements apply to all Phase10 ZDM prompts unless a step explicitly ove
 
 ## CR-01: Source of truth precedence
 
-1. Treat attached `zdm-env.md` as authoritative generation input when present.
-2. Prefer `zdm-env.md` values over template defaults and examples.
-3. If values conflict with discovery evidence, do not silently override. Explicitly report the mismatch.
+1. Treat step configuration artifacts as the primary authoritative generation input (see CR-13):
+   - `Artifacts/Phase10-Migration/Step2/ssh-config.md` for SSH connectivity variables.
+   - `Artifacts/Phase10-Migration/Step3/db-config.md` for database and ZDM variables.
+2. When `zdm-env.md` is explicitly attached, treat it as a legacy override with higher precedence than the step artifacts.
+3. Prefer artifact or `zdm-env.md` values over template defaults and examples.
+4. If values conflict with discovery evidence, do not silently override. Explicitly report the mismatch.
 
 ## CR-02: Generation-time vs runtime boundary
 
@@ -17,13 +20,15 @@ These requirements apply to all Phase10 ZDM prompts unless a step explicitly ove
 
 ## CR-03: Execution model
 
-All Phase10 prompts use the **Remote-SSH execution** model:
+All Phase10 prompts use the **Remote-SSH execution** model **except Step1**:
 
 1. VS Code is connected to the ZDM jumpbox via the Remote-SSH extension, with the terminal session running as `zdmuser`.
 2. Copilot runs commands directly in the jumpbox terminal, iterating and fixing errors automatically.
 3. All outputs are written to `Artifacts/` (git-ignored) using file tools. No outputs are committed to git.
 4. Prompts must not perform irreversible or destructive actions without explicit user confirmation.
 5. `zdm-env.md` is input to the prompt only. Generated scripts and artifacts must not read, source, or parse `zdm-env.md` at runtime.
+
+**Step1 exception**: Step1 (Remote-SSH Setup) runs in the LOCAL VS Code session before any Remote-SSH connection is established. It uses the local PowerShell terminal (Windows primary). Step1 must not issue jumpbox commands.
 
 ## CR-04: Requirements-to-prompt traceability
 
@@ -32,7 +37,7 @@ All Phase10 prompts use the **Remote-SSH execution** model:
 
 ## CR-05: Variable scope for Phase10
 
-DB-specific values used across Step1-Step5:
+DB-specific values used across Step2-Step6:
 
 - `SOURCE_REMOTE_ORACLE_HOME`
 - `SOURCE_ORACLE_SID`
@@ -41,9 +46,14 @@ DB-specific values used across Step1-Step5:
 - `SOURCE_DATABASE_UNIQUE_NAME`
 - `TARGET_DATABASE_UNIQUE_NAME`
 
-ZDM-specific value used across Step1-Step5:
+ZDM-specific value used across Step2-Step6:
 
 - `ZDM_HOME`
+
+Variable-to-artifact mapping:
+
+- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step2/ssh-config.md`.
+- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`) are captured in `Artifacts/Phase10-Migration/Step3/db-config.md`.
 
 ## CR-06: OCI CLI requirement
 
@@ -118,3 +128,16 @@ Naming rule:
 4. Any failed validation check is a stop-ship condition for generation output; fix and re-run checks until all required checks pass.
 5. Final output must include a concise validation evidence summary listing checks performed and pass/fail status.
 6. This quality gate applies to all Phase10 steps that generate executable scripts or machine-readable artifacts.
+
+## CR-13: Configuration artifact contract
+
+1. Step2 writes `Artifacts/Phase10-Migration/Step2/ssh-config.md` containing SSH connectivity variables.
+2. Step3 writes `Artifacts/Phase10-Migration/Step3/db-config.md` containing database and ZDM variables.
+3. Both artifact files use the same key-value markdown format as `zdm-env.md`:
+   - One variable per line: `- KEY: value`
+   - Blank value means unset: `- KEY: `
+   - Placeholder values containing `<...>` are treated as unset.
+4. Steps 3–6 consume `ssh-config.md` as a read-only input for SSH connectivity context.
+5. Steps 4–6 consume `db-config.md` as a read-only input for database context.
+6. **Pre-populated file bypass**: If the artifact file already exists at the expected path when the step starts, use it directly and skip interactive collection. This enables testing acceleration — users may pre-populate either artifact file to bypass the collection phase.
+7. Generated scripts and runtime artifacts must not read, source, or parse either config artifact at runtime (CR-02 applies).
