@@ -19,6 +19,7 @@ This step runs via the **Remote-SSH** execution model (CR-03): VS Code is connec
 - All commands execute directly on the jumpbox — no script is generated or committed.
 - All outputs land in `Artifacts/` which is git-ignored. No files are committed or create PRs.
 - Do not wrap commands with `sudo su - zdmuser -c "..."` — the session is already `zdmuser`.
+- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 ---
 

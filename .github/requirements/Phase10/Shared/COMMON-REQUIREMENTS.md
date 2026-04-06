@@ -129,6 +129,16 @@ Naming rule:
 5. Final output must include a concise validation evidence summary listing checks performed and pass/fail status.
 6. This quality gate applies to all Phase10 steps that generate executable scripts or machine-readable artifacts.
 
+## CR-14: Environment safety and scope disclaimer (applies to all steps)
+
+1. **Copilot agent prompts** are intended to run in **development and non-production environments only**. Do not run Copilot agent prompts directly against production systems.
+2. **Generated scripts** are designed to be portable and are safe to use in both development and production environments, once reviewed and tested. The recommended workflow is: run the prompt in development → review and test generated scripts → copy scripts to production → execute manually.
+3. Any prompt step that can modify system state (e.g., Steps 5 and 6) must display a risk banner before presenting execution options. The banner must include:
+   - The development-only restriction for running Copilot prompts.
+   - The script promotion path for production use.
+   - Any scripts that operate at Oracle Home or OS scope (affecting all databases on the server), listed explicitly.
+4. Prompts must never imply that running Copilot agent steps directly on a production system is a supported or recommended workflow.
+
 ## CR-13: Configuration artifact contract
 
 1. Step2 writes `Artifacts/Phase10-Migration/Step2/ssh-config.md` containing SSH connectivity variables.
