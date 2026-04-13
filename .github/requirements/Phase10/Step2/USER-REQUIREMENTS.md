@@ -34,7 +34,7 @@ Reports are written by Copilot using file tools after all SSH tests complete. Re
 3. Overall status: PASS when all endpoints succeed, FAIL when any endpoint fails.
 4. Remediation steps for any failures.
 
-## S2-02A: Report completeness and parity
+## S2-03: Report completeness and parity
 
 Both report files (markdown and JSON) must be complete and aligned:
 
@@ -58,7 +58,7 @@ Optional:
 - `SOURCE_SSH_KEY`
 - `TARGET_SSH_KEY`
 
-Input resolution order (see CR-13):
+Input resolution order (see CR-12):
 
 1. If `Artifacts/Phase10-Migration/Step2/ssh-config.md` already exists, use it directly and skip interactive collection.
 2. If `zdm-env.md` is explicitly attached and contains these values, use it as a legacy override and skip interactive collection.

@@ -165,7 +165,7 @@ Optional SSH variables:
 - `SOURCE_SSH_KEY`
 - `TARGET_SSH_KEY`
 
-Database and ZDM variables are resolved in this order (see CR-13):
+Database and ZDM variables are resolved in this order (see CR-12):
 
 1. If `Artifacts/Phase10-Migration/Step3/db-config.md` already exists, use it directly and skip interactive collection.
 2. If `zdm-env.md` is explicitly attached and contains these values, use them and skip interactive collection.

@@ -9,7 +9,7 @@ Generate remediation and verification artifacts for blockers and required action
 Required generated artifacts under `Artifacts/Phase10-Migration/Step5/`:
 
 - `Issue-Resolution-Log.md`
-- `Scripts/fix_<issue-id>_<short-name>.sh` — one script per remediable issue (see S5-07 for naming)
+- `Scripts/fix_<issue-id>_<short-name>.sh` — one script per remediable issue (see S5-04 for naming)
 - `Scripts/fix_orchestrator.sh` — orchestrator that invokes individual fix scripts in dependency order
 - `Scripts/README-fix_<issue-id>_<short-name>.md` — one companion README per fix script
 - `Scripts/README-fix_orchestrator.md` — companion README for the orchestrator
@@ -23,7 +23,7 @@ Non-remediable issues (e.g., provisioning changes requiring console action) must
 1. Step5 supports repeated cycles until blockers are resolved.
 2. Each iteration updates issue tracking and verification outcomes.
 
-## S5-06: Issue-Resolution-Log generated items
+## S5-03: Issue-Resolution-Log generated items
 
 `Issue-Resolution-Log.md` should include at least:
 
@@ -32,7 +32,7 @@ Non-remediable issues (e.g., provisioning changes requiring console action) must
 3. Iteration history showing what changed between remediation cycles.
 4. Explicit unresolved items and blockers preventing Step6 progression.
 
-## S5-07: Remediation package generated items
+## S5-04: Remediation package generated items
 
 ### Per-issue fix script naming
 
@@ -63,14 +63,14 @@ Examples:
 For each `fix_<issue-id>_<short-name>.sh`, generate `README-fix_<issue-id>_<short-name>.md` containing:
 
 1. Issue ID and severity (BLOCKER / WARNING).
-2. Target server (`zdm-server`, `source-db`, or `target-db`) and rationale (see S5-10).
+2. Target server (`zdm-server`, `source-db`, or `target-db`) and rationale (see S5-05).
 3. Prerequisites and required environment variables.
 4. Step-by-step behavior summary.
 5. Exact execution command and required runtime user.
 6. Expected output or success indicators.
 7. Rollback/undo guidance when applicable.
 
-## S5-10: Target-first remediation preference
+## S5-05: Target-first remediation preference
 
 When a compatibility fix can be applied to either the source or the target database, **generate the script for the target database**. Do not generate source-side scripts unless the fix is source-only by nature.
 
@@ -89,7 +89,7 @@ Target-preferred fixes (generate against target even if source could also be cha
 
 Each companion README must explicitly state which server the script targets and why (source-only by nature, or target-preferred per this policy).
 
-## S5-12: Scope classification and blast-radius awareness
+## S5-06: Scope classification and blast-radius awareness
 
 Each fix script must be assigned a **scope** based on the broadest system component it modifies:
 
@@ -102,11 +102,11 @@ Each fix script must be assigned a **scope** based on the broadest system compon
 Scope must be declared in:
 1. The `# TARGET:` header block of the fix script (add `# SCOPE: DATABASE | ORACLE-HOME | OS`).
 2. The companion `README-fix_<issue-id>_<short-name>.md` as a **Scope** field (with a plain-English explanation of what else on the server could be affected).
-3. The S5-11 script inventory table as a **Scope** column.
+3. The S5-07 script inventory table as a **Scope** column.
 
-When any `ORACLE-HOME` or `OS` scope scripts are present, they must be explicitly listed in the S5-13 risk banner before execution options are presented.
+When any `ORACLE-HOME` or `OS` scope scripts are present, they must be explicitly listed in the S5-11 risk banner before execution options are presented.
 
-## S5-11: Execution model and user choice
+## S5-07: Execution model and user choice
 
 After all scripts are generated and written to disk, present the user with a **script inventory table** and an explicit choice:
 
@@ -126,4 +126,4 @@ Options:
   C — Say "run fix_<id>" (e.g., "run fix_B01") to execute a specific script inline.
 ```
 
-Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu. See S5-09 for execution constraints.
+Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu. See S5-12 for execution constraints.

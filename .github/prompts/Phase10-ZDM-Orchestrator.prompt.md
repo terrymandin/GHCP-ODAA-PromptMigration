@@ -16,7 +16,7 @@ You are the single guided entry point for ZDM Phase 10 Oracle-to-ODAA migration.
 
 ## Phase 1: Load Environment
 
-Load available configuration from the step artifacts (see common requirement CR-13):
+Load available configuration from the step artifacts (see common requirement CR-12):
 
 1. Check whether `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists. If so, read and extract all key-value pairs.
 2. Check whether `Artifacts/Phase10-Migration/Step3/db-config.md` exists. If so, read and extract all key-value pairs.

@@ -28,7 +28,7 @@ This step runs under the **Remote-SSH execution model** (CR-03): VS Code is conn
 - All outputs are written to `Artifacts/Phase10-Migration/Step5/` (git-ignored). No generated files are committed or create PRs.
 - OCI CLI is not required for this step or any Phase10 migration execution step (CR-06).
 - Generated scripts must not read, source, or parse config artifacts at runtime (CR-02).
-- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts are safe to copy to production once reviewed and tested in development — see the risk banner in Part 5 for the script promotion path.
+- **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts are safe to copy to production once reviewed and tested in development — see the risk banner in Part 5 for the script promotion path.
 
 Input precedence rules (CR-01):
 1. `Artifacts/Phase10-Migration/Step4/Discovery-Summary.md` — primary evidence input (observed runtime state).
@@ -38,6 +38,18 @@ Input precedence rules (CR-01):
 5. `zdm-env.md` (when explicitly attached) — legacy override with higher precedence than step artifacts.
 6. If configured intent conflicts with discovery evidence, keep both: generate fixes aligned to the configured intent and explicitly document the mismatch and required verification step.
 7. Placeholder values containing `<...>` are treated as unset.
+
+---
+
+## First Action: Display Environment Safety Banner (CR-13.3)
+
+Before doing anything else, display the following banner in the chat:
+
+```
+⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+Do not run against production. Generated scripts may be copied to production
+once reviewed and tested — run them manually there.
+```
 
 ---
 
@@ -357,7 +369,7 @@ Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks al
 
 After all scripts and companions are written to disk and the quality gate (Part 6) passes, execute this sequence.
 
-### Step 5a: Pre-execution risk banner (S5-13, CR-14)
+### Step 5a: Pre-execution risk banner (S5-13, CR-13)
 
 Always display the following banner. It is mandatory — do not skip or abbreviate it.
 
@@ -422,7 +434,7 @@ For each execution:
 
 ## Part 6: Generate Step 5 README
 
-Write `Artifacts/Phase10-Migration/Step5/README.md` (CR-08) summarizing:
+Write `Artifacts/Phase10-Migration/Step5/README.md` (CR-07) summarizing:
 - **Generated files** and their purpose:
   - `Issue-Resolution-Log.md` — issue register with evidence, remediation plans, iteration history
   - `Scripts/` — remediation scripts + `README-<scriptname>.md` companions
@@ -438,7 +450,7 @@ Write `Artifacts/Phase10-Migration/Step5/README.md` (CR-08) summarizing:
 
 ---
 
-## Part 7: Generation Quality Gate (CR-12)
+## Part 7: Generation Quality Gate (CR-11)
 
 After all scripts are written to disk, run syntax validation in the jumpbox terminal:
 

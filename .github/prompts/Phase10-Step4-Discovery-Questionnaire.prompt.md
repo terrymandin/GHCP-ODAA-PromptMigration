@@ -22,7 +22,7 @@ This step runs under the **Remote-SSH execution model** (CR-03): VS Code is conn
 - All outputs are written to `Artifacts/Phase10-Migration/Step4/` (git-ignored). No generated files are committed or create PRs.
 - OCI CLI is not required for this step or any Phase10 migration execution step (CR-06).
 - Input config artifacts are read-only. Generated outputs must not read, source, or parse config artifacts at runtime (CR-02).
-- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
+- **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 Input precedence rules (CR-01):
 1. Step 3 discovery files are the primary evidence source (observed runtime state).
@@ -35,6 +35,18 @@ Input precedence rules (CR-01):
 Evidence selection when multiple discovery files exist per component (S4-08):
 - Use the most recent file set by timestamp (highest timestamp = most recent).
 - Keep source, target, and server evidence references explicit in generated outputs.
+
+---
+
+## First Action: Display Environment Safety Banner (CR-13.3)
+
+Before doing anything else, display the following banner in the chat:
+
+```
+⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+Do not run against production. Generated scripts may be copied to production
+once reviewed and tested — run them manually there.
+```
 
 ---
 
@@ -352,7 +364,7 @@ If any required question was not answered, record the parameter as `BLOCKED — 
 
 ## Part 3: Generate Step 4 README
 
-Write `Artifacts/Phase10-Migration/Step4/README.md` (CR-08) summarizing:
+Write `Artifacts/Phase10-Migration/Step4/README.md` (CR-07) summarizing:
 - **Generated files** for this step and their purpose
 - **Review checklist** — what the operator must verify before proceeding to Step 5
 - **Output location** — all files in `Artifacts/Phase10-Migration/Step4/`
@@ -363,7 +375,7 @@ Write `Artifacts/Phase10-Migration/Step4/README.md` (CR-08) summarizing:
 
 ## Validation Evidence
 
-After writing all output files, confirm creation and provide a concise summary (CR-12):
+After writing all output files, confirm creation and provide a concise summary (CR-11):
 - List each output file path written
 - Confirm each file was created successfully (non-empty)
 - Note any sections that could not be populated due to missing discovery evidence

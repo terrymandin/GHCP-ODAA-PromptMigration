@@ -20,7 +20,7 @@ Required generated files under `Artifacts/Phase10-Migration/Step6/`:
 3. `Artifacts/Phase10-Migration/Step5/Verification-Results.md` (when available)
 4. Relevant Step3 discovery outputs
 
-## S6-06: README generated items
+## S6-03: README generated items
 
 `README.md` should include at least:
 
@@ -30,7 +30,7 @@ Required generated files under `Artifacts/Phase10-Migration/Step6/`:
 4. Quick-start execution flow from evaluation to migration and validation.
 5. Security and credential handling notes.
 
-## S6-07: Runbook generated items
+## S6-04: Runbook generated items
 
 `ZDM-Migration-Runbook.md` should include at least:
 
@@ -41,7 +41,7 @@ Required generated files under `Artifacts/Phase10-Migration/Step6/`:
 5. Migration execution, monitoring, pause/resume, and switchover guidance.
 6. Post-migration validation and rollback procedures.
 
-## S6-08: Iterate until `zdm -eval` succeeds or user skips
+## S6-05: Iterate until `zdm -eval` succeeds or user skips
 
 After running `zdm -eval`, the agent must not proceed to migration execution until the evaluation phase passes. The expected behavior is:
 

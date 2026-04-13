@@ -19,7 +19,7 @@ This step runs via the **Remote-SSH** execution model (CR-03): VS Code is connec
 - All commands execute directly on the jumpbox — no script is generated or committed.
 - All outputs land in `Artifacts/` which is git-ignored. No files are committed or create PRs.
 - Do not wrap commands with `sudo su - zdmuser -c "..."` — the session is already `zdmuser`.
-- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
+- **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 ---
 
@@ -28,6 +28,18 @@ This step runs via the **Remote-SSH** execution model (CR-03): VS Code is connec
 - VS Code is connected to the ZDM jumpbox via Remote-SSH (Step 1 complete).
 - Terminal session is running as `zdmuser`.
 - The jumpbox has OpenSSH client available.
+
+---
+
+## First Action: Display Environment Safety Banner (CR-13.3)
+
+Before doing anything else, display the following banner in the chat:
+
+```
+⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+Do not run against production. Generated scripts may be copied to production
+once reviewed and tested — run them manually there.
+```
 
 ---
 
@@ -293,7 +305,7 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o
 
 ## Write Step 2 Output Directory README
 
-Write `Artifacts/Phase10-Migration/Step2/README.md` using file tools (CR-08):
+Write `Artifacts/Phase10-Migration/Step2/README.md` using file tools (CR-07):
 
 ```markdown
 # Step 2 — SSH Connectivity Outputs
@@ -334,7 +346,7 @@ If direct inline terminal commands are insufficient (for example, multi-step key
 If the script is generated:
 - Shell-safe report rendering applies (S2-08): use `printf -- '...\n'` or `%s`-based formatting to avoid `printf` option parsing errors on leading-dash literals.
 - Report write verification applies (S2-09): after writing, verify both markdown and JSON files exist, are non-empty, and have matching `overall_status` and `failure_count`. Exit non-zero if any verification fails.
-- Syntax validation required (CR-12): run `bash -n Artifacts/Phase10-Migration/Step2/Scripts/zdm_test_ssh_connectivity.sh` before using the script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
+- Syntax validation required (CR-11): run `bash -n Artifacts/Phase10-Migration/Step2/Scripts/zdm_test_ssh_connectivity.sh` before using the script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
 
 ---
 

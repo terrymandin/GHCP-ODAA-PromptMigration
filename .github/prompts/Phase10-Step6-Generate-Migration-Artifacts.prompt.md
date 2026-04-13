@@ -27,7 +27,7 @@ This step runs under the **Remote-SSH execution model** (CR-03): VS Code is conn
 - OCI CLI is not required for migration execution (CR-06).
 - Generated scripts and artifacts must not read, source, or parse config artifacts or `zdm-env.md` at runtime (CR-02).
 - Admin login flow: connect as `ZDM_ADMIN_USER`, then `sudo su - zdmuser` to reach the `zdmuser` context (S6-03).
-- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts (`zdm_commands.sh`, `zdm_migrate.rsp`) are safe to copy to production once reviewed and tested in development — run them manually on production; do not re-run this prompt on production.
+- **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts (`zdm_commands.sh`, `zdm_migrate.rsp`) are safe to copy to production once reviewed and tested in development — run them manually on production; do not re-run this prompt on production.
 
 Input precedence rules (CR-01):
 1. `Artifacts/Phase10-Migration/Step4/Migration-Decisions.md`  confirmed RSP parameter decisions from Step 4.
@@ -39,6 +39,18 @@ Input precedence rules (CR-01):
 7. `zdm-env.md` (when explicitly attached)  legacy override with higher precedence than step artifacts.
 8. If configured intent conflicts with discovery evidence, keep both: generate artifacts aligned to the configured intent and explicitly document the mismatch.
 9. Placeholder values containing `<...>` are treated as unset.
+
+---
+
+## First Action: Display Environment Safety Banner (CR-13.3)
+
+Before doing anything else, display the following banner in the chat:
+
+```
+⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+Do not run against production. Generated scripts may be copied to production
+once reviewed and tested — run them manually there.
+```
 
 ---
 
@@ -202,7 +214,7 @@ Write `Artifacts/Phase10-Migration/Step6/ZDM-Migration-Runbook.md` (S6-07):
 
 ## Part 4: Generate `README.md`
 
-Write `Artifacts/Phase10-Migration/Step6/README.md` (CR-08, S6-06):
+Write `Artifacts/Phase10-Migration/Step6/README.md` (CR-07, S6-06):
 
 1. **Migration overview and assumptions**  source/target summary from Step 4 decisions, migration type (online/offline).
 2. **Prerequisites checklist**  all Steps 15 completed; Step 5 blocker resolution state from `Verification-Results.md` when available.
@@ -218,7 +230,7 @@ Write `Artifacts/Phase10-Migration/Step6/README.md` (CR-08, S6-06):
 
 ---
 
-## Part 5: Generation Quality Gate (CR-12)
+## Part 5: Generation Quality Gate (CR-11)
 
 After all artifacts are written to disk, run bash syntax validation in the jumpbox terminal:
 
@@ -240,7 +252,7 @@ After all artifacts are written to disk, run bash syntax validation in the jumpb
 
 ---
 
-## Pre-Execution Risk Banner (CR-14.3)
+## Pre-Execution Risk Banner (CR-13.3)
 
 Before beginning the `zdm -eval` iteration loop, always display the following banner. It is mandatory — do not skip or abbreviate it.
 

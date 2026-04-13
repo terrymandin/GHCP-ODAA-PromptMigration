@@ -19,7 +19,7 @@ Configure the Remote-SSH extension, SSH key, and jumpbox host entry so that subs
 - Copilot **cannot trigger the Remote-SSH connection** — the final connection step requires user interaction via the VS Code Command Palette.
 - Do not run jumpbox commands. Do not read, modify, or create files on the remote jumpbox during this step.
 - Do not use `sudo`, `bash`, or Unix-native commands. Use PowerShell equivalents throughout.
-- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
+- **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 ---
 
@@ -28,6 +28,18 @@ Configure the Remote-SSH extension, SSH key, and jumpbox host entry so that subs
 - VS Code is open in the **local** session (not connected to any remote host).
 - An OpenSSH client is available locally (`ssh` and `ssh-keygen` ship with Windows 10+).
 - No Remote-SSH connection is active yet — this step establishes the connection configuration.
+
+---
+
+## First Action: Display Environment Safety Banner (CR-13.3)
+
+Before doing anything else, display the following banner in the chat:
+
+```
+⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+Do not run against production. Generated scripts may be copied to production
+once reviewed and tested — run them manually there.
+```
 
 ---
 

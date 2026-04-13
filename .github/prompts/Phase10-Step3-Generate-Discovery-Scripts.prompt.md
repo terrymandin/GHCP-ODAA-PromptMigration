@@ -20,7 +20,7 @@ This step uses the **Remote-SSH execution model** (CR-03): VS Code is connected 
 - All outputs land in `Artifacts/` which is git-ignored. No files are committed or create PRs.
 - Do not wrap commands with `sudo su - zdmuser -c "..."` — the session is already `zdmuser`.
 - All discovery commands must be strictly **read-only** (SELECT-only SQL; no DDL/DML; no OS mutation).
-- **Environment scope (CR-14):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
+- **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
 ---
 
@@ -29,6 +29,18 @@ This step uses the **Remote-SSH execution model** (CR-03): VS Code is connected 
 - VS Code is connected to the ZDM jumpbox via Remote-SSH (Step 1 complete).
 - SSH connectivity to source and target has been confirmed (Step 2 complete).
 - `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists (written by Step 2) — or `zdm-env.md` is attached as a legacy fallback.
+
+---
+
+## First Action: Display Environment Safety Banner (CR-13.3)
+
+Before doing anything else, display the following banner in the chat:
+
+```
+⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+Do not run against production. Generated scripts may be copied to production
+once reviewed and tested — run them manually there.
+```
 
 ---
 
@@ -47,7 +59,7 @@ ls -la Artifacts/Phase10-Migration/Step3/db-config.md
 2. `zdm-env.md` is explicitly attached (and `ssh-config.md` is absent) → Parse SSH variables as a legacy override.
 3. Neither → Ask the user to run Step 2 first to write `ssh-config.md`; SSH variables are required to proceed.
 
-**DB/ZDM config resolution (S3-09 / CR-13):**
+**DB/ZDM config resolution (S3-09 / CR-12):**
 
 1. `Artifacts/Phase10-Migration/Step3/db-config.md` exists → Read DB and ZDM variables from it directly. Display a confirmation summary and skip interactive collection. Proceed to [Phase 5: SSH Key Validation](#phase-5-ssh-key-validation).
 2. `zdm-env.md` is explicitly attached (and `db-config.md` is absent) → Parse DB/ZDM variables as a legacy override. Skip interactive collection. Proceed to [Phase 4: Write db-config.md](#phase-4-write-db-configmd).
@@ -200,6 +212,27 @@ ls ~/.ssh/*.pem ~/.ssh/*.key 2>/dev/null || echo "No .pem/.key files found in ~/
 ```
 
 Confirm and report the resolved SSH key handling mode (explicit key vs. default/agent) for each of source and target.
+
+---
+
+## Pre-Execution Risk Banner (CR-13.4)
+
+Before running any discovery commands, display the following full risk banner and wait for the user to type `CONFIRM`:
+
+```
+⚠ ENVIRONMENT SAFETY WARNING
+
+This Copilot agent prompt is intended to run in development/non-production
+environments only. Do not run this prompt directly against a production system.
+
+Generated scripts are safe to copy to production once reviewed and tested in
+development. For production use: review scripts, copy them to the production
+host, and run manually — do not re-run this prompt on production.
+
+Type CONFIRM to proceed with discovery commands, or press Enter to stop here.
+```
+
+Do **not** proceed to Phase 7 (ZDM Server Discovery) until the user types `CONFIRM`. If the user does not type `CONFIRM`, stop and summarize the session user and loaded variables — do not execute any remote commands.
 
 ---
 
@@ -433,7 +466,7 @@ If any debug script is generated, apply these constraints (S3-16):
 - `show_help` and `show_config` must terminate with `exit` and be called only from argument parsing.
 - Support CLI options `-h`, `-c`, `-t`, `-v`.
 
-**Syntax validation required (CR-12):** Run `bash -n <script>` before using any generated script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
+**Syntax validation required (CR-11):** Run `bash -n <script>` before using any generated script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
 
 **Report write verification (S3-16):** After writing reports, verify both markdown and JSON files exist and are non-empty, and that markdown/JSON summary values for overall status match. Exit non-zero on any verification failure.
 
@@ -441,7 +474,7 @@ If any debug script is generated, apply these constraints (S3-16):
 
 ## Write Step 3 Output Directory README
 
-Write `Artifacts/Phase10-Migration/Step3/README.md` using file tools (CR-08):
+Write `Artifacts/Phase10-Migration/Step3/README.md` using file tools (CR-07):
 
 ```markdown
 # Step 3 — Discovery Outputs

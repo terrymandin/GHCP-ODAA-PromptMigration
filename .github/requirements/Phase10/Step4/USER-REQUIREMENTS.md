@@ -19,7 +19,7 @@ Primary inputs:
 - Target discovery files (txt/json)
 - ZDM server discovery files (txt/json)
 
-Optional companion inputs for configured intent/baseline comparison (see CR-13):
+Optional companion inputs for configured intent/baseline comparison (see CR-12):
 
 - `Artifacts/Phase10-Migration/Step2/ssh-config.md` — SSH connectivity configuration written by Step2.
 - `Artifacts/Phase10-Migration/Step3/db-config.md` — database and ZDM configuration written by Step3.
@@ -76,7 +76,7 @@ ZDM Compatibility Gate
    - Halt the migration planning interview.
    - Do not write `Migration-Decisions.md`.
    - Mark the Discovery Summary with `[BLOCKED — compatibility gate failed]`.
-   - Surface each blocker explicitly with the remediation path from S4-12.
+   - Surface each blocker explicitly with the remediation path from S4-06.
 
 2. If only WARNINGs are found:
    - Continue with the interview.
@@ -90,7 +90,7 @@ ZDM Compatibility Gate
 
 If a required compatibility value was not collected in Step3 (e.g., `COMPATIBLE` parameter or timezone version not present in discovery files), flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER requiring re-run of Step3 with the updated discovery scope before proceeding.
 
-## S4-12: Compatibility gate remediation paths
+## S4-06: Compatibility gate remediation paths
 
 For each BLOCKER type, provide the following guidance:
 
@@ -124,7 +124,7 @@ Remount `/tmp` with execute: `mount -o remount,exec /tmp`. To make permanent, up
 **Timezone version (target < source):**
 Upgrade target timezone file before migration: apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Refer to Oracle Doc ID 1509653.1 for the upgrade procedure.
 
-## S4-06: Discovery Summary generated items
+## S4-07: Discovery Summary generated items
 
 `Discovery-Summary.md` should include at least:
 
@@ -139,7 +139,7 @@ Upgrade target timezone file before migration: apply the appropriate DST patch t
 9. Discovered values reference section for Step5/Step6 reuse.
 10. Mismatch section when `zdm-env.md` intent differs from discovery evidence.
 
-## S4-07: Migration Planning Interview
+## S4-08: Migration Planning Interview
 
 After generating the Discovery Summary, conduct a structured interactive interview in decision-tree order before writing any questionnaire output file.
 
@@ -171,7 +171,7 @@ For OFFLINE_PHYSICAL only:
 
 Each question must present the discovered or `zdm-env.md`-sourced recommended default and ask the user to confirm or provide a value.
 
-## S4-10: Interview preconditions
+## S4-09: Interview preconditions
 
 1. Do not begin the interview until Part 1 (Discovery Summary) analysis is complete.
 2. If `zdm-env.md` is attached and contains a non-placeholder value for a question field, present that value as the pre-filled default and ask for confirmation — do not ask an open question.
@@ -179,7 +179,7 @@ Each question must present the discovered or `zdm-env.md`-sourced recommended de
 4. Do not ask Phase B (ONLINE_PHYSICAL) questions when the confirmed method is OFFLINE_PHYSICAL, and vice versa.
 5. Do not proceed to Phase C until Phase B is fully answered.
 
-## S4-11: Decisions Record output
+## S4-10: Decisions Record output
 
 After the interview is complete, write `Migration-Decisions.md` as a **Decisions Record** '€” not a form to fill in.
 

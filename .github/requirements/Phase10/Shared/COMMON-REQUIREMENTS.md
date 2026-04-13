@@ -6,7 +6,7 @@ These requirements apply to all Phase10 ZDM prompts unless a step explicitly ove
 
 ## CR-01: Source of truth precedence
 
-1. Treat step configuration artifacts as the primary authoritative generation input (see CR-13):
+1. Treat step configuration artifacts as the primary authoritative generation input (see CR-12):
    - `Artifacts/Phase10-Migration/Step2/ssh-config.md` for SSH connectivity variables.
    - `Artifacts/Phase10-Migration/Step3/db-config.md` for database and ZDM variables.
 2. When `zdm-env.md` is explicitly attached, treat it as a legacy override with higher precedence than the step artifacts.
@@ -59,7 +59,7 @@ Variable-to-artifact mapping:
 
 1. OCI CLI is not required for migration execution.
 
-## CR-08: Per-step output README requirement
+## CR-07: Per-step output README requirement
 
 1. Each StepX output directory must include a `README.md` file in that step directory.
 2. The step README must summarize:
@@ -69,7 +69,7 @@ Variable-to-artifact mapping:
 	- the success/failure signals to check.
 3. Step-specific requirements may add extra README expectations, but may not remove this baseline requirement.
 
-## CR-09: Two-layer step requirements model
+## CR-08: Two-layer step requirements model
 
 1. Each Phase10 step should separate user-facing intent requirements from script/implementation coding requirements.
 2. User-facing requirements should focus on:
@@ -94,19 +94,19 @@ Naming rule:
 
 - Use only `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md` for every Phase10 step.
 
-## CR-10: Regeneration inputs when requirements are split
+## CR-09: Regeneration inputs when requirements are split
 
 1. Prompt regeneration must include both step files plus shared common requirements.
 2. Shared/common requirements remain the global baseline and do not move into step-level files.
 3. If user-facing and implementation requirements conflict, treat implementation requirements as controlling for generated script behavior, and document the conflict for user review.
 
-## CR-11: Legacy file policy
+## CR-10: Legacy file policy
 
 1. `REQUIREMENTS.md` is no longer a canonical step requirement file for Phase10.
 2. Step requirements must be authored and maintained only in `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md`.
 3. Avoid duplicating the same requirement text in both files; place each requirement in exactly one layer.
 
-## CR-12: Generation quality gate and evidence
+## CR-11: Generation quality gate and evidence
 
 1. Before finalizing generated artifacts, run local non-invasive validation checks allowed by the execution boundary.
 2. Validation must include syntax checks for generated shell scripts (for example `bash -n` on each script).
@@ -115,7 +115,20 @@ Naming rule:
 5. Final output must include a concise validation evidence summary listing checks performed and pass/fail status.
 6. This quality gate applies to all Phase10 steps that generate executable scripts or machine-readable artifacts.
 
-## CR-14: Environment safety and scope disclaimer (applies to all steps)
+## CR-12: Configuration artifact contract
+
+1. Step2 writes `Artifacts/Phase10-Migration/Step2/ssh-config.md` containing SSH connectivity variables.
+2. Step3 writes `Artifacts/Phase10-Migration/Step3/db-config.md` containing database and ZDM variables.
+3. Both artifact files use the same key-value markdown format as `zdm-env.md`:
+   - One variable per line: `- KEY: value`
+   - Blank value means unset: `- KEY: `
+   - Placeholder values containing `<...>` are treated as unset.
+4. Steps 3–6 consume `ssh-config.md` as a read-only input for SSH connectivity context.
+5. Steps 4–6 consume `db-config.md` as a read-only input for database context.
+6. **Pre-populated file bypass**: If the artifact file already exists at the expected path when the step starts, use it directly and skip interactive collection. This enables testing acceleration — users may pre-populate either artifact file to bypass the collection phase.
+7. Generated scripts and runtime artifacts must not read, source, or parse either config artifact at runtime (CR-02 applies).
+
+## CR-13: Environment safety and scope disclaimer (applies to all steps)
 
 1. **Copilot agent prompts** are intended to run in **development and non-production environments only**. Do not run Copilot agent prompts directly against production systems.
 2. **Generated scripts** are designed to be portable and are safe to use in both development and production environments, once reviewed and tested. The recommended workflow is: run the prompt in development → review and test generated scripts → copy scripts to production → execute manually.
@@ -131,16 +144,3 @@ Naming rule:
    - Any scripts that operate at Oracle Home or OS scope (affecting all databases on the server), listed explicitly.
    - A `CONFIRM` acknowledgment gate: do not proceed to execution until the user types `CONFIRM`.
 5. Prompts must never imply that running Copilot agent steps directly on a production system is a supported or recommended workflow.
-
-## CR-13: Configuration artifact contract
-
-1. Step2 writes `Artifacts/Phase10-Migration/Step2/ssh-config.md` containing SSH connectivity variables.
-2. Step3 writes `Artifacts/Phase10-Migration/Step3/db-config.md` containing database and ZDM variables.
-3. Both artifact files use the same key-value markdown format as `zdm-env.md`:
-   - One variable per line: `- KEY: value`
-   - Blank value means unset: `- KEY: `
-   - Placeholder values containing `<...>` are treated as unset.
-4. Steps 3–6 consume `ssh-config.md` as a read-only input for SSH connectivity context.
-5. Steps 4–6 consume `db-config.md` as a read-only input for database context.
-6. **Pre-populated file bypass**: If the artifact file already exists at the expected path when the step starts, use it directly and skip interactive collection. This enables testing acceleration — users may pre-populate either artifact file to bypass the collection phase.
-7. Generated scripts and runtime artifacts must not read, source, or parse either config artifact at runtime (CR-02 applies).

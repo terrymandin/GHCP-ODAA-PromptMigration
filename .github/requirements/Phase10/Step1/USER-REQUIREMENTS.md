@@ -53,7 +53,7 @@ Collect or confirm these values interactively before writing the SSH config entr
 | `JUMPBOX_SSH_KEY` | Local path to the private key file | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
 | `JUMPBOX_ALIAS` | Host alias for `~/.ssh/config` (default: `zdm-jumpbox`) | `zdm-jumpbox` |
 
-**Pre-populated bypass (CR-13)**: If `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` already exists and shows status READY, skip interactive collection and display a confirmation that setup is already complete.
+**Pre-populated bypass (CR-12)**: If `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` already exists and shows status READY, skip interactive collection and display a confirmation that setup is already complete.
 
 ## S1-05: SSH key handling
 
