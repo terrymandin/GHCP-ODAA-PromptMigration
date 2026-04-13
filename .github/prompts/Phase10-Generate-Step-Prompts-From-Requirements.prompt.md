@@ -1,5 +1,5 @@
 ---
-agent: agent
+mode: agent
 description: Generate or update Phase10 StepX prompt files from requirements
 ---
 # Generate Phase10 Step Prompt Files From Requirements
@@ -10,7 +10,7 @@ Use this meta prompt to generate or update the StepX prompt files directly from 
 
 ## How To Use
 
-Use this exact command pattern. Replace `X` in the Step requirements paths with `1` through `5`:
+Use this exact command pattern. Replace `X` in the Step requirements paths with `1` through `6`:
 
 ```text
 @Phase10-Generate-Step-Prompts-From-Requirements
@@ -35,11 +35,12 @@ The selected Step is inferred from the attached `StepX/USER-REQUIREMENTS.md` or 
 
 When `X` is provided, update this file:
 
-1. Step 1 — `.github/prompts/Phase10-Step1-Test-SSH-Connectivity.prompt.md`
-2. Step 2 — `.github/prompts/Phase10-Step2-Generate-Discovery-Scripts.prompt.md`
-3. Step 3 — `.github/prompts/Phase10-Step3-Discovery-Questionnaire.prompt.md`
-4. Step 4 — `.github/prompts/Phase10-Step4-Fix-Issues.prompt.md`
-5. Step 5 — `.github/prompts/Phase10-Step5-Generate-Migration-Artifacts.prompt.md`
+1. Step 1 — `.github/prompts/Phase10-Step1-Setup-Remote-SSH.prompt.md`
+2. Step 2 — `.github/prompts/Phase10-Step2-Configure-SSH-Connectivity.prompt.md`
+3. Step 3 — `.github/prompts/Phase10-Step3-Generate-Discovery-Scripts.prompt.md`
+4. Step 4 — `.github/prompts/Phase10-Step4-Discovery-Questionnaire.prompt.md`
+5. Step 5 — `.github/prompts/Phase10-Step5-Fix-Issues.prompt.md`
+6. Step 6 — `.github/prompts/Phase10-Step6-Generate-Migration-Artifacts.prompt.md`
 
 ## Generation Rules
 

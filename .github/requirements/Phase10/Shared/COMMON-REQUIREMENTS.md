@@ -59,19 +59,6 @@ Variable-to-artifact mapping:
 
 1. OCI CLI is not required for migration execution.
 
-## CR-07: Step Prompt vs Example Prompt content boundary
-
-1. Step prompt files (`Phase10-StepX-*.prompt.md`) are the canonical location for all operational instructions, guardrails, prerequisites, execution boundaries, and handoff details.
-2. Example prompt files (`Phase10-Example-StepX-*.prompt.md`) are simplified invocation references and must contain exactly these four sections:
-	- `Example Prompt`
-	- `Expected Output`
-	- `Requirements Summary`
-	- `Next Steps`
-3. Example prompt files must not add extra sections such as Prerequisites, Execution Boundary, or detailed implementation catalogs.
-4. `Requirements Summary` in each example file must provide a concise overview derived from shared and step-specific requirements.
-5. `Next Steps` should contain a concise handoff to the following Phase10 step.
-6. If content is needed beyond those four sections, place it in the corresponding Step prompt file.
-
 ## CR-08: Per-step output README requirement
 
 1. Each StepX output directory must include a `README.md` file in that step directory.
@@ -91,7 +78,7 @@ Variable-to-artifact mapping:
 	- execution boundary,
 	- user-visible behavior and success criteria.
 3. Implementation requirements should focus on:
-	- coding patterns,
+	- coding patterns
 	- shell/sql implementation constraints,
 	- required snippets/examples,
 	- schema/format details for machine-readable outputs.
@@ -112,7 +99,6 @@ Naming rule:
 1. Prompt regeneration must include both step files plus shared common requirements.
 2. Shared/common requirements remain the global baseline and do not move into step-level files.
 3. If user-facing and implementation requirements conflict, treat implementation requirements as controlling for generated script behavior, and document the conflict for user review.
-4. Example prompts should continue to summarize combined requirements concisely, while detailed implementation constraints remain in the Step prompt.
 
 ## CR-11: Legacy file policy
 
@@ -133,11 +119,18 @@ Naming rule:
 
 1. **Copilot agent prompts** are intended to run in **development and non-production environments only**. Do not run Copilot agent prompts directly against production systems.
 2. **Generated scripts** are designed to be portable and are safe to use in both development and production environments, once reviewed and tested. The recommended workflow is: run the prompt in development → review and test generated scripts → copy scripts to production → execute manually.
-3. Any prompt step that can modify system state (e.g., Steps 5 and 6) must display a risk banner before presenting execution options. The banner must include:
+3. Every prompt step must display a concise risk banner **at the start of execution**, before any other action, using this format:
+   ```
+   ⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
+   Do not run against production. Generated scripts may be copied to production
+   once reviewed and tested — run them manually there.
+   ```
+4. Any prompt step that can modify system state (e.g., Steps 3, 5, and 6) must additionally display a full risk banner **before presenting execution options or running any commands**. The full banner must include:
    - The development-only restriction for running Copilot prompts.
    - The script promotion path for production use.
    - Any scripts that operate at Oracle Home or OS scope (affecting all databases on the server), listed explicitly.
-4. Prompts must never imply that running Copilot agent steps directly on a production system is a supported or recommended workflow.
+   - A `CONFIRM` acknowledgment gate: do not proceed to execution until the user types `CONFIRM`.
+5. Prompts must never imply that running Copilot agent steps directly on a production system is a supported or recommended workflow.
 
 ## CR-13: Configuration artifact contract
 
