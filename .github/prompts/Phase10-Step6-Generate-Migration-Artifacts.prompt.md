@@ -285,9 +285,15 @@ Do **not** begin the `zdm -eval` loop until the user types `CONFIRM`. If the use
 
 After the quality gate passes, begin the evaluation loop:
 
-1. Run `zdm -eval` using the generated response file and capture the full output.
+1. **Before running `zdm -eval`**, confirm both prerequisite layers have passed:
+   - **Layer 1**: `Scripts/preflight_l1_infrastructure.sh` results in `Artifacts/Phase10-Migration/Step5/Verification-Results.md` show all-PASS under `### Layer 1 Infrastructure Pre-flight`. If any Layer 1 check is FAIL, surface the failures and stop — do not submit `zdm -eval`.
+   - **Layer 2**: `Artifacts/Phase10-Migration/Step5/Verification-Results.md` from `verify_fixes.sh` shows all blocker checks PASS. If any Layer 2 blocker is outstanding, surface them and stop.
+
+   Once both layers are confirmed PASS, run `zdm -eval` using the generated response file and capture the full output.
 2. If evaluation **succeeds** (exit code 0 / no blocking errors), surface the success output and proceed to the Completion Checklist.
-3. If evaluation **fails**, surface the error output, attempt remediation (re-run relevant fix scripts from Step 5, adjust `zdm_migrate.rsp`), and re-run `zdm -eval`.
+3. If evaluation **fails**, surface the error output and triage the failure against the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`):
+   - If the failure **matches a cache entry**: apply the remediation guidance from that cache row (re-run the relevant fix script from Step 5 or adjust `zdm_migrate.rsp`), then re-run `zdm -eval`.
+   - If the failure is **NOT in the cache**: add it to the cache file under the appropriate layer section, noting it as `[zdm-eval-feedback <date>]` per CR-14-F. Then attempt remediation (adjust `zdm_migrate.rsp` or create a new fix script) and re-run `zdm -eval`.
 4. Repeat the fix-and-retry loop until either:
    - `zdm -eval` exits successfully, **or**
    - The user explicitly instructs the agent to **skip** evaluation (for example: responds with "skip eval" or confirms they want to proceed despite failures).

@@ -131,6 +131,60 @@ Analyze the Discovery Summary and categorize all issues:
 
 ---
 
+## Part 1b: Generate Layer 1 Infrastructure Pre-flight Script (S5-08, CR-14-B)
+
+Before generating database-level fix scripts, generate the Layer 1 infrastructure pre-flight check script from the CR-14 prerequisite cache.
+
+### Prerequisite cache access
+
+Apply the CR-14-B fetch-and-cache protocol to ensure the cache file exists:
+
+```bash
+ls -la ~/Artifacts/Phase10-Migration/ZDM-Doc-Checks/
+```
+
+If the cache file `Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md` does not exist:
+- Use `fetch_webpage` to retrieve and cache the ZDM documentation prerequisites for the discovered ZDM version (see CR-14-A for URLs).
+- If `fetch_webpage` is unavailable and no cache exists, surface the failure and pause — do not generate the pre-flight script with hardcoded checks.
+
+### Generated artifacts
+
+Write the following files using file tools:
+
+- `Artifacts/Phase10-Migration/Step5/Scripts/preflight_l1_infrastructure.sh`
+- `Artifacts/Phase10-Migration/Step5/Scripts/README-preflight_l1_infrastructure.md`
+
+### Script generation rules
+
+1. Read the **"Layer 1 — Infrastructure"** section of the CR-14 cache file.
+2. For each row in that section, generate a corresponding shell check using the `Verification command` column from the cache row.
+3. Label each check in the script output with `L1_CHECK:<check-name>:<status>` and the doc section from the cache row so a human can trace it back to ZDM documentation.
+4. Each check must report `[PASS]`, `[FAIL]`, or `[SKIP]` with a one-line explanation.
+5. Script must **not** abort on first failure — run all checks and summarize at the end.
+6. Exit code 0 if all checks pass; non-zero if any check fails.
+7. All failures must include the exact command that failed and the output received.
+8. Include a comment block at the top listing the cache file path and the date the script was generated from it.
+
+```bash
+# LAYER 1 PRE-FLIGHT CHECK SCRIPT
+# Generated from: Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md
+# Generated on:   <YYYY-MM-DD HH:MM UTC>
+# ZDM Version:    <zdm-version>
+#
+# Usage: Run as zdmuser on the ZDM jumpbox.
+#        bash Scripts/preflight_l1_infrastructure.sh
+
+[ "$(id -un)" = "zdmuser" ] || { echo "ERROR: must run as zdmuser"; exit 1; }
+
+# Results are prefixed: L1_CHECK:<check-name>:<PASS|FAIL|SKIP>
+```
+
+### Layer 1 pre-flight relationship to database fix scripts
+
+Layer 1 failures are **blocking** for the database-level fix menu (S5-07). This script will be executed in Part 5 (Step 5b) after the operator confirms the CONFIRM banner. All Layer 1 checks must PASS before the database fix script inventory (Step 5c) is presented.
+
+---
+
 ## Part 2: Generate Remediation Scripts
 
 For each blocker and required action, generate a remediation script under `Artifacts/Phase10-Migration/Step5/Scripts/`. Use this naming convention (S5-07):
@@ -396,7 +450,27 @@ If no `ORACLE-HOME` or `OS` scope scripts are present, omit the blast-radius par
 
 Do **not** display the execution menu until the user types `CONFIRM`. If the user does not type `CONFIRM`, default to Option A (review only — no execution).
 
-### Step 5b: Script inventory table (S5-11)
+### Step 5b: Run Layer 1 Infrastructure Pre-flight (S5-08)
+
+After `CONFIRM` is received, execute the Layer 1 pre-flight check script inline before presenting the database fix inventory:
+
+```bash
+bash ~/Artifacts/Phase10-Migration/Step5/Scripts/preflight_l1_infrastructure.sh
+```
+
+Display the full output of the pre-flight run inline in the chat.
+
+**If all L1 checks PASS:**
+- Append the pre-flight results to `Verification-Results.md` under a `### Layer 1 Infrastructure Pre-flight` section.
+- Proceed to Step 5c (database fix inventory).
+
+**If any L1 check FAILS:**
+- Append the failing check results to `Verification-Results.md` under `### Layer 1 Infrastructure Pre-flight`.
+- Surface each failing check name and the remediation guidance from the `[ZDM doc section]` column in the CR-14 cache file (CR-14-E).
+- **Do not present the Step 5c database fix script inventory until all Layer 1 checks pass.**
+- Instruct the operator to resolve Layer 1 failures manually using the ZDM documentation referenced in each failing check row, then re-run this prompt to retry.
+
+### Step 5c: Script inventory table (S5-11)
 
 After `CONFIRM` is received, present the script inventory table:
 
@@ -418,7 +492,7 @@ Options:
 
 Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu (S5-09).
 
-### Step 5c: Conditional inline execution (S5-09)
+### Step 5d: Conditional inline execution (S5-09)
 
 When the user triggers execution:
 - **`run all`** — invoke `fix_orchestrator.sh` inline via the terminal.
@@ -556,6 +630,8 @@ Artifacts/Phase10-Migration/
     ├── Verification-Results.md                 # Written by operator running verify_fixes.sh
     ├── Verification/                           # Verification script log output directory
     └── Scripts/
+        ├── preflight_l1_infrastructure.sh      # Layer 1 infrastructure pre-flight checks (S5-08)
+        ├── README-preflight_l1_infrastructure.md  # Companion README for Layer 1 pre-flight
         ├── verify_fixes.sh                     # Verification script — writes Verification-Results.md
         ├── fix_<issue-id>_<short-name>.sh      # Per-issue remediation script(s)
         ├── README-fix_<issue-id>_<short-name>.md  # Companion README per fix script
@@ -573,6 +649,7 @@ Before proceeding to Step 6, confirm:
 
 - [ ] All ❌ Blockers resolved in `Issue-Resolution-Log.md`
 - [ ] All ⚠️ Required Actions completed
+- [ ] `preflight_l1_infrastructure.sh` generated and all Layer 1 checks PASS (visible in `Verification-Results.md` under `### Layer 1 Infrastructure Pre-flight`)
 - [ ] Each remediation script has a `README-<scriptname>.md` alongside it
 - [ ] `verify_fixes.sh` has been run by the operator — all blocker checks PASS
 - [ ] `Verification-Results.md` is present in `Artifacts/Phase10-Migration/Step5/`
