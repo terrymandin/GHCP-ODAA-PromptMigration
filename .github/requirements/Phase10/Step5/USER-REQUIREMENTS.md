@@ -127,3 +127,35 @@ Options:
 ```
 
 Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu. See S5-12 for execution constraints.
+
+## S5-08: Layer 1 infrastructure pre-flight checks (no DB credentials required)
+
+In addition to database-level fix scripts, Step5 must generate and execute a Layer 1 infrastructure pre-flight check script that validates all CR-14 Layer 1 items. This script runs via SSH and OS commands only — no database connections.
+
+### Output contract
+
+- `Scripts/preflight_l1_infrastructure.sh` — Layer 1 pre-flight check script
+- `Scripts/README-preflight_l1_infrastructure.md` — companion README
+- Results appended to `Verification-Results.md` under a `### Layer 1 Infrastructure Pre-flight` section
+
+### Layer 1 checks (doc-derived from cache)
+
+The specific checks that `preflight_l1_infrastructure.sh` must perform are read from the **Layer 1** section of the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`). Apply the CR-14-B fetch-and-cache protocol to ensure the cache exists before generating this script.
+
+Do not hardcode the check list in this requirement. The script generator must:
+1. Read the cache file.
+2. For each row in the "Layer 1 — Infrastructure" section, generate a corresponding shell check using the verification command from the cache row.
+3. Label each check in the script output with the check name and doc section from the cache row so a human can trace it back to the ZDM documentation.
+
+### Script behavior rules
+
+1. Each check must report `[PASS]`, `[FAIL]`, or `[SKIP]` with a one-line explanation.
+2. Script must not abort on first failure — run all checks and summarize at the end.
+3. Exit code 0 if all checks pass; non-zero if any check fails.
+4. All failures must include the exact command that failed and the output received.
+5. Results must be machine-parseable: prefix each result line with `L1_CHECK:<check-name>:<status>`.
+6. At the top of the script, include a comment block listing the cache file path and the date the script was generated from it.
+
+### Relationship to database fix scripts
+
+Layer 1 failures are **blocking** — do not execute database fix scripts (`fix_orchestrator.sh`) until all Layer 1 checks pass. Surface L1 failures to the user with remediation guidance from CR-14-E before presenting the S5-07 database fix menu.

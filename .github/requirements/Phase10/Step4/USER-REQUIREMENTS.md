@@ -112,8 +112,26 @@ Enable archivelog mode on source: `SHUTDOWN IMMEDIATE; STARTUP MOUNT; ALTER DATA
 **SPFILE not in use:**
 Create SPFILE from PFILE: `CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
 
-**TDE wallet not OPEN:**
+**TDE wallet not OPEN (CDB):**
 Open the TDE wallet: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.
+
+**TDE wallet not OPEN for one or more PDBs:**
+Connect to the affected PDB and open its wallet: `ALTER SESSION SET CONTAINER=<pdb_name>; ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;`. Alternatively, open all containers at CDB level: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password> CONTAINER=ALL;`. Verify with the per-PDB join query from CR-14 Layer 2.
+
+**TDE master key missing for one or more PDBs (ORA-28361):**
+For each PDB without a master key row in `v$encryption_keys`: connect to the PDB and set the key: `ALTER SESSION SET CONTAINER=<pdb_name>; ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE IDENTIFIED BY <password> WITH BACKUP;`. Then persist: `ADMINISTER KEY MANAGEMENT USE KEY '<key_id>' IDENTIFIED BY <password> WITH BACKUP; EXECUTE DBMS_SERVICE.SAVE_STATE;`. Verify by re-running the `v$encryption_keys` query from CR-14 Layer 2.
+
+**DB_NAME mismatch (source ≠ target):**
+Source and target must have the same `DB_NAME`. Options: (1) Reprovision the target database with the correct `DB_NAME`. (2) Rename the source `DB_NAME` using the NID utility: `nid target=/ dbname=<new_name> setname=yes` (requires database in MOUNT state; renames `DB_NAME` without regenerating DBIDs — verify with `SELECT name FROM v$database` after restart). Note: renaming the source DB_NAME changes the CONTROLFILE autobackup file naming pattern.
+
+**DB_UNIQUE_NAME collision (source = target):**
+Source and target `DB_UNIQUE_NAME` must differ. Rename the target: `ALTER SYSTEM SET DB_UNIQUE_NAME='<new_unique_name>' SCOPE=SPFILE;` then restart the target. The `TGT_DB_UNIQUE_NAME` RSP parameter must match the renamed value.
+
+**FORCE LOGGING not enabled:**
+Enable on source: `ALTER DATABASE FORCE LOGGING;`. Verify: `SELECT force_logging FROM v$database;` must return `YES`.
+
+**RMAN CONTROLFILE AUTOBACKUP not ON:**
+Enable on source: `RMAN> CONFIGURE CONTROLFILE AUTOBACKUP ON;`. Verify: `SELECT value FROM v$rman_configuration WHERE name='CONTROLFILE AUTOBACKUP';` must return `ON`. Set the autobackup format to the NFS path if NFS is the transfer medium.
 
 **Hostname collision:**
 Source and target must be on different hosts. This is a provisioning error — provision the target on a different host.
@@ -145,8 +163,10 @@ After generating the Discovery Summary, conduct a structured interactive intervi
 
 Interview phases — must be completed in sequence:
 
-**Phase A — Migration Type (gates all subsequent questions)**
+**Phase A — Migration Type and Platform (gates all subsequent questions)**
 1. Confirm (or override) the recommended migration method: ONLINE_PHYSICAL or OFFLINE_PHYSICAL.
+2. **Target platform type** (determines `PLATFORM_TYPE` RSP parameter): read the Layer 0 rows from the CR-14 prerequisite cache for the current ZDM version. Present the allowed values and their RSP mappings from the cache. Do not hardcode the allowed values here.
+3. **Source storage type** (determines `zdmcli` identifier flag): read from the Layer 0 cache rows. Default to the value inferred from Step3 discovery (`db_create_file_dest` parameter or ASM PMON process evidence); ask for confirmation.
 
 **Phase B — Migration-type-specific questions**
 

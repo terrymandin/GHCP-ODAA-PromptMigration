@@ -58,6 +58,17 @@ All outputs are git-ignored. No files are committed or create PRs.
 3. A failure in one discovery target does not abort discovery for the remaining targets.
 4. Discovery outputs are written by Copilot using file tools after each discovery stage completes.
 
+## S3-05b: Prerequisite cache initialization
+
+Before running discovery, apply the CR-14 doc-fetch-and-cache protocol:
+
+1. Read the ZDM version from Step3 ZDM server discovery (run `$ZDM_HOME/bin/zdmcli -version` locally as zdmuser).
+2. Check for an existing cache file at `Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`.
+3. If the cache does not exist (or the user said `refresh docs`), fetch the applicable ZDM doc URL(s) from CR-14-A, extract checks using the rules in CR-14-D, and write the cache file.
+4. Use the cache as the authoritative source for all Layer 2 SQL queries run during source and target discovery.
+
+This step ensures that any new prerequisites added to the ZDM documentation are automatically included in discovery without changes to these requirement files.
+
 ## S3-06: Discovery items covered
 
 Use this section as the editable source-of-truth list for discovery coverage. Add new items here first, then regenerate/update prompts.
@@ -75,7 +86,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 	- `sqlplus` version.
 4. Database configuration: name/unique name/role/open mode/character sets; archivelog/force/supplemental logging.
 5. CDB/PDB posture: CDB status and PDB names/open modes.
-6. TDE status: wallet type/location and encrypted tablespaces.
+6. TDE status — run all Layer 2 TDE checks from the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`, section "Layer 2 — Source DB prerequisites"). The cache provides the SQL queries and pass conditions extracted from the ZDM documentation. At minimum, the cache will include per-CDB and per-PDB wallet status and per-PDB master key existence checks. Also collect encrypted tablespace list: `SELECT name, encrypted FROM v$tablespace`.
 7. Tablespace/datafile posture: autoextend settings and current/max sizing.
 8. Redo/archive posture: redo groups/sizes/members and archive destinations.
 9. Network config: listener status, `tnsnames.ora`, `sqlnet.ora`.
@@ -84,12 +95,9 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 12. Backup posture: schedules/policies and most recent successful backup evidence.
 13. Integration objects: database links, materialized views/logs, scheduler jobs that may require post-cutover updates.
 14. Data Guard parameters/config evidence when applicable.
-15. ZDM compatibility items (required for compatibility gate in Step4):
-	- `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
-	- `SPFILE` in use (`SHOW PARAMETER spfile` — non-empty value confirms SPFILE).
-	- Timezone file version (`SELECT * FROM v$timezone_file`).
-	- `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
-	- Full DB version banner (`SELECT * FROM v$version` or `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
+15. ZDM compatibility items (required for compatibility gate in Step4): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite cache. The cache is the authoritative, doc-derived list of what to collect. Do not limit collection to a hardcoded subset. Additionally always collect:
+	- `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
+	- Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
 
 ### Target discovery
 
