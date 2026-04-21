@@ -165,8 +165,8 @@ Interview phases — must be completed in sequence:
 
 **Phase A — Migration Type and Platform (gates all subsequent questions)**
 1. Confirm (or override) the recommended migration method: ONLINE_PHYSICAL or OFFLINE_PHYSICAL.
-2. **Target platform type** (determines `PLATFORM_TYPE` RSP parameter): read the Layer 0 rows from the CR-14 prerequisite cache for the current ZDM version. Present the allowed values and their RSP mappings from the cache. Do not hardcode the allowed values here.
-3. **Source storage type** (determines `zdmcli` identifier flag): read from the Layer 0 cache rows. Default to the value inferred from Step3 discovery (`db_create_file_dest` parameter or ASM PMON process evidence); ask for confirmation.
+2. **Target platform type** (determines `PLATFORM_TYPE` RSP parameter): read the Layer 0 rows from the CR-14 prerequisite catalog file (loaded per CR-14-A from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`) for the current ZDM version. Present the allowed values and their RSP mappings from the catalog. Do not hardcode the allowed values here.
+3. **Source storage type** (determines `zdmcli` identifier flag): read from the Layer 0 catalog file rows (loaded per CR-14-A). Default to the value inferred from Step3 discovery (`db_create_file_dest` parameter or ASM PMON process evidence); ask for confirmation.
 
 **Phase B — Migration-type-specific questions**
 

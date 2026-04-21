@@ -291,9 +291,9 @@ After the quality gate passes, begin the evaluation loop:
 
    Once both layers are confirmed PASS, run `zdm -eval` using the generated response file and capture the full output.
 2. If evaluation **succeeds** (exit code 0 / no blocking errors), surface the success output and proceed to the Completion Checklist.
-3. If evaluation **fails**, surface the error output and triage the failure against the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`):
-   - If the failure **matches a cache entry**: apply the remediation guidance from that cache row (re-run the relevant fix script from Step 5 or adjust `zdm_migrate.rsp`), then re-run `zdm -eval`.
-   - If the failure is **NOT in the cache**: add it to the cache file under the appropriate layer section, noting it as `[zdm-eval-feedback <date>]` per CR-14-F. Then attempt remediation (adjust `zdm_migrate.rsp` or create a new fix script) and re-run `zdm -eval`.
+3. If evaluation **fails**, surface the error output and triage the failure against the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A):
+   - If the failure **matches a catalog entry**: apply the remediation guidance from that catalog row (re-run the relevant fix script from Step 5 or adjust `zdm_migrate.rsp`), then re-run `zdm -eval`.
+   - If the failure is **NOT in the catalog**: add it to the catalog file under the appropriate layer section, noting it as `[zdm-eval-feedback <date>]` per CR-14-D. Then attempt remediation (adjust `zdm_migrate.rsp` or create a new fix script) and re-run `zdm -eval`.
 4. Repeat the fix-and-retry loop until either:
    - `zdm -eval` exits successfully, **or**
    - The user explicitly instructs the agent to **skip** evaluation (for example: responds with "skip eval" or confirms they want to proceed despite failures).

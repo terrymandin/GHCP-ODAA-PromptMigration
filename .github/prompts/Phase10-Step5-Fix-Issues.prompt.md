@@ -131,21 +131,22 @@ Analyze the Discovery Summary and categorize all issues:
 
 ---
 
-## Part 1b: Generate Layer 1 Infrastructure Pre-flight Script (S5-08, CR-14-B)
+## Part 1b: Generate Layer 1 Infrastructure Pre-flight Script (S5-08, CR-14-A)
 
-Before generating database-level fix scripts, generate the Layer 1 infrastructure pre-flight check script from the CR-14 prerequisite cache.
+Before generating database-level fix scripts, generate the Layer 1 infrastructure pre-flight check script from the CR-14 prerequisite catalog.
 
-### Prerequisite cache access
+### Prerequisite catalog access
 
-Apply the CR-14-B fetch-and-cache protocol to ensure the cache file exists:
+Apply the CR-14-A version lookup protocol to read the catalog file before generating this script:
 
-```bash
-ls -la ~/Artifacts/Phase10-Migration/ZDM-Doc-Checks/
-```
+1. Determine the ZDM version from `db-config.md` or the most recent ZDM server discovery report.
+2. Determine the migration method from `Migration-Decisions.md`; default to `ONLINE_PHYSICAL` if not yet confirmed.
+3. Select the catalog file path:
+   - `ONLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/online-physical.md`
+   - `OFFLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/offline-physical.md`
+4. Use `read_file` to load the catalog file. If the version directory does not exist, substitute `26.1` and log a warning.
 
-If the cache file `Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md` does not exist:
-- Use `fetch_webpage` to retrieve and cache the ZDM documentation prerequisites for the discovered ZDM version (see CR-14-A for URLs).
-- If `fetch_webpage` is unavailable and no cache exists, surface the failure and pause — do not generate the pre-flight script with hardcoded checks.
+Do NOT use `fetch_webpage` for ZDM documentation. Do NOT read or write `Artifacts/Phase10-Migration/ZDM-Doc-Checks/`.
 
 ### Generated artifacts
 
@@ -156,9 +157,9 @@ Write the following files using file tools:
 
 ### Script generation rules
 
-1. Read the **"Layer 1 — Infrastructure"** section of the CR-14 cache file.
-2. For each row in that section, generate a corresponding shell check using the `Verification command` column from the cache row.
-3. Label each check in the script output with `L1_CHECK:<check-name>:<status>` and the doc section from the cache row so a human can trace it back to ZDM documentation.
+1. Read the **"Layer 1 — Infrastructure"** section of the CR-14 catalog file (loaded per CR-14-A above).
+2. For each row in that section, generate a corresponding shell check using the `Verification command` column from the catalog row.
+3. Label each check in the script output with `L1_CHECK:<check-name>:<status>` and the doc section from the catalog row so a human can trace it back to ZDM documentation.
 4. Each check must report `[PASS]`, `[FAIL]`, or `[SKIP]` with a one-line explanation.
 5. Script must **not** abort on first failure — run all checks and summarize at the end.
 6. Exit code 0 if all checks pass; non-zero if any check fails.
@@ -167,7 +168,7 @@ Write the following files using file tools:
 
 ```bash
 # LAYER 1 PRE-FLIGHT CHECK SCRIPT
-# Generated from: Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md
+# Generated from: .github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md
 # Generated on:   <YYYY-MM-DD HH:MM UTC>
 # ZDM Version:    <zdm-version>
 #
@@ -466,7 +467,7 @@ Display the full output of the pre-flight run inline in the chat.
 
 **If any L1 check FAILS:**
 - Append the failing check results to `Verification-Results.md` under `### Layer 1 Infrastructure Pre-flight`.
-- Surface each failing check name and the remediation guidance from the `[ZDM doc section]` column in the CR-14 cache file (CR-14-E).
+- Surface each failing check name and the remediation guidance from the `[ZDM doc section]` column in the CR-14 catalog file (per CR-14-C).
 - **Do not present the Step 5c database fix script inventory until all Layer 1 checks pass.**
 - Instruct the operator to resolve Layer 1 failures manually using the ZDM documentation referenced in each failing check row, then re-run this prompt to retry.
 

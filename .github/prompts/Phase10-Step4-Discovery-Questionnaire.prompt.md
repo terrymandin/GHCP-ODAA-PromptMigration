@@ -266,12 +266,12 @@ Ask in order:
 > Confirm `ONLINE_PHYSICAL`, choose `OFFLINE_PHYSICAL`, or provide a reason to change:
 
 > **[A2] Target Platform Type** (`PLATFORM_TYPE` RSP parameter)
-> Read the **Layer 0** rows from the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`) for the current ZDM version. Present the allowed values and their RSP mappings exactly as listed in the cache — do not hardcode the allowed values here.
+> Read the **Layer 0** rows from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A) for the current ZDM version. Present the allowed values and their RSP mappings exactly as listed in the catalog — do not hardcode the allowed values here.
 > Based on Step 3 target discovery, the recommended value is **[inferred from target environment type]**.
 > Confirm or select the correct value:
 
 > **[A3] Source Storage Type** (determines `zdmcli` identifier flag)
-> Read the **Layer 0** rows from the CR-14 prerequisite cache for the allowed source storage type values and their `zdmcli` flag mappings. Default to the value inferred from Step 3 source discovery (`db_create_file_dest` parameter or ASM PMON process evidence).
+> Read the **Layer 0** rows from the CR-14 prerequisite catalog file (loaded per CR-14-A) for the allowed source storage type values and their `zdmcli` flag mappings. Default to the value inferred from Step 3 source discovery (`db_create_file_dest` parameter or ASM PMON process evidence).
 > Confirm the inferred value or provide a correction:
 
 Do not proceed to Phase B until all three Phase A questions (A1, A2, A3) are answered.
@@ -341,8 +341,8 @@ One row per answered question. No blank or placeholder values permitted (S4-12):
 | Parameter | RSP / CLI Mapping | Value | Source |
 |-----------|-------------------|-------|--------|
 | MIGRATION_METHOD | `MIGRATION_METHOD` | ONLINE_PHYSICAL | confirmed by operator |
-| PLATFORM_TYPE | `PLATFORM_TYPE` | <from Layer 0 cache> | confirmed by operator |
-| SOURCE_STORAGE_TYPE | *(zdmcli flag)* | <from Layer 0 cache> | confirmed by operator |
+| PLATFORM_TYPE | `PLATFORM_TYPE` | <from Layer 0 catalog> | confirmed by operator |
+| SOURCE_STORAGE_TYPE | *(zdmcli flag)* | <from Layer 0 catalog> | confirmed by operator |
 | LOG_SWITCH_INTERVAL | `LOG_SWITCH_INTERVAL` | 20 | confirmed by operator |
 | DATAGUARD_PROTECTION_MODE | `DATAGUARD_PROTECTION_MODE` | MAX_PERFORMANCE | confirmed by operator |
 | DATA_TRANSFER_MEDIUM | `DATA_TRANSFER_MEDIUM` | OSS | confirmed by operator |

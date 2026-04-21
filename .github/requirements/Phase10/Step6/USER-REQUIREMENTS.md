@@ -50,10 +50,10 @@ After running `zdm -eval`, the agent must not proceed to migration execution unt
 1. Confirm Layer 1 (`preflight_l1_infrastructure.sh`) and Layer 2 (compatibility gate in Step4 + `verify_fixes.sh` from Step5) have both passed before submitting. If either layer has outstanding failures, surface them and stop.
 2. Run the `zdm -eval` command and capture its output.
 3. If the evaluation **succeeds** (all phases show `PRECHECK_PASSED`), continue to the next step.
-4. If the evaluation **fails**, triage the failure against the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`):
-   - If the failure maps to a **Layer 1 check** in the cache: fix at Layer 1 (regenerate `preflight_l1_infrastructure.sh` or apply the fix directly), re-run Layer 1, then re-run `zdm -eval`.
-   - If the failure maps to a **Layer 2 check** in the cache: generate or update the relevant fix script from Step5 conventions, apply the fix, re-run `verify_fixes.sh`, then re-run `zdm -eval`.
-   - If the failure is **not in the cache**: add it to the cache under the appropriate layer, noting it as `[zdm-eval-feedback <date>]` per CR-14-F. Then apply the fix and re-run `zdm -eval`. This keeps the cache growing with real-world failures so future runs catch the issue earlier.
+4. If the evaluation **fails**, triage the failure against the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A):
+   - If the failure maps to a **Layer 1 check** in the catalog: fix at Layer 1 (regenerate `preflight_l1_infrastructure.sh` or apply the fix directly), re-run Layer 1, then re-run `zdm -eval`.
+   - If the failure maps to a **Layer 2 check** in the catalog: generate or update the relevant fix script from Step5 conventions, apply the fix, re-run `verify_fixes.sh`, then re-run `zdm -eval`.
+   - If the failure is **not in the catalog**: add it to the catalog file under the appropriate layer, noting it as `[zdm-eval-feedback <date>]` per CR-14-D. Then apply the fix and re-run `zdm -eval`. This keeps the catalog growing with real-world failures so future runs catch the issue earlier.
 5. Repeat the fix-and-retry loop until either:
    - The `zdm -eval` exits successfully, **or**
    - The user explicitly instructs the agent to **skip** the evaluation.

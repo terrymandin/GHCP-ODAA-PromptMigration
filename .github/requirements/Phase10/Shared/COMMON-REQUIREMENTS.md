@@ -145,120 +145,85 @@ Naming rule:
    - A `CONFIRM` acknowledgment gate: do not proceed to execution until the user types `CONFIRM`.
 5. Prompts must never imply that running Copilot agent steps directly on a production system is a supported or recommended workflow.
 
-## CR-14: Three-layer pre-validation model (ZDM documentation as spec)
+## CR-14: Three-layer pre-validation model (ZDM prerequisites as spec)
 
 All Phase10 migration steps must validate prerequisites in the order below before submitting any job to `zdm -eval`. The goal is to surface any issue that is findable from documentation *before* touching the database or calling ZDM.
 
-**The prerequisite check catalog is derived at runtime from the ZDM product documentation — it is not hardcoded in these requirements.** This ensures checks stay current as ZDM documentation is updated without any change to these requirement files.
+**The prerequisite check catalog is pre-loaded in the repository.** Do not use `fetch_webpage` to retrieve ZDM documentation at runtime. Read the check catalog directly from the versioned requirements files using `read_file`.
 
-### CR-14-A: Authoritative doc URLs (versioned)
+### CR-14-A: Pre-loaded prerequisite catalog files
 
-| Migration method | Doc URL |
-|-----------------|---------|
-| Physical Online to ODAA | `https://docs.oracle.com/en/database/oracle/zero-downtime-migration/<version>/zdmpn/` |
-| Physical Offline to ODAA | `https://docs.oracle.com/en/database/oracle/zero-downtime-migration/<version>/zdmpa/` |
-| Logical Offline to ODAA | `https://docs.oracle.com/en/database/oracle/zero-downtime-migration/<version>/zdmpl/` |
+The catalog files are located in the repository at:
 
-`<version>` is the ZDM version string (e.g., `21.5`) discovered from `$ZDM_HOME/bin/zdmcli -version` during Step3 ZDM server discovery. Substitute the actual discovered version into the URL before fetching.
-
-### CR-14-B: Doc-fetch-and-cache protocol
-
-The prerequisite check catalog must be built by fetching the ZDM documentation and extracting checks from it. A cache file avoids redundant fetches across steps.
-
-**Cache file path:**
 ```
-Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md
+.github/requirements/Phase10/ZDM-Prerequisites/
+  README.md
+  26.1/
+    online-physical.md    ← ONLINE_PHYSICAL checks (Layer 0, 1, 2)
+    offline-physical.md   ← OFFLINE_PHYSICAL checks (Layer 0, 1, 2)
 ```
 
-**Protocol — run at the start of any step that needs the check catalog (Steps 3–6):**
+**Default version**: `26.1`. If the ZDM version discovered from `$ZDM_HOME/bin/zdmcli -version` has no matching subdirectory, use the `26.1/` catalog and log a warning that the catalog version may not exactly match the installed version.
 
-1. **Check for cache**: Does `Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md` exist?
-   - YES and the user has not said `refresh docs` → use the cache file. Skip to step 4.
-   - NO, or user said `refresh docs` → proceed to step 2.
+**Version lookup protocol** — run at the start of any step that needs the check catalog (Steps 3–6):
 
-2. **Fetch docs**: Use `fetch_webpage` to retrieve the applicable URL(s) for the confirmed migration method. If the migration method is not yet confirmed (e.g., early in Step 3), fetch the Physical Online URL as the default; fetch additional method URLs once the method is confirmed.
+1. Obtain the ZDM version string from discovery (e.g., `26.1`). If not yet discovered, use `26.1` as default.
+2. Determine the migration method (`ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`) from `db-config.md` or Step 4 answers. Default to `ONLINE_PHYSICAL` if not yet confirmed.
+3. Select the matching catalog file:
+   - `ONLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/online-physical.md`
+   - `OFFLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/offline-physical.md`
+4. Read the catalog file using `read_file`. This is the authoritative check list for the current step.
 
-3. **Extract and write cache**: Parse the fetched content and extract all prerequisite checks. Write the extracted catalog to the cache file using the format defined in CR-14-C. Confirm the file is non-empty after writing.
+Show inline status: `Prerequisite catalog — loaded (<version>, <method>)` or `Prerequisite catalog — WARNING: version <discovered> not found, using 26.1`.
 
-4. **Use cache**: Read the cache file to obtain the check catalog for the current step's use.
+**Never call `fetch_webpage` for ZDM documentation** during a migration session. If the user says `refresh docs`, direct them to run the `@Phase10-Update-ZDM-Prerequisites` prompt instead.
 
-**If `fetch_webpage` fails** (network unavailable, site unreachable):
-- If a cache file exists for any version, use it and log a warning that the cache may be stale.
-- If no cache exists at all, surface the failure and provide the doc URLs so the user can manually supply the prerequisite list.
-- Do not silently fall back to hardcoded defaults.
+### CR-14-B: Catalog file format
 
-### CR-14-C: Cache file format
-
-The cache file is a structured markdown document. When extracting checks from ZDM docs, populate the following sections. Each check must include the doc section title where it was found so a human can verify the source.
+Each catalog file uses the following structured markdown format. Steps consume it by reading the tables for each layer.
 
 ```markdown
-# ZDM Prerequisites — Extracted from Documentation
+# ZDM Prerequisites — <Method>
+
 - ZDM Version: <version>
-- Migration Method: <ONLINE_PHYSICAL | OFFLINE_PHYSICAL | OFFLINE_LOGICAL>
-- Source URL: <url fetched>
-- Extracted: <date/time>
+- Migration Method: <ONLINE_PHYSICAL | OFFLINE_PHYSICAL>
+- Source URL: <oracle doc url>
+- Extracted: <date>
 
 ## Layer 0 — Questionnaire (no commands needed)
-<!-- Checks answered by asking the user; they directly set RSP params or zdmcli flags -->
 | Parameter | Allowed values | RSP / CLI mapping | Doc section |
 |-----------|---------------|-------------------|-------------|
-| ... | ... | ... | ... |
 
 ## Layer 1 — Infrastructure (no DB credentials)
-<!-- Checks performable with SSH + OS commands only -->
 | Check name | Verification command | Pass condition | Severity | Doc section |
 |------------|---------------------|----------------|----------|-------------|
-| ... | ... | ... | BLOCKER/WARNING | ... |
 
 ## Layer 2 — Source DB prerequisites (requires DB connection)
 | Check name | SQL or command | Pass condition | Severity | Doc section |
 |------------|---------------|----------------|----------|-------------|
-| ... | ... | ... | BLOCKER/WARNING | ... |
 
 ## Layer 2 — Target DB prerequisites (requires DB connection)
 | Check name | SQL or command | Pass condition | Severity | Doc section |
 |------------|---------------|----------------|----------|-------------|
-| ... | ... | ... | BLOCKER/WARNING | ... |
 
 ## Layer 2 — Additional checks for this migration method
-<!-- Logical migration: Data Pump roles, streams_pool_size, etc. -->
 | Check name | SQL or command | Pass condition | Severity | Doc section |
 |------------|---------------|----------------|----------|-------------|
-| ... | ... | ... | BLOCKER/WARNING | ... |
 ```
 
-### CR-14-D: Extraction rules (applied when parsing doc pages)
-
-When extracting checks from a fetched ZDM doc page, apply these rules:
-
-1. **Layer assignment** — assign each extracted prerequisite to a layer:
-   - **Layer 0**: answered by asking the user; no command needed. Examples: `PLATFORM_TYPE` (ExaDB-D → `EXACS`, Base DB → `VMDB`), source storage type (`-sourcesid` vs `-sourcedb`).
-   - **Layer 1**: verifiable with SSH and OS commands only, no `sqlplus`. Examples: SSH key format, passwordless sudo, `/etc/hosts` entries, NFS mounts, Oracle UID match, `tnsping`, ZDM service health.
-   - **Layer 2**: requires a database connection (`sqlplus / as sysdba` via SSH). Examples: `ARCHIVELOG`, `COMPATIBLE`, `DB_NAME`, TDE wallet status, RMAN config.
-
-2. **Severity assignment**:
-   - Mark a check as `BLOCKER` if the doc states the requirement as mandatory or uses language like "must", "required", "mandatory".
-   - Mark a check as `WARNING` if the doc uses language like "should", "recommended", or flags it as a potential issue rather than a hard stop.
-
-3. **SQL construction**: When the doc shows example SQL queries, copy them verbatim into the cache. When the doc states a requirement in prose without SQL, construct the minimal SQL that verifies the condition and note `[constructed]` in the Doc section column.
-
-4. **Completeness**: Extract checks from all sections of the page, including "Prerequisites", "Source and Target Database Prerequisites", "Additional Configuration", and step-by-step preparation sections (e.g., "Step 2: Prepare the Source Database").
-
-5. **New checks**: If a fetched page contains a prerequisite not found in any previous cache for this ZDM version, add it to the cache and note `[new — added <date>]` in the Doc section column.
-
-### CR-14-E: Layer execution rules
+### CR-14-C: Layer execution rules
 
 1. **Layer 0** is answered during the Step4 migration planning interview. Its answers propagate directly to RSP and `zdmcli` flags — no runtime verification needed.
 2. **Layer 1** checks are executed by `preflight_l1_infrastructure.sh` (generated in Step5, S5-08). All L1 checks must pass before L2 checks run.
 3. **Layer 2** checks are evaluated as the Step4 compatibility gate (S4-05). For customers who do not permit automated DB connections, each L2 query is surfaced as a copy-paste block for the DBA to run manually and return results.
-4. **Layer 3** (`zdm -eval`) is submitted only after L0 + L1 + L2 all pass. Any eval failure is triaged against the cache: if it maps to an L1 or L2 check, fix at that layer. If it is not in the cache, add it to the cache as a new check before retrying.
+4. **Layer 3** (`zdm -eval`) is submitted only after L0 + L1 + L2 all pass. Any eval failure is triaged against the catalog: if it maps to an L1 or L2 check, fix at that layer. If it is not in the catalog, add it to the catalog file under the appropriate layer with a note `[new — added <date>, source: zdm-eval-feedback]` and commit the change.
 
-### CR-14-F: Cache lifecycle
+### CR-14-D: Catalog lifecycle
 
 | Trigger | Action |
 |---------|--------|
-| First run of any Step 3–6, no cache exists | Fetch docs, extract, write cache |
-| ZDM version changes (upgrade) | New cache file created for new version; old cache retained |
-| User says `refresh docs` | Re-fetch and overwrite cache for current version |
-| `fetch_webpage` unavailable | Use existing cache with stale warning; fail hard if no cache exists |
-| `zdm -eval` surfaces uncovered failure | Add new check to cache under appropriate layer; note source as `[zdm-eval-feedback]` |
+| Steps 3–6 start | Read catalog from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/` using `read_file` |
+| ZDM version not found in directory | Use `26.1/` catalog; log version mismatch warning |
+| User says `refresh docs` | Direct user to run `@Phase10-Update-ZDM-Prerequisites` prompt; do not fetch at runtime |
+| ZDM upgraded to a new version | Operator runs `@Phase10-Update-ZDM-Prerequisites`, which creates a new versioned directory and commits it |
+| `zdm -eval` surfaces uncovered failure | Add new check to the matching catalog file under the appropriate layer; commit the update |

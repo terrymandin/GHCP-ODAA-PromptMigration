@@ -251,31 +251,26 @@ Show inline status: `ZDM server discovery — PASS` with ZDM version and key sys
 
 ---
 
-## Phase 7b: Prerequisite Cache Initialization (S3-05b, CR-14-B)
+## Phase 7b: Prerequisite Catalog Initialization (S3-05b, CR-14-A)
 
-Using the ZDM version discovered in Phase 7, apply the CR-14 doc-fetch-and-cache protocol before running source and target discovery:
+Using the ZDM version discovered in Phase 7, apply the CR-14-A version lookup protocol before running source and target discovery:
 
-1. **Determine ZDM version** from Phase 7 (`$ZDM_HOME/bin/zdmcli -version` was run as part of ZDM server discovery). Extract the version string (e.g., `21.5`).
+1. **Determine ZDM version** from Phase 7 (`$ZDM_HOME/bin/zdmcli -version` was run as part of ZDM server discovery). Extract the version string (e.g., `26.1`). Use `26.1` as the default if the version could not be determined.
 
-2. **Check for cache**: Does `Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md` exist?
-   - **YES** and the user has not said `refresh docs` → use the existing cache file. Display its version and extraction date, then proceed to Phase 8.
-   - **NO**, or user said `refresh docs` → proceed to step 3.
+2. **Determine migration method**: read `MIGRATION_METHOD` from `db-config.md` if present; default to `ONLINE_PHYSICAL` if not yet confirmed.
 
-3. **Fetch docs**: Use `fetch_webpage` to retrieve the ZDM Online Physical Migration prerequisites page for the discovered ZDM version:
-   ```
-   https://docs.oracle.com/en/database/oracle/zero-downtime-migration/<zdm-version>/zdmpn/
-   ```
-   Substitute the actual discovered ZDM version string. Also fetch the ZDM offline prerequisites page if the migration method from Step 4 is `OFFLINE_PHYSICAL` — defer that fetch to Step 6 if migration method is not yet confirmed.
+3. **Select catalog file path** based on migration method:
+   - `ONLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/online-physical.md`
+   - `OFFLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/offline-physical.md`
 
-4. **Extract and write cache**: Parse the fetched content and extract all prerequisite checks using the rules in CR-14-D. Write the cache file to `Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md` using the format in CR-14-C. Confirm the file is non-empty after writing.
+4. **Read catalog**: Use `read_file` on the selected path. If the version directory does not exist, substitute `26.1` and log a version mismatch warning:
+   > `Prerequisite catalog — WARNING: version <discovered> not found, using 26.1`
 
-5. **Use cache**: Read the cache file to obtain the Layer 1 and Layer 2 check catalog for source and target discovery (used in Phase 8 items 6 and 15, and Phase 9).
+5. **Use catalog**: The loaded catalog file is the authoritative Layer 0, Layer 1, and Layer 2 check list for source and target discovery (used in Phase 8 items 6 and 15, and Phase 9).
 
-**If `fetch_webpage` fails**:
-- If a cache file exists for any version, use it and log a warning that the cache may be stale.
-- If no cache exists, surface the failure, provide the doc URL so the user can manually supply the prerequisite list, and pause — do not silently fall back to a hardcoded check list.
+Do NOT use `fetch_webpage` for ZDM documentation. Do NOT write to `Artifacts/Phase10-Migration/ZDM-Doc-Checks/`. If the user says `refresh docs`, direct them to run `@Phase10-Update-ZDM-Prerequisites` instead.
 
-Show inline status: `Prerequisite cache — initialized (<zdm-version>)` or `Prerequisite cache — WARNING: using stale cache` or `FAIL (reason)`.
+Show inline status: `Prerequisite catalog — loaded (<version>, <method>)` or `Prerequisite catalog — WARNING: version <discovered> not found, using 26.1`.
 
 ---
 
@@ -420,7 +415,7 @@ Collect all of the following (S3-06):
    - `sqlplus` version.
 4. Database configuration: name/unique name/role/open mode/character sets; archivelog/force/supplemental logging.
 5. CDB/PDB posture: CDB status and PDB names/open modes.
-6. TDE status — run all Layer 2 TDE checks from the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`, section "Layer 2 — Source DB prerequisites"). The cache provides SQL queries and pass conditions extracted from ZDM documentation. At minimum, the cache will include per-CDB and per-PDB wallet status and per-PDB master key existence checks. Also collect encrypted tablespace list: `SELECT name, encrypted FROM v$tablespace`.
+6. TDE status — run all Layer 2 TDE checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, section "Layer 2 — Source DB prerequisites"). The catalog provides SQL queries and pass conditions. At minimum, the catalog will include per-CDB and per-PDB wallet status and per-PDB master key existence checks. Also collect encrypted tablespace list: `SELECT name, encrypted FROM v$tablespace`.
 7. Tablespace/datafile posture: autoextend settings and current/max sizing.
 8. Redo/archive posture: redo groups/sizes/members and archive destinations.
 9. Network config: listener status, `tnsnames.ora`, `sqlnet.ora`.
@@ -429,7 +424,7 @@ Collect all of the following (S3-06):
 12. Backup posture: schedules/policies and most recent successful backup evidence.
 13. Integration objects: database links, materialized views/logs, scheduler jobs that may require post-cutover updates.
 14. Data Guard parameters/config evidence when applicable.
-15. ZDM compatibility items (required for compatibility gate in Step 4): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite cache (`Artifacts/Phase10-Migration/ZDM-Doc-Checks/prerequisites-<zdm-version>.md`). The cache is the authoritative, doc-derived list of what to collect — do not limit collection to a hardcoded subset. Additionally always collect:
+15. ZDM compatibility items (required for compatibility gate in Step 4): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect — do not limit collection to a hardcoded subset. Additionally always collect:
    - `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
    - Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
 
