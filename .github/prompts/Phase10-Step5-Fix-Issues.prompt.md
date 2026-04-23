@@ -195,6 +195,12 @@ Scripts/fix_<issue-id>_<short-name>.sh
 ```
 
 Examples: `fix_B01_enable_archivelog.sh`, `fix_B02_create_spfile.sh`, `fix_W01_upgrade_timezone.sh`.
+
+Well-known infrastructure fix scripts for ZDM issues (generate when the corresponding Step 4 gate fires):
+- `fix_W04_zdm_host_hosts_resolution.sh` — adds unresolvable target RAC node entries to `/etc/hosts` on the ZDM jumpbox; scope: `OS` on ZDM host.
+- `fix_W05_source_oracle_sudo.sh` — validates and configures sudoers on the source host for the ZDM `zdmauth` oracle sudo pattern; scope: `OS` on source host.
+- `fix_W06_datapatch_prereq_check.sh` — runs `datapatch -prereqs` on all target RAC nodes and reports full output; surfaces MOS 1609718.1 sqlpatch.pm compatibility issues before ZDM reaches `ZDM_DATAPATCH_TGT`; scope: diagnostic/read-only.
+
 `<issue-id>` uses the Issue-Resolution-Log ID. `<short-name>` is a 2–4 word snake_case description.
 
 ### Target-first remediation preference (S5-10)

@@ -427,6 +427,8 @@ Collect all of the following (S3-06):
 15. ZDM compatibility items (required for compatibility gate in Step 4): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect — do not limit collection to a hardcoded subset. Additionally always collect:
    - `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
    - Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
+   - Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host. BLOCKER for Step 4 gate.
+   - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 4 PATCH_CHECK gate comparing source individual patch numbers against the target Release Update.
 
 ### Target Discovery
 
@@ -445,7 +447,7 @@ Collect all of the following (S3-06):
 5. CDB/PDB posture: CDB status and PDB open mode(s), including pre-created migration PDB.
 6. TDE wallet status/type.
 7. Storage posture: ASM disk groups and free space (plus Exadata cell/grid disk details when available).
-8. Network posture: listener status, SCAN status when applicable, and `tnsnames.ora`.
+8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step 4 SCAN tnsping gate; do not rely on ZDM auto-detection which may return `null:null` if SCAN is not in DNS), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), and `tnsnames.ora`.
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
@@ -455,6 +457,8 @@ Collect all of the following (S3-06):
    - `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
    - Full DB version banner (`SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
    - `SQLNET.ORA` encryption settings: capture `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` explicitly (in addition to network posture coverage).
+   - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 4 PATCH_CHECK gate.
+13. Datapatch compatibility pre-flight: run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -prereqs 2>&1 | head -30` on the target host (or all RAC nodes if RAC). Capture output. A clean exit with no `Unsupported named object type` errors at `sqlpatch.pm` is the PASS condition. This surfaces the MOS 1609718.1 sqlpatch.pm bug before ZDM reaches `ZDM_DATAPATCH_TGT`.
 
 ### ZDM Server Discovery
 
@@ -469,6 +473,7 @@ Collect all of the following (S3-06):
 7. Network context: IP/routing/DNS summaries.
 8. Optional connectivity tests to source/target when env vars are provided (ping/port checks).
 9. Endpoint traceability: source and target endpoint values used during discovery.
+10. RAC node hostname resolution (run after target discovery completes, if target is RAC): for each RAC node hostname collected in target discovery, run `getent hosts <node>` from the ZDM host. Record pass/fail per node. BLOCKER if any node fails to resolve — ZDM communicates with all RAC nodes directly by hostname during migration. Remediation: add missing entries to `/etc/hosts` on the ZDM jumpbox.
 
 ---
 

@@ -124,6 +124,10 @@ ZDM Compatibility Gate
 | `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
 | Timezone file version | Target timezone version must be ≥ source | WARNING |
 | `SQLNET.ORA` encryption algorithm | Must match between source and target | WARNING |
+| ZDM host resolves target RAC node hostnames | `getent hosts <tgt-node1> [<tgt-node2> ...]` from ZDM host (if target is RAC) — all nodes must resolve to an IP | BLOCKER (if RAC) |
+| Source oracle user sudo (ZDM `zdmauth` pattern) | `ssh <src-user>@<src-host> "sudo -u oracle id"` must return oracle UID without error | BLOCKER |
+| Source one-off patches vs target RU (PATCH_CHECK) | Compare `opatch lspatches` on source and target. If target RU ≥ source RU and source has individually-named patches subsumed by the target RU, flag PATCH_CHECK risk. See remediation below. | WARNING — pre-populate `-ignore PATCH_CHECK` in Step 6 when flagged |
+| Target datapatch compatibility | `datapatch -prereqs` exits cleanly on all target nodes without `Unsupported named object type` error at `sqlpatch.pm` | WARNING |
 
 **Missing data handling:** If a required compatibility value was not collected in Step 3, flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER — re-run Step 3 with the updated discovery scope before proceeding.
 
@@ -243,6 +247,15 @@ Source and target must be on different hosts — reprovision the target on a dif
 
 **Timezone file version (target < source):**
 Apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Reference: Oracle Doc ID 1509653.1.
+
+**PATCH_CHECK (PRGT-1017) with higher target RU:**
+When target is at a higher Release Update (RU) than source and source has individually-named one-off patches (e.g., 19.3 one-offs migrating to a 19.29 target), ZDM's PATCH_CHECK phase flags each source patch not individually present in the target home, even though those patches are subsumed by the target's higher RU. This is documented ZDM behavior, not a configuration error. The safe resolution is to add `-ignore PATCH_CHECK` to both `zdmcli migrate database -eval` and `zdmcli migrate database` commands. This flag suppresses the individual patch-number comparison and relies on the target RU for supersession. Confirm that target RU ≥ source RU before using this flag. When Step 4 flags PATCH_CHECK as WARNING, Step 6 must pre-populate `-ignore PATCH_CHECK` in `zdm_commands.sh` with an explanatory comment.
+
+**ZDM host cannot resolve target RAC node hostnames:**
+Add the missing RAC node hostname-to-IP entries to `/etc/hosts` on the ZDM jumpbox (not the source or target). Run `getent hosts <node>` to verify after editing. Step 5 generates `fix_W04_zdm_host_hosts_resolution.sh` for this.
+
+**Source oracle user sudo not configured:**
+Configure sudoers on the source host to allow the ZDM admin user to run commands as `oracle` without a password. Add a line to `/etc/sudoers.d/zdmauth` (or equivalent): `<zdm-admin-user> ALL=(oracle) NOPASSWD: ALL`. Verify with `ssh <src-user>@<src-host> "sudo -u oracle id"`. This is a ZDM-specific requirement from the ZDM Installation Guide, separate from standard Oracle DB setup docs. Step 5 generates `fix_W05_source_oracle_sudo.sh` for this.
 
 ---
 

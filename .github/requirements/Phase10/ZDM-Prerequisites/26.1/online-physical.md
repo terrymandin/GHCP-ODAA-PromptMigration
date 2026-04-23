@@ -38,7 +38,7 @@ Checks performable with SSH and OS commands only (no `sqlplus`).
 | Hostnames differ between source and target | `hostname` on SOURCE and TARGET; compare | Hostnames are NOT identical | BLOCKER | 4 Preparing for a Physical Database Migration (Note) |
 | SSH port 22 open: ZDM host → source | `nc -zv $SOURCE_HOST 22` from ZDM host | Connection succeeds | BLOCKER | 4.3 Source Database Prerequisites |
 | SSH port 22 open: ZDM host → target | `nc -zv $TARGET_HOST 22` from ZDM host | Connection succeeds | BLOCKER | 4.4 Target Database Prerequisites |
-| SCAN listener port open: source → target | `tnsping $TARGET_SCAN_ADDR` from source host | TNS OK | BLOCKER | 4.3 Source Database Prerequisites |
+| SCAN listener port open: source → target | `tnsping $TARGET_SCAN_ADDR` from source host (`TARGET_SCAN_ADDR` must be the value explicitly captured from Step 3 target listener/network discovery — do not rely on ZDM auto-detection, which may return `null:null` if SCAN is not in DNS) | TNS OK | BLOCKER | 4.3 Source Database Prerequisites |
 | SCAN listener port open: target → source | `tnsping $SOURCE_SCAN_ADDR` from target host | TNS OK | BLOCKER | 4.3 Source Database Prerequisites |
 | Port 1521 open: ZDM host → target | `nc -zv $TARGET_HOST 1521` from ZDM host | Connection succeeds | BLOCKER | 4.4 Target Database Prerequisites |
 | `/tmp` exec permission on source | `ssh ... "mount \| grep ' /tmp '"` | Mounted without `noexec` | BLOCKER | 4.2 Preparing the Source and Target Databases |
@@ -54,6 +54,8 @@ Checks performable with SSH and OS commands only (no `sqlplus`).
 | Source database registered with SRVCTL (if Grid Infrastructure) | `srvctl status database -d $SOURCE_ORACLE_SID` | Database listed | WARNING | 4.3 Source Database Prerequisites |
 | RAC: SNAPSHOT CONTROLFILE on shared storage (if RAC source) | `rman target / <<< "show snapshot controlfile name;"` | Path is on ASM (`+`) or shared ACFS | BLOCKER | 4.3 Source Database Prerequisites |
 | RAC: SSH passwordless between nodes for oracle (if RAC target) | `ssh oracle@<node2> echo ok` from node1 | `ok` returned without passphrase | BLOCKER | 4.4 Target Database Prerequisites |
+| Oracle-user sudo on source (ZDM `zdmauth` pattern) | `ssh <src-user>@<src-host> "sudo -u oracle id"` | Returns oracle UID (e.g., `uid=54321(oracle)`) without passphrase prompt or sudo error | BLOCKER | 4.3 Source Database Prerequisites / ZDM Installation Guide (sudoers setup) |
+| ZDM host resolves target RAC node hostnames | `getent hosts <tgt-node1> [<tgt-node2> ...]` from ZDM host (if target is RAC) | All node hostnames resolve to an IP address | BLOCKER | 4.4 Target Database Prerequisites |
 
 ---
 
@@ -95,6 +97,7 @@ Run via `sqlplus / as sysdba` over SSH using `sudo -u oracle`.
 | COMPATIBLE matches source | `SELECT value FROM v$parameter WHERE name='compatible';` | Same value as source | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | Character set matches source | `SELECT value FROM nls_database_parameters WHERE parameter='NLS_CHARACTERSET';` | Same as source | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | SQLNET encryption algorithm matches source | `SELECT name, value FROM v$parameter WHERE name LIKE '%sqlnet%encrypt%';` | Same algorithm as source | WARNING | 4.2 Preparing the Source and Target Databases |
+| Datapatch compatibility pre-flight | `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -prereqs 2>&1 \| head -30` on all target nodes | Exits without `Unsupported named object type` error at `sqlpatch.pm`; no missing prerequisite patches reported | WARNING | MOS 1609718.1 |
 
 ---
 

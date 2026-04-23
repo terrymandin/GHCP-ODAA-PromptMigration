@@ -194,6 +194,19 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
    #   -eval
    ```
 
+5. **`-ignore PATCH_CHECK` conditional (S6-10):** When Step 4 flagged PATCH_CHECK as a WARNING in the compatibility gate, pre-populate `-ignore PATCH_CHECK` in **both** the `zdmcli migrate database -eval` command and the full `zdmcli migrate database` command. Add an explanatory comment block immediately before each occurrence:
+   ```bash
+   # -ignore PATCH_CHECK is present because Step 4 flagged PATCH_CHECK as a WARNING.
+   # The source database has individually-named one-off patches (e.g., from an older RU)
+   # that do not appear individually in the target Oracle Home. They are subsumed by the
+   # target's higher Release Update (RU). ZDM's PATCH_CHECK phase compares patch numbers
+   # individually and cannot detect RU supersession. Adding -ignore PATCH_CHECK is the
+   # documented Oracle approach (see ZDM Installation Guide) when target RU >= source RU.
+   # Do NOT remove this flag unless you have confirmed all source patches are individually
+   # present in the target home.
+   ```
+   This prevents operators from discovering this requirement through repeated failed eval jobs.
+
 ---
 
 ## Part 3: Generate `ZDM-Migration-Runbook.md`
