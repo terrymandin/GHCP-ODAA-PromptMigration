@@ -40,6 +40,13 @@ Required generated files under `Artifacts/Phase10-Migration/Step6/`:
 4. ZDM server preparation tasks (including admin-user to zdmuser flow).
 5. Migration execution, monitoring, pause/resume, and switchover guidance.
 6. Post-migration validation and rollback procedures.
+7. Datapatch failure recovery section (required when `PLATFORM_TYPE` is `EXACS` or `EXACC`): include a clearly labeled section titled "Datapatch Failure Recovery (ZDM_DATAPATCH_TGT)" that covers:
+   - How to identify a `ZDM_DATAPATCH_TGT FAILED` status using `zdmcli query jobid <jobid>`.
+   - Manual datapatch execution steps: SSH to each target node, set Oracle environment, run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -verbose` as oracle, and capture the log.
+   - Common failure causes: missing prerequisite patches on target home, `sqlpatch.pm` incompatibility (MOS 1609718.1), stale datapatch registry entries.
+   - Remediation for the `sqlpatch.pm` / `Unsupported named object type` error: apply the MOS 1609718.1 patch to the target Oracle home before re-running datapatch.
+   - How to resume the ZDM job after manual datapatch completes: `zdmcli resume jobid <jobid>`.
+   - Note that skipping datapatch leaves the target database in an inconsistent patch state and is not supported for production use.
 
 ## S6-05: Iterate until `zdm -eval` succeeds or user skips
 

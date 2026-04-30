@@ -105,6 +105,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 	- Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
 	- Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host; this is a ZDM-specific requirement separate from standard Oracle DB setup docs. BLOCKER for Step4 gate.
 	- Patch inventory: run `$ORACLE_HOME/OPatch/opatch lspatches` as oracle on the source host. Capture the full list — required for the Step4 PATCH_CHECK gate that compares source individual patch numbers against the target Release Update.
+16. Grid Infrastructure detection: run `crsctl query crs activeversion 2>/dev/null` and `srvctl status database -d $SOURCE_ORACLE_SID 2>/dev/null` on the source host. If GI/CRS is active and the database is registered with srvctl, set `SOURCE_GI_TYPE=grid`; otherwise set `SOURCE_GI_TYPE=standalone`. Record the value in db-config.md. This value controls whether `-sourcedb` (GI) or `-sourcesid` (standalone) is used in the `zdmcli migrate database` command — using the wrong flag causes PRGZ-3928.
 
 ### Target discovery
 
@@ -133,6 +134,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 	- `SQLNET.ORA` encryption algorithm setting (already partially covered by network posture — ensure `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` are captured explicitly).
 	- Patch inventory: run `$ORACLE_HOME/OPatch/opatch lspatches` as oracle on the target host. Capture the full list — required for the Step4 PATCH_CHECK gate.
 13. Datapatch compatibility pre-flight: run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -prereqs 2>&1 | head -30` on the target host (or all RAC nodes if RAC). Capture output. A clean exit with no `Unsupported named object type` errors at `sqlpatch.pm` is the PASS condition. This surfaces the MOS 1609718.1 sqlpatch.pm bug before ZDM reaches `ZDM_DATAPATCH_TGT`.
+14. ASM disk group inventory for RSP generation: run `asmcmd lsdg --discovery 2>/dev/null` or `SELECT name, type, total_mb, free_mb FROM v$asm_diskgroup ORDER BY name` as oracle on the target host. Identify the disk group used for redo logs (`TGT_REDODG`) and the disk group used for the recovery/FRA area (`TGT_RECODG`). Record both in db-config.md. These are required RSP parameters for EXACS and EXACC platform types; omitting them causes PRCG-1054 at ZDM evaluation time.
 
 ### ZDM server discovery
 

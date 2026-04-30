@@ -45,6 +45,9 @@ DB-specific values used across Step2-Step6:
 - `TARGET_ORACLE_SID`
 - `SOURCE_DATABASE_UNIQUE_NAME`
 - `TARGET_DATABASE_UNIQUE_NAME`
+- `SOURCE_GI_TYPE` (auto-detected in Step3 source discovery: `standalone` or `grid`; controls `-sourcesid` vs `-sourcedb` CLI flag in Step6)
+- `TGT_REDODG` (target ASM redo disk group name; required RSP parameter for EXACS/EXACC platform types)
+- `TGT_RECODG` (target ASM recovery/FRA disk group name; required RSP parameter for EXACS/EXACC platform types)
 
 ZDM-specific value used across Step2-Step6:
 
@@ -53,7 +56,7 @@ ZDM-specific value used across Step2-Step6:
 Variable-to-artifact mapping:
 
 - SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step2/ssh-config.md`.
-- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`) are captured in `Artifacts/Phase10-Migration/Step3/db-config.md`.
+- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step3/db-config.md`.
 
 ## CR-06: OCI CLI requirement
 
