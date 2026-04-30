@@ -230,3 +230,46 @@ Each catalog file uses the following structured markdown format. Steps consume i
 | User says `refresh docs` | Direct user to run `@Phase10-Update-ZDM-Prerequisites` prompt; do not fetch at runtime |
 | ZDM upgraded to a new version | Operator runs `@Phase10-Update-ZDM-Prerequisites`, which creates a new versioned directory and commits it |
 | `zdm -eval` surfaces uncovered failure | Add new check to the matching catalog file under the appropriate layer; commit the update |
+
+## CR-15: Interactive variable collection — learn-more option
+
+Applies to all Phase10 steps that prompt the user to supply a variable value interactively (e.g., Step2 SSH connectivity collection, Step3 database variable collection, Step4 migration planning interview).
+
+### CR-15-A: Learn-more offer
+
+1. When prompting the user for any variable value, always append a learn-more hint on the line immediately following the prompt. Use this format:
+
+   ```
+   SOURCE_ORACLE_SID: ___
+   (Type a value, or type ? to learn more about this variable before answering.)
+   ```
+
+2. The learn-more trigger is `?` typed as the answer to any variable prompt. Copilot must recognize `?`, `??`, or `help` as a learn-more intent for any prompt in an interactive collection block.
+
+3. After displaying learn-more content, re-present the original prompt so the user can answer without restarting the collection sequence.
+
+### CR-15-B: Learn-more content requirements
+
+When the user requests learn-more for a variable, Copilot must explain:
+
+1. **Purpose** — what ZDM uses this value for (RSP parameter, `zdmcli` flag, or discovery control).
+2. **How to find it** — one or more concrete commands the user can run on the relevant host (jumpbox, source, or target) to discover the correct value. Prefer commands executable without a DB connection where possible.
+3. **Constraints and pitfalls** — allowed values, format rules, and known failure modes if the wrong value is supplied (e.g., which ZDM error code results).
+4. **Example value** — a representative example (not a placeholder) so the user understands the expected format.
+
+### CR-15-C: Variable glossary used by learn-more
+
+The learn-more content for each variable must be derived from CR-05 definitions, step-level requirements, and the loaded prerequisite catalog. Steps must not fabricate values or reference external URLs at runtime. The table below is the authoritative per-variable content source:
+
+| Variable | Purpose | How to find | Constraints / pitfalls | Example |
+|----------|---------|-------------|------------------------|---------|
+| `SOURCE_REMOTE_ORACLE_HOME` | Path to Oracle software home on the source host | `cat /etc/oratab` on source; look for lines matching the target SID | Must be the ORACLE_HOME directory, not `$ORACLE_BASE`; verify it exists: `ssh ... test -d <path>` | `/u01/app/oracle/product/19.0.0/dbhome_1` |
+| `SOURCE_ORACLE_SID` | Oracle instance name (ORACLE_SID) of the source database | `ps -ef | grep ora_pmon` on source; or `/etc/oratab` | Case-sensitive; must match exactly what the instance uses | `ORCL` |
+| `SOURCE_GI_TYPE` | Whether the source uses standalone or Grid Infrastructure | `crsctl query crs activeversion` on source — if it returns a version, GI is active | Wrong value → PRGZ-3928; use `grid` when srvctl manages the DB, `standalone` otherwise | `standalone` |
+| `TARGET_REMOTE_ORACLE_HOME` | Path to Oracle software home on the target host | `cat /etc/oratab` on target | Same rules as `SOURCE_REMOTE_ORACLE_HOME` | `/u02/app/oracle/product/19.0.0/dbhome_1` |
+| `TARGET_ORACLE_SID` | Oracle instance name on the target (Node 1 instance for RAC) | `cat /etc/oratab` on target; for RAC use instance name ending in `1` | For ExaCS/EXACC RAC the SID is `<db_name>1`; wrong SID → ZDM cannot connect to target instance | `ORCL1` |
+| `SOURCE_DATABASE_UNIQUE_NAME` | `DB_UNIQUE_NAME` of the source database | `SELECT db_unique_name FROM v$database;` on source; or `srvctl config database -d <name>` | Must match the value in the source controlfile; used in `-sourcedb` or as DG primary name | `ORCL_PHX` |
+| `TARGET_DATABASE_UNIQUE_NAME` | `DB_UNIQUE_NAME` of the target database | `SELECT db_unique_name FROM v$database;` on target | Must differ from source `DB_UNIQUE_NAME`; used as DG standby name | `ORCL_IAD` |
+| `ZDM_HOME` | Installation directory of ZDM on the jumpbox | `which zdmcli` then strip `/bin/zdmcli`; or check common paths like `/mnt/app/zdmhome` | Leave blank for auto-detection; if set incorrectly, all `zdmcli` invocations will fail | `/mnt/app/zdmhome` |
+| `TGT_REDODG` | ASM disk group used for redo logs on the target | `asmcmd lsdg` on target as grid user; look for group mounted as `REDO` or similar; or `SELECT name FROM v$asm_diskgroup WHERE name LIKE '%REDO%'` | Required RSP param for EXACS/EXACC; omitting it causes PRCG-1054 | `DATA` or `REDO` (varies by provisioning) |
+| `TGT_RECODG` | ASM disk group used for recovery/FRA on the target | Same as `TGT_REDODG` but look for `RECO`, `FRA`, or `RECOC1` | Required RSP param for EXACS/EXACC; omitting it causes PRCG-1054 | `RECO` |

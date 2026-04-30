@@ -209,7 +209,8 @@ When neither `db-config.md` nor `zdm-env.md` provides the required database vari
    - **Source database**: Oracle home path (e.g. `/u01/app/oracle/product/19.0.0/dbhome_1`); Oracle SID; database unique name.
    - **Target database**: Oracle home path; Oracle SID; database unique name.
    - **ZDM server**: ZDM home path (e.g. `/mnt/app/zdmhome`; leave blank for auto-detection).
-2. After collecting all values, display a confirmation summary before writing the artifact.
-3. Do not proceed to discovery until the user confirms or corrects the displayed values.
-4. Write `Artifacts/Phase10-Migration/Step3/db-config.md` with the confirmed values before running discovery commands.
-5. If any required database variable is blank after collection, warn the user that Step3 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery, but values should be provided when known to avoid errors.
+2. For each variable prompt, append a learn-more hint per CR-15-A so the user can type `?` to get detailed guidance on the variable before answering.
+3. After collecting all values, display a confirmation summary before writing the artifact.
+4. Do not proceed to discovery until the user confirms or corrects the displayed values.
+5. Write `Artifacts/Phase10-Migration/Step3/db-config.md` with the confirmed values before running discovery commands.
+6. If any required database variable is blank after collection, warn the user that Step3 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery, but values should be provided when known to avoid errors.
