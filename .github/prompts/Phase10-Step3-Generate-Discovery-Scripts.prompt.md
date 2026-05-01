@@ -30,6 +30,10 @@ This step uses the **Remote-SSH execution model** (CR-03): VS Code is connected 
 - SSH connectivity to source and target has been confirmed (Step 2 complete).
 - `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists (written by Step 2) — or `zdm-env.md` is attached as a legacy fallback.
 
+**Prior step artifacts (load into context):**
+
+#file:Artifacts/Phase10-Migration/Step2/ssh-config.md
+
 ---
 
 ## First Action: Display Environment Safety Banner (CR-13.3)
