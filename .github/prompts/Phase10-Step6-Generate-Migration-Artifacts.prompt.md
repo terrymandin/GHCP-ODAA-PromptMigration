@@ -178,9 +178,11 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
    ```bash
    #  STANDALONE EXAMPLE (run directly for troubleshooting) 
    # Substitute all <placeholder> values before running.
+   # SOURCE_GI_TYPE=grid       → use  -sourcedb $SOURCE_DATABASE_UNIQUE_NAME
+   # SOURCE_GI_TYPE=standalone → use  -sourcesid $SOURCE_ORACLE_SID
    # zdmcli migrate database \
-   #   -sourcedb <SOURCE_DB_UNIQUE_NAME> \
-   #   -sourcenode <ZDM_SERVER_HOST> \
+   #   -sourcedb <SOURCE_DATABASE_UNIQUE_NAME> \   # or -sourcesid <SOURCE_ORACLE_SID> — see SOURCE_GI_TYPE in db-config.md
+   #   -sourcenode <SOURCE_HOST> \                 # -sourcenode must be the source DB host, not the ZDM jumpbox host
    #   -srcauth zdmauth \
    #   -srcarg1 user:<SOURCE_SSH_USER> \
    #   -srcarg2 identity_file:<~/.ssh/source.pem> \
@@ -207,6 +209,34 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
    ```
    This prevents operators from discovering this requirement through repeated failed eval jobs.
 
+6. **`-sourcenode` must be the source database host (S6-11)**: Always set `-sourcenode` to `$SOURCE_HOST` (the source database hostname from `ssh-config.md`). Never set it to the ZDM jumpbox hostname — ZDM uses `-sourcenode` to locate the source Oracle instance, and using the ZDM host causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` adjacent to `-sourcenode`:
+   ```bash
+   -sourcenode "$SOURCE_HOST"  # -sourcenode must be the source DB host, not the ZDM jumpbox host
+   ```
+
+7. **`-sourcesid` vs `-sourcedb` based on `SOURCE_GI_TYPE` (S6-12)**: Read `SOURCE_GI_TYPE` from `Artifacts/Phase10-Migration/Step3/db-config.md`:
+   - `SOURCE_GI_TYPE=grid`: use `-sourcedb "$SOURCE_DATABASE_UNIQUE_NAME"` — required when source is registered with Grid Infrastructure/srvctl.
+   - `SOURCE_GI_TYPE=standalone` or blank: use `-sourcesid "$SOURCE_ORACLE_SID"`.
+   Using the wrong flag causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` documenting which flag was chosen and why based on the `SOURCE_GI_TYPE` value read from `db-config.md`.
+
+8. **RSP parameter name validation (S6-13)**: Before finalizing `zdm_migrate.rsp`, cross-check every parameter name against the Layer 0 RSP mappings in the loaded catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A). Flag any parameter not found in the catalog as `[UNVERIFIED — confirm against ZDM 26.1 docs]` in a comment above the parameter. Enforce these known-correct names:
+   - `TGT_REDODG` (not any legacy disk group alias)
+   - `TGT_RECODG` (not any legacy recovery disk group alias)
+   - `PLATFORM_TYPE` values: `EXACS`, `EXACC`, `VMDB`, `NON_CLOUD` — exactly as documented.
+   Do not use pre-26.x parameter names — they are silently ignored by ZDM 26.1 (PRGZ-3127).
+
+9. **`-tdekeystorepasswd` when wallet type is PASSWORD (S6-14)**: Read the TDE wallet type from Step 3 source discovery (`WALLET_TYPE` column from `v$encryption_wallet`):
+   - `WALLET_TYPE=PASSWORD`: add `-tdekeystorepasswd "$TDE_KEYSTORE_PASSWORD"` to both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands. Do not embed the password literally — use the environment variable reference.
+   - `WALLET_TYPE=AUTOLOGIN`: omit `-tdekeystorepasswd`.
+   Omitting this flag when the wallet type is PASSWORD causes PRGZ-3111. Add an inline comment in `zdm_commands.sh` stating which wallet type was detected and why the flag is or is not present.
+
+10. **`-ignore DB_NAME_CHECK` for ODAA when DB names differ (S6-15)**: Compare source `DB_NAME` (from Step 3 source discovery, `SELECT name FROM v$database`) against target `DB_NAME` (from Step 3 target discovery). If `PLATFORM_TYPE` is `EXACS` or `EXACC` AND source `DB_NAME` ≠ target `DB_NAME`: add `-ignore DB_NAME_CHECK` to both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands. Precede each occurrence with a comment block explaining: (a) that ODAA/ExaCS targets can be provisioned with a `DB_NAME` that differs from the source, (b) that this flag suppresses the equality check, (c) that the operator must confirm the difference is intentional before proceeding. Do **not** add this flag when `PLATFORM_TYPE=VMDB` or when DB names already match — it would mask a real provisioning error.
+
+11. **`TGT_SSH_TUNNEL_PORT` decision (S6-16)**: Before including `TGT_SSH_TUNNEL_PORT` in `zdm_migrate.rsp`, check whether Layer 1 pre-flight or Step 3 discovery confirmed that direct SQL*Net connectivity from source to target SCAN port 1521 succeeded (look for `nc -zv $TARGET_SCAN_ADDR 1521` PASS in Step 3 discovery or Step 5 Layer 1 pre-flight output):
+    - Direct SQL*Net confirmed PASS → do **NOT** include `TGT_SSH_TUNNEL_PORT`. Adding it when direct connectivity works causes `localhost:<port>` precheck failures because ZDM routes traffic through a tunnel that was never established.
+    - Direct SQL*Net failed and an SSH tunnel was configured → include `TGT_SSH_TUNNEL_PORT` with the configured local port.
+    Add an inline comment in `zdm_migrate.rsp` adjacent to where `TGT_SSH_TUNNEL_PORT` would appear, documenting the decision (present or absent) and the connectivity check result.
+
 ---
 
 ## Part 3: Generate `ZDM-Migration-Runbook.md`
@@ -222,6 +252,13 @@ Write `Artifacts/Phase10-Migration/Step6/ZDM-Migration-Runbook.md` (S6-07):
 7. **Switchover guidance**  applicable for online migration; confirm data guard setup and trigger switchover.
 8. **Post-migration validation**  confirm data integrity, application connectivity, and operational state.
 9. **Rollback procedures**  pre-requisites for rollback, conditions, steps, verification.
+10. **Datapatch failure recovery section** (required when `PLATFORM_TYPE` is `EXACS` or `EXACC`; include as a general reference section otherwise): add a clearly labeled section titled **"Datapatch Failure Recovery (ZDM_DATAPATCH_TGT)"** covering:
+    - How to identify a `ZDM_DATAPATCH_TGT FAILED` status: `zdmcli query jobid <jobid>` and look for the FAILED phase name.
+    - Manual datapatch execution steps: SSH to each target node, set Oracle environment, run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -verbose` as oracle, and capture the log.
+    - Common failure causes: missing prerequisite patches on the target Oracle home, `sqlpatch.pm` incompatibility (MOS 1609718.1), stale datapatch registry entries.
+    - Remediation for the `sqlpatch.pm` / `Unsupported named object type` error: apply the MOS 1609718.1 patch to the target Oracle home before re-running datapatch.
+    - How to resume the ZDM job after manual datapatch completes: `zdmcli resume jobid <jobid>`.
+    - Note: skipping datapatch leaves the target database in an inconsistent patch state and is not supported for production use.
 
 ---
 
@@ -341,6 +378,12 @@ Before handing off artifacts to the operator:
 - [ ] All Step 5 blockers confirmed resolved in `Verification-Results.md`
 - [ ] Security and credential notes included in `README.md`
 - [ ] Standalone `zdmcli migrate database` example present in `zdm_commands.sh`
+- [ ] `-sourcenode` set to `$SOURCE_HOST` (not the ZDM jumpbox) with inline comment
+- [ ] `-sourcesid` or `-sourcedb` flag matches `SOURCE_GI_TYPE` from `db-config.md` with inline comment
+- [ ] TDE wallet type checked — `-tdekeystorepasswd` included if `WALLET_TYPE=PASSWORD`, omitted if AUTOLOGIN
+- [ ] RSP parameter names cross-checked against catalog Layer 0 — no legacy/unverified names
+- [ ] `TGT_SSH_TUNNEL_PORT` decision documented in `zdm_migrate.rsp` comment based on connectivity check result
+- [ ] Datapatch failure recovery section present in `ZDM-Migration-Runbook.md`
 
 ---
 
