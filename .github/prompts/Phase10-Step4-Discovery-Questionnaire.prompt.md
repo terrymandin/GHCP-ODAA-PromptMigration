@@ -94,6 +94,18 @@ Use the most recent discovery files if multiple exist per component (highest tim
 
 ---
 
+## Preliminary Question: Confirm Migration Method
+
+Before running the compatibility gate or writing any artifacts, ask the operator to confirm the migration method. Two of the gate checks (`ARCHIVELOG` mode and `SPFILE` in use) are BLOCKER for `ONLINE_PHYSICAL` but only WARNING for `OFFLINE_PHYSICAL` — the gate cannot classify them correctly without this answer.
+
+> **Migration Method** (`MIGRATION_METHOD`)
+> Based on Step 3 discovery evidence, the recommended method is **[insert recommendation with one-line justification from: archivelog mode, force logging, TDE status, supplemental logging, downtime window]**.
+> Confirm `ONLINE_PHYSICAL`, choose `OFFLINE_PHYSICAL`, or provide a reason to change:
+
+Wait for the operator's answer before proceeding. Record the confirmed method — it is used immediately in the compatibility gate (Part 1) and carried forward into the full planning interview (Part 2, Phase A already answered).
+
+---
+
 ## Part 1: Generate Discovery Summary
 
 Write `Artifacts/Phase10-Migration/Step4/Discovery-Summary.md` with the following sections (S4-06):
@@ -117,13 +129,17 @@ ZDM Compatibility Gate
 | DB release (source vs target) | Oracle Database release (major.minor, e.g. 12.2, 19c) must be identical for physical migration. Patch level (RU/PSU) may differ — target ≥ source; ZDM runs `datapatch` automatically when target patch is higher. | BLOCKER if release differs; WARNING if patch level differs |
 | Character set | Source `NLS_CHARACTERSET` must equal target | BLOCKER |
 | `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
-| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER (online) / WARNING (offline) |
-| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER (online) / WARNING (offline) |
+| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
+| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
 | TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
 | Hostname | Source and target hostnames must differ | BLOCKER |
 | `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
 | Timezone file version | Target timezone version must be ≥ source | WARNING |
 | `SQLNET.ORA` encryption algorithm | Must match between source and target | WARNING |
+| ZDM host resolves target RAC node hostnames | `getent hosts <tgt-node1> [<tgt-node2> ...]` from ZDM host (if target is RAC) — all nodes must resolve to an IP | BLOCKER (if RAC) |
+| Source oracle user sudo (ZDM `zdmauth` pattern) | `ssh <src-user>@<src-host> "sudo -u oracle id"` must return oracle UID without error | BLOCKER |
+| Source one-off patches vs target RU (PATCH_CHECK) | Compare `opatch lspatches` on source and target. If target RU ≥ source RU and source has individually-named patches subsumed by the target RU, flag PATCH_CHECK risk. See remediation below. | WARNING — pre-populate `-ignore PATCH_CHECK` in Step 6 when flagged |
+| Target datapatch compatibility | `datapatch -prereqs` exits cleanly on all target nodes without `Unsupported named object type` error at `sqlpatch.pm` | WARNING |
 
 **Missing data handling:** If a required compatibility value was not collected in Step 3, flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER — re-run Step 3 with the updated discovery scope before proceeding.
 
@@ -199,10 +215,20 @@ Complete list of all discovered values for reuse in Steps 5–6 (including ORACL
 After writing the Discovery Summary (Part 1), apply the gate outcome before proceeding to any interview or questionnaire output:
 
 **If any BLOCKER is found:**
-- Halt the migration planning interview.
+- Write `Discovery-Summary.md` marked with `[BLOCKED — compatibility gate failed]` in the document header.
+- In the **Required Actions (Critical)** section of the Discovery Summary, include each blocker with its full remediation context from the remediation paths section below — Step 5 reads this section to generate the correct fix scripts.
 - Do not write `Migration-Decisions.md`.
-- Mark the Discovery Summary with `[BLOCKED — compatibility gate failed]`.
-- Surface each blocker explicitly with the remediation path below and stop.
+- Halt the migration planning interview.
+- In the **chat**, display only a concise table of blockers:
+
+  | # | Blocker | One-line description |
+  |---|---------|---------------------|
+  | 1 | `<check name>` | `<brief reason>` |
+
+  Do **not** paste manual Oracle commands or detailed remediation steps into the chat — that detail is in the Discovery Summary for Step 5 to consume.
+- Tell the user:
+
+  > **Blockers found — Step 4 paused.** Run `@Phase10-Step5-Fix-Issues` to generate automated remediation scripts for the issues above. After applying and verifying the fixes, re-run `@Phase10-Step3-Generate-Discovery-Scripts` if structural changes were made, then re-run this prompt.
 
 **If only WARNINGs are found:**
 - Continue with the interview.
@@ -244,6 +270,15 @@ Source and target must be on different hosts — reprovision the target on a dif
 **Timezone file version (target < source):**
 Apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Reference: Oracle Doc ID 1509653.1.
 
+**PATCH_CHECK (PRGT-1017) with higher target RU:**
+When target is at a higher Release Update (RU) than source and source has individually-named one-off patches (e.g., 19.3 one-offs migrating to a 19.29 target), ZDM's PATCH_CHECK phase flags each source patch not individually present in the target home, even though those patches are subsumed by the target's higher RU. This is documented ZDM behavior, not a configuration error. The safe resolution is to add `-ignore PATCH_CHECK` to both `zdmcli migrate database -eval` and `zdmcli migrate database` commands. This flag suppresses the individual patch-number comparison and relies on the target RU for supersession. Confirm that target RU ≥ source RU before using this flag. When Step 4 flags PATCH_CHECK as WARNING, Step 6 must pre-populate `-ignore PATCH_CHECK` in `zdm_commands.sh` with an explanatory comment.
+
+**ZDM host cannot resolve target RAC node hostnames:**
+Add the missing RAC node hostname-to-IP entries to `/etc/hosts` on the ZDM jumpbox (not the source or target). Run `getent hosts <node>` to verify after editing. Step 5 generates `fix_W04_zdm_host_hosts_resolution.sh` for this.
+
+**Source oracle user sudo not configured:**
+Configure sudoers on the source host to allow the ZDM admin user to run commands as `oracle` without a password. Add a line to `/etc/sudoers.d/zdmauth` (or equivalent): `<zdm-admin-user> ALL=(oracle) NOPASSWD: ALL`. Verify with `ssh <src-user>@<src-host> "sudo -u oracle id"`. This is a ZDM-specific requirement from the ZDM Installation Guide, separate from standard Oracle DB setup docs. Step 5 generates `fix_W05_source_oracle_sudo.sh` for this.
+
 ---
 
 ## Part 2: Migration Planning Interview
@@ -258,14 +293,20 @@ Run the interview in three sequential phases. For each question:
 
 ---
 
-### Phase A — Migration Method (gates all subsequent questions)
+### Phase A — Platform and Storage (A1 already confirmed above)
 
-Ask:
-> **[A1] Migration Method** (`MIGRATION_METHOD`)
-> Based on discovery analysis, the recommended method is **[insert recommendation with one-line justification]**.
-> Confirm `ONLINE_PHYSICAL`, choose `OFFLINE_PHYSICAL`, or provide a reason to change:
+The migration method (`MIGRATION_METHOD`) was confirmed in the Preliminary Question before the compatibility gate. Ask in order:
 
-Do not proceed to Phase B until A1 is answered.
+> **[A2] Target Platform Type** (`PLATFORM_TYPE` RSP parameter)
+> Read the **Layer 0** rows from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A) for the current ZDM version. Present the allowed values and their RSP mappings exactly as listed in the catalog — do not hardcode the allowed values here.
+> Based on Step 3 target discovery, the recommended value is **[inferred from target environment type]**.
+> Confirm or select the correct value:
+
+> **[A3] Source Storage Type** (determines `zdmcli` identifier flag)
+> Read the **Layer 0** rows from the CR-14 prerequisite catalog file (loaded per CR-14-A) for the allowed source storage type values and their `zdmcli` flag mappings. Default to the value inferred from Step 3 source discovery (`db_create_file_dest` parameter or ASM PMON process evidence).
+> Confirm the inferred value or provide a correction:
+
+Do not proceed to Phase B until both Phase A questions (A2, A3) are answered.
 
 ---
 
@@ -332,6 +373,8 @@ One row per answered question. No blank or placeholder values permitted (S4-12):
 | Parameter | RSP / CLI Mapping | Value | Source |
 |-----------|-------------------|-------|--------|
 | MIGRATION_METHOD | `MIGRATION_METHOD` | ONLINE_PHYSICAL | confirmed by operator |
+| PLATFORM_TYPE | `PLATFORM_TYPE` | <from Layer 0 catalog> | confirmed by operator |
+| SOURCE_STORAGE_TYPE | *(zdmcli flag)* | <from Layer 0 catalog> | confirmed by operator |
 | LOG_SWITCH_INTERVAL | `LOG_SWITCH_INTERVAL` | 20 | confirmed by operator |
 | DATAGUARD_PROTECTION_MODE | `DATAGUARD_PROTECTION_MODE` | MAX_PERFORMANCE | confirmed by operator |
 | DATA_TRANSFER_MEDIUM | `DATA_TRANSFER_MEDIUM` | OSS | confirmed by operator |
@@ -398,7 +441,11 @@ All files are git-ignored. No outputs are committed or create PRs.
 
 ## Next Step
 
-After Step 4 completes with no unresolved Critical blockers, and `Migration-Decisions.md` contains no BLOCKED rows:
+**When Step 4 completes with no unresolved Critical blockers** and `Migration-Decisions.md` contains no BLOCKED rows:
 
 > Run **`@Phase10-Step5-Fix-Issues`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.
+
+**When Step 4 halts due to compatibility gate blockers:**
+
+> Run **`@Phase10-Step5-Fix-Issues`** to generate remediation scripts for the listed blockers. After running and verifying the fixes, re-run **`@Phase10-Step3-Generate-Discovery-Scripts`** (if structural changes were made to the environment), then re-run **`@Phase10-Step4-Discovery-Questionnaire`** to confirm all blockers are resolved.
 

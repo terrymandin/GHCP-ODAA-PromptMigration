@@ -40,15 +40,28 @@ Required generated files under `Artifacts/Phase10-Migration/Step6/`:
 4. ZDM server preparation tasks (including admin-user to zdmuser flow).
 5. Migration execution, monitoring, pause/resume, and switchover guidance.
 6. Post-migration validation and rollback procedures.
+7. Datapatch failure recovery section (required when `PLATFORM_TYPE` is `EXACS` or `EXACC`): include a clearly labeled section titled "Datapatch Failure Recovery (ZDM_DATAPATCH_TGT)" that covers:
+   - How to identify a `ZDM_DATAPATCH_TGT FAILED` status using `zdmcli query jobid <jobid>`.
+   - Manual datapatch execution steps: SSH to each target node, set Oracle environment, run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -verbose` as oracle, and capture the log.
+   - Common failure causes: missing prerequisite patches on target home, `sqlpatch.pm` incompatibility (MOS 1609718.1), stale datapatch registry entries.
+   - Remediation for the `sqlpatch.pm` / `Unsupported named object type` error: apply the MOS 1609718.1 patch to the target Oracle home before re-running datapatch.
+   - How to resume the ZDM job after manual datapatch completes: `zdmcli resume jobid <jobid>`.
+   - Note that skipping datapatch leaves the target database in an inconsistent patch state and is not supported for production use.
 
 ## S6-05: Iterate until `zdm -eval` succeeds or user skips
 
+`zdm -eval` is **Layer 3** in the CR-14 three-layer pre-validation model. It must only be submitted after Layer 1 (infrastructure) and Layer 2 (database prerequisite queries) have both passed. It is the final and authoritative gatekeeper for ZDM-internal checks that cannot be externally reproduced.
+
 After running `zdm -eval`, the agent must not proceed to migration execution until the evaluation phase passes. The expected behavior is:
 
-1. Run the `zdm -eval` command and capture its output.
-2. If the evaluation **succeeds** (exit code 0 / no blocking errors), continue to the next step.
-3. If the evaluation **fails**, surface the errors from the output, attempt remediation (e.g., re-running relevant fix scripts from Step5, adjusting the response file), and re-run `zdm -eval`.
-4. Repeat the fix-and-retry loop until either:
+1. Confirm Layer 1 (`preflight_l1_infrastructure.sh`) and Layer 2 (compatibility gate in Step4 + `verify_fixes.sh` from Step5) have both passed before submitting. If either layer has outstanding failures, surface them and stop.
+2. Run the `zdm -eval` command and capture its output.
+3. If the evaluation **succeeds** (all phases show `PRECHECK_PASSED`), continue to the next step.
+4. If the evaluation **fails**, triage the failure against the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A):
+   - If the failure maps to a **Layer 1 check** in the catalog: fix at Layer 1 (regenerate `preflight_l1_infrastructure.sh` or apply the fix directly), re-run Layer 1, then re-run `zdm -eval`.
+   - If the failure maps to a **Layer 2 check** in the catalog: generate or update the relevant fix script from Step5 conventions, apply the fix, re-run `verify_fixes.sh`, then re-run `zdm -eval`.
+   - If the failure is **not in the catalog**: add it to the catalog file under the appropriate layer, noting it as `[zdm-eval-feedback <date>]` per CR-14-D. Then apply the fix and re-run `zdm -eval`. This keeps the catalog growing with real-world failures so future runs catch the issue earlier.
+5. Repeat the fix-and-retry loop until either:
    - The `zdm -eval` exits successfully, **or**
-   - The user explicitly instructs the agent to **skip** the evaluation (e.g., responds with "skip eval" or confirms they want to proceed despite failures).
-5. If the user skips, log the skip decision and the outstanding eval errors in `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md` before continuing.
+   - The user explicitly instructs the agent to **skip** the evaluation.
+6. If the user skips, log the skip decision and the outstanding eval errors in `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md` before continuing.

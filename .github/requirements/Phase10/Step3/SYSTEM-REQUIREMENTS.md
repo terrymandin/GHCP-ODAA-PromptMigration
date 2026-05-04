@@ -134,6 +134,9 @@ Applies only when optional discovery scripts are generated as debug artifacts:
 | `SOURCE_DATABASE_UNIQUE_NAME` | Non-empty; no whitespace. |
 | `TARGET_DATABASE_UNIQUE_NAME` | Non-empty; no whitespace. |
 | `ZDM_HOME` | Optional path. If blank, attempt auto-detection from common paths and `zdmcli` on PATH during ZDM server discovery. |
+| `SOURCE_GI_TYPE` | Auto-detected during source discovery (item 16 of S3-06). Allowed values: `standalone` or `grid`. If blank after discovery, default to `standalone` and log a warning. |
+| `TGT_REDODG` | Auto-detected during target discovery (item 14 of S3-06). Required for EXACS/EXACC platform types. If blank and PLATFORM_TYPE is EXACS or EXACC, warn the user that RSP generation will be incomplete. |
+| `TGT_RECODG` | Same as `TGT_REDODG`; the recovery/FRA disk group. |
 
 5. When a path value fails the remote existence check, warn the user and allow them to correct the value before discovery runs. Do not abort discovery entirely for a failed path check if the user explicitly confirms they want to proceed.
 
@@ -147,6 +150,7 @@ Applies only when optional discovery scripts are generated as debug artifacts:
 ## Database Variables
 - SOURCE_REMOTE_ORACLE_HOME: <value>
 - SOURCE_ORACLE_SID: <value>
+- SOURCE_GI_TYPE: <standalone|grid>
 - TARGET_REMOTE_ORACLE_HOME: <value>
 - TARGET_ORACLE_SID: <value>
 - SOURCE_DATABASE_UNIQUE_NAME: <value>
@@ -154,6 +158,10 @@ Applies only when optional discovery scripts are generated as debug artifacts:
 ---
 ## ZDM Variables
 - ZDM_HOME: <value or blank>
+---
+## Target ASM Variables (EXACS/EXACC required)
+- TGT_REDODG: <redo disk group name, e.g. +REDO or blank if not applicable>
+- TGT_RECODG: <recovery/FRA disk group name, e.g. +RECO or blank if not applicable>
 ```
 
 3. After writing, confirm the file exists and is non-empty using a file existence check.

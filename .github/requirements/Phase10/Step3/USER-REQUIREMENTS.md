@@ -58,6 +58,22 @@ All outputs are git-ignored. No files are committed or create PRs.
 3. A failure in one discovery target does not abort discovery for the remaining targets.
 4. Discovery outputs are written by Copilot using file tools after each discovery stage completes.
 
+## S3-05b: Prerequisite catalog initialization
+
+Before running source and target discovery, apply the CR-14-A version lookup protocol:
+
+1. Read the ZDM version from Step3 ZDM server discovery (`$ZDM_HOME/bin/zdmcli -version` run locally as zdmuser). Use `26.1` as the default if not yet discovered.
+2. Determine the migration method (`ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`) from `db-config.md` if available; default to `ONLINE_PHYSICAL` if not yet confirmed.
+3. Select the matching catalog file path:
+   - `ONLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/online-physical.md`
+   - `OFFLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/offline-physical.md`
+4. If no directory matches the discovered ZDM version, use `26.1/` catalog and log a version mismatch warning.
+5. Read the catalog file using `read_file`. This is the authoritative Layer 1 and Layer 2 check list for source and target discovery.
+
+Show inline status: `Prerequisite catalog — loaded (<version>, <method>)` or `Prerequisite catalog — WARNING: version <discovered> not found, using 26.1`.
+
+Do NOT use `fetch_webpage` for ZDM documentation. Do NOT write to `Artifacts/Phase10-Migration/ZDM-Doc-Checks/`. If the user says `refresh docs`, direct them to run `@Phase10-Update-ZDM-Prerequisites` instead.
+
 ## S3-06: Discovery items covered
 
 Use this section as the editable source-of-truth list for discovery coverage. Add new items here first, then regenerate/update prompts.
@@ -75,7 +91,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 	- `sqlplus` version.
 4. Database configuration: name/unique name/role/open mode/character sets; archivelog/force/supplemental logging.
 5. CDB/PDB posture: CDB status and PDB names/open modes.
-6. TDE status: wallet type/location and encrypted tablespaces.
+6. TDE status — run all Layer 2 TDE checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, section "Layer 2 — Source DB prerequisites"). The catalog provides the SQL queries and pass conditions. At minimum, the catalog will include per-CDB and per-PDB wallet status and per-PDB master key existence checks. Also collect encrypted tablespace list: `SELECT name, encrypted FROM v$tablespace`.
 7. Tablespace/datafile posture: autoextend settings and current/max sizing.
 8. Redo/archive posture: redo groups/sizes/members and archive destinations.
 9. Network config: listener status, `tnsnames.ora`, `sqlnet.ora`.
@@ -84,12 +100,12 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 12. Backup posture: schedules/policies and most recent successful backup evidence.
 13. Integration objects: database links, materialized views/logs, scheduler jobs that may require post-cutover updates.
 14. Data Guard parameters/config evidence when applicable.
-15. ZDM compatibility items (required for compatibility gate in Step4):
-	- `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
-	- `SPFILE` in use (`SHOW PARAMETER spfile` — non-empty value confirms SPFILE).
-	- Timezone file version (`SELECT * FROM v$timezone_file`).
-	- `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
-	- Full DB version banner (`SELECT * FROM v$version` or `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
+15. ZDM compatibility items (required for compatibility gate in Step4): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect. Do not limit collection to a hardcoded subset. Additionally always collect:
+	- `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
+	- Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
+	- Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host; this is a ZDM-specific requirement separate from standard Oracle DB setup docs. BLOCKER for Step4 gate.
+	- Patch inventory: run `$ORACLE_HOME/OPatch/opatch lspatches` as oracle on the source host. Capture the full list — required for the Step4 PATCH_CHECK gate that compares source individual patch numbers against the target Release Update.
+16. Grid Infrastructure detection: run `crsctl query crs activeversion 2>/dev/null` and `srvctl status database -d $SOURCE_ORACLE_SID 2>/dev/null` on the source host. If GI/CRS is active and the database is registered with srvctl, set `SOURCE_GI_TYPE=grid`; otherwise set `SOURCE_GI_TYPE=standalone`. Record the value in db-config.md. This value controls whether `-sourcedb` (GI) or `-sourcesid` (standalone) is used in the `zdmcli migrate database` command — using the wrong flag causes PRGZ-3928.
 
 ### Target discovery
 
@@ -106,7 +122,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 5. CDB/PDB posture: CDB status and PDB open mode(s), including pre-created migration PDB.
 6. TDE wallet status/type.
 7. Storage posture: ASM disk groups and free space (plus Exadata cell/grid disk details when available).
-8. Network posture: listener status, SCAN status when applicable, and `tnsnames.ora`.
+8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step4 SCAN tnsping gate; do not rely on ZDM auto-detection), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), and `tnsnames.ora`.
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
@@ -116,6 +132,9 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 	- `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
 	- Full DB version banner (`SELECT * FROM v$version` or `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
 	- `SQLNET.ORA` encryption algorithm setting (already partially covered by network posture — ensure `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` are captured explicitly).
+	- Patch inventory: run `$ORACLE_HOME/OPatch/opatch lspatches` as oracle on the target host. Capture the full list — required for the Step4 PATCH_CHECK gate.
+13. Datapatch compatibility pre-flight: run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -prereqs 2>&1 | head -30` on the target host (or all RAC nodes if RAC). Capture output. A clean exit with no `Unsupported named object type` errors at `sqlpatch.pm` is the PASS condition. This surfaces the MOS 1609718.1 sqlpatch.pm bug before ZDM reaches `ZDM_DATAPATCH_TGT`.
+14. ASM disk group inventory for RSP generation: run `asmcmd lsdg --discovery 2>/dev/null` or `SELECT name, type, total_mb, free_mb FROM v$asm_diskgroup ORDER BY name` as oracle on the target host. Identify the disk group used for redo logs (`TGT_REDODG`) and the disk group used for the recovery/FRA area (`TGT_RECODG`). Record both in db-config.md. These are required RSP parameters for EXACS and EXACC platform types; omitting them causes PRCG-1054 at ZDM evaluation time.
 
 ### ZDM server discovery
 
@@ -128,6 +147,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 7. Network context: IP/routing/DNS summaries.
 8. Optional connectivity tests to source/target when env vars are provided (ping/port checks).
 9. Endpoint traceability: source and target endpoint values used during discovery.
+10. RAC node hostname resolution (run after target discovery completes, if target is RAC): for each RAC node hostname collected in target discovery, run `getent hosts <node>` from the ZDM host. Record pass/fail per node. BLOCKER if any node fails to resolve — ZDM communicates with all RAC nodes directly by hostname during migration. Remediation: add missing entries to `/etc/hosts` on the ZDM jumpbox.
 
 ## S3-07: Iteration and retry behavior
 
@@ -189,7 +209,8 @@ When neither `db-config.md` nor `zdm-env.md` provides the required database vari
    - **Source database**: Oracle home path (e.g. `/u01/app/oracle/product/19.0.0/dbhome_1`); Oracle SID; database unique name.
    - **Target database**: Oracle home path; Oracle SID; database unique name.
    - **ZDM server**: ZDM home path (e.g. `/mnt/app/zdmhome`; leave blank for auto-detection).
-2. After collecting all values, display a confirmation summary before writing the artifact.
-3. Do not proceed to discovery until the user confirms or corrects the displayed values.
-4. Write `Artifacts/Phase10-Migration/Step3/db-config.md` with the confirmed values before running discovery commands.
-5. If any required database variable is blank after collection, warn the user that Step3 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery, but values should be provided when known to avoid errors.
+2. For each variable prompt, append a learn-more hint per CR-15-A so the user can type `?` to get detailed guidance on the variable before answering.
+3. After collecting all values, display a confirmation summary before writing the artifact.
+4. Do not proceed to discovery until the user confirms or corrects the displayed values.
+5. Write `Artifacts/Phase10-Migration/Step3/db-config.md` with the confirmed values before running discovery commands.
+6. If any required database variable is blank after collection, warn the user that Step3 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery, but values should be provided when known to avoid errors.

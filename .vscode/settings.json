@@ -1,4 +1,5 @@
 {
+    "chat.promptFilesLocations": [".github/prompts"],
     "chat.tools.terminal.autoApprove": {
         "Set-Content": true,
         "New-Item": true,

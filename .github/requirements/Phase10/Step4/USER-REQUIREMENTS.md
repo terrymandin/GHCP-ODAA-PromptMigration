@@ -43,22 +43,30 @@ Discovery Summary must include:
 
 ## S4-05: ZDM compatibility gate
 
-Before conducting the migration planning interview or writing any questionnaire output, evaluate the following compatibility checks using Step3 discovery evidence. Present results in a structured table in the Discovery Summary.
+### Step 0: Confirm migration method first
+
+Before running the compatibility gate or writing any artifacts, ask the operator to confirm the migration method (`MIGRATION_METHOD`). Two gate checks (`ARCHIVELOG` mode and `SPFILE` in use) are BLOCKER for `ONLINE_PHYSICAL` but only WARNING for `OFFLINE_PHYSICAL` — the gate cannot classify them correctly without this answer. Wait for the operator's response, then proceed immediately to the gate. The confirmed method is recorded here and carries forward as the A1 answer in the Part 2 planning interview (no need to ask it again).
 
 ### Compatibility checks
+
+Evaluate the following using Step3 discovery evidence. Present results in a structured table in the Discovery Summary.
 
 | Check | Rule | Severity if failed |
 |-------|------|--------------------|
 | DB release (source vs target) | Oracle Database release (major.minor, e.g. 12.2, 19c) must be identical for physical migration. Patch level (RU/PSU) may differ — target patch level must be ≥ source; ZDM runs `datapatch` automatically when target patch is higher. | BLOCKER if release differs; WARNING if patch level differs |
 | Character set | Source `NLS_CHARACTERSET` must equal target | BLOCKER |
 | `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
-| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER (online) / WARNING (offline) |
-| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER (online) / WARNING (offline) |
+| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
+| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
 | TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
 | Hostname | Source and target hostnames must differ | BLOCKER |
 | `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
 | Timezone file version | Target timezone version must be ≥ source | WARNING |
 | `SQLNET.ORA` encryption algorithm | Must match between source and target | WARNING |
+| ZDM host resolves target RAC node hostnames | `getent hosts <tgt-node1> [<tgt-node2> ...]` from ZDM host (if target is RAC) — all nodes must resolve to an IP | **BLOCKER** (if RAC) |
+| Source oracle user sudo (ZDM `zdmauth` pattern) | `ssh <src-user>@<src-host> "sudo -u oracle id"` must return oracle UID without error | **BLOCKER** |
+| Source one-off patches vs target RU (PATCH_CHECK) | Compare `opatch lspatches` on source and target. If target RU ≥ source RU and source has individually-named patches subsumed by the target RU, flag PATCH_CHECK risk. See S4-06 for remediation. | WARNING — document `-ignore PATCH_CHECK` as expected and safe when target RU supersedes source patches |
+| Target datapatch compatibility | `datapatch -prereqs` exits cleanly on all target nodes without `Unsupported named object type` error at `sqlpatch.pm` | WARNING |
 
 ### Gate output format
 
@@ -73,10 +81,11 @@ ZDM Compatibility Gate
 ### Gate behavior
 
 1. If **any BLOCKER** is found:
-   - Halt the migration planning interview.
+   - Write `Discovery-Summary.md` marked with `[BLOCKED — compatibility gate failed]`. Include each blocker and its full remediation context from S4-06 in the **Required Actions (Critical)** section of the Discovery Summary — Step5 reads this section to generate the appropriate fix scripts.
    - Do not write `Migration-Decisions.md`.
-   - Mark the Discovery Summary with `[BLOCKED — compatibility gate failed]`.
-   - Surface each blocker explicitly with the remediation path from S4-06.
+   - Halt the migration planning interview.
+   - In the **chat**, display only a concise table of blocker names and a one-line description each. Do not surface detailed manual remediation steps in the chat output — remediation detail belongs in the Discovery Summary for Step5 to consume.
+   - Direct the user to run `@Phase10-Step5-Fix-Issues` next to generate automated remediation scripts. Do not ask the user to manually apply fixes at this point.
 
 2. If only WARNINGs are found:
    - Continue with the interview.
@@ -112,8 +121,26 @@ Enable archivelog mode on source: `SHUTDOWN IMMEDIATE; STARTUP MOUNT; ALTER DATA
 **SPFILE not in use:**
 Create SPFILE from PFILE: `CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
 
-**TDE wallet not OPEN:**
+**TDE wallet not OPEN (CDB):**
 Open the TDE wallet: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.
+
+**TDE wallet not OPEN for one or more PDBs:**
+Connect to the affected PDB and open its wallet: `ALTER SESSION SET CONTAINER=<pdb_name>; ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;`. Alternatively, open all containers at CDB level: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password> CONTAINER=ALL;`. Verify with the per-PDB join query from CR-14 Layer 2.
+
+**TDE master key missing for one or more PDBs (ORA-28361):**
+For each PDB without a master key row in `v$encryption_keys`: connect to the PDB and set the key: `ALTER SESSION SET CONTAINER=<pdb_name>; ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE IDENTIFIED BY <password> WITH BACKUP;`. Then persist: `ADMINISTER KEY MANAGEMENT USE KEY '<key_id>' IDENTIFIED BY <password> WITH BACKUP; EXECUTE DBMS_SERVICE.SAVE_STATE;`. Verify by re-running the `v$encryption_keys` query from CR-14 Layer 2.
+
+**DB_NAME mismatch (source ≠ target):**
+Source and target must have the same `DB_NAME`. Options: (1) Reprovision the target database with the correct `DB_NAME`. (2) Rename the source `DB_NAME` using the NID utility: `nid target=/ dbname=<new_name> setname=yes` (requires database in MOUNT state; renames `DB_NAME` without regenerating DBIDs — verify with `SELECT name FROM v$database` after restart). Note: renaming the source DB_NAME changes the CONTROLFILE autobackup file naming pattern.
+
+**DB_UNIQUE_NAME collision (source = target):**
+Source and target `DB_UNIQUE_NAME` must differ. Rename the target: `ALTER SYSTEM SET DB_UNIQUE_NAME='<new_unique_name>' SCOPE=SPFILE;` then restart the target. The `TGT_DB_UNIQUE_NAME` RSP parameter must match the renamed value.
+
+**FORCE LOGGING not enabled:**
+Enable on source: `ALTER DATABASE FORCE LOGGING;`. Verify: `SELECT force_logging FROM v$database;` must return `YES`.
+
+**RMAN CONTROLFILE AUTOBACKUP not ON:**
+Enable on source: `RMAN> CONFIGURE CONTROLFILE AUTOBACKUP ON;`. Verify: `SELECT value FROM v$rman_configuration WHERE name='CONTROLFILE AUTOBACKUP';` must return `ON`. Set the autobackup format to the NFS path if NFS is the transfer medium.
 
 **Hostname collision:**
 Source and target must be on different hosts. This is a provisioning error — provision the target on a different host.
@@ -123,6 +150,15 @@ Remount `/tmp` with execute: `mount -o remount,exec /tmp`. To make permanent, up
 
 **Timezone version (target < source):**
 Upgrade target timezone file before migration: apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Refer to Oracle Doc ID 1509653.1 for the upgrade procedure.
+
+**PATCH_CHECK (PRGT-1017) with higher target RU:**
+When target is at a higher Release Update (RU) than source and source has individually-named one-off patches (e.g., 19.3 one-offs migrating to a 19.29 target), ZDM's PATCH_CHECK phase will flag each source patch not individually present in the target home, even though those patches are subsumed by the target's higher RU. This is documented ZDM behavior, not a configuration error. The safe resolution is to add `-ignore PATCH_CHECK` to the `zdmcli migrate database` and `zdmcli migrate database -eval` commands. This flag suppresses the individual patch-number comparison and relies on the target RU for supersession. Confirm that target RU ≥ source RU before using this flag. When Step4 flags PATCH_CHECK as WARNING, Step6 must pre-populate `-ignore PATCH_CHECK` in `zdm_commands.sh` with an explanatory comment (see S6-10).
+
+**ZDM host cannot resolve target RAC node hostnames:**
+Add the missing RAC node hostname-to-IP entries to `/etc/hosts` on the ZDM jumpbox (not the source or target). Use `getent hosts <node>` to verify after editing.
+
+**Source oracle user sudo not configured:**
+Configure sudoers on the source host to allow the ZDM admin user (`azureuser` or equivalent) to run commands as `oracle` without a password. Add a line to `/etc/sudoers.d/zdmauth` (or equivalent): `<zdm-admin-user> ALL=(oracle) NOPASSWD: ALL`. Verify with `ssh <src-user>@<src-host> "sudo -u oracle id"`. This is a ZDM-specific requirement documented in the ZDM Installation Guide (not in standard Oracle DB setup docs).
 
 ## S4-07: Discovery Summary generated items
 
@@ -145,8 +181,10 @@ After generating the Discovery Summary, conduct a structured interactive intervi
 
 Interview phases — must be completed in sequence:
 
-**Phase A — Migration Type (gates all subsequent questions)**
+**Phase A — Migration Type and Platform (gates all subsequent questions)**
 1. Confirm (or override) the recommended migration method: ONLINE_PHYSICAL or OFFLINE_PHYSICAL.
+2. **Target platform type** (determines `PLATFORM_TYPE` RSP parameter): read the Layer 0 rows from the CR-14 prerequisite catalog file (loaded per CR-14-A from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`) for the current ZDM version. Present the allowed values and their RSP mappings from the catalog. Do not hardcode the allowed values here.
+3. **Source storage type** (determines `zdmcli` identifier flag): read from the Layer 0 catalog file rows (loaded per CR-14-A). Default to the value inferred from Step3 discovery (`db_create_file_dest` parameter or ASM PMON process evidence); ask for confirmation.
 
 **Phase B — Migration-type-specific questions**
 
