@@ -1,14 +1,14 @@
 ﻿---
 mode: agent
-description: ZDM Step 6 - Generate final migration artifacts and iterate on zdm -eval until it succeeds or is explicitly skipped
+description: ZDM Step 7 - Generate final migration artifacts and iterate on zdm -eval until it succeeds or is explicitly skipped
 ---
-# ZDM Migration Step 6: Generate Migration Artifacts
+# ZDM Migration Step 7: Generate Migration Artifacts
 
 ## Purpose
 
-This step generates final migration artifacts for execution on the ZDM jumpbox. It derives content from Step 4 and Step 5 outputs and Step 3 discovery evidence, then runs `zdm -eval` iteratively until it succeeds or the user explicitly skips.
+This step generates final migration artifacts for execution on the ZDM jumpbox. It derives content from Step 5 and Step 6 outputs and Step 4 discovery evidence, then runs `zdm -eval` iteratively until it succeeds or the user explicitly skips.
 
-Generated artifacts under `Artifacts/Phase10-Migration/Step6/` (S6-01):
+Generated artifacts under `Artifacts/Phase10-Migration/Step7/` (S7-01):
 - `README.md`
 - `ZDM-Migration-Runbook.md`
 - `zdm_migrate.rsp`
@@ -23,19 +23,19 @@ Conditional artifact:
 
 This step runs under the **Remote-SSH execution model** (CR-03): VS Code is connected to the ZDM jumpbox as `zdmuser`, and Copilot generates all artifacts using file tools and iterates `zdm -eval` in the terminal until it passes.
 
-- All outputs are written to `Artifacts/Phase10-Migration/Step6/` (git-ignored). No generated files are committed or create PRs.
+- All outputs are written to `Artifacts/Phase10-Migration/Step7/` (git-ignored). No generated files are committed or create PRs.
 - OCI CLI is not required for migration execution (CR-06).
 - Generated scripts and artifacts must not read, source, or parse config artifacts or `zdm-env.md` at runtime (CR-02).
-- Admin login flow: connect as `ZDM_ADMIN_USER`, then `sudo su - zdmuser` to reach the `zdmuser` context (S6-03).
+- Admin login flow: connect as `ZDM_ADMIN_USER`, then `sudo su - zdmuser` to reach the `zdmuser` context (S7-03).
 - **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts (`zdm_commands.sh`, `zdm_migrate.rsp`) are safe to copy to production once reviewed and tested in development — run them manually on production; do not re-run this prompt on production.
 
 Input precedence rules (CR-01):
-1. `Artifacts/Phase10-Migration/Step4/Migration-Decisions.md`  confirmed RSP parameter decisions from Step 4.
-2. `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md`  blocker resolution state from Step 5.
-3. `Artifacts/Phase10-Migration/Step5/Verification-Results.md`  verification outcomes (when available).
-4. `Artifacts/Phase10-Migration/Step3/db-config.md`  DB and ZDM variables.
-5. `Artifacts/Phase10-Migration/Step2/ssh-config.md`  SSH connectivity variables.
-6. Step 3 discovery outputs  observed runtime state from discovery scripts.
+1. `Artifacts/Phase10-Migration/Step5/Migration-Decisions.md`  confirmed RSP parameter decisions from Step 5.
+2. `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md`  blocker resolution state from Step 6.
+3. `Artifacts/Phase10-Migration/Step6/Verification-Results.md`  verification outcomes (when available).
+4. `Artifacts/Phase10-Migration/Step4/db-config.md`  DB and ZDM variables.
+5. `Artifacts/Phase10-Migration/Step3/ssh-config.md`  SSH connectivity variables.
+6. Step 4 discovery outputs  observed runtime state from discovery scripts.
 7. `zdm-env.md` (when explicitly attached)  legacy override with higher precedence than step artifacts.
 8. If configured intent conflicts with discovery evidence, keep both: generate artifacts aligned to the configured intent and explicitly document the mismatch.
 9. Placeholder values containing `<...>` are treated as unset.
@@ -58,37 +58,37 @@ once reviewed and tested — run them manually there.
 
 Before running this prompt:
 1.  Complete `@Phase10-Step1-Setup-Remote-SSH`  VS Code is connected via Remote-SSH as `zdmuser`
-2.  Complete `@Phase10-Step2-Configure-SSH-Connectivity`  `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists
-3.  Complete `@Phase10-Step3-Generate-Discovery-Scripts`  discovery reports exist in `Artifacts/Phase10-Migration/Step3/Discovery/`
-4.  Complete `@Phase10-Step4-Discovery-Questionnaire`  `Artifacts/Phase10-Migration/Step4/Migration-Decisions.md` exists
-5.  Complete `@Phase10-Step5-Fix-Issues`  `Artifacts/Phase10-Migration/Step5/Verification-Results.md` shows all-PASS
+2.  Complete `@Phase10-Step3-Configure-SSH-Connectivity`  `Artifacts/Phase10-Migration/Step3/ssh-config.md` exists
+3.  Complete `@Phase10-Step4-Generate-Discovery-Scripts`  discovery reports exist in `Artifacts/Phase10-Migration/Step4/Discovery/`
+4.  Complete `@Phase10-Step5-Discovery-Questionnaire`  `Artifacts/Phase10-Migration/Step5/Migration-Decisions.md` exists
+5.  Complete `@Phase10-Step6-Fix-Issues`  `Artifacts/Phase10-Migration/Step6/Verification-Results.md` shows all-PASS
 
 ---
 
 ## How to Use This Prompt
 
-Attach the Step 4 and Step 5 artifacts and run this prompt:
+Attach the Step 5 and Step 6 artifacts and run this prompt:
 
 ```
-@Phase10-Step6-Generate-Migration-Artifacts
+@Phase10-Step7-Generate-Migration-Artifacts
 
-Generate final migration artifacts from Step 4 and Step 5 outputs.
+Generate final migration artifacts from Step 5 and Step 6 outputs.
 
 ## Configuration Artifacts (read-only)
-#file:Artifacts/Phase10-Migration/Step2/ssh-config.md
-#file:Artifacts/Phase10-Migration/Step3/db-config.md
+#file:Artifacts/Phase10-Migration/Step3/ssh-config.md
+#file:Artifacts/Phase10-Migration/Step4/db-config.md
 
-## Step 4 Input
-#file:Artifacts/Phase10-Migration/Step4/Migration-Decisions.md
+## Step 5 Input
+#file:Artifacts/Phase10-Migration/Step5/Migration-Decisions.md
 
-## Step 5 Inputs
-#file:Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md
-#file:Artifacts/Phase10-Migration/Step5/Verification-Results.md
+## Step 6 Inputs
+#file:Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md
+#file:Artifacts/Phase10-Migration/Step6/Verification-Results.md
 
-## Step 3 Discovery Inputs (attach most recent versions)
-#file:Artifacts/Phase10-Migration/Step3/Discovery/source/source-discovery-<timestamp>.json
-#file:Artifacts/Phase10-Migration/Step3/Discovery/target/target-discovery-<timestamp>.json
-#file:Artifacts/Phase10-Migration/Step3/Discovery/server/server-discovery-<timestamp>.json
+## Step 4 Discovery Inputs (attach most recent versions)
+#file:Artifacts/Phase10-Migration/Step4/Discovery/source/source-discovery-<timestamp>.json
+#file:Artifacts/Phase10-Migration/Step4/Discovery/target/target-discovery-<timestamp>.json
+#file:Artifacts/Phase10-Migration/Step4/Discovery/server/server-discovery-<timestamp>.json
 
 ## Optional: Legacy override
 #file:zdm-env.md
@@ -102,10 +102,10 @@ This prompt has two distinct phases:
 
 ```
 
-  Step 6: Generate Migration Artifacts                   
+  Step 7: Generate Migration Artifacts                   
 
   Phase 1  Generation                                   
-    1. Read Step 4 decisions and Step 5 resolution log   
+    1. Read Step 5 decisions and Step 6 resolution log   
     2. Generate zdm_migrate.rsp from parameter set       
     3. Generate zdm_commands.sh with eval/migrate flow   
     4. Generate ZDM-Migration-Runbook.md                 
@@ -125,10 +125,10 @@ This prompt has two distinct phases:
 
 ## Part 1: Generate `zdm_migrate.rsp`
 
-Write `Artifacts/Phase10-Migration/Step6/zdm_migrate.rsp` with a complete migration parameter set (S6-08):
+Write `Artifacts/Phase10-Migration/Step7/zdm_migrate.rsp` with a complete migration parameter set (S7-08):
 
-1. All parameters aligned to `Migration-Decisions.md` answers from Step 4.
-2. Use environment variables for sensitive and tenant-specific values (S6-04):
+1. All parameters aligned to `Migration-Decisions.md` answers from Step 5.
+2. Use environment variables for sensitive and tenant-specific values (S7-04):
    ```
    SOURCEDATABASESERVICENAME=${SOURCE_DATABASE_SERVICE_NAME}
    TARGETDATABASESERVICENAME=${TARGET_DATABASE_SERVICE_NAME}
@@ -142,7 +142,7 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_migrate.rsp` with a complete migrat
 
 ## Part 2: Generate `zdm_commands.sh`
 
-Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered command flow (S6-09):
+Write `Artifacts/Phase10-Migration/Step7/zdm_commands.sh` with the ordered command flow (S7-09):
 
 1. **Configuration section**  declare all required environment variables with empty defaults and validation:
    ```bash
@@ -160,21 +160,21 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
 
 2. **Ordered command flow**:
    - Prerequisite checks (ZDM home exists, response file present, env vars set)
-   - Version readiness gate: verify ZDM version; include upgrade check if version is outdated or undetermined (S6-05)
+   - Version readiness gate: verify ZDM version; include upgrade check if version is outdated or undetermined (S7-05)
    - `zdm -eval` phase
    - `zdmcli migrate database` phase  guarded behind confirmation prompt
    - Monitoring phase (`zdmcli query jobid`)
    - Post-migration validation steps
    - Switchover guidance (for online migrations)
 
-3. **Guardrails before destructive phases** (S6-09): require explicit user confirmation before triggering `zdmcli migrate database`:
+3. **Guardrails before destructive phases** (S7-09): require explicit user confirmation before triggering `zdmcli migrate database`:
    ```bash
    echo "  About to start migration. Type YES to proceed:"
    read -r CONFIRM
    [[ "${CONFIRM}" != "YES" ]] && { echo "Aborted."; exit 0; }
    ```
 
-4. **Standalone `zdmcli migrate database` call**  include a clearly-commented standalone example outside all function wrappers for direct troubleshooting (S6-09):
+4. **Standalone `zdmcli migrate database` call**  include a clearly-commented standalone example outside all function wrappers for direct troubleshooting (S7-09):
    ```bash
    #  STANDALONE EXAMPLE (run directly for troubleshooting) 
    # Substitute all <placeholder> values before running.
@@ -196,9 +196,9 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
    #   -eval
    ```
 
-5. **`-ignore PATCH_CHECK` conditional (S6-10):** When Step 4 flagged PATCH_CHECK as a WARNING in the compatibility gate, pre-populate `-ignore PATCH_CHECK` in **both** the `zdmcli migrate database -eval` command and the full `zdmcli migrate database` command. Add an explanatory comment block immediately before each occurrence:
+5. **`-ignore PATCH_CHECK` conditional (S7-10):** When Step 5 flagged PATCH_CHECK as a WARNING in the compatibility gate, pre-populate `-ignore PATCH_CHECK` in **both** the `zdmcli migrate database -eval` command and the full `zdmcli migrate database` command. Add an explanatory comment block immediately before each occurrence:
    ```bash
-   # -ignore PATCH_CHECK is present because Step 4 flagged PATCH_CHECK as a WARNING.
+   # -ignore PATCH_CHECK is present because Step 5 flagged PATCH_CHECK as a WARNING.
    # The source database has individually-named one-off patches (e.g., from an older RU)
    # that do not appear individually in the target Oracle Home. They are subsumed by the
    # target's higher Release Update (RU). ZDM's PATCH_CHECK phase compares patch numbers
@@ -209,30 +209,30 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
    ```
    This prevents operators from discovering this requirement through repeated failed eval jobs.
 
-6. **`-sourcenode` must be the source database host (S6-11)**: Always set `-sourcenode` to `$SOURCE_HOST` (the source database hostname from `ssh-config.md`). Never set it to the ZDM jumpbox hostname — ZDM uses `-sourcenode` to locate the source Oracle instance, and using the ZDM host causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` adjacent to `-sourcenode`:
+6. **`-sourcenode` must be the source database host (S7-11)**: Always set `-sourcenode` to `$SOURCE_HOST` (the source database hostname from `ssh-config.md`). Never set it to the ZDM jumpbox hostname — ZDM uses `-sourcenode` to locate the source Oracle instance, and using the ZDM host causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` adjacent to `-sourcenode`:
    ```bash
    -sourcenode "$SOURCE_HOST"  # -sourcenode must be the source DB host, not the ZDM jumpbox host
    ```
 
-7. **`-sourcesid` vs `-sourcedb` based on `SOURCE_GI_TYPE` (S6-12)**: Read `SOURCE_GI_TYPE` from `Artifacts/Phase10-Migration/Step3/db-config.md`:
+7. **`-sourcesid` vs `-sourcedb` based on `SOURCE_GI_TYPE` (S7-12)**: Read `SOURCE_GI_TYPE` from `Artifacts/Phase10-Migration/Step4/db-config.md`:
    - `SOURCE_GI_TYPE=grid`: use `-sourcedb "$SOURCE_DATABASE_UNIQUE_NAME"` — required when source is registered with Grid Infrastructure/srvctl.
    - `SOURCE_GI_TYPE=standalone` or blank: use `-sourcesid "$SOURCE_ORACLE_SID"`.
    Using the wrong flag causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` documenting which flag was chosen and why based on the `SOURCE_GI_TYPE` value read from `db-config.md`.
 
-8. **RSP parameter name validation (S6-13)**: Before finalizing `zdm_migrate.rsp`, cross-check every parameter name against the Layer 0 RSP mappings in the loaded catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A). Flag any parameter not found in the catalog as `[UNVERIFIED — confirm against ZDM 26.1 docs]` in a comment above the parameter. Enforce these known-correct names:
+8. **RSP parameter name validation (S7-13)**: Before finalizing `zdm_migrate.rsp`, cross-check every parameter name against the Layer 0 RSP mappings in the loaded catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A). Flag any parameter not found in the catalog as `[UNVERIFIED — confirm against ZDM 26.1 docs]` in a comment above the parameter. Enforce these known-correct names:
    - `TGT_REDODG` (not any legacy disk group alias)
    - `TGT_RECODG` (not any legacy recovery disk group alias)
    - `PLATFORM_TYPE` values: `EXACS`, `EXACC`, `VMDB`, `NON_CLOUD` — exactly as documented.
    Do not use pre-26.x parameter names — they are silently ignored by ZDM 26.1 (PRGZ-3127).
 
-9. **`-tdekeystorepasswd` when wallet type is PASSWORD (S6-14)**: Read the TDE wallet type from Step 3 source discovery (`WALLET_TYPE` column from `v$encryption_wallet`):
+9. **`-tdekeystorepasswd` when wallet type is PASSWORD (S7-14)**: Read the TDE wallet type from Step 4 source discovery (`WALLET_TYPE` column from `v$encryption_wallet`):
    - `WALLET_TYPE=PASSWORD`: add `-tdekeystorepasswd "$TDE_KEYSTORE_PASSWORD"` to both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands. Do not embed the password literally — use the environment variable reference.
    - `WALLET_TYPE=AUTOLOGIN`: omit `-tdekeystorepasswd`.
    Omitting this flag when the wallet type is PASSWORD causes PRGZ-3111. Add an inline comment in `zdm_commands.sh` stating which wallet type was detected and why the flag is or is not present.
 
-10. **`-ignore DB_NAME_CHECK` for ODAA when DB names differ (S6-15)**: Compare source `DB_NAME` (from Step 3 source discovery, `SELECT name FROM v$database`) against target `DB_NAME` (from Step 3 target discovery). If `PLATFORM_TYPE` is `EXACS` or `EXACC` AND source `DB_NAME` ≠ target `DB_NAME`: add `-ignore DB_NAME_CHECK` to both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands. Precede each occurrence with a comment block explaining: (a) that ODAA/ExaCS targets can be provisioned with a `DB_NAME` that differs from the source, (b) that this flag suppresses the equality check, (c) that the operator must confirm the difference is intentional before proceeding. Do **not** add this flag when `PLATFORM_TYPE=VMDB` or when DB names already match — it would mask a real provisioning error.
+10. **`-ignore DB_NAME_CHECK` for ODAA when DB names differ (S7-15)**: Compare source `DB_NAME` (from Step 4 source discovery, `SELECT name FROM v$database`) against target `DB_NAME` (from Step 4 target discovery). If `PLATFORM_TYPE` is `EXACS` or `EXACC` AND source `DB_NAME` ≠ target `DB_NAME`: add `-ignore DB_NAME_CHECK` to both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands. Precede each occurrence with a comment block explaining: (a) that ODAA/ExaCS targets can be provisioned with a `DB_NAME` that differs from the source, (b) that this flag suppresses the equality check, (c) that the operator must confirm the difference is intentional before proceeding. Do **not** add this flag when `PLATFORM_TYPE=VMDB` or when DB names already match — it would mask a real provisioning error.
 
-11. **`TGT_SSH_TUNNEL_PORT` decision (S6-16)**: Before including `TGT_SSH_TUNNEL_PORT` in `zdm_migrate.rsp`, check whether Layer 1 pre-flight or Step 3 discovery confirmed that direct SQL*Net connectivity from source to target SCAN port 1521 succeeded (look for `nc -zv $TARGET_SCAN_ADDR 1521` PASS in Step 3 discovery or Step 5 Layer 1 pre-flight output):
+11. **`TGT_SSH_TUNNEL_PORT` decision (S7-16)**: Before including `TGT_SSH_TUNNEL_PORT` in `zdm_migrate.rsp`, check whether Layer 1 pre-flight or Step 4 discovery confirmed that direct SQL*Net connectivity from source to target SCAN port 1521 succeeded (look for `nc -zv $TARGET_SCAN_ADDR 1521` PASS in Step 4 discovery or Step 6 Layer 1 pre-flight output):
     - Direct SQL*Net confirmed PASS → do **NOT** include `TGT_SSH_TUNNEL_PORT`. Adding it when direct connectivity works causes `localhost:<port>` precheck failures because ZDM routes traffic through a tunnel that was never established.
     - Direct SQL*Net failed and an SSH tunnel was configured → include `TGT_SSH_TUNNEL_PORT` with the configured local port.
     Add an inline comment in `zdm_migrate.rsp` adjacent to where `TGT_SSH_TUNNEL_PORT` would appear, documenting the decision (present or absent) and the connectivity check result.
@@ -241,12 +241,12 @@ Write `Artifacts/Phase10-Migration/Step6/zdm_commands.sh` with the ordered comma
 
 ## Part 3: Generate `ZDM-Migration-Runbook.md`
 
-Write `Artifacts/Phase10-Migration/Step6/ZDM-Migration-Runbook.md` (S6-07):
+Write `Artifacts/Phase10-Migration/Step7/ZDM-Migration-Runbook.md` (S7-07):
 
-1. **Pre-migration checklist and validation commands**  confirm all Step 5 blockers resolved, discovery refreshed, configuration artifacts in place.
+1. **Pre-migration checklist and validation commands**  confirm all Step 6 blockers resolved, discovery refreshed, configuration artifacts in place.
 2. **Source configuration tasks**  supplemental logging, ARCHIVELOG mode, force logging, source backup location.
 3. **Target configuration tasks**  wallet/credential setup, TNS/connectivity, target pre-validation.
-4. **ZDM server preparation tasks**  admin user  `sudo su - zdmuser` flow (S6-03), ZDM home verification, OCI config check, SSH key locations under `/home/zdmuser/.ssh/`.
+4. **ZDM server preparation tasks**  admin user  `sudo su - zdmuser` flow (S7-03), ZDM home verification, OCI config check, SSH key locations under `/home/zdmuser/.ssh/`.
 5. **Migration execution**  `zdm -eval`  `zdmcli migrate database`  monitoring with `zdmcli query jobid`.
 6. **Pause/resume operations**  `zdmcli pause jobid` / `zdmcli resume jobid` usage.
 7. **Switchover guidance**  applicable for online migration; confirm data guard setup and trigger switchover.
@@ -264,17 +264,17 @@ Write `Artifacts/Phase10-Migration/Step6/ZDM-Migration-Runbook.md` (S6-07):
 
 ## Part 4: Generate `README.md`
 
-Write `Artifacts/Phase10-Migration/Step6/README.md` (CR-07, S6-06):
+Write `Artifacts/Phase10-Migration/Step7/README.md` (CR-07, S7-06):
 
-1. **Migration overview and assumptions**  source/target summary from Step 4 decisions, migration type (online/offline).
-2. **Prerequisites checklist**  all Steps 15 completed; Step 5 blocker resolution state from `Verification-Results.md` when available.
+1. **Migration overview and assumptions**  source/target summary from Step 5 decisions, migration type (online/offline).
+2. **Prerequisites checklist**  all Steps 15 completed; Step 6 blocker resolution state from `Verification-Results.md` when available.
 3. **Generated artifact index**  each file, its purpose, and how it is used:
    - `zdm_migrate.rsp`  ZDM response file (pass with `-rsp` flag)
    - `zdm_commands.sh`  Ordered execution guide; run as `zdmuser` on ZDM server
    - `ZDM-Migration-Runbook.md`  Full operator runbook (pre/execute/validate/rollback)
 4. **Quick-start execution flow**  from evaluation to migration to post-migration validation.
 5. **Security and credential handling**  no secrets in files; use env vars; key file paths under `/home/zdmuser/.ssh/`; admin user  `sudo su - zdmuser` login flow.
-6. **Where runtime outputs are written**  all artifacts under `Artifacts/Phase10-Migration/Step6/`; ZDM job logs under `$ZDM_HOME/log/`.
+6. **Where runtime outputs are written**  all artifacts under `Artifacts/Phase10-Migration/Step7/`; ZDM job logs under `$ZDM_HOME/log/`.
 7. **Success signals**: `zdm -eval` exits 0; `zdmcli migrate database` job completes; post-migration validation passes.
 8. **Failure signals**: eval blocking errors; migration job FAILED state; post-migration validation failures.
 
@@ -286,13 +286,13 @@ After all artifacts are written to disk, run bash syntax validation in the jumpb
 
 1. **Mandatory  bash syntax check**:
    ```bash
-   bash -n ~/Artifacts/Phase10-Migration/Step6/zdm_commands.sh && echo "OK" || echo "FAIL"
+   bash -n ~/Artifacts/Phase10-Migration/Step7/zdm_commands.sh && echo "OK" || echo "FAIL"
    ```
 
 2. **Optional  shellcheck** (run if available):
    ```bash
    if command -v shellcheck &>/dev/null; then
-     shellcheck ~/Artifacts/Phase10-Migration/Step6/zdm_commands.sh
+     shellcheck ~/Artifacts/Phase10-Migration/Step7/zdm_commands.sh
    fi
    ```
 
@@ -331,23 +331,23 @@ Do **not** begin the `zdm -eval` loop until the user types `CONFIRM`. If the use
 
 ---
 
-## Part 6: zdm -eval Iteration Loop (S6-08)
+## Part 6: zdm -eval Iteration Loop (S7-08)
 
 After the quality gate passes, begin the evaluation loop:
 
 1. **Before running `zdm -eval`**, confirm both prerequisite layers have passed:
-   - **Layer 1**: `Scripts/preflight_l1_infrastructure.sh` results in `Artifacts/Phase10-Migration/Step5/Verification-Results.md` show all-PASS under `### Layer 1 Infrastructure Pre-flight`. If any Layer 1 check is FAIL, surface the failures and stop — do not submit `zdm -eval`.
-   - **Layer 2**: `Artifacts/Phase10-Migration/Step5/Verification-Results.md` from `verify_fixes.sh` shows all blocker checks PASS. If any Layer 2 blocker is outstanding, surface them and stop.
+   - **Layer 1**: `Scripts/preflight_l1_infrastructure.sh` results in `Artifacts/Phase10-Migration/Step6/Verification-Results.md` show all-PASS under `### Layer 1 Infrastructure Pre-flight`. If any Layer 1 check is FAIL, surface the failures and stop — do not submit `zdm -eval`.
+   - **Layer 2**: `Artifacts/Phase10-Migration/Step6/Verification-Results.md` from `verify_fixes.sh` shows all blocker checks PASS. If any Layer 2 blocker is outstanding, surface them and stop.
 
    Once both layers are confirmed PASS, run `zdm -eval` using the generated response file and capture the full output.
 2. If evaluation **succeeds** (exit code 0 / no blocking errors), surface the success output and proceed to the Completion Checklist.
 3. If evaluation **fails**, surface the error output and triage the failure against the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A):
-   - If the failure **matches a catalog entry**: apply the remediation guidance from that catalog row (re-run the relevant fix script from Step 5 or adjust `zdm_migrate.rsp`), then re-run `zdm -eval`.
+   - If the failure **matches a catalog entry**: apply the remediation guidance from that catalog row (re-run the relevant fix script from Step 6 or adjust `zdm_migrate.rsp`), then re-run `zdm -eval`.
    - If the failure is **NOT in the catalog**: add it to the catalog file under the appropriate layer section, noting it as `[zdm-eval-feedback <date>]` per CR-14-D. Then attempt remediation (adjust `zdm_migrate.rsp` or create a new fix script) and re-run `zdm -eval`.
 4. Repeat the fix-and-retry loop until either:
    - `zdm -eval` exits successfully, **or**
    - The user explicitly instructs the agent to **skip** evaluation (for example: responds with "skip eval" or confirms they want to proceed despite failures).
-5. If the user **skips**: create `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md` logging the skip decision and all outstanding eval errors before continuing.
+5. If the user **skips**: create `Artifacts/Phase10-Migration/Step7/Issue-Resolution-Log.md` logging the skip decision and all outstanding eval errors before continuing.
 6. Do not proceed to full migration execution (`zdmcli migrate database`) from this prompt. That is an operator-driven step using `zdm_commands.sh`.
 
 ---
@@ -375,7 +375,7 @@ Before handing off artifacts to the operator:
 - [ ] All four required files generated: `README.md`, `ZDM-Migration-Runbook.md`, `zdm_migrate.rsp`, `zdm_commands.sh`
 - [ ] `zdm_commands.sh` passes `bash -n` syntax check
 - [ ] `zdm -eval` exits 0 (or skip is explicitly logged in `Issue-Resolution-Log.md`)
-- [ ] All Step 5 blockers confirmed resolved in `Verification-Results.md`
+- [ ] All Step 6 blockers confirmed resolved in `Verification-Results.md`
 - [ ] Security and credential notes included in `README.md`
 - [ ] Standalone `zdmcli migrate database` example present in `zdm_commands.sh`
 - [ ] `-sourcenode` set to `$SOURCE_HOST` (not the ZDM jumpbox) with inline comment
@@ -391,11 +391,11 @@ Before handing off artifacts to the operator:
 
 After all artifacts are generated, validated, and `zdm -eval` succeeds (or is explicitly skipped):
 
-> **ZDM Migration Artifacts are complete.** Use the generated artifacts in `Artifacts/Phase10-Migration/Step6/` to execute the migration from the jumpbox terminal:
+> **ZDM Migration Artifacts are complete.** Use the generated artifacts in `Artifacts/Phase10-Migration/Step7/` to execute the migration from the jumpbox terminal:
 >
 > 1. Review `ZDM-Migration-Runbook.md` for the full execution sequence.
 > 2. Set required environment variables documented in `zdm_commands.sh`.
 > 3. Run `zdm_commands.sh` as `zdmuser` on the ZDM server for guided execution.
 > 4. Or use the standalone `zdmcli migrate database` example in `zdm_commands.sh` for manual execution.
 >
-> All runtime logs are written to `$ZDM_HOME/log/`. All generated artifacts remain under `Artifacts/Phase10-Migration/Step6/` (git-ignored).
+> All runtime logs are written to `$ZDM_HOME/log/`. All generated artifacts remain under `Artifacts/Phase10-Migration/Step7/` (git-ignored).

@@ -1,166 +1,238 @@
-﻿# Step5 User Requirements - Fix Issues
+﻿# Step6 User Requirements - Discovery Questionnaire
 
 ## Objective
 
-Generate remediation and verification artifacts for blockers and required actions identified in Step4.
+Analyze Step5 discovery outputs and produce planning artifacts for manual migration decisions.
 
-## S5-01: Output contract
+## S6-01: Output contract
 
-Required generated artifacts under `Artifacts/Phase10-Migration/Step5/`:
+Required generated files:
 
-- `Issue-Resolution-Log.md`
-- `Scripts/fix_<issue-id>_<short-name>.sh` — one script per remediable issue (see S5-04 for naming)
-- `Scripts/fix_orchestrator.sh` — orchestrator that invokes individual fix scripts in dependency order
-- `Scripts/README-fix_<issue-id>_<short-name>.md` — one companion README per fix script
-- `Scripts/README-fix_orchestrator.md` — companion README for the orchestrator
-- `verify_fixes.sh` — verification script (run after fixes are applied)
-- `README.md` — step summary and review checklist
+- `Artifacts/Phase10-Migration/Step7/Discovery-Summary.md`
+- `Artifacts/Phase10-Migration/Step7/Migration-Decisions.md`
 
-Non-remediable issues (e.g., provisioning changes requiring console action) must be documented in `Issue-Resolution-Log.md` with manual steps only — no script is generated for them.
+## S6-02: Input model
 
-## S5-02: Iterative operation model
+Primary inputs:
 
-1. Step5 supports repeated cycles until blockers are resolved.
-2. Each iteration updates issue tracking and verification outcomes.
+- Source discovery files (txt/json)
+- Target discovery files (txt/json)
+- ZDM server discovery files (txt/json)
 
-## S5-03: Issue-Resolution-Log generated items
+Optional companion inputs for configured intent/baseline comparison (see CR-12):
 
-`Issue-Resolution-Log.md` should include at least:
+- `Artifacts/Phase10-Migration/Step6/ssh-config.md` — SSH connectivity configuration written by Step4.
+- `Artifacts/Phase10-Migration/Step7/db-config.md` — database and ZDM configuration written by Step5.
+- `zdm-env.md` — legacy override, used when step config artifacts are absent.
 
-1. Issue register with IDs, severity, owner, status, and last-updated timestamp.
-2. For each issue: evidence, remediation plan, verification method, and rollback notes.
-3. Iteration history showing what changed between remediation cycles.
-4. Explicit unresolved items and blockers preventing Step6 progression.
+## S6-03: Mismatch handling
 
-## S5-04: Remediation package generated items
+1. Treat discovery files as observed runtime evidence.
+2. Treat step config artifacts (`ssh-config.md`, `db-config.md`) or `zdm-env.md` as configured intent.
+3. If they differ, explicitly report mismatches and remediation guidance.
 
-### Per-issue fix script naming
+## S6-04: Required analysis sections
 
-Each remediable issue gets exactly one script:
+Discovery Summary must include:
 
-```
-Scripts/fix_<issue-id>_<short-name>.sh
-```
+1. Environment overview.
+2. ZDM compatibility gate results (see S6-05) — must appear before readiness assessment.
+3. Readiness assessment with met requirements, required actions, and blockers.
+4. Discovered configuration reference.
+5. Migration method recommendation and rationale.
 
-Examples:
-- `fix_B01_enable_archivelog.sh`
-- `fix_B02_create_spfile.sh`
-- `fix_W01_upgrade_timezone.sh`
+## S6-05: ZDM compatibility gate
 
-Well-known infrastructure fix scripts for ZDM issues (generate when the corresponding Step4 gate fires):
-- `fix_W04_zdm_host_hosts_resolution.sh` — adds unresolvable target RAC node entries to `/etc/hosts` on the ZDM jumpbox; scope: `OS` on ZDM host.
-- `fix_W05_source_oracle_sudo.sh` — validates and configures sudoers on the source host for the ZDM `zdmauth` oracle sudo pattern; scope: `OS` on source host.
-- `fix_W06_datapatch_prereq_check.sh` — runs `datapatch -prereqs` on all target RAC nodes and reports full output; surfaces MOS 1609718.1 sqlpatch.pm compatibility issues before ZDM reaches `ZDM_DATAPATCH_TGT`; scope: diagnostic/read-only.
+### Step 3: Confirm migration method first
 
-`<issue-id>` uses the Issue-Resolution-Log ID. `<short-name>` is a 2–4 word snake_case description.
+Before running the compatibility gate or writing any artifacts, ask the operator to confirm the migration method (`MIGRATION_METHOD`). Two gate checks (`ARCHIVELOG` mode and `SPFILE` in use) are BLOCKER for `ONLINE_PHYSICAL` but only WARNING for `OFFLINE_PHYSICAL` — the gate cannot classify them correctly without this answer. Wait for the operator's response, then proceed immediately to the gate. The confirmed method is recorded here and carries forward as the A1 answer in the Part 2 planning interview (no need to ask it again).
 
-### Orchestrator script
+### Compatibility checks
 
-`fix_orchestrator.sh` must:
-1. List all fix scripts it will invoke, in dependency order, at the top as comments.
-2. Invoke each fix script individually (not source them) so failures are isolated.
-3. Log pass/fail status per script to stdout.
-4. Stop on first BLOCKER-category failure unless `--continue-on-error` flag is passed.
-5. Accept an optional `--dry-run` flag that prints what would be executed without running anything.
+Evaluate the following using Step5 discovery evidence. Present results in a structured table in the Discovery Summary.
 
-### Companion README per fix script
+| Check | Rule | Severity if failed |
+|-------|------|--------------------|
+| DB release (source vs target) | Oracle Database release (major.minor, e.g. 12.2, 19c) must be identical for physical migration. Patch level (RU/PSU) may differ — target patch level must be ≥ source; ZDM runs `datapatch` automatically when target patch is higher. | BLOCKER if release differs; WARNING if patch level differs |
+| Character set | Source `NLS_CHARACTERSET` must equal target | BLOCKER |
+| `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
+| `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
+| `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
+| TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
+| Hostname | Source and target hostnames must differ | BLOCKER |
+| `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
+| Timezone file version | Target timezone version must be ≥ source | WARNING |
+| `SQLNET.ORA` encryption algorithm | Must match between source and target | WARNING |
+| ZDM host resolves target RAC node hostnames | `getent hosts <tgt-node1> [<tgt-node2> ...]` from ZDM host (if target is RAC) — all nodes must resolve to an IP | **BLOCKER** (if RAC) |
+| Source oracle user sudo (ZDM `zdmauth` pattern) | `ssh <src-user>@<src-host> "sudo -u oracle id"` must return oracle UID without error | **BLOCKER** |
+| Source one-off patches vs target RU (PATCH_CHECK) | Compare `opatch lspatches` on source and target. If target RU ≥ source RU and source has individually-named patches subsumed by the target RU, flag PATCH_CHECK risk. See S6-06 for remediation. | WARNING — document `-ignore PATCH_CHECK` as expected and safe when target RU supersedes source patches |
+| Target datapatch compatibility | `datapatch -prereqs` exits cleanly on all target nodes without `Unsupported named object type` error at `sqlpatch.pm` | WARNING |
 
-For each `fix_<issue-id>_<short-name>.sh`, generate `README-fix_<issue-id>_<short-name>.md` containing:
+### Gate output format
 
-1. Issue ID and severity (BLOCKER / WARNING).
-2. Target server (`zdm-server`, `source-db`, or `target-db`) and rationale (see S5-05).
-3. Prerequisites and required environment variables.
-4. Step-by-step behavior summary.
-5. Exact execution command and required runtime user.
-6. Expected output or success indicators.
-7. Rollback/undo guidance when applicable.
-
-## S5-05: Target-first remediation preference
-
-When a compatibility fix can be applied to either the source or the target database, **generate the script for the target database**. Do not generate source-side scripts unless the fix is source-only by nature.
-
-Source-only fixes (always generate against source):
-- Enabling `ARCHIVELOG` mode
-- Creating/switching to SPFILE
-- RMAN configuration (`CONTROLFILE AUTOBACKUP`, snapshot controlfile location)
-- Source TDE wallet creation or key management (when target TDE is not yet applicable)
-
-Target-preferred fixes (generate against target even if source could also be changed):
-- `COMPATIBLE` parameter alignment — set source value on target (lowering source is not supported)
-- Timezone file upgrade — upgrade target to match or exceed source
-- `/tmp` execute permission — remediate on target (and source if also failing)
-- `SQLNET.ORA` encryption algorithm alignment — update target to match source
-- TDE wallet status — open/configure on target
-
-Each companion README must explicitly state which server the script targets and why (source-only by nature, or target-preferred per this policy).
-
-## S5-06: Scope classification and blast-radius awareness
-
-Each fix script must be assigned a **scope** based on the broadest system component it modifies:
-
-| Scope | Meaning | Examples |
-|-------|---------|----------|
-| `DATABASE` | Affects only the named database instance | `COMPATIBLE` parameter, ARCHIVELOG mode, SPFILE creation, TDE wallet, RMAN config |
-| `ORACLE-HOME` | Affects all databases sharing this Oracle Home | `SQLNET.ORA` encryption settings, timezone file upgrade |
-| `OS` | Affects all processes on the host | `/tmp` mount flags |
-
-Scope must be declared in:
-1. The `# TARGET:` header block of the fix script (add `# SCOPE: DATABASE | ORACLE-HOME | OS`).
-2. The companion `README-fix_<issue-id>_<short-name>.md` as a **Scope** field (with a plain-English explanation of what else on the server could be affected).
-3. The S5-07 script inventory table as a **Scope** column.
-
-When any `ORACLE-HOME` or `OS` scope scripts are present, they must be explicitly listed in the S5-11 risk banner before execution options are presented.
-
-## S5-07: Execution model and user choice
-
-After all scripts are generated and written to disk, present the user with a **script inventory table** and an explicit choice:
+Produce a gate result block in the Discovery Summary:
 
 ```
-Generated fix scripts
----------------------
-| Script | Target | Severity | Summary |
-|--------|--------|----------|---------|
-| fix_B01_enable_archivelog.sh | source-db | BLOCKER | Enable ARCHIVELOG mode on source |
-| fix_B02_compatible_param.sh  | target-db | BLOCKER | Set COMPATIBLE=12.2.0 on target  |
-| fix_W01_upgrade_timezone.sh  | target-db | WARNING | Upgrade DST timezone file        |
-| fix_orchestrator.sh          | all       | —        | Run all fixes in order           |
-
-Options:
-  A (default) — Review scripts individually and run selectively outside this prompt.
-  B — Say "run all" to execute all scripts via the orchestrator.
-  C — Say "run fix_<id>" (e.g., "run fix_B01") to execute a specific script inline.
+ZDM Compatibility Gate
+======================
+[PASS/FAIL/WARN]  <check name>:  source=<value>  target=<value>  [note if applicable]
 ```
 
-Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu. See S5-12 for execution constraints.
+### Gate behavior
 
-## S5-08: Layer 1 infrastructure pre-flight checks (no DB credentials required)
+1. If **any BLOCKER** is found:
+   - Write `Discovery-Summary.md` marked with `[BLOCKED — compatibility gate failed]`. Include each blocker and its full remediation context from S6-06 in the **Required Actions (Critical)** section of the Discovery Summary — Step7 reads this section to generate the appropriate fix scripts.
+   - Do not write `Migration-Decisions.md`.
+   - Halt the migration planning interview.
+   - In the **chat**, display only a concise table of blocker names and a one-line description each. Do not surface detailed manual remediation steps in the chat output — remediation detail belongs in the Discovery Summary for Step7 to consume.
+   - Direct the user to run `@Phase10-Step7-Fix-Issues` next to generate automated remediation scripts. Do not ask the user to manually apply fixes at this point.
 
-In addition to database-level fix scripts, Step5 must generate and execute a Layer 1 infrastructure pre-flight check script that validates all CR-14 Layer 1 items. This script runs via SSH and OS commands only — no database connections.
+2. If only WARNINGs are found:
+   - Continue with the interview.
+   - Include warnings in the Discovery Summary required-actions section.
+   - Note in `Migration-Decisions.md` that the warnings were acknowledged.
 
-### Output contract
+3. If all checks PASS:
+   - Proceed directly to the migration planning interview.
 
-- `Scripts/preflight_l1_infrastructure.sh` — Layer 1 pre-flight check script
-- `Scripts/README-preflight_l1_infrastructure.md` — companion README
-- Results appended to `Verification-Results.md` under a `### Layer 1 Infrastructure Pre-flight` section
+### Handling missing discovery data
 
-### Layer 1 checks (doc-derived from catalog)
+If a required compatibility value was not collected in Step5 (e.g., `COMPATIBLE` parameter or timezone version not present in discovery files), flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER requiring re-run of Step5 with the updated discovery scope before proceeding.
 
-The specific checks that `preflight_l1_infrastructure.sh` must perform are read from the **Layer 1** section of the CR-14 prerequisite catalog file. Apply the CR-14-A version lookup protocol to read the correct catalog file before generating this script. Do not use `fetch_webpage`.
+## S6-06: Compatibility gate remediation paths
 
-Do not hardcode the check list in this requirement. The script generator must:
-1. Apply the CR-14-A version lookup protocol: determine the ZDM version and migration method, then read the matching catalog file from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md` using `read_file`.
-2. For each row in the "Layer 1 — Infrastructure" section, generate a corresponding shell check using the verification command from the catalog row.
-3. Label each check in the script output with the check name and doc section from the catalog row so a human can trace it back to the ZDM documentation.
+For each BLOCKER type, provide the following guidance:
 
-### Script behavior rules
+**DB release mismatch (source release ≠ target release, physical migration):**
+Physical migration (ONLINE_PHYSICAL / OFFLINE_PHYSICAL) requires source and target to be at the same Oracle Database release (major.minor — e.g., both 12.2, or both 19c). A patch-level difference (RU/PSU) is acceptable as long as the target patch level is ≥ source; ZDM handles this automatically via `datapatch` — flag as WARNING only. Three remediation options for a release mismatch:
+1. Reprovision the target database at the same version as the source, then re-run Step5.
+2. Use ZDM migrate+upgrade workflow: provision the target at the same version as source, then supply `ZDM_UPGRADE_TARGET_HOME` pointing to a higher-version Oracle Home already provisioned on the target — ZDM will migrate then upgrade. Supported for 12.2+ source to 19c target CDB (requires `ZDM_UPGRADE_TARGET_HOME` and optionally `ZDM_PRE_UPGRADE_TARGET_HOME` for non-CDB to PDB conversion).
+3. Switch to logical migration (ZDM logical, DataPump, or GoldenGate) which supports cross-version and cross-platform migrations.
 
-1. Each check must report `[PASS]`, `[FAIL]`, or `[SKIP]` with a one-line explanation.
-2. Script must not abort on first failure — run all checks and summarize at the end.
-3. Exit code 0 if all checks pass; non-zero if any check fails.
-4. All failures must include the exact command that failed and the output received.
-5. Results must be machine-parseable: prefix each result line with `L1_CHECK:<check-name>:<status>`.
-6. At the top of the script, include a comment block listing the catalog file path and the date the script was generated from it.
+**Character set mismatch:**
+Character set must match. Remediation: provision a new target database with the same character set as the source, or perform a character set migration on the source (requires extensive testing). Cross-character-set migration requires the logical migration path.
 
-### Relationship to database fix scripts
+**`COMPATIBLE` parameter mismatch:**
+Set `COMPATIBLE` to the same value on both source and target: `ALTER SYSTEM SET COMPATIBLE='<value>' SCOPE=SPFILE;` then restart. Note: lowering `COMPATIBLE` is not supported — the target must be at `≥` source value; set source value on target if target is higher.
 
-Layer 1 failures are **blocking** — do not execute database fix scripts (`fix_orchestrator.sh`) until all Layer 1 checks pass. Surface L1 failures to the user with remediation guidance from the catalog row's `[ZDM doc section]` column (per CR-14-C) before presenting the S5-07 database fix menu.
+**`ARCHIVELOG` mode:**
+Enable archivelog mode on source: `SHUTDOWN IMMEDIATE; STARTUP MOUNT; ALTER DATABASE ARCHIVELOG; ALTER DATABASE OPEN;`
+
+**SPFILE not in use:**
+Create SPFILE from PFILE: `CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
+
+**TDE wallet not OPEN (CDB):**
+Open the TDE wallet: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.
+
+**TDE wallet not OPEN for one or more PDBs:**
+Connect to the affected PDB and open its wallet: `ALTER SESSION SET CONTAINER=<pdb_name>; ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;`. Alternatively, open all containers at CDB level: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password> CONTAINER=ALL;`. Verify with the per-PDB join query from CR-14 Layer 2.
+
+**TDE master key missing for one or more PDBs (ORA-28361):**
+For each PDB without a master key row in `v$encryption_keys`: connect to the PDB and set the key: `ALTER SESSION SET CONTAINER=<pdb_name>; ADMINISTER KEY MANAGEMENT SET KEY FORCE KEYSTORE IDENTIFIED BY <password> WITH BACKUP;`. Then persist: `ADMINISTER KEY MANAGEMENT USE KEY '<key_id>' IDENTIFIED BY <password> WITH BACKUP; EXECUTE DBMS_SERVICE.SAVE_STATE;`. Verify by re-running the `v$encryption_keys` query from CR-14 Layer 2.
+
+**DB_NAME mismatch (source ≠ target):**
+Source and target must have the same `DB_NAME`. Options: (1) Reprovision the target database with the correct `DB_NAME`. (2) Rename the source `DB_NAME` using the NID utility: `nid target=/ dbname=<new_name> setname=yes` (requires database in MOUNT state; renames `DB_NAME` without regenerating DBIDs — verify with `SELECT name FROM v$database` after restart). Note: renaming the source DB_NAME changes the CONTROLFILE autobackup file naming pattern.
+
+**DB_UNIQUE_NAME collision (source = target):**
+Source and target `DB_UNIQUE_NAME` must differ. Rename the target: `ALTER SYSTEM SET DB_UNIQUE_NAME='<new_unique_name>' SCOPE=SPFILE;` then restart the target. The `TGT_DB_UNIQUE_NAME` RSP parameter must match the renamed value.
+
+**FORCE LOGGING not enabled:**
+Enable on source: `ALTER DATABASE FORCE LOGGING;`. Verify: `SELECT force_logging FROM v$database;` must return `YES`.
+
+**RMAN CONTROLFILE AUTOBACKUP not ON:**
+Enable on source: `RMAN> CONFIGURE CONTROLFILE AUTOBACKUP ON;`. Verify: `SELECT value FROM v$rman_configuration WHERE name='CONTROLFILE AUTOBACKUP';` must return `ON`. Set the autobackup format to the NFS path if NFS is the transfer medium.
+
+**Hostname collision:**
+Source and target must be on different hosts. This is a provisioning error — provision the target on a different host.
+
+**`/tmp` missing execute permission:**
+Remount `/tmp` with execute: `mount -o remount,exec /tmp`. To make permanent, update `/etc/fstab` to remove the `noexec` option for `/tmp`.
+
+**Timezone version (target < source):**
+Upgrade target timezone file before migration: apply the appropriate DST patch to the Oracle home on the target and run `DBMS_DST` procedures. Refer to Oracle Doc ID 1509653.1 for the upgrade procedure.
+
+**PATCH_CHECK (PRGT-1017) with higher target RU:**
+When target is at a higher Release Update (RU) than source and source has individually-named one-off patches (e.g., 19.3 one-offs migrating to a 19.29 target), ZDM's PATCH_CHECK phase will flag each source patch not individually present in the target home, even though those patches are subsumed by the target's higher RU. This is documented ZDM behavior, not a configuration error. The safe resolution is to add `-ignore PATCH_CHECK` to the `zdmcli migrate database` and `zdmcli migrate database -eval` commands. This flag suppresses the individual patch-number comparison and relies on the target RU for supersession. Confirm that target RU ≥ source RU before using this flag. When Step6 flags PATCH_CHECK as WARNING, Step7 must pre-populate `-ignore PATCH_CHECK` in `zdm_commands.sh` with an explanatory comment (see S7-10).
+
+**ZDM host cannot resolve target RAC node hostnames:**
+Add the missing RAC node hostname-to-IP entries to `/etc/hosts` on the ZDM jumpbox (not the source or target). Use `getent hosts <node>` to verify after editing.
+
+**Source oracle user sudo not configured:**
+Configure sudoers on the source host to allow the ZDM admin user (`azureuser` or equivalent) to run commands as `oracle` without a password. Add a line to `/etc/sudoers.d/zdmauth` (or equivalent): `<zdm-admin-user> ALL=(oracle) NOPASSWD: ALL`. Verify with `ssh <src-user>@<src-host> "sudo -u oracle id"`. This is a ZDM-specific requirement documented in the ZDM Installation Guide (not in standard Oracle DB setup docs).
+
+## S6-07: Discovery Summary generated items
+
+`Discovery-Summary.md` should include at least:
+
+1. Generation metadata: date/time and source discovery files analyzed.
+2. **ZDM compatibility gate results** (from S6-05) — structured pass/fail/warn table; must appear before executive summary.
+3. Executive summary by component (source/target/ZDM/network) with status.
+4. Migration method recommendation with explicit justification.
+5. Source database details and readiness checks (archivelog/force/supplemental/TDE and related prechecks).
+6. Target environment details relevant to migration readiness.
+7. ZDM server details including discovered version evidence and service posture.
+8. Required actions split by severity (critical vs recommended) — compatibility gate blockers appear first.
+9. Discovered values reference section for Step7/Step7 reuse.
+10. Mismatch section when `zdm-env.md` intent differs from discovery evidence.
+
+## S6-08: Migration Planning Interview
+
+After generating the Discovery Summary, conduct a structured interactive interview in decision-tree order before writing any questionnaire output file.
+
+Interview phases — must be completed in sequence:
+
+**Phase A — Migration Type and Platform (gates all subsequent questions)**
+1. Confirm (or override) the recommended migration method: ONLINE_PHYSICAL or OFFLINE_PHYSICAL.
+2. **Target platform type** (determines `PLATFORM_TYPE` RSP parameter): read the Layer 0 rows from the CR-14 prerequisite catalog file (loaded per CR-14-A from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`) for the current ZDM version. Present the allowed values and their RSP mappings from the catalog. Do not hardcode the allowed values here.
+3. **Source storage type** (determines `zdmcli` identifier flag): read from the Layer 0 catalog file rows (loaded per CR-14-A). Default to the value inferred from Step5 discovery (`db_create_file_dest` parameter or ASM PMON process evidence); ask for confirmation.
+
+**Phase B — Migration-type-specific questions**
+
+For ONLINE_PHYSICAL only:
+- Log switch interval preference (RSP: `LOG_SWITCH_INTERVAL`).
+- Data Guard protection mode: MAX_PERFORMANCE / MAX_AVAILABILITY / MAX_PROTECTION (RSP: `DATAGUARD_PROTECTION_MODE`).
+- Data transfer medium: DIRECT or OSS (RSP: `DATA_TRANSFER_MEDIUM`).
+- Insert pause point before switchover? (RSP: `PAUSE_BEFORE_SWITCHOVER`).
+- Enable auto-switchover? (RSP: `AUTO_SWITCHOVER`).
+
+For OFFLINE_PHYSICAL only:
+- Backup/transfer medium: OSS, NFS, or COPY (RSP: `DATA_TRANSFER_MEDIUM`).
+- Maximum acceptable downtime window (runbook planning input).
+
+**Phase C — Common questions (both paths)**
+- OCI Tenancy OCID (RSP: `OCID_TENANCY` / `zdmcli -ocitenancy`). Mark as manual-entry required if not in `zdm-env.md`.
+- OCI User OCID (RSP: `OCID_USER`). Mark as manual-entry required if not in `zdm-env.md`.
+- OCI Compartment OCID (RSP: `OCID_COMPARTMENT`). Mark as manual-entry required if not in `zdm-env.md`.
+- Target Database OCID (RSP: `OCID_TARGET_DATABASE`). Mark as manual-entry required if not in `zdm-env.md`.
+- OCI Object Storage namespace, bucket name, and bucket region (RSP: `OSS_BUCKET_NAMESPACE`, `OSS_BUCKET_NAME`, `OSS_BUCKET_REGION`).
+- TLS/wallet transfer medium if TDE is enabled (RSP: `WALLET_MIGRATION`).
+
+Each question must present the discovered or `zdm-env.md`-sourced recommended default and ask the user to confirm or provide a value.
+
+## S6-09: Interview preconditions
+
+1. Do not begin the interview until Part 1 (Discovery Summary) analysis is complete.
+2. If `zdm-env.md` is attached and contains a non-placeholder value for a question field, present that value as the pre-filled default and ask for confirmation — do not ask an open question.
+3. Do not ask questions whose answers cannot influence an RSP parameter, a `zdmcli` argument, or runbook content.
+4. Do not ask Phase B (ONLINE_PHYSICAL) questions when the confirmed method is OFFLINE_PHYSICAL, and vice versa.
+5. Do not proceed to Phase C until Phase B is fully answered.
+
+## S6-10: Decisions Record output
+
+After the interview is complete, write `Migration-Decisions.md` as a **Decisions Record** '€” not a form to fill in.
+
+The file must contain:
+
+1. **Generation metadata** (date/time, migration method confirmed).
+2. **Decisions table** with one row per answered question:
+
+| Parameter | RSP / CLI Mapping | Value | Source |
+|---|---|---|---|
+| MIGRATION_METHOD | `MIGRATION_METHOD` | ONLINE_PHYSICAL | confirmed by operator |
+| ... | ... | ... | discovered / confirmed / manual |
+
+Source values: `discovered` (from Step5 evidence), `from zdm-env.md` (pre-filled and confirmed), `manual` (operator entered directly).
+
+3. **Runbook planning notes** '€” any non-RSP answers (e.g., downtime window) recorded as free-form notes for the runbook author.
+
+No blank or placeholder values are permitted in this file. All rows must be answered before the file is written.

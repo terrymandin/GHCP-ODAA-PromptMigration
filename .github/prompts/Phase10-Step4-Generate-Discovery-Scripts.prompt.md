@@ -1,8 +1,8 @@
 ﻿---
 mode: agent
-description: ZDM Step 3 - Run read-only discovery against source, target, and ZDM server from the jumpbox
+description: ZDM Step 4 - Run read-only discovery against source, target, and ZDM server from the jumpbox
 ---
-# ZDM Migration Step 3: Run Discovery
+# ZDM Migration Step 4: Run Discovery
 
 ## Purpose
 
@@ -27,12 +27,12 @@ This step uses the **Remote-SSH execution model** (CR-03): VS Code is connected 
 ## Prerequisites
 
 - VS Code is connected to the ZDM jumpbox via Remote-SSH (Step 1 complete).
-- SSH connectivity to source and target has been confirmed (Step 2 complete).
-- `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists (written by Step 2) — or `zdm-env.md` is attached as a legacy fallback.
+- SSH connectivity to source and target has been confirmed (Step 3 complete).
+- `Artifacts/Phase10-Migration/Step3/ssh-config.md` exists (written by Step 3) — or `zdm-env.md` is attached as a legacy fallback.
 
 **Prior step artifacts (load into context):**
 
-#file:Artifacts/Phase10-Migration/Step2/ssh-config.md
+#file:Artifacts/Phase10-Migration/Step3/ssh-config.md
 
 ---
 
@@ -53,19 +53,19 @@ once reviewed and tested — run them manually there.
 Before prompting for any input, check the status of both configuration artifacts:
 
 ```bash
-ls -la Artifacts/Phase10-Migration/Step2/ssh-config.md
-ls -la Artifacts/Phase10-Migration/Step3/db-config.md
+ls -la Artifacts/Phase10-Migration/Step3/ssh-config.md
+ls -la Artifacts/Phase10-Migration/Step4/db-config.md
 ```
 
-**SSH config resolution (S3-09):**
+**SSH config resolution (S4-09):**
 
-1. `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists → Read SSH variables from it directly. Skip SSH variable prompting.
+1. `Artifacts/Phase10-Migration/Step3/ssh-config.md` exists → Read SSH variables from it directly. Skip SSH variable prompting.
 2. `zdm-env.md` is explicitly attached (and `ssh-config.md` is absent) → Parse SSH variables as a legacy override.
-3. Neither → Ask the user to run Step 2 first to write `ssh-config.md`; SSH variables are required to proceed.
+3. Neither → Ask the user to run Step 3 first to write `ssh-config.md`; SSH variables are required to proceed.
 
-**DB/ZDM config resolution (S3-09 / CR-12):**
+**DB/ZDM config resolution (S4-09 / CR-12):**
 
-1. `Artifacts/Phase10-Migration/Step3/db-config.md` exists → Read DB and ZDM variables from it directly. Display a confirmation summary and skip interactive collection. Proceed to [Phase 5: SSH Key Validation](#phase-5-ssh-key-validation).
+1. `Artifacts/Phase10-Migration/Step4/db-config.md` exists → Read DB and ZDM variables from it directly. Display a confirmation summary and skip interactive collection. Proceed to [Phase 5: SSH Key Validation](#phase-5-ssh-key-validation).
 2. `zdm-env.md` is explicitly attached (and `db-config.md` is absent) → Parse DB/ZDM variables as a legacy override. Skip interactive collection. Proceed to [Phase 4: Write db-config.md](#phase-4-write-db-configmd).
 3. Neither → Continue with [Phase 3: Collect Database & ZDM Variables](#phase-3-collect-database--zdm-variables).
 
@@ -85,7 +85,7 @@ If the output does not show `zdmuser`, stop immediately and ask the user to reco
 
 ## Phase 2: Load SSH Variables
 
-Read SSH connectivity variables from `Artifacts/Phase10-Migration/Step2/ssh-config.md` (or `zdm-env.md` as fallback per the bypass check above). Display the resolved values as a confirmation.
+Read SSH connectivity variables from `Artifacts/Phase10-Migration/Step3/ssh-config.md` (or `zdm-env.md` as fallback per the bypass check above). Display the resolved values as a confirmation.
 
 Required SSH variables:
 
@@ -135,7 +135,7 @@ Collect values in logical groups, presenting examples where helpful:
 |----------|-------------|---------|
 | `ZDM_HOME` | ZDM installation home path (leave blank for auto-detection) | `/mnt/app/zdmhome` |
 
-**Per-variable validation rules (S3-17):**
+**Per-variable validation rules (S4-17):**
 
 | Variable | Rule |
 |----------|------|
@@ -151,7 +151,7 @@ When a path value fails the remote existence check, warn the user and allow them
 
 After collecting all values, display a full confirmation summary before writing the artifact. Do not proceed to discovery until the user confirms or corrects the displayed values.
 
-If any required database variable is blank after collection, warn the user that Step 3 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery — values should be provided when known.
+If any required database variable is blank after collection, warn the user that Step 4 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery — values should be provided when known.
 
 ---
 
@@ -159,14 +159,14 @@ If any required database variable is blank after collection, warn the user that 
 
 *(Skip this phase if `db-config.md` was loaded from the bypass check — the file already exists.)*
 
-Write `Artifacts/Phase10-Migration/Step3/db-config.md` using file tools **before** running any discovery commands.
+Write `Artifacts/Phase10-Migration/Step4/db-config.md` using file tools **before** running any discovery commands.
 
 Do not overwrite an existing `db-config.md` without explicit user confirmation.
 
-Use this exact format (S3-19):
+Use this exact format (S4-19):
 
 ```markdown
-# ZDM Database Configuration — Generated by Step3
+# ZDM Database Configuration — Generated by Step4
 ## Database Variables
 - SOURCE_REMOTE_ORACLE_HOME: <value>
 - SOURCE_ORACLE_SID: <value>
@@ -189,7 +189,7 @@ Use this exact format (S3-19):
 After writing, confirm the file exists and is non-empty:
 
 ```bash
-ls -la Artifacts/Phase10-Migration/Step3/db-config.md
+ls -la Artifacts/Phase10-Migration/Step4/db-config.md
 ```
 
 ---
@@ -262,7 +262,7 @@ Show inline status: `ZDM server discovery — PASS` with ZDM version and key sys
 
 ---
 
-## Phase 7b: Prerequisite Catalog Initialization (S3-05b, CR-14-A)
+## Phase 7b: Prerequisite Catalog Initialization (S4-05b, CR-14-A)
 
 Using the ZDM version discovered in Phase 7, apply the CR-14-A version lookup protocol before running source and target discovery:
 
@@ -289,7 +289,7 @@ Show inline status: `Prerequisite catalog — loaded (<version>, <method>)` or `
 
 SSH to `SOURCE_HOST` as `SOURCE_SSH_USER`, then run Oracle-specific commands as `oracle` via `sudo -u oracle`. Collect all items from the [Source Discovery](#source-discovery) list.
 
-**SSH connection pattern (S3-13):**
+**SSH connection pattern (S4-13):**
 
 ```bash
 # Resolve remote home first — do NOT use the local $HOME for remote paths
@@ -305,7 +305,7 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 \
     "${SOURCE_SSH_USER}@${SOURCE_HOST}" <command>
 ```
 
-**SQL execution pattern (S3-14):** Pass SQL via stdin — never via temporary `.sql` files (prevents SP2-0310):
+**SQL execution pattern (S4-14):** Pass SQL via stdin — never via temporary `.sql` files (prevents SP2-0310):
 
 ```bash
 echo "SELECT name FROM v\$database;" | \
@@ -313,7 +313,7 @@ echo "SELECT name FROM v\$database;" | \
     "sudo -u oracle bash -c 'ORACLE_HOME=<OH> ORACLE_SID=<SID> <OH>/bin/sqlplus -s / as sysdba'"
 ```
 
-**ORACLE_HOME / ORACLE_SID auto-detection order (S3-14):**
+**ORACLE_HOME / ORACLE_SID auto-detection order (S4-14):**
 1. Already-set environment variables.
 2. `/etc/oratab` entries.
 3. `ora_pmon_*` process detection.
@@ -340,14 +340,14 @@ After each discovery stage completes, write both report files using file tools (
 
 **Report file paths:**
 
-- `Artifacts/Phase10-Migration/Step3/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md`
-- `Artifacts/Phase10-Migration/Step3/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json`
-- `Artifacts/Phase10-Migration/Step3/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md`
-- `Artifacts/Phase10-Migration/Step3/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json`
-- `Artifacts/Phase10-Migration/Step3/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md`
-- `Artifacts/Phase10-Migration/Step3/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json`
+- `Artifacts/Phase10-Migration/Step4/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md`
+- `Artifacts/Phase10-Migration/Step4/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json`
+- `Artifacts/Phase10-Migration/Step4/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md`
+- `Artifacts/Phase10-Migration/Step4/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json`
+- `Artifacts/Phase10-Migration/Step4/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md`
+- `Artifacts/Phase10-Migration/Step4/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json`
 
-**Each report pair must include (S3-15):**
+**Each report pair must include (S4-15):**
 
 1. **Execution metadata**: timestamp, local jumpbox hostname, current local user, remote hostname (on PASS).
 2. **Per discovery item**: item name, collected value or data, status (PASS/FAIL/SKIP), and error text plus remediation steps on FAIL.
@@ -363,20 +363,20 @@ After writing each report pair, confirm both files exist and are non-empty. Mark
 
 ## Phase 11: Inline Chat Summary
 
-After all discovery stages and reports complete, summarize results in the chat (S3-08):
+After all discovery stages and reports complete, summarize results in the chat (S4-08):
 
 - **ZDM server discovery**: PASS/FAIL — ZDM version, Java version, disk/memory summary
 - **Source discovery**: PASS/FAIL — remote hostname (on PASS) or error summary (on FAIL)
 - **Target discovery**: PASS/FAIL — remote hostname (on PASS) or error summary (on FAIL)
 - **Overall**: PASS or FAIL
-- **Report locations**: `Artifacts/Phase10-Migration/Step3/Discovery/`
+- **Report locations**: `Artifacts/Phase10-Migration/Step4/Discovery/`
 
 Provide `cat` commands to review the written reports:
 
 ```bash
-cat Artifacts/Phase10-Migration/Step3/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md
-cat Artifacts/Phase10-Migration/Step3/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md
-cat Artifacts/Phase10-Migration/Step3/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md
+cat Artifacts/Phase10-Migration/Step4/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md
+cat Artifacts/Phase10-Migration/Step4/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md
+cat Artifacts/Phase10-Migration/Step4/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md
 ```
 
 ---
@@ -401,7 +401,7 @@ After 3 failed attempts: record the failure in the discovery report, continue to
 
 ## Read-Only Enforcement
 
-All discovery commands must be strictly read-only (S3-02):
+All discovery commands must be strictly read-only (S4-02):
 
 - SQL is `SELECT`-only — no DDL, DML, or stored procedure calls.
 - No OS/service mutation commands (no `systemctl`, `srvctl`, service start/stop).
@@ -422,7 +422,7 @@ When the user types `?`, `??`, or `help` in response to any variable prompt, dis
 | `TARGET_ORACLE_SID` | Oracle instance name on the target — for RAC this is the Node 1 instance SID | `cat /etc/oratab` on target; for RAC look for instance name ending in `1` | For ExaCS/EXACC RAC the SID is `<db_name>1`; wrong SID → ZDM cannot connect to target instance | `ORCL1` |
 | `TARGET_DATABASE_UNIQUE_NAME` | `DB_UNIQUE_NAME` of the target database — used as the Data Guard standby name | `SELECT db_unique_name FROM v$database;` on target | Must differ from `SOURCE_DATABASE_UNIQUE_NAME`; used as DG standby name | `ORCL_IAD` |
 | `ZDM_HOME` | Installation directory of ZDM on the jumpbox | `which zdmcli` then strip `/bin/zdmcli`; or check common paths like `/mnt/app/zdmhome` | Leave blank for auto-detection; if set incorrectly, all `zdmcli` invocations will fail | `/mnt/app/zdmhome` |
-| `SOURCE_GI_TYPE` | *(auto-detected — not prompted)* Whether the source uses standalone or Grid Infrastructure. Controls `-sourcesid` vs `-sourcedb` in Step 6. | `crsctl query crs activeversion` on source — if it returns a version, GI is active | Wrong value → PRGZ-3928; auto-detected during source discovery | `standalone` |
+| `SOURCE_GI_TYPE` | *(auto-detected — not prompted)* Whether the source uses standalone or Grid Infrastructure. Controls `-sourcesid` vs `-sourcedb` in Step 7. | `crsctl query crs activeversion` on source — if it returns a version, GI is active | Wrong value → PRGZ-3928; auto-detected during source discovery | `standalone` |
 | `TGT_REDODG` | *(auto-detected — not prompted)* ASM disk group for redo logs on the target. Required RSP parameter for EXACS/EXACC. | `asmcmd lsdg` on target; look for group named `REDO` or similar | Omitting it causes PRCG-1054; auto-detected during target discovery | `DATA` or `REDO` |
 | `TGT_RECODG` | *(auto-detected — not prompted)* ASM disk group for recovery/FRA on the target. Required RSP parameter for EXACS/EXACC. | Same as `TGT_REDODG` but look for `RECO`, `FRA`, or `RECOC1` | Omitting it causes PRCG-1054; auto-detected during target discovery | `RECO` |
 
@@ -432,7 +432,7 @@ When the user types `?`, `??`, or `help` in response to any variable prompt, dis
 
 ### Source Discovery
 
-Collect all of the following (S3-06):
+Collect all of the following (S4-06):
 
 1. Connectivity and auth context: source host, SSH user, SSH key mode.
 2. Remote system details: hostname, OS, kernel, uptime.
@@ -454,12 +454,12 @@ Collect all of the following (S3-06):
 12. Backup posture: schedules/policies and most recent successful backup evidence.
 13. Integration objects: database links, materialized views/logs, scheduler jobs that may require post-cutover updates.
 14. Data Guard parameters/config evidence when applicable.
-15. ZDM compatibility items (required for compatibility gate in Step 4): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect — do not limit collection to a hardcoded subset. Additionally always collect:
+15. ZDM compatibility items (required for compatibility gate in Step 5): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect — do not limit collection to a hardcoded subset. Additionally always collect:
    - `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
    - Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
-   - Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host. BLOCKER for Step 4 gate.
-   - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 4 PATCH_CHECK gate comparing source individual patch numbers against the target Release Update.
-16. **Grid Infrastructure detection** (S3-06 item 16): run the following on the source host:
+   - Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host. BLOCKER for Step 5 gate.
+   - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 5 PATCH_CHECK gate comparing source individual patch numbers against the target Release Update.
+16. **Grid Infrastructure detection** (S4-06 item 16): run the following on the source host:
    ```bash
    ssh ... "crsctl query crs activeversion 2>/dev/null"
    ssh ... "srvctl status database -d $SOURCE_ORACLE_SID 2>/dev/null"
@@ -470,7 +470,7 @@ Collect all of the following (S3-06):
 
 ### Target Discovery
 
-Collect all of the following (S3-06):
+Collect all of the following (S4-06):
 
 1. Connectivity and auth context: target host, SSH user, SSH key mode.
 2. Remote system details: hostname, OS, kernel, uptime.
@@ -485,19 +485,19 @@ Collect all of the following (S3-06):
 5. CDB/PDB posture: CDB status and PDB open mode(s), including pre-created migration PDB.
 6. TDE wallet status/type.
 7. Storage posture: ASM disk groups and free space (plus Exadata cell/grid disk details when available).
-8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step 4 SCAN tnsping gate; do not rely on ZDM auto-detection which may return `null:null` if SCAN is not in DNS), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), and `tnsnames.ora`.
+8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step 5 SCAN tnsping gate; do not rely on ZDM auto-detection which may return `null:null` if SCAN is not in DNS), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), and `tnsnames.ora`.
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
-12. ZDM compatibility items (required for compatibility gate in Step 4):
+12. ZDM compatibility items (required for compatibility gate in Step 5):
    - `COMPATIBLE` initialization parameter value (`SHOW PARAMETER compatible`).
    - Timezone file version (`SELECT * FROM v$timezone_file`).
    - `/tmp` mount flags — confirm `execute` permission is present (`mount | grep -E '\s/tmp\s'` or `findmnt /tmp`).
    - Full DB version banner (`SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`).
    - `SQLNET.ORA` encryption settings: capture `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` explicitly (in addition to network posture coverage).
-   - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 4 PATCH_CHECK gate.
+   - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 5 PATCH_CHECK gate.
 13. Datapatch compatibility pre-flight: run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -prereqs 2>&1 | head -30` on the target host (or all RAC nodes if RAC). Capture output. A clean exit with no `Unsupported named object type` errors at `sqlpatch.pm` is the PASS condition. This surfaces the MOS 1609718.1 sqlpatch.pm bug before ZDM reaches `ZDM_DATAPATCH_TGT`.
-14. **ASM disk group inventory for RSP generation** (S3-06 item 14): run on the target host:
+14. **ASM disk group inventory for RSP generation** (S4-06 item 14): run on the target host:
    ```bash
    ssh ... "sudo -u oracle bash -c 'ORACLE_HOME=<OH> ORACLE_SID=<SID> <OH>/bin/sqlplus -s / as sysdba <<\"EOF\"
 SELECT name, type, total_mb, free_mb FROM v\$asm_diskgroup ORDER BY name;
@@ -513,7 +513,7 @@ EOF'"
 
 ### ZDM Server Discovery
 
-Collect all of the following (S3-06):
+Collect all of the following (S4-06):
 
 1. Local system details: hostname, OS, kernel, uptime, current user.
 2. ZDM installation details: `ZDM_HOME`, existence/permissions, `zdmcli` path, version evidence.
@@ -530,9 +530,9 @@ Collect all of the following (S3-06):
 
 ## Optional Debug Scripts
 
-If direct inline terminal commands are insufficient for a discovery stage, generate the appropriate script under `Artifacts/Phase10-Migration/Step3/Scripts/` and leave it in place for debugging. The primary discovery reports must still be written using file tools.
+If direct inline terminal commands are insufficient for a discovery stage, generate the appropriate script under `Artifacts/Phase10-Migration/Step4/Scripts/` and leave it in place for debugging. The primary discovery reports must still be written using file tools.
 
-If any debug script is generated, apply these constraints (S3-16):
+If any debug script is generated, apply these constraints (S4-16):
 
 - Shebang must be `#!/bin/bash`; use Unix LF line endings.
 - Do not use global `set -e` — sections should fail independently so discovery continues.
@@ -544,18 +544,18 @@ If any debug script is generated, apply these constraints (S3-16):
 
 **Syntax validation required (CR-11):** Run `bash -n <script>` before using any generated script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
 
-**Report write verification (S3-16):** After writing reports, verify both markdown and JSON files exist and are non-empty, and that markdown/JSON summary values for overall status match. Exit non-zero on any verification failure.
+**Report write verification (S4-16):** After writing reports, verify both markdown and JSON files exist and are non-empty, and that markdown/JSON summary values for overall status match. Exit non-zero on any verification failure.
 
 ---
 
-## Write Step 3 Output Directory README
+## Write Step 4 Output Directory README
 
-Write `Artifacts/Phase10-Migration/Step3/README.md` using file tools (CR-07):
+Write `Artifacts/Phase10-Migration/Step4/README.md` using file tools (CR-07):
 
 ```markdown
-# Step 3 — Discovery Outputs
+# Step 4 — Discovery Outputs
 
-This directory contains artifacts generated by Step 3 of the ZDM Phase 10 migration workflow.
+This directory contains artifacts generated by Step 4 of the ZDM Phase 10 migration workflow.
 
 ## Files
 
@@ -570,7 +570,7 @@ This directory contains artifacts generated by Step 3 of the ZDM Phase 10 migrat
 
 ## Notes
 
-- `db-config.md` is the authoritative DB/ZDM config artifact for subsequent steps. If you need to change variable values, edit this file and re-run Step 3.
+- `db-config.md` is the authoritative DB/ZDM config artifact for subsequent steps. If you need to change variable values, edit this file and re-run Step 4.
 - All discovery commands are strictly read-only. No DDL/DML is executed.
 - All files are git-ignored and not committed.
 
@@ -580,21 +580,21 @@ All three discovery stages (ZDM server, source, target) complete with PASS statu
 
 ## Next Actions
 
-After discovery completes successfully, run `@Phase10-Step4-Discovery-Questionnaire` in this Remote-SSH session.
+After discovery completes successfully, run `@Phase10-Step5-Discovery-Questionnaire` in this Remote-SSH session.
 ```
 
 ---
 
 ## Success Criteria
 
-Step 3 is complete when all of the following are true:
+Step 4 is complete when all of the following are true:
 
 1. Session confirmed as `zdmuser`.
-2. SSH variables loaded from `Artifacts/Phase10-Migration/Step2/ssh-config.md` (or `zdm-env.md` fallback).
-3. `Artifacts/Phase10-Migration/Step3/db-config.md` exists and is non-empty with all required variables populated.
+2. SSH variables loaded from `Artifacts/Phase10-Migration/Step3/ssh-config.md` (or `zdm-env.md` fallback).
+3. `Artifacts/Phase10-Migration/Step4/db-config.md` exists and is non-empty with all required variables populated.
 4. SSH key permissions verified (or corrected to `600`) for each specified key.
 5. All three discovery stages (ZDM server, source, target) complete — failures are recorded and reported, but do not abort the run.
-6. All six discovery report files (3 markdown + 3 JSON) are written to `Artifacts/Phase10-Migration/Step3/Discovery/` and are non-empty with matching overall status.
+6. All six discovery report files (3 markdown + 3 JSON) are written to `Artifacts/Phase10-Migration/Step4/Discovery/` and are non-empty with matching overall status.
 7. Results summarized inline in the chat.
 
 ---
@@ -605,15 +605,15 @@ All outputs are git-ignored and not committed.
 
 | File | Description |
 |------|-------------|
-| `Artifacts/Phase10-Migration/Step3/db-config.md` | DB/ZDM configuration artifact — consumed by Steps 4–6 as read-only input |
-| `Artifacts/Phase10-Migration/Step3/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md` | ZDM server discovery (markdown) |
-| `Artifacts/Phase10-Migration/Step3/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json` | ZDM server discovery (JSON) |
-| `Artifacts/Phase10-Migration/Step3/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md` | Source discovery (markdown) |
-| `Artifacts/Phase10-Migration/Step3/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json` | Source discovery (JSON) |
-| `Artifacts/Phase10-Migration/Step3/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md` | Target discovery (markdown) |
-| `Artifacts/Phase10-Migration/Step3/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json` | Target discovery (JSON) |
-| `Artifacts/Phase10-Migration/Step3/README.md` | Step 3 output directory index |
-| `Artifacts/Phase10-Migration/Step3/Scripts/` | Optional debug scripts (only if inline commands insufficient) |
+| `Artifacts/Phase10-Migration/Step4/db-config.md` | DB/ZDM configuration artifact — consumed by Steps 4–6 as read-only input |
+| `Artifacts/Phase10-Migration/Step4/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.md` | ZDM server discovery (markdown) |
+| `Artifacts/Phase10-Migration/Step4/Discovery/server/zdm_server_discovery_<hostname>_<timestamp>.json` | ZDM server discovery (JSON) |
+| `Artifacts/Phase10-Migration/Step4/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.md` | Source discovery (markdown) |
+| `Artifacts/Phase10-Migration/Step4/Discovery/source/zdm_source_discovery_<hostname>_<timestamp>.json` | Source discovery (JSON) |
+| `Artifacts/Phase10-Migration/Step4/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md` | Target discovery (markdown) |
+| `Artifacts/Phase10-Migration/Step4/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json` | Target discovery (JSON) |
+| `Artifacts/Phase10-Migration/Step4/README.md` | Step 4 output directory index |
+| `Artifacts/Phase10-Migration/Step4/Scripts/` | Optional debug scripts (only if inline commands insufficient) |
 
 ---
 
@@ -621,4 +621,4 @@ All outputs are git-ignored and not committed.
 
 After all discovery reports are written and the inline summary is complete:
 
-> Run **`@Phase10-Step4-Discovery-Questionnaire`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.
+> Run **`@Phase10-Step5-Discovery-Questionnaire`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.

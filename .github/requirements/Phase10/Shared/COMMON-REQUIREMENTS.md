@@ -1,4 +1,4 @@
-# Common Requirements for Phase 10 (Step1-Step6)
+﻿# Common Requirements for Phase 10 (Step1-Step7)
 
 ## Scope
 
@@ -7,8 +7,8 @@ These requirements apply to all Phase10 ZDM prompts unless a step explicitly ove
 ## CR-01: Source of truth precedence
 
 1. Treat step configuration artifacts as the primary authoritative generation input (see CR-12):
-   - `Artifacts/Phase10-Migration/Step2/ssh-config.md` for SSH connectivity variables.
-   - `Artifacts/Phase10-Migration/Step3/db-config.md` for database and ZDM variables.
+   - `Artifacts/Phase10-Migration/Step6/ssh-config.md` for SSH connectivity variables.
+   - `Artifacts/Phase10-Migration/Step7/db-config.md` for database and ZDM variables.
 2. When `zdm-env.md` is explicitly attached, treat it as a legacy override with higher precedence than the step artifacts.
 3. Prefer artifact or `zdm-env.md` values over template defaults and examples.
 4. If values conflict with discovery evidence, do not silently override. Explicitly report the mismatch.
@@ -37,7 +37,7 @@ All Phase10 prompts use the **Remote-SSH execution** model **except Step1**:
 
 ## CR-05: Variable scope for Phase10
 
-DB-specific values used across Step2-Step6:
+DB-specific values used across Step4-Step7:
 
 - `SOURCE_REMOTE_ORACLE_HOME`
 - `SOURCE_ORACLE_SID`
@@ -45,18 +45,18 @@ DB-specific values used across Step2-Step6:
 - `TARGET_ORACLE_SID`
 - `SOURCE_DATABASE_UNIQUE_NAME`
 - `TARGET_DATABASE_UNIQUE_NAME`
-- `SOURCE_GI_TYPE` (auto-detected in Step3 source discovery: `standalone` or `grid`; controls `-sourcesid` vs `-sourcedb` CLI flag in Step6)
+- `SOURCE_GI_TYPE` (auto-detected in Step5 source discovery: `standalone` or `grid`; controls `-sourcesid` vs `-sourcedb` CLI flag in Step7)
 - `TGT_REDODG` (target ASM redo disk group name; required RSP parameter for EXACS/EXACC platform types)
 - `TGT_RECODG` (target ASM recovery/FRA disk group name; required RSP parameter for EXACS/EXACC platform types)
 
-ZDM-specific value used across Step2-Step6:
+ZDM-specific value used across Step4-Step7:
 
 - `ZDM_HOME`
 
 Variable-to-artifact mapping:
 
-- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step2/ssh-config.md`.
-- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step3/db-config.md`.
+- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step6/ssh-config.md`.
+- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step7/db-config.md`.
 
 ## CR-06: OCI CLI requirement
 
@@ -120,8 +120,8 @@ Naming rule:
 
 ## CR-12: Configuration artifact contract
 
-1. Step2 writes `Artifacts/Phase10-Migration/Step2/ssh-config.md` containing SSH connectivity variables.
-2. Step3 writes `Artifacts/Phase10-Migration/Step3/db-config.md` containing database and ZDM variables.
+1. Step4 writes `Artifacts/Phase10-Migration/Step6/ssh-config.md` containing SSH connectivity variables.
+2. Step5 writes `Artifacts/Phase10-Migration/Step7/db-config.md` containing database and ZDM variables.
 3. Both artifact files use the same key-value markdown format as `zdm-env.md`:
    - One variable per line: `- KEY: value`
    - Blank value means unset: `- KEY: `
@@ -171,7 +171,7 @@ The catalog files are located in the repository at:
 **Version lookup protocol** — run at the start of any step that needs the check catalog (Steps 3–6):
 
 1. Obtain the ZDM version string from discovery (e.g., `26.1`). If not yet discovered, use `26.1` as default.
-2. Determine the migration method (`ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`) from `db-config.md` or Step 4 answers. Default to `ONLINE_PHYSICAL` if not yet confirmed.
+2. Determine the migration method (`ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`) from `db-config.md` or Step 6 answers. Default to `ONLINE_PHYSICAL` if not yet confirmed.
 3. Select the matching catalog file:
    - `ONLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/online-physical.md`
    - `OFFLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/offline-physical.md`
@@ -216,9 +216,9 @@ Each catalog file uses the following structured markdown format. Steps consume i
 
 ### CR-14-C: Layer execution rules
 
-1. **Layer 0** is answered during the Step4 migration planning interview. Its answers propagate directly to RSP and `zdmcli` flags — no runtime verification needed.
-2. **Layer 1** checks are executed by `preflight_l1_infrastructure.sh` (generated in Step5, S5-08). All L1 checks must pass before L2 checks run.
-3. **Layer 2** checks are evaluated as the Step4 compatibility gate (S4-05). For customers who do not permit automated DB connections, each L2 query is surfaced as a copy-paste block for the DBA to run manually and return results.
+1. **Layer 0** is answered during the Step6 migration planning interview. Its answers propagate directly to RSP and `zdmcli` flags — no runtime verification needed.
+2. **Layer 1** checks are executed by `preflight_l1_infrastructure.sh` (generated in Step7, S7-08). All L1 checks must pass before L2 checks run.
+3. **Layer 2** checks are evaluated as the Step6 compatibility gate (S6-05). For customers who do not permit automated DB connections, each L2 query is surfaced as a copy-paste block for the DBA to run manually and return results.
 4. **Layer 3** (`zdm -eval`) is submitted only after L0 + L1 + L2 all pass. Any eval failure is triaged against the catalog: if it maps to an L1 or L2 check, fix at that layer. If it is not in the catalog, add it to the catalog file under the appropriate layer with a note `[new — added <date>, source: zdm-eval-feedback]` and commit the change.
 
 ### CR-14-D: Catalog lifecycle
@@ -233,7 +233,7 @@ Each catalog file uses the following structured markdown format. Steps consume i
 
 ## CR-15: Interactive variable collection — learn-more option
 
-Applies to all Phase10 steps that prompt the user to supply a variable value interactively (e.g., Step2 SSH connectivity collection, Step3 database variable collection, Step4 migration planning interview).
+Applies to all Phase10 steps that prompt the user to supply a variable value interactively (e.g., Step4 SSH connectivity collection, Step5 database variable collection, Step6 migration planning interview).
 
 ### CR-15-A: Learn-more offer
 

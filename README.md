@@ -47,6 +47,7 @@ To reduce hallucinations during the migration, use `@GetStatus` to maintain a `r
 
 During each phase, read the AI's response summary carefully to understand what will be delivered and what inputs are needed.
 
+- **Pro tip**: Step 0 optionally creates the ZDM Azure VM and then installs/verifies ZDM 26.1, writing `Artifacts/Phase10-Migration/Step0/zdm-install-report.md`.
 - **Pro tip**: Step 1 sets up the Remote-SSH connection to the ZDM jumpbox and writes `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`.
 - **Pro tip**: Step 2 collects SSH configuration interactively and writes `Artifacts/Phase10-Migration/Step2/ssh-config.md`. Pre-populate this file to skip interactive prompting during testing.
 - **Pro tip**: Step 3 collects database variables interactively and writes `Artifacts/Phase10-Migration/Step3/db-config.md`. Pre-populate this file to skip interactive prompting during testing.
@@ -61,8 +62,15 @@ During each phase, read the AI's response summary carefully to understand what w
   - `Phase0-ODAA-Readiness.prompt.md` — readiness assessment
   - `Phase5-CIDR-Planning.prompt.md` — CIDR range planning
   - `Phase6-IaC.prompt.md` — Terraform infrastructure generation
-  - `ZDM-Step1` through `ZDM-Step5` — ZDM migration workflow
-  - `Phase10-ZDM-Migration-Guide.md` — ZDM reference documentation
+  - `Phase10-ZDM-Orchestrator.prompt.md` — guided ZDM migration orchestrator (auto-detects step)
+  - `Phase10-Step0-Install-ZDM.prompt.md` — optionally create ZDM Azure VM; install/verify ZDM 26.1
+  - `Phase10-Step1-Setup-Remote-SSH.prompt.md` — configure VS Code Remote-SSH to the jumpbox
+  - `Phase10-Step2-Configure-SSH-Connectivity.prompt.md` — SSH connectivity between source, target, and ZDM server
+  - `Phase10-Step3-Generate-Discovery-Scripts.prompt.md` — generate and run database discovery scripts
+  - `Phase10-Step4-Discovery-Questionnaire.prompt.md` — analyze discovery output and complete migration decisions
+  - `Phase10-Step5-Fix-Issues.prompt.md` — resolve ZDM prerequisite check failures
+  - `Phase10-Step6-Generate-Migration-Artifacts.prompt.md` — generate ZDM response file and migration runbook
+  - `Phase10-Generate-Step-Prompts-From-Requirements.prompt.md` — regenerate step prompts from requirements files
 
 - **`Artifacts/`**: Generated output from running prompts (git-ignored content)
   - **`Artifacts/Phase10-Migration/Step2/ssh-config.md`** — SSH connectivity config written interactively by Step 2 (pre-populate to bypass interactive collection)
@@ -117,7 +125,7 @@ Determine the best tool for migrating databases to Azure such as Zero Migration 
 
 ### Phase 10: Migrate databases from on-premise to Azure ✅
 
-Use the migration tool to migrate to Azure. The ZDM-based workflow (Steps 1–5) is fully implemented via Copilot prompt files.
+Use the migration tool to migrate to Azure. The ZDM-based workflow (Steps 0–6) is fully implemented via Copilot prompt files. Step 0 optionally provisions the ZDM Azure VM and installs ZDM 26.1; Steps 1–6 configure SSH connectivity, run discovery, validate prerequisites, and generate the migration runbook.
 
 ## Key Features
 

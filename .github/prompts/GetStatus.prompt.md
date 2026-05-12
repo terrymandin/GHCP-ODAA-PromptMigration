@@ -23,10 +23,10 @@ Create it with the following initial content, then display it:
 - [ ] Phase 5: CIDR Range Planning
 - [ ] Phase 6: Infrastructure as Code (Terraform)
 - [ ] Phase 10 â€” Step 1: ZDM SSH Connectivity
-- [ ] Phase 10 â€” Step 2: ZDM Discovery Scripts
-- [ ] Phase 10 â€” Step 3: ZDM Migration Planning
-- [ ] Phase 10 â€” Step 4: ZDM Issue Resolution
-- [ ] Phase 10 â€” Step 5: ZDM Migration Artifacts
+- [ ] Phase 10 â€” Step 4: ZDM Discovery Scripts
+- [ ] Phase 10 â€” Step 5: ZDM Migration Planning
+- [ ] Phase 10 â€” Step 6: ZDM Issue Resolution
+- [ ] Phase 10 â€” Step 7: ZDM Migration Artifacts
 
 ## Next Step
 Run `@Phase0-ODAA-Readiness` to begin the migration readiness assessment.

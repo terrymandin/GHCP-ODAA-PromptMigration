@@ -1,4 +1,4 @@
-# ZDM Prerequisites — Online Physical Migration
+﻿# ZDM Prerequisites — Online Physical Migration
 
 - ZDM Version: 26.1
 - Migration Method: ONLINE_PHYSICAL
@@ -38,14 +38,14 @@ Checks performable with SSH and OS commands only (no `sqlplus`).
 | Hostnames differ between source and target | `hostname` on SOURCE and TARGET; compare | Hostnames are NOT identical | BLOCKER | 4 Preparing for a Physical Database Migration (Note) |
 | SSH port 22 open: ZDM host → source | `nc -zv $SOURCE_HOST 22` from ZDM host | Connection succeeds | BLOCKER | 4.3 Source Database Prerequisites |
 | SSH port 22 open: ZDM host → target | `nc -zv $TARGET_HOST 22` from ZDM host | Connection succeeds | BLOCKER | 4.4 Target Database Prerequisites |
-| SCAN listener port open: source → target | `tnsping $TARGET_SCAN_ADDR` from source host (`TARGET_SCAN_ADDR` must be the value explicitly captured from Step 3 target listener/network discovery — do not rely on ZDM auto-detection, which may return `null:null` if SCAN is not in DNS) | TNS OK | BLOCKER | 4.3 Source Database Prerequisites |
+| SCAN listener port open: source → target | `tnsping $TARGET_SCAN_ADDR` from source host (`TARGET_SCAN_ADDR` must be the value explicitly captured from Step 5 target listener/network discovery — do not rely on ZDM auto-detection, which may return `null:null` if SCAN is not in DNS) | TNS OK | BLOCKER | 4.3 Source Database Prerequisites |
 | SCAN listener port open: target → source | `tnsping $SOURCE_SCAN_ADDR` from target host | TNS OK | BLOCKER | 4.3 Source Database Prerequisites |
 | Port 1521 open: ZDM host → target | `nc -zv $TARGET_HOST 1521` from ZDM host | Connection succeeds | BLOCKER | 4.4 Target Database Prerequisites |
 | Port 1521 open: source → target SCAN (DIRECT only) | `nc -zv $TARGET_SCAN_ADDR 1521` from source host — run this check whenever `DATA_TRANSFER_MEDIUM=DIRECT`; NSG and OS firewall (firewalld/iptables) must both permit inbound 1521 on the target side | Connection succeeds | BLOCKER (DATA_TRANSFER_MEDIUM=DIRECT) | 4.6 Using Supported Data Transfer Media |
 | Port 1521 open: target → source (DIRECT only) | `nc -zv $SOURCE_HOST 1521` from target host — required for bidirectional SQL\*Net needed by active duplication (DIRECT); check firewalld on source as well as NSG rules | Connection succeeds | BLOCKER (DATA_TRANSFER_MEDIUM=DIRECT) | 4.6 Using Supported Data Transfer Media |
 | `/tmp` exec permission on source | `ssh ... "mount \| grep ' /tmp '"` | Mounted without `noexec` | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | `/tmp` exec permission on target | `ssh ... "mount \| grep ' /tmp '"` | Mounted without `noexec` | BLOCKER | 4.2 Preparing the Source and Target Databases |
-| SSH key file exists and is `600` | `ls -la ~/.ssh/<key_file>; stat -c '%a' ~/.ssh/<key_file>` | File present, permissions `600` | BLOCKER | S3-11 (SYSTEM-REQUIREMENTS) |
+| SSH key file exists and is `600` | `ls -la ~/.ssh/<key_file>; stat -c '%a' ~/.ssh/<key_file>` | File present, permissions `600` | BLOCKER | S5-11 (SYSTEM-REQUIREMENTS) |
 | Oracle UID matches on source and target | `id oracle` on source; `id oracle` on target | UID values match | WARNING | 4.2 Preparing the Source and Target Databases |
 | NTP / system time within 6 min of OCI | `ntpq -p` or `chronyc tracking` | Offset < 6 minutes | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | OS and DB version match source ↔ target | `uname -a` on source and target; `$ORACLE_HOME/OPatch/opatch lspatches` | Same OS family; same or higher patch on target | BLOCKER | 4.2 Preparing the Source and Target Databases |

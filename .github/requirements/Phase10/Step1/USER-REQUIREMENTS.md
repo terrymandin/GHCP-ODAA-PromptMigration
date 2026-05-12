@@ -1,10 +1,10 @@
-# Step1 User Requirements - Setup Remote-SSH Connection
+﻿# Step1 User Requirements - Create VM + Setup Remote-SSH Connection
 
 ## Objective
 
-Configure a Remote-SSH connection from the local VS Code session to the ZDM jumpbox so that subsequent steps (Step2 onward) run in the correct Remote-SSH terminal context as `zdmuser`.
+Ensure the ZDM Azure VM exists (creating it if needed), then configure a Remote-SSH connection from the local VS Code session to the jumpbox so that subsequent steps (Step4 onward) run in the correct Remote-SSH terminal context as `zdmuser`.
 
-**Execution model exception**: Step1 runs entirely in the LOCAL VS Code session (local terminal), not via Remote-SSH. The Remote-SSH extension must be installed and the connection must be set up before any Remote-SSH session can begin.
+**Execution model exception**: Step1 runs entirely in the LOCAL VS Code session (local terminal), not via Remote-SSH. Azure VM creation (`az vm create`) and SSH setup both run locally. The Remote-SSH extension must be installed and the connection must be set up before any Remote-SSH session can begin.
 
 ## S1-01: Output contract
 
@@ -19,6 +19,73 @@ The report must contain:
 3. The host alias added or confirmed in `~/.ssh/config`.
 4. Connection command the user can run to manually verify: `ssh zdmuser@<jumpbox-alias>`.
 5. Final status: READY or ACTION REQUIRED, with remaining manual actions listed.
+
+## S1-00: ZDM VM Readiness Check
+
+Before any SSH or extension setup, confirm the ZDM jumpbox VM exists.
+
+### S1-00-A: Initial Question
+
+Ask the user:
+
+> **Is the Azure VM for the ZDM jumpbox already created and running?**
+
+- If **yes** — ask for the VM's IP address or FQDN and record it as `JUMPBOX_HOST`. Proceed to S1-02.
+- If **no** — ask if they would like assistance creating the VM (S1-00-B).
+
+### S1-00-B: VM Creation Offer
+
+If the VM does not exist, offer to create it:
+
+> **Would you like help creating the Azure VM for ZDM?**
+
+- If **no** — display the recommended configuration (see S1-00-C defaults), wait for the user to confirm the VM is ready, then continue to S1-02.
+- If **yes** — collect VM parameters interactively (S1-00-C) and create the VM.
+
+### S1-00-C: VM Parameter Collection
+
+Collect the following parameters **one at a time**, presenting the recommended default for each. Ask each question separately and wait for the user's answer before proceeding to the next.
+
+| Parameter | Question to Ask | Recommended Default |
+|-----------|-----------------|---------------------|
+| VM Name | "What name would you like for the ZDM jumpbox VM?" | `zdm-jumpbox` |
+| Resource Group | "Which Azure resource group should the VM be placed in? Enter an existing name or a new name to create." | *(ask user)* |
+| Azure Region | "Which Azure region should the VM be deployed to? (e.g., `eastus`, `westus2`)" | *(ask user)* |
+| Image | "Which OS image? Press Enter to accept the recommended Oracle Linux 10 image." | `Oracle:Oracle-Linux:ol10-lvm-gen2:latest` |
+| VM Size | "Which VM size? Press Enter to accept the recommended size." | `Standard_D2s_v3` |
+| OS Disk Size (GB) | "What size (in GB) should the OS disk be? Press Enter to accept the recommended size." | `256` |
+| VNet / Subnet | "Which VNet and subnet should the VM use? Enter existing names or new names to create them." | *(ask user)* |
+| Authentication Type | "Would you like to authenticate with an SSH public key (recommended) or a password?" | SSH public key |
+| SSH Public Key / Password | "Please paste your SSH public key (or enter a password if you chose password auth above)." | *(ask user)* |
+| SSH Username | "What admin username should be used for SSH login on the VM?" | `azureuser` |
+
+Display a full summary of all collected values and require explicit user confirmation before creating the VM.
+
+### S1-00-D: VM Creation
+
+Use a **two-step confirmation flow** — parameter review first, then command execution:
+
+**Step 1 — Confirm parameters:** Display a summary of all collected parameter values and ask the user to confirm they are correct ("Are these parameters correct? Yes / No"). Do not build or show the command yet.
+
+**Step 2 — Show command and ask to run:** After the user confirms the parameters, build the full `az vm create` command and **display it in a fenced code block**. Ask the user explicitly: "Shall I run this command now? (Yes / No)". Run the command in the local PowerShell terminal **only** after the user replies Yes. If the user replies No, ask what they would like to change and return to Step 1.
+
+If a new VNet/subnet is required, display the `az network vnet create` and `az network vnet subnet create` commands alongside the VM creation command (in the Step 2 display), and run them first — each with its own "Shall I run this?" confirmation.
+
+After successful creation, extract and display the public IP address from the command output and record it as `JUMPBOX_HOST`.
+
+### S1-00-E: Post-Creation Prerequisites
+
+Immediately after VM creation succeeds, install the packages required for VS Code Server to function on the jumpbox. Run the following over SSH using the VM's admin user (`azureuser`) and the provided private key:
+
+```powershell
+ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y tar"
+```
+
+Confirm the command exits with code 0 and reports `Complete!`. If it fails, surface the error and do not proceed until `tar` is installed — VS Code Server cannot extract its installation package without it.
+
+After confirming `tar` is installed, proceed to S1-02 (Execution Context / SSH setup). Do not route back to Step 3 — VM creation is complete.
+
+---
 
 ## S1-02: Execution context
 
@@ -98,10 +165,10 @@ Copilot cannot trigger this action automatically — it requires user interactio
 
 ## S1-08: Prerequisite for subsequent steps
 
-After Step1, all subsequent steps (Step2 through Step6) must run in the Remote-SSH VS Code session connected to the ZDM jumpbox as `zdmuser`.
+After Step1, all subsequent steps (Step4 through Step7) must run in the Remote-SSH VS Code session connected to the ZDM jumpbox as `zdmuser`.
 
 1. After delivering the Phase 7 handoff instructions, **explicitly ask the user to confirm** that they have successfully opened the Remote-SSH VS Code session and that their terminal prompt shows `zdmuser@<hostname>`.
-2. Do not declare Step 1 complete or suggest running Step 2 until the user provides that confirmation.
+2. Do not declare Step 1 complete or suggest running Step 4 until the user provides that confirmation.
 3. If the user cannot connect, remain in Step 1 and help troubleshoot before proceeding.
 
 ## S1-09: Success criteria

@@ -1,4 +1,4 @@
-# ZDM Prerequisites — Offline Physical Migration
+﻿# ZDM Prerequisites — Offline Physical Migration
 
 - ZDM Version: 26.1
 - Migration Method: OFFLINE_PHYSICAL
@@ -39,7 +39,7 @@ Checks performable with SSH and OS commands only (no `sqlplus`).
 | Port 1521 open: ZDM host → target (if needed for RMAN restore) | `nc -zv $TARGET_HOST 1521` | Connection succeeds | WARNING | 4.4 Target Database Prerequisites |
 | `/tmp` exec permission on source | `ssh ... "mount \| grep ' /tmp '"` | Mounted without `noexec` | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | `/tmp` exec permission on target | `ssh ... "mount \| grep ' /tmp '"` | Mounted without `noexec` | BLOCKER | 4.2 Preparing the Source and Target Databases |
-| SSH key file exists and is `600` | `ls -la ~/.ssh/<key_file>; stat -c '%a' ~/.ssh/<key_file>` | File present, permissions `600` | BLOCKER | S3-11 (SYSTEM-REQUIREMENTS) |
+| SSH key file exists and is `600` | `ls -la ~/.ssh/<key_file>; stat -c '%a' ~/.ssh/<key_file>` | File present, permissions `600` | BLOCKER | S5-11 (SYSTEM-REQUIREMENTS) |
 | Oracle UID matches on source and target | `id oracle` on source and target | UID values match | WARNING | 4.2 Preparing the Source and Target Databases |
 | NTP / system time within 6 min of OCI | `ntpq -p` or `chronyc tracking` | Offset < 6 minutes | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | OS and DB version match source ↔ target | `uname -a`; `$ORACLE_HOME/OPatch/opatch lspatches` | Same OS family; same or higher patch on target | BLOCKER | 4.2 Preparing the Source and Target Databases |
