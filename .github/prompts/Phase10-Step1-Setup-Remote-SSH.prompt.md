@@ -158,7 +158,78 @@ ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 `
 ```
 
 - **PASS** (`$LASTEXITCODE -eq 0` and output contains `Complete!`): Confirm `tar` installed and continue.
-- **FAIL**: Display the error and stop. Do not proceed to Phase 1 until `tar` is successfully installed.
+- **FAIL**: Display the error and stop. Do not proceed until `tar` is successfully installed.
+
+### Post-Creation: Clone Migration Repo onto the Jumpbox
+
+Immediately after `tar` is confirmed, clone the migration repo into `/home/zdmuser` on the jumpbox via SSH from the **local PowerShell terminal**. This ensures the repo is present the moment Step 2 opens in the Remote-SSH window.
+
+**Run each command separately and verify exit code 0 before proceeding:**
+
+```powershell
+# 1. Install git
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y git"
+```
+
+```powershell
+# 2. Create /home/zdmuser
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser"
+```
+
+```powershell
+# 3. Clone the repo
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
+```
+
+```powershell
+# 4. Verify
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+
+- **PASS**: `.github` directory contents listed — confirm and continue.
+- **FAIL**: Surface the error and stop. Do not proceed to Phase 1 until the clone is verified.
+
+### Post-Creation: Create `zdmuser` and Transfer Ownership
+
+Immediately after the clone is verified, create `zdmuser` and transfer ownership of `/home/zdmuser` via SSH from the **local PowerShell terminal**. This must happen in Step 1 so the Remote-SSH connection (configured next) can connect directly as `zdmuser` and open the repo it owns.
+
+**Run each command separately and verify exit code 0 before proceeding:**
+
+```powershell
+# 1. Create the zdm group (idempotent)
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
+```
+
+```powershell
+# 2. Create zdmuser account (idempotent; -M skips home dir creation since it already exists)
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
+```
+
+```powershell
+# 3. Transfer ownership of /home/zdmuser to zdmuser
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdmuser /home/zdmuser"
+```
+
+```powershell
+# 4. Create zdmuser's .ssh directory with correct permissions
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh"
+```
+
+```powershell
+# 5. Install the SSH public key into zdmuser's authorized_keys
+$pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
+$sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh/authorized_keys"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> $sshCmd
+```
+
+```powershell
+# 6. Verify: confirm ownership and that zdmuser can read the repo
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+
+- **PASS**: `stat` shows `zdmuser` as owner; `ls` lists the `.github` directory contents — confirm and continue.
+- **FAIL**: Surface the error and stop. Do not proceed to Phase 1 until `zdmuser` exists, owns `/home/zdmuser`, and the SSH key is in place.
 
 Proceed to Phase 1.
 
@@ -364,6 +435,17 @@ Generated: <ISO-8601 timestamp>
 - Remote hostname: <hostname returned> (on PASS)
 - Error: <error text> (on FAIL)
 
+## Repo Clone
+- Location: /home/zdmuser/GHCP-ODAA-PromptMigration
+- Result: CLONED / SKIPPED (already present) / FAILED
+- Verified: .github directory present (YES / NO)
+
+## zdmuser Setup
+- Group (zdm): CREATED / ALREADY EXISTS
+- Account (zdmuser): CREATED / ALREADY EXISTS
+- /home/zdmuser owner: zdmuser (CONFIRMED / FAILED)
+- .ssh/authorized_keys: INSTALLED / FAILED
+
 ## Status
 READY / ACTION REQUIRED
 
@@ -371,11 +453,11 @@ READY / ACTION REQUIRED
 - <list any steps the user must complete manually>
 
 ## Next Step
-Run Step 4 (Configure SSH Connectivity) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as zdmuser.
+Run Step 2 (Install ZDM) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as zdmuser.
 ```
 
 Set `Status` to:
-- **READY** — extension installed, SSH config entry present, and connectivity test passed.
+- **READY** — extension installed, SSH config entry present, connectivity test passed, and repo cloned.
 - **ACTION REQUIRED** — any required item is incomplete; list each outstanding item under "Remaining Actions".
 
 ### 6b. Write the Step 1 output directory README
@@ -410,7 +492,7 @@ Step 1 runs entirely in the local VS Code terminal (Windows PowerShell). The onl
 
 ## Next Actions
 
-When status is READY, open a Remote-SSH session to the configured jumpbox and run `@Phase10-Step3-Configure-SSH-Connectivity`.
+When status is READY, open a Remote-SSH session to the configured jumpbox and run `@Phase10-Step2-Install-ZDM`.
 ```
 
 ---
@@ -471,4 +553,4 @@ All outputs are written to `Artifacts/Phase10-Migration/Step1/` which is git-ign
 
 After Step 1 completes and you have connected to the jumpbox via Remote-SSH:
 
-> Run **`@Phase10-Step3-Configure-SSH-Connectivity`** in the Remote-SSH VS Code session connected to **`<JUMPBOX_ALIAS>`** as **`zdmuser`**.
+> Run **`@Phase10-Step2-Install-ZDM`** in the Remote-SSH VS Code session connected to **`<JUMPBOX_ALIAS>`** as **`zdmuser`**.

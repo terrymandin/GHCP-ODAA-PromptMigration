@@ -94,6 +94,83 @@ ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_
 - Confirm output contains `Complete!` before continuing.
 - Do **not** skip this step even if the user believes `tar` may already be installed — Oracle Linux 10 minimal images omit `tar` by default.
 
+### S1-09A-6: Clone Migration Repo onto the Jumpbox
+
+Immediately after `tar` is confirmed installed, clone the migration repo into `/home/zdmuser` on the jumpbox via SSH from the local PowerShell terminal. Run each command separately and check `$LASTEXITCODE` after each.
+
+**Step 1 — Install git:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y git"
+```
+Check exit code 0. `git` may already be present on some images — a `Nothing to do. Complete!` response is also acceptable.
+
+**Step 2 — Create /home/zdmuser directory:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser"
+```
+
+**Step 3 — Clone the repo:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
+```
+If the directory already exists and is non-empty, skip the clone and confirm existing contents.
+
+**Step 4 — Verify clone:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+Expect output listing the `.github` directory contents. Non-zero exit or empty output = failure.
+
+**Ownership:** The cloned directory will be owned by `root`. Proceed immediately to S1-09A-7 to create `zdmuser` and transfer ownership before proceeding to any SSH configuration steps.
+
+### S1-09A-7: Create `zdmuser` and Transfer Ownership
+
+Immediately after the repo clone is verified, perform the following steps via SSH from the local PowerShell terminal. Each command must exit with code 0 before proceeding to the next.
+
+**Step 1 — Create `zdm` group (idempotent):**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
+```
+
+**Step 2 — Create `zdmuser` account (idempotent, using existing `/home/zdmuser` dir):**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
+```
+The `-M` flag prevents `useradd` from attempting to create the home directory (it already exists).
+
+**Step 3 — Transfer ownership of `/home/zdmuser` to `zdmuser`:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdmuser /home/zdmuser"
+```
+
+**Step 4 — Set up `zdmuser`'s `.ssh` directory:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh"
+```
+
+**Step 5 — Install the SSH public key for `zdmuser`:**
+
+Read the public key locally and write it to `authorized_keys` on the jumpbox. The key file is `<JUMPBOX_SSH_KEY>.pub` (the `.pub` counterpart of the private key used in this step).
+
+```powershell
+$pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
+$sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh/authorized_keys"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> $sshCmd
+```
+
+**Step 6 — Verify ownership and key access:**
+```powershell
+# Confirm ownership
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
+# Confirm zdmuser can read the repo
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+Expected outputs:
+- `stat`: `zdmuser zdmuser` (or `zdmuser zdm` depending on primary group configuration)
+- `ls`: lists `.github` directory contents
+
+If any step exits non-zero, surface the error and stop. Do not proceed to S1-10 (extension check) or SSH configuration until `zdmuser` exists, owns `/home/zdmuser`, and the key is installed.
+
 ---
 
 ## S1-10: Extension check implementation
@@ -200,14 +277,22 @@ Generated: <ISO-8601 timestamp>
 - Remote hostname: <hostname returned> (on PASS)
 - Error: <error text> (on FAIL)
 
+## Repo Clone
+- Location: /home/zdmuser/GHCP-ODAA-PromptMigration
+- Result: CLONED / SKIPPED (already present) / FAILED
+- Verified: .github directory present (YES / NO)
+
 ## Status
 READY / ACTION REQUIRED
 
 ## Remaining Actions (when ACTION REQUIRED)
 - <list any steps user must complete manually>
 
+## Remaining Actions for Step 2
+- Run: sudo chown -R zdmuser:zdmuser /home/zdmuser  (after zdmuser account is created)
+
 ## Next Step
-Run Step4 (Configure SSH Connectivity) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as zdmuser.
+Run Step 2 (Install ZDM) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as <SSH_USERNAME>.
 ```
 
 ## S1-16: Local execution constraints
@@ -215,5 +300,5 @@ Run Step4 (Configure SSH Connectivity) in the Remote-SSH VS Code session connect
 1. All commands run in the LOCAL PowerShell terminal — do not use any Remote-SSH or jumpbox commands.
 2. Do not use `sudo`, `bash`, or Unix shell commands natively on Windows. Use PowerShell equivalents.
 3. File path separators use `\` on Windows. When passing paths to `ssh` or `ssh-keygen` (which are OpenSSH tools), use forward slashes (`/`) in `-i` argument values or quote paths with backslashes.
-4. Step1 must not read, modify, or create any files on the remote jumpbox.
+4. Step1 runs commands on the remote jumpbox only via `ssh` from the local terminal (package installation and repo clone). It does not open a Remote-SSH session or modify jumpbox files via VS Code file tools.
 5. Step1 must not produce any artifacts in `Artifacts/Phase10-Migration/Step6/` or later directories — only `Step1/`.

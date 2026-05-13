@@ -1,5 +1,4 @@
-﻿# GitHub Copilot Instructions — Oracle-to-ODAA Migration Toolkit
-
+﻿
 ## What This Repo Does
 
 This repository provides AI-assisted Copilot prompt files for migrating Oracle databases to Oracle Database@Azure (ODAA) using Zero Downtime Migration (ZDM). Each prompt guides one phase of the migration, generates artifacts, and hands off to the next step.

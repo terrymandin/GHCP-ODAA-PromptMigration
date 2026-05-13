@@ -1,8 +1,8 @@
 ﻿---
 mode: agent
-description: ZDM Step 3 - Verify or install ZDM 26.1 on the ZDM jumpbox (runs in Remote-SSH session as the SSH user, e.g. azureuser)
+description: ZDM Step 2 - Verify or install ZDM 26.1 on the ZDM jumpbox (runs in Remote-SSH session as zdmuser)
 ---
-# ZDM Migration Step 3: ZDM Installation Verification and Setup
+# ZDM Migration Step 2: ZDM Installation Verification and Setup
 
 ## Purpose
 
@@ -14,10 +14,11 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 ## IMPORTANT: Execution Context
 
-This step runs entirely in the **Remote-SSH VS Code session** on the ZDM jumpbox, logged in as the SSH user (typically `azureuser` on Azure VMs).
+This step runs entirely in the **Remote-SSH VS Code session** on the ZDM jumpbox, logged in as **`zdmuser`**.
 
-- `zdmuser` does **not** exist at the start — it is created during Phase 2.
-- Use `sudo` for all commands that require `root` or that must run as `zdmuser` (e.g., `sudo -u zdmuser <command>`).
+- `zdmuser` and `/home/zdmuser` are created and ownership is transferred during Step 1. The Remote-SSH connection is configured in Step 1 to connect as `zdmuser`.
+- Use `sudo` for commands that require `root` privileges (e.g., installing packages, creating directories under `/u01/`).
+- Do **not** use `sudo -u zdmuser` to impersonate `zdmuser` — the session is already `zdmuser`.
 - Do not run ZDM installation commands locally. Do not use PowerShell or Windows-native commands on the jumpbox.
 - **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
@@ -37,12 +38,13 @@ once reviewed and tested — run them manually there.
 
 ## Pre-populated Bypass Check
 
-Before doing anything else, check whether Step 3 has already been completed:
+Before doing anything else, check whether Step 2 has already been completed:
 
-Read the file `Artifacts/Phase10-Migration/Step2/zdm-install-report.md` using file tools.
+Read the file `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` using file tools.
 
 - If the file exists and the `## Status` section shows `VERIFIED`: Display a confirmation summary (ZDM version, ZDM_HOME, service running status) and jump directly to [Phase 5: Write Artifacts](#phase-5-write-artifacts). Do not re-run installation.
-- If the file does not exist or shows `ACTION REQUIRED`: Continue with Phase 0 below.
+
+- If the file does not exist or shows `ACTION REQUIRED`: Continue with Phase 1 below.
 
 ---
 
@@ -89,17 +91,24 @@ full version: "26.1.0"
 
 ## Phase 2: ZDM Installation (S3-04, S3-11, S3-12, S3-13)
 
-### 2a. Create `zdmuser` OS User
+### 2a. Verify `zdmuser` OS User
 
-Create the `zdm` group and `zdmuser` account if they do not already exist:
+`zdmuser` is created during Step 1. Confirm the account exists and owns its home directory before proceeding:
+
+```bash
+id zdmuser
+stat -c '%U %G' /home/zdmuser
+```
+
+Expected: `zdmuser` is present and owns `/home/zdmuser`. If the account is missing (Step 1 was skipped or failed), create it using `sudo` before continuing:
 
 ```bash
 getent group zdm  > /dev/null 2>&1 || sudo groupadd zdm
-getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm zdmuser
-echo "zdmuser existence: $(id zdmuser 2>&1)"
+getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser
+sudo chown -R zdmuser:zdmuser /home/zdmuser
 ```
 
-If either command fails (e.g., `sudo` not available), display the commands to the user and ask them to run as `root` before continuing.
+If `sudo` is unavailable, surface the commands to the user and ask them to run as `root` before continuing.
 
 ### 2b. Pre-Installation Package Check
 
@@ -158,7 +167,7 @@ Once the user provides the `wget` command:
    sudo chown zdmuser:zdm /u01/app/zdm_download
    cd /u01/app/zdm_download
    ```
-3. Execute the provided download command (running as the SSH user is fine for the download). Capture output and confirm a non-zero file was downloaded.
+3. Execute the provided download command. Capture output and confirm a non-zero file was downloaded.
 4. Identify the downloaded zip file:
    ```bash
    ls -1t /u01/app/zdm_download/*.zip | head -1
@@ -174,9 +183,9 @@ sudo mkdir -p /u01/app/zdmbase
 sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase
 ```
 
-### 2f. Unzip and Run the Installer as `zdmuser`
+### 2f. Unzip and Run the Installer
 
-The installer must run as `zdmuser`. Use `sudo -u zdmuser` to execute it:
+The session is already `zdmuser`, so run the installer directly:
 
 ```bash
 cd /u01/app/zdm_download
@@ -189,7 +198,7 @@ ZDM_HOME_ZIP=$(find /u01/app/zdm_download -name "zdm_home.zip" | head -1)
 echo "Installer: $INSTALL_SCRIPT"
 echo "ZDM home zip: $ZDM_HOME_ZIP"
 
-sudo -u zdmuser "$INSTALL_SCRIPT" setup \
+"$INSTALL_SCRIPT" setup \
     oraclehome=/u01/app/zdmhome \
     oraclebase=/u01/app/zdmbase \
     ziploc="$ZDM_HOME_ZIP"
@@ -205,21 +214,21 @@ Set `DETECTED_ZDM_HOME=/u01/app/zdmhome` after a successful install.
 
 ## Phase 3: Service Status Check (S3-10)
 
-The ZDM service must be started and checked as `zdmuser`. Use `sudo -u zdmuser` since the current SSH user is not `zdmuser`:
+The session is `zdmuser`, so run the service commands directly:
 
 ```bash
-sudo -u zdmuser "$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
+"$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
 ```
 
 If the output shows `Running: false` or the service is not yet started, start it:
 
 ```bash
-sudo -u zdmuser "$DETECTED_ZDM_HOME/bin/zdmservice" start
+"$DETECTED_ZDM_HOME/bin/zdmservice" start
 ```
 
 Then re-check status:
 ```bash
-sudo -u zdmuser "$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
+"$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
 ```
 
 Confirm the output shows `Running: true`. Capture the full status output for the report.
@@ -228,12 +237,12 @@ Confirm the output shows `Running: true`. Capture the full status output for the
 
 ## Phase 4: .bashrc Environment Setup (S3-05, S3-14)
 
-The target `.bashrc` is `zdmuser`'s — `/home/zdmuser/.bashrc`. Since the current session is the SSH user (e.g., `azureuser`), use `sudo` to read and update it.
+The session is `zdmuser` and the session owns `/home/zdmuser`. Read and write `.bashrc` directly — no `sudo` required.
 
-Check for existing `ZDM_HOME` and PATH entries in `zdmuser`'s `.bashrc`:
+Check for existing `ZDM_HOME` and PATH entries:
 
 ```bash
-sudo grep -n 'ZDM_HOME\|zdmhome' /home/zdmuser/.bashrc
+grep -n 'ZDM_HOME\|zdmhome' ~/.bashrc
 ```
 
 **If `ZDM_HOME` is already set to the correct path and `$ZDM_HOME/bin` is already on the PATH:**
@@ -244,7 +253,7 @@ sudo grep -n 'ZDM_HOME\|zdmhome' /home/zdmuser/.bashrc
 Append the following block to `/home/zdmuser/.bashrc` (substitute the actual detected `ZDM_HOME` path):
 
 ```bash
-sudo tee -a /home/zdmuser/.bashrc << 'BASHRC_EOF'
+tee -a ~/.bashrc << 'BASHRC_EOF'
 
 # ZDM Environment
 export ZDM_HOME=/u01/app/zdmhome
@@ -254,9 +263,9 @@ BASHRC_EOF
 
 > Use the actual confirmed `DETECTED_ZDM_HOME` path in the `export ZDM_HOME=` line — not the hardcoded example if it differs.
 
-Source `.bashrc` as `zdmuser` to verify the settings apply correctly:
+Source `.bashrc` to verify the settings apply correctly:
 ```bash
-sudo -u zdmuser bash -c 'source ~/.bashrc && which zdmcli && zdmcli -build | grep "full version"'
+bash -c 'source ~/.bashrc && which zdmcli && zdmcli -build | grep "full version"'
 ```
 
 ---
@@ -265,7 +274,7 @@ sudo -u zdmuser bash -c 'source ~/.bashrc && which zdmcli && zdmcli -build | gre
 
 Using file tools, write the following two files:
 
-### `Artifacts/Phase10-Migration/Step2/zdm-install-report.md`
+### `Artifacts/Phase10-Migration/Step5/zdm-install-report.md`
 
 ```markdown
 # ZDM Installation Report
@@ -298,10 +307,10 @@ VERIFIED | ACTION REQUIRED
 - <list any outstanding manual steps>
 ```
 
-### `Artifacts/Phase10-Migration/Step2/README.md`
+### `Artifacts/Phase10-Migration/Step5/README.md`
 
 ```markdown
-# Step 3 — ZDM Installation
+# Step 2 — ZDM Installation
 
 ## Files Generated
 - `zdm-install-report.md` — ZDM version verification and installation summary
@@ -325,7 +334,7 @@ Proceed to Step 4 (SSH Connectivity) in the Remote-SSH VS Code session.
 After writing both artifacts, display a summary:
 
 ```
-Step 3 — ZDM Installation
+Step 2 — ZDM Installation
 --------------------------
 ZDM Version:     26.1.0  ✓
 ZDM_HOME:        /u01/app/zdmhome
@@ -334,7 +343,7 @@ Service:         Running: true  ✓
 
 Status: VERIFIED
 
--> Next: Step 4 - Configure SSH Connectivity
+-> Next: Step 3 - Configure SSH Connectivity
 
 Run @Phase10-ZDM-Orchestrator or say "continue" to proceed.
 ```

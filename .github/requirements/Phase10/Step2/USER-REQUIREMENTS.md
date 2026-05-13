@@ -6,7 +6,7 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 > **Note:** The ZDM Azure VM is created during Step 1 (VM Create + Remote-SSH Setup). By the time Step3 runs, the VM already exists and the Remote-SSH connection is established.
 
-**Execution model**: Step3 runs entirely in the Remote-SSH VS Code session on the jumpbox, logged in as the SSH user (typically `azureuser` on Azure VMs). The `zdmuser` OS account does not exist yet at the start — it is created as part of the installation. All `zdmuser`-scoped commands run via `sudo -u zdmuser`. Step3 must not run any commands locally.
+**Execution model**: Step3 runs entirely in the Remote-SSH VS Code session on the jumpbox, logged in as `zdmuser`. The `zdmuser` OS account and `/home/zdmuser` ownership are set up during Step 1 — Step 2 should confirm that account exists and owns its home directory before proceeding. All ZDM installation commands that require `root` are run via `sudo`. Step3 must not run any commands locally.
 
 ---
 
@@ -31,11 +31,10 @@ The report must contain:
 
 ## S3-02: Execution Context
 
-1. Step3 runs in the Remote-SSH terminal on the ZDM jumpbox, logged in as the SSH user (e.g., `azureuser`). This user typically has `sudo` access on Azure VMs.
-2. `zdmuser` does not exist at the start of Step3. It is created during the installation process (see S3-04 Step A).
-3. Commands that must run as `zdmuser` use `sudo -u zdmuser <command>` or `sudo -u zdmuser bash -c '<command>'`.
-4. Commands that require `root` and cannot be done via `sudo` must be surfaced to the user as explicit instructions. Provide the exact command and wait for the user to confirm completion before proceeding.
-5. Do not assume `zdmuser` can log in interactively via SSH — use `sudo -u zdmuser` from the SSH user's session.
+1. Step3 runs in the Remote-SSH terminal on the ZDM jumpbox, logged in as `zdmuser`. The Remote-SSH connection is configured in Step 1 to connect as `zdmuser`.
+2. `zdmuser` is created during Step 1. By the time Step 2 runs, the account exists and owns `/home/zdmuser`. Step A of S3-04 verifies this — if the account is missing, it must be created before continuing.
+3. Commands that require `root` are run via `sudo`. Commands that the Remote-SSH session cannot run directly as `zdmuser` must be surfaced to the user as explicit instructions.
+4. Do not use `sudo -u zdmuser` to impersonate `zdmuser` — the session IS `zdmuser`.
 
 ---
 
@@ -80,13 +79,21 @@ full version: "26.1.0"
 
 If ZDM 26.1 is not installed, guide the user through the following steps:
 
-### Step A — Create `zdmuser` OS User
+### Step A — Verify `zdmuser` OS User
 
-Create the `zdm` group and `zdmuser` account if they do not already exist. This step requires `sudo`:
+> **Note:** `zdmuser` and the `zdm` group are created during Step 1. Verify the account exists before proceeding:
+
+```bash
+id zdmuser
+stat -c '%U %G' /home/zdmuser
+```
+
+Expected output: `zdmuser` is present and owns `/home/zdmuser`. If the account is missing (e.g., Step 1 was skipped or failed), create it using `sudo` before continuing:
 
 ```bash
 getent group zdm  > /dev/null 2>&1 || sudo groupadd zdm
-getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm zdmuser
+getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser
+sudo chown -R zdmuser:zdmuser /home/zdmuser
 ```
 
 If `sudo` is unavailable, surface the commands to the user and ask them to run as `root`.

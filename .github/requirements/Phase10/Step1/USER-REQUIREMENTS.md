@@ -83,7 +83,70 @@ ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_
 
 Confirm the command exits with code 0 and reports `Complete!`. If it fails, surface the error and do not proceed until `tar` is installed — VS Code Server cannot extract its installation package without it.
 
-After confirming `tar` is installed, proceed to S1-02 (Execution Context / SSH setup). Do not route back to Step 3 — VM creation is complete.
+After confirming `tar` is installed, continue to S1-00-F.
+
+### S1-00-F: Clone Migration Repo onto the Jumpbox
+
+Immediately after the `tar` installation succeeds, clone the migration repo into the jumpbox's `/home/zdmuser` directory over SSH. This must be done before the user opens the Remote-SSH VS Code window so the repo is available the moment Step 2 begins.
+
+**Steps to execute (all run via SSH from the local terminal):**
+
+1. Install `git` if not already present:
+   ```powershell
+   ssh ... "sudo dnf install -y git"
+   ```
+2. Create the `/home/zdmuser` directory:
+   ```powershell
+   ssh ... "sudo mkdir -p /home/zdmuser"
+   ```
+3. Clone the repo into it:
+   ```powershell
+   ssh ... "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
+   ```
+4. Confirm the clone succeeded by checking that the directory exists:
+   ```powershell
+   ssh ... "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+   ```
+
+If the clone fails (e.g. `git` not found, network error), surface the error and do not proceed until it is resolved.
+
+After confirming the clone is present, continue to S1-00-G.
+
+### S1-00-G: Create `zdmuser` and Transfer Ownership
+
+Immediately after the clone is verified, create the `zdmuser` OS account and transfer ownership of `/home/zdmuser` — all via SSH from the local PowerShell terminal. This must happen in Step 1 so that the VS Code Remote-SSH connection (configured below) can connect directly as `zdmuser` and open the repo.
+
+**Steps to execute (run via SSH from the local terminal, each separately with exit-code check):**
+
+1. Create the `zdm` group and `zdmuser` account:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
+   ```
+
+2. Transfer ownership of `/home/zdmuser` to `zdmuser`:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdmuser /home/zdmuser"
+   ```
+
+3. Create `zdmuser`'s `.ssh` directory and `authorized_keys` file with the SSH public key used in this step, then lock down permissions:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh"
+   # Read the public key content locally, then write it to authorized_keys on the jumpbox
+   $pubKey = Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh/authorized_keys"
+   ```
+
+4. Verify `zdmuser` can be impersonated and owns the repo:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
+   ```
+   Expected: owner is `zdmuser`, group is `zdmuser` or `zdm`.
+
+If any step fails, surface the error and do not proceed until it is resolved.
+
+After confirming `zdmuser` exists and owns `/home/zdmuser`, proceed to S1-02 (Execution Context / SSH setup). Do not route back to Step 3 — VM creation is complete.
 
 ---
 
