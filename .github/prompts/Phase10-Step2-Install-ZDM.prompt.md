@@ -45,19 +45,9 @@ Read `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` using file tools.
 
 ## Phase 0: Collect Escalation Credentials (S3-09B)
 
-`zdmuser` has no `sudo` access by default. Collect the escalation method **once, upfront** before any phase that may require root.
+`zdmuser` has no `sudo` access by default. First check whether root escalation is needed at all, then collect only the credentials required for the chosen method.
 
-### 0a. Load Connection Details from Step 1 Artifact
-
-Read `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` using file tools. Extract:
-- `JUMPBOX_HOST` — from the `HostName:` field
-- `JUMPBOX_SSH_KEY` — from the `IdentityFile:` field (local Windows path to the azureuser key)
-
-If either field is missing or the file does not exist, ask the user:
-> **What is the IP address or hostname of the ZDM jumpbox?**
-> **What is the local Windows path to the azureuser SSH private key?** (e.g., `C:\Users\you\.ssh\zdm_key`)
-
-### 0b. Check Whether zdmuser Already Has Sudo Access
+### 0a. Check Whether zdmuser Already Has Sudo Access
 
 Run in the jumpbox terminal:
 ```bash
@@ -65,15 +55,15 @@ sudo -n true 2>/dev/null && echo "HAS_SUDO" || echo "NO_SUDO"
 ```
 
 - **`HAS_SUDO`**: record `ESCALATION_METHOD=passwordless-sudo`. Skip to Phase 1.
-- **`NO_SUDO`**: continue to 0c.
+- **`NO_SUDO`**: continue to 0b.
 
-### 0c. Choose an Escalation Method
+### 0b. Choose an Escalation Method
 
 Ask the user:
 
-> **`zdmuser` does not have sudo access. When root operations are needed (e.g., installing missing packages), how should I escalate?**
+> **`zdmuser` does not have passwordless sudo. When root operations are needed (e.g., installing missing packages), how should I escalate?**
 >
-> **Option A — Local terminal** *(no changes to the VM)*: I'll show a ready-to-run PowerShell command using your azureuser key. You run it from your local terminal and reply "done".
+> **Option A — Local terminal** *(no changes to the VM)*: I'll show a ready-to-run PowerShell `ssh` command you run from your local terminal as `azureuser`. You run it and reply "done".
 >
 > **Option B — zdmuser sudo password** *(one-time setup)*: Provide a password for zdmuser and I'll configure password-based sudo. Root operations will then run in-session — no separate terminal needed after the one-time setup.
 >
@@ -81,10 +71,17 @@ Ask the user:
 
 **If Option A:**
 - Record `ESCALATION_METHOD=local-terminal`.
-- Confirm `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY` are set. All escalation commands will use these real values — no placeholders.
+- Read `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` using file tools and extract:
+  - `JUMPBOX_HOST` — from the `HostName:` field
+  - `JUMPBOX_SSH_KEY` — from the `IdentityFile:` field (local Windows path to the azureuser key)
+- If either field is missing or the file does not exist, ask the user:
+  > **What is the local Windows path to the azureuser SSH private key?** (e.g., `C:\Users\you\.ssh\zdm_key`)
+  > **What is the IP address or hostname of the jumpbox?** (visible in the VS Code Remote-SSH status bar or the Step 1 report)
+- Confirm both values are set before continuing. All escalation commands will use these real values — no placeholders.
 
 **If Option B:**
 - Ask: `What password do you want to set for zdmuser?` Store as `ZDMUSER_PASS` (session variable — never written to disk or any file).
+- Read `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` using file tools and extract `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY` as above (needed for the one-time setup command run as azureuser from a local terminal).
 - Show the one-time setup command with real values substituted for `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS`:
   ```powershell
   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `

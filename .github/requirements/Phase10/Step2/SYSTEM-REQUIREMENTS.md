@@ -10,23 +10,23 @@ Implementation-level constraints for Step3. The step runs entirely in the Remote
 
 ## S3-09B: Escalation Credential Collection
 
-Before running any phase that may require root operations, collect the escalation method **once**.
+Before running any phase that may require root operations, collect the escalation method **once**. Do **not** ask for connection details upfront — check sudo access first, then collect only what is needed for the chosen method.
 
-1. **Read the Step 1 artifact** (`Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`) using file tools. Extract:
-   - `JUMPBOX_HOST` from the `HostName:` field
-   - `JUMPBOX_SSH_KEY` from the `IdentityFile:` field (local Windows path)
-   If either is missing, ask the user to supply them before continuing.
-
-2. **Check whether `zdmuser` already has sudo access** (e.g., passwordless sudo set up by Step 1 or manually):
+1. **Check whether `zdmuser` already has sudo access** (run this first — no artifact reading needed):
    ```bash
    sudo -n true 2>/dev/null && echo "HAS_SUDO" || echo "NO_SUDO"
    ```
-   - `HAS_SUDO` → record `ESCALATION_METHOD=passwordless-sudo`; no further collection needed.
+   - `HAS_SUDO` → record `ESCALATION_METHOD=passwordless-sudo`; no further collection needed. Skip to S3-10.
    - `NO_SUDO` → present the user with the two escalation options below.
 
-3. **Escalation option A — Local terminal**: No VM changes. All root operations are shown as a fully-formed PowerShell `ssh` command (using the `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY` values from step 1) for the user to run from a local terminal and report back. Record `ESCALATION_METHOD=local-terminal`.
+2. **Ask the user to choose an escalation method** (Option A or B). Do not ask for connection details before this choice is made.
 
-4. **Escalation option B — zdmuser sudo password**: Ask for a password to set on `zdmuser`. Show this one-time setup command with real values substituted (no literal placeholders):
+3. **Escalation option A — Local terminal**: No VM changes. All root operations are shown as a fully-formed PowerShell `ssh` command for the user to run from a local terminal. Record `ESCALATION_METHOD=local-terminal`. Then read the Step 1 artifact (`Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`) to extract:
+   - `JUMPBOX_HOST` from the `HostName:` field
+   - `JUMPBOX_SSH_KEY` from the `IdentityFile:` field (local Windows path)
+   If either is missing from the artifact, ask the user to supply the **SSH key path** and **jumpbox IP**. All escalation commands use these real values — no placeholders.
+
+4. **Escalation option B — zdmuser sudo password**: Ask for a password to set on `zdmuser`. Read the Step 1 artifact to extract `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY` (needed to run the one-time setup command as `azureuser`). Show this one-time setup command with real values substituted (no literal placeholders):
    ```powershell
    ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
      "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
