@@ -8,6 +8,37 @@ Implementation-level constraints for Step3. The step runs entirely in the Remote
 
 ---
 
+## S3-09B: Escalation Credential Collection
+
+Before running any phase that may require root operations, collect the escalation method **once**.
+
+1. **Read the Step 1 artifact** (`Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`) using file tools. Extract:
+   - `JUMPBOX_HOST` from the `HostName:` field
+   - `JUMPBOX_SSH_KEY` from the `IdentityFile:` field (local Windows path)
+   If either is missing, ask the user to supply them before continuing.
+
+2. **Check whether `zdmuser` already has sudo access** (e.g., passwordless sudo set up by Step 1 or manually):
+   ```bash
+   sudo -n true 2>/dev/null && echo "HAS_SUDO" || echo "NO_SUDO"
+   ```
+   - `HAS_SUDO` → record `ESCALATION_METHOD=passwordless-sudo`; no further collection needed.
+   - `NO_SUDO` → present the user with the two escalation options below.
+
+3. **Escalation option A — Local terminal**: No VM changes. All root operations are shown as a fully-formed PowerShell `ssh` command (using the `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY` values from step 1) for the user to run from a local terminal and report back. Record `ESCALATION_METHOD=local-terminal`.
+
+4. **Escalation option B — zdmuser sudo password**: Ask for a password to set on `zdmuser`. Show this one-time setup command with real values substituted (no literal placeholders):
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
+     "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
+   ```
+   After the user confirms, verify in-session:
+   ```bash
+   echo "$ZDMUSER_PASS" | sudo -S true 2>/dev/null && echo "SUDO_OK" || echo "SUDO_FAIL"
+   ```
+   If `SUDO_OK`, record `ESCALATION_METHOD=sudo-password`. If `SUDO_FAIL`, surface the error and do not continue.
+
+---
+
 ## S3-10: Version Detection Implementation
 
 1. Probe for an installed ZDM binary in this order — stop at the first match:
@@ -74,7 +105,12 @@ Implementation-level constraints for Step3. The step runs entirely in the Remote
 
 ## S3-12: Pre-Installation Package Check Implementation
 
-Before running the installer, verify each required package is present. These packages should have been installed by Step 1 (as the admin user). Report any that are missing, but **do not attempt to install them from the `zdmuser` session** — `zdmuser` does not have `sudo`. If packages are missing, surface the install command for the user to run as `azureuser` (or root) before continuing.
+Before running the installer, verify each required package is present. These packages should have been installed by Step 1 (as the admin user).
+
+Detect the OS version:
+```bash
+grep -E '^(NAME|VERSION_ID)=' /etc/os-release
+```
 
 Check for missing packages:
 ```bash
@@ -83,24 +119,33 @@ for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget;
 done
 ```
 
-If any are `MISSING`, display the appropriate install command for the user to run as `azureuser` **from a local PowerShell terminal** (not in the Remote-SSH session):
+If any are `MISSING`, install them using the `ESCALATION_METHOD` established in S3-09B. Use `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS` (real values — no literal placeholders).
 
-**Oracle Linux 8 / RHEL 8:**
+**`ESCALATION_METHOD=local-terminal`:**
+
+*Oracle Linux 8 / RHEL 8:*
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
+ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
 ```
 
-**Oracle Linux 9/10 / RHEL 9:**
+*Oracle Linux 9/10 / RHEL 9:*
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
-Do not continue until all packages report `OK`.
+**`ESCALATION_METHOD=sudo-password`:**
 
-Detect the OS version to confirm the correct package list:
+*Oracle Linux 8 / RHEL 8:*
 ```bash
-grep -E '^(NAME|VERSION_ID)=' /etc/os-release
+echo "$ZDMUSER_PASS" | sudo -S dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl
 ```
+
+*Oracle Linux 9/10 / RHEL 9:*
+```bash
+echo "$ZDMUSER_PASS" | sudo -S dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget
+```
+
+After the install completes, re-run the `rpm -q` loop to confirm all packages report `OK`. Do not continue until all are confirmed.
 
 ---
 
@@ -112,7 +157,12 @@ grep -E '^(NAME|VERSION_ID)=' /etc/os-release
    ```
    Expected: each line shows `zdmuser zdm <path>`. If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run as `azureuser` from a local terminal:
    ```powershell
-   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+   # ESCALATION_METHOD=local-terminal (use real $JUMPBOX_SSH_KEY and $JUMPBOX_HOST values):
+   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+
+   # ESCALATION_METHOD=sudo-password:
+   # echo "$ZDMUSER_PASS" | sudo -S mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
+   # echo "$ZDMUSER_PASS" | sudo -S chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
    ```
 
 2. Unzip the ZDM kit, then locate and run the installer as `zdmuser` (the current session):
