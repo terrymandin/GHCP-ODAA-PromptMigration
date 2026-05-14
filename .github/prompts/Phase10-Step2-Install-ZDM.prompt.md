@@ -71,17 +71,19 @@ Ask the user:
 
 **If Option A:**
 - Record `ESCALATION_METHOD=local-terminal`.
-- Read `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` using file tools and extract:
-  - `JUMPBOX_HOST` — from the `HostName:` field
-  - `JUMPBOX_SSH_KEY` — from the `IdentityFile:` field (local Windows path to the azureuser key)
-- If either field is missing or the file does not exist, ask the user:
-  > **What is the local Windows path to the azureuser SSH private key?** (e.g., `C:\Users\you\.ssh\zdm_key`)
-  > **What is the IP address or hostname of the jumpbox?** (visible in the VS Code Remote-SSH status bar or the Step 1 report)
-- Confirm both values are set before continuing. All escalation commands will use these real values — no placeholders.
+- Ask the user:
+  > **Two values are needed to generate the escalation command (both are in your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
+  > 1. **Jumpbox public IP** — `Public IP:` line in the `## VM Details` section (e.g., `51.105.43.11`)
+  > 2. **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section (e.g., `C:\Users\you\SSHTesting\key.pem`)
+- Store as `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY`. All escalation commands will use these real values — no placeholders.
 
 **If Option B:**
-- Ask: `What password do you want to set for zdmuser?` Store as `ZDMUSER_PASS` (session variable — never written to disk or any file).
-- Read `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` using file tools and extract `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY` as above (needed for the one-time setup command run as azureuser from a local terminal).
+- Ask the user:
+  > **Two values are needed for the one-time sudo setup (both are in your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
+  > 1. **Jumpbox public IP** — `Public IP:` line in the `## VM Details` section
+  > 2. **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section
+  > 3. **What password do you want to set for `zdmuser`?**
+- Store as `JUMPBOX_HOST`, `JUMPBOX_SSH_KEY`, and `ZDMUSER_PASS` (session variable — never written to disk or any file).
 - Show the one-time setup command with real values substituted for `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS`:
   ```powershell
   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
