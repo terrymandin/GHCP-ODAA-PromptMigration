@@ -2,7 +2,7 @@
 
 ## Scope
 
-Implementation-level constraints for Step3. The step runs entirely in the Remote-SSH terminal on the jumpbox as the SSH user (e.g., `azureuser`). Commands scoped to `zdmuser` use `sudo -u zdmuser`.
+Implementation-level constraints for Step3. The step runs entirely in the Remote-SSH terminal on the jumpbox **as `zdmuser`**. `zdmuser` does **not** have `sudo` access. Commands requiring root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo -u zdmuser` — the session is already `zdmuser`.
 
 > **Note:** Azure VM creation is handled in Step 1. S3-09 (VM creation implementation) has been moved to Step 1 system requirements.
 
@@ -39,13 +39,13 @@ Implementation-level constraints for Step3. The step runs entirely in the Remote
    ```
    Extract the `full version:` line. Confirm it contains `26.1`. If it does not contain `26.1`, report the detected version and proceed to the installation branch.
 
-4. Also run `zdmservice status` to confirm the service is running. Because the current session is the SSH user, use `sudo -u zdmuser`:
+4. Run `zdmservice status` to confirm the service is running. The current session is `zdmuser` — run the service command directly:
    ```bash
-   sudo -u zdmuser "$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
+   "$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
    ```
    Parse the `Running:` field. If `Running: false`, start the service:
    ```bash
-   sudo -u zdmuser "$DETECTED_ZDM_HOME/bin/zdmservice" start
+   "$DETECTED_ZDM_HOME/bin/zdmservice" start
    ```
 
 ---
@@ -138,37 +138,37 @@ grep -E '^(NAME|VERSION_ID)=' /etc/os-release
 
 ## S3-14: .bashrc Update Implementation
 
-The target file is `zdmuser`'s `/home/zdmuser/.bashrc`. Since the current session is the SSH user, all read/write operations use `sudo`.
+The target file is `zdmuser`'s `~/.bashrc`. The current session is `zdmuser`, so read and write `~/.bashrc` directly — no `sudo` required.
 
-1. Read the current `/home/zdmuser/.bashrc` contents:
+1. Read the current `~/.bashrc` contents:
    ```bash
-   sudo cat /home/zdmuser/.bashrc
+   cat ~/.bashrc
    ```
 
-2. Check if `ZDM_HOME` is already exported with the correct path using a precise match:
+2. Check if `ZDM_HOME` is already exported with the correct path:
    ```bash
-   sudo grep -c "export ZDM_HOME=${DETECTED_ZDM_HOME}" /home/zdmuser/.bashrc
+   grep -c "export ZDM_HOME=${DETECTED_ZDM_HOME}" ~/.bashrc
    ```
 
 3. Check if `$ZDM_HOME/bin` is already on the PATH in `.bashrc`:
    ```bash
-   sudo grep -c 'ZDM_HOME.*bin.*PATH\|PATH.*ZDM_HOME.*bin' /home/zdmuser/.bashrc
+   grep -c 'ZDM_HOME.*bin.*PATH\|PATH.*ZDM_HOME.*bin' ~/.bashrc
    ```
 
-4. Only append if either check returns 0. Use `sudo tee -a` to append:
+4. Only append if either check returns 0. Append using `tee -a`:
    ```bash
-   sudo tee -a /home/zdmuser/.bashrc << 'EOF'
+   tee -a ~/.bashrc << 'BASHRC_EOF'
 
    # ZDM Environment
    export ZDM_HOME=/u01/app/zdmhome
    export PATH=$ZDM_HOME/bin:$PATH
-   EOF
+   BASHRC_EOF
    ```
    Replace `/u01/app/zdmhome` with the actual `DETECTED_ZDM_HOME` value.
 
-5. Validate PATH update as `zdmuser`:
+5. Validate PATH update:
    ```bash
-   sudo -u zdmuser bash -c 'source ~/.bashrc && which zdmcli && zdmcli -build | grep "full version"'
+   source ~/.bashrc && which zdmcli && zdmcli -build | grep "full version"
    ```
 
 ---

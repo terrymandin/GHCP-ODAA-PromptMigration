@@ -80,22 +80,44 @@ Ask the user if they would like assistance creating the ZDM Azure VM:
 
 **If the user declines**, provide a reminder of the recommended VM configuration (shown below) and wait for them to confirm the VM is ready before proceeding to Phase 1.
 
-**If the user accepts**, collect the following parameters one prompt at a time, showing the recommended default for each:
+**If the user accepts**, collect VM parameters using **grouped question collection** per CR-16. Present all questions for each group together in a single message — do **not** ask one question at a time.
 
-| Parameter | Question to ask | Recommended default |
-|-----------|-----------------|---------------------|
-| **VM Name** | What name would you like for the ZDM VM? | `zdm-jumpbox` |
-| **Resource Group** | Which Azure resource group should the VM be placed in? (Existing or new?) | *(ask user)* |
-| **Region** | Which Azure region? | *(ask user)* |
-| **Image** | Which OS image? | `Oracle:Oracle-Linux:ol10-lvm-gen2:latest` |
-| **VM Size** | Which VM size? | `Standard_D2s_v3` |
-| **OS Disk Size** | OS disk size in GB? | `256` |
-| **VNet / Subnet** | Which VNet and subnet? (Existing or new?) | *(ask user)* |
-| **Authentication** | SSH public key or password? | SSH public key (recommended) |
-| **SSH Key / Password** | Paste your SSH public key (or choose password and provide it) | *(ask user)* |
-| **SSH Username** | What username should be used for SSH login? | `azureuser` |
+**Group 1 — VM Identity** (present together):
 
-Once all parameters are collected, display a parameter summary and ask the user to confirm the values are correct before building the command.
+| Parameter | Question | Default |
+|-----------|----------|---------|
+| VM Name | What name for the ZDM jumpbox VM? | `zdm-jumpbox` |
+| Resource Group | Which Azure resource group (existing or new)? | *(ask user)* |
+| Azure Region | Which Azure region? (e.g., `eastus`, `uksouth`) | *(ask user)* |
+
+**Group 2 — VM Configuration** (present together, show defaults inline):
+
+| Parameter | Question | Default |
+|-----------|----------|---------|
+| OS Image | Which OS image? (Enter to accept default) | `Oracle:Oracle-Linux:ol10-lvm-gen2:latest` |
+| VM Size | Which VM size? (Enter to accept default) | `Standard_D2s_v3` |
+| OS Disk Size (GB) | OS disk size in GB? (Enter to accept default) | `256` |
+
+**Group 3 — Networking** (present together):
+
+| Parameter | Question | Default |
+|-----------|----------|---------|
+| VNet Name | Which VNet (existing or new)? | *(ask user)* |
+| Subnet Name | Which subnet (existing or new)? | *(ask user)* |
+
+**Group 4 — Authentication** (present together):
+
+| Parameter | Question | Default |
+|-----------|----------|---------|
+| Auth Type | SSH public key or password? | SSH public key |
+| SSH Username | Admin username for SSH login? | `azureuser` |
+
+**Group 5 — SSH Key or Password** (present after Group 4 answer):
+
+- If SSH key: ask for the path to the local public key file **and** the path to the local private key file.
+- If password: ask for the password.
+
+After all groups, display a consolidated summary of all values and require explicit user confirmation before proceeding.
 
 > **Review your VM configuration:**
 > - Name: `<name>`
