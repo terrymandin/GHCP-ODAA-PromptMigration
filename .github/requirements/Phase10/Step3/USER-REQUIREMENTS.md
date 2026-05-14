@@ -96,14 +96,14 @@ Commands must use the same non-interactive options and `hostname` probe as the i
 
 ## S4-08: Interactive collection of SSH configuration
 
-When neither `ssh-config.md` nor `zdm-env.md` provides the required values, Copilot must collect them interactively before running any SSH tests:
+When neither `ssh-config.md` nor `zdm-env.md` provides the required values, Copilot must collect them interactively before running any SSH tests. Follow CR-16 grouped collection: present all questions for each group together in a single message — do not ask one question at a time.
 
-1. Ask for values in logical groups, presenting defaults where applicable:
-   - **Hosts**: Source host IP or FQDN; target host IP or FQDN.
-   - **SSH users**: SSH admin user for source host (e.g. `azureuser`, `opc`); SSH admin user for target host.
-   - **SSH keys**: Path to SSH key for source host under `~/.ssh/` (leave blank to use agent/default auth); path to SSH key for target host.
-   - **Application users**: Oracle software owner user (default: `oracle`); ZDM software user (default: `zdmuser`).
-2. After collecting all values, display a confirmation summary before writing the artifact.
+1. Ask for values in logical groups per CR-16-B (Step 3 groupings), presenting defaults where applicable:
+   - **Group 1 — Hosts**: Source host IP or FQDN; target host IP or FQDN.
+   - **Group 2 — SSH Users**: SSH admin user for source host (e.g. `azureuser`, `opc`); SSH admin user for target host.
+   - **Group 3 — SSH Keys**: Path to SSH key for source host under `~/.ssh/` (leave blank to use agent/default auth); path to SSH key for target host.
+   - **Group 4 — Application Users**: Oracle software owner user (default: `oracle`); ZDM software user (default: `zdmuser`).
+2. After collecting all groups, display a single consolidated confirmation summary before writing the artifact (per CR-16-C).
 3. Do not proceed to SSH testing until the user confirms or corrects the displayed values.
 4. Write `Artifacts/Phase10-Migration/Step6/ssh-config.md` with the confirmed values before running SSH tests.
 5. If any required value (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`) is blank after collection, stop and ask the user to supply the missing value before proceeding.

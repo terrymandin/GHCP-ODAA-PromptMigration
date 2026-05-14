@@ -177,37 +177,37 @@ Configure sudoers on the source host to allow the ZDM admin user (`azureuser` or
 
 ## S6-08: Migration Planning Interview
 
-After generating the Discovery Summary, conduct a structured interactive interview in decision-tree order before writing any questionnaire output file.
+After generating the Discovery Summary, conduct a structured interactive interview in decision-tree order before writing any questionnaire output file. Follow CR-16 grouped collection: present all questions for each group together in a single message — do not ask one question at a time.
 
-Interview phases — must be completed in sequence:
+Interview phases — must be completed in sequence. Each phase maps to a CR-16-B group (Step 5 groupings):
 
-**Phase A — Migration Type and Platform (gates all subsequent questions)**
+**Group A — Migration Type & Platform** (present all three together; gates all subsequent groups)
 1. Confirm (or override) the recommended migration method: ONLINE_PHYSICAL or OFFLINE_PHYSICAL.
 2. **Target platform type** (determines `PLATFORM_TYPE` RSP parameter): read the Layer 0 rows from the CR-14 prerequisite catalog file (loaded per CR-14-A from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`) for the current ZDM version. Present the allowed values and their RSP mappings from the catalog. Do not hardcode the allowed values here.
 3. **Source storage type** (determines `zdmcli` identifier flag): read from the Layer 0 catalog file rows (loaded per CR-14-A). Default to the value inferred from Step5 discovery (`db_create_file_dest` parameter or ASM PMON process evidence); ask for confirmation.
 
-**Phase B — Migration-type-specific questions**
-
-For ONLINE_PHYSICAL only:
+**Group B-Online — Online-specific settings** (present all together; only when ONLINE_PHYSICAL is confirmed):
 - Log switch interval preference (RSP: `LOG_SWITCH_INTERVAL`).
 - Data Guard protection mode: MAX_PERFORMANCE / MAX_AVAILABILITY / MAX_PROTECTION (RSP: `DATAGUARD_PROTECTION_MODE`).
 - Data transfer medium: DIRECT or OSS (RSP: `DATA_TRANSFER_MEDIUM`).
 - Insert pause point before switchover? (RSP: `PAUSE_BEFORE_SWITCHOVER`).
 - Enable auto-switchover? (RSP: `AUTO_SWITCHOVER`).
 
-For OFFLINE_PHYSICAL only:
+**Group B-Offline — Offline-specific settings** (present all together; only when OFFLINE_PHYSICAL is confirmed):
 - Backup/transfer medium: OSS, NFS, or COPY (RSP: `DATA_TRANSFER_MEDIUM`).
 - Maximum acceptable downtime window (runbook planning input).
 
-**Phase C — Common questions (both paths)**
-- OCI Tenancy OCID (RSP: `OCID_TENANCY` / `zdmcli -ocitenancy`). Mark as manual-entry required if not in `zdm-env.md`.
-- OCI User OCID (RSP: `OCID_USER`). Mark as manual-entry required if not in `zdm-env.md`.
-- OCI Compartment OCID (RSP: `OCID_COMPARTMENT`). Mark as manual-entry required if not in `zdm-env.md`.
-- Target Database OCID (RSP: `OCID_TARGET_DATABASE`). Mark as manual-entry required if not in `zdm-env.md`.
-- OCI Object Storage namespace, bucket name, and bucket region (RSP: `OSS_BUCKET_NAMESPACE`, `OSS_BUCKET_NAME`, `OSS_BUCKET_REGION`).
-- TLS/wallet transfer medium if TDE is enabled (RSP: `WALLET_MIGRATION`).
+**Group C — Object Storage** (present all together; only when OSS is the data transfer medium):
+- OCI Object Storage namespace (RSP: `OSS_BUCKET_NAMESPACE`).
+- Bucket name (RSP: `OSS_BUCKET_NAME`).
+- Bucket region (RSP: `OSS_BUCKET_REGION`).
 
-Each question must present the discovered or `zdm-env.md`-sourced recommended default and ask the user to confirm or provide a value.
+> **Note — OCI identity parameters not required for physical migrations:** `OCID_TENANCY`, `OCID_USER`, `OCID_COMPARTMENT`, and `OCID_TARGET_DATABASE` are RSP parameters for **logical** migrations only. For ONLINE_PHYSICAL and OFFLINE_PHYSICAL, ZDM authenticates to OCI using the OCI config file on the ZDM host (set up during Step 2 installation via `zdmcli -ociauth`). Do not ask the user for these values.
+
+**Group D — TDE/Wallet** (present together; only when TDE is enabled on source):
+- Wallet transfer medium (RSP: `WALLET_MIGRATION`).
+
+For each group: show pre-filled defaults from `zdm-env.md` or `db-config.md` inline with the prompt. After all applicable groups are answered, display a single consolidated confirmation summary of all values per CR-16-C before writing any output file.
 
 ## S6-09: Interview preconditions
 

@@ -273,3 +273,50 @@ The learn-more content for each variable must be derived from CR-05 definitions,
 | `ZDM_HOME` | Installation directory of ZDM on the jumpbox | `which zdmcli` then strip `/bin/zdmcli`; or check common paths like `/mnt/app/zdmhome` | Leave blank for auto-detection; if set incorrectly, all `zdmcli` invocations will fail | `/mnt/app/zdmhome` |
 | `TGT_REDODG` | ASM disk group used for redo logs on the target | `asmcmd lsdg` on target as grid user; look for group mounted as `REDO` or similar; or `SELECT name FROM v$asm_diskgroup WHERE name LIKE '%REDO%'` | Required RSP param for EXACS/EXACC; omitting it causes PRCG-1054 | `DATA` or `REDO` (varies by provisioning) |
 | `TGT_RECODG` | ASM disk group used for recovery/FRA on the target | Same as `TGT_REDODG` but look for `RECO`, `FRA`, or `RECOC1` | Required RSP param for EXACS/EXACC; omitting it causes PRCG-1054 | `RECO` |
+
+## CR-16: Grouped interactive question collection
+
+Applies to all Phase10 steps that collect multiple variable values interactively from the user.
+
+### CR-16-A: Present questions in groups, not one at a time
+
+1. When a step needs to collect multiple variables interactively, **present all questions in a single message grouped by logical category**, rather than asking one question, waiting for an answer, then asking the next.
+2. Each group must be clearly labelled with a heading (e.g., `**Hosts**`, `**SSH Users**`, `**SSH Keys**`, `**Application Users**`).
+3. Within each group, list all questions together so the user can answer all of them in one reply.
+4. Do not hold up the conversation waiting for individual answers — only pause between groups when a later group's questions depend on the answer to an earlier group (e.g., authentication type determines which key/password question to show).
+
+### CR-16-B: Standard groupings per step
+
+Use these canonical group layouts when collecting variables. Steps may add extra groups or merge groups where the variable count is small, but must not split a group across separate messages.
+
+**Step 1 — VM Parameter Collection:**
+- Group 1 — VM Identity: VM name, resource group, Azure region
+- Group 2 — VM Configuration: image (show default), VM size (show default), OS disk size (show default)
+- Group 3 — Networking: VNet name, subnet name
+- Group 4 — Authentication: auth type (SSH key / password), SSH username (show default)
+- Group 5 — SSH Key or Password: SSH public key path or password (dependent on Group 4 answer)
+
+**Step 3 — SSH Connectivity Collection (S4-08):**
+- Group 1 — Hosts: source host IP/FQDN, target host IP/FQDN
+- Group 2 — SSH Users: SSH admin user for source, SSH admin user for target
+- Group 3 — SSH Keys: source SSH key path (blank = agent/default), target SSH key path
+- Group 4 — Application Users: Oracle software owner (default: `oracle`), ZDM software user (default: `zdmuser`)
+
+**Step 4 — Discovery Variable Collection:**
+- Group 1 — Database Homes: `SOURCE_REMOTE_ORACLE_HOME`, `TARGET_REMOTE_ORACLE_HOME`
+- Group 2 — Instance Names: `SOURCE_ORACLE_SID`, `TARGET_ORACLE_SID`
+- Group 3 — Unique Names: `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`
+- Group 4 — ZDM Server: `ZDM_HOME` (blank = auto-detect)
+
+**Step 5 — Migration Planning Interview (S6-08):**
+- Group A — Migration Type & Platform (present together): migration method (ONLINE_PHYSICAL / OFFLINE_PHYSICAL), target platform type, source storage type.
+- Group B-Online — Online-specific settings (present together, only if ONLINE_PHYSICAL confirmed): log switch interval, Data Guard protection mode, data transfer medium, pause before switchover, auto-switchover.
+- Group B-Offline — Offline-specific settings (present together, only if OFFLINE_PHYSICAL confirmed): backup/transfer medium, maximum downtime window.
+- Group C — Object Storage (present together, only if OSS transfer medium): namespace, bucket name, bucket region. Note: OCI identity parameters (Tenancy OCID, User OCID, Compartment OCID, Target Database OCID) are **not required** for physical migrations — ZDM uses the OCI config file on the ZDM host, set up during Step 2 installation. Do not ask for them.
+- Group D — TDE/Wallet (present together, only if TDE enabled): wallet transfer medium (`WALLET_MIGRATION`).
+
+  Pre-filled values from `zdm-env.md` or `db-config.md` must be shown as defaults in the group prompt. Only ask groups whose questions are applicable given prior answers (e.g., skip Group B-Online if method is OFFLINE_PHYSICAL). Each group is still subject to the inter-group dependency rule in CR-16-A: a later group may depend on a confirmed answer from an earlier group.
+
+### CR-16-C: Confirmation summary before action
+
+After collecting all groups, display a single consolidated summary of all collected values and require the user to confirm before writing any artifact or running any command. This confirmation is separate from the group collection and must show all values together.
