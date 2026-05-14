@@ -36,7 +36,7 @@ once reviewed and tested — run them manually there.
 
 ## Pre-populated Bypass Check (S3-01)
 
-Read `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` using file tools.
+Read `Artifacts/Phase10-Migration/Step2/zdm-install-report.md` using file tools.
 
 - If it exists and `## Status` shows `VERIFIED`: display a summary (ZDM version, ZDM_HOME, service status) and skip to [Phase 5: Write Artifacts](#phase-5-write-artifacts-s3-15-s3-16). Do not re-run installation.
 - If absent or shows `ACTION REQUIRED`: continue with Phase 0.
@@ -330,9 +330,9 @@ source ~/.bashrc && which zdmcli && zdmcli -build | grep "full version"
 
 ## Phase 5: Write Artifacts (S3-15, S3-16)
 
-Write both files using file tools. Create the `Artifacts/Phase10-Migration/Step5/` directory if absent.
+Write both files using file tools. Create the `Artifacts/Phase10-Migration/Step2/` directory if absent.
 
-### `Artifacts/Phase10-Migration/Step5/zdm-install-report.md`
+### `Artifacts/Phase10-Migration/Step2/zdm-install-report.md`
 
 ```markdown
 # ZDM Installation Report
@@ -369,7 +369,7 @@ Set `Status` to:
 - **VERIFIED** — ZDM 26.1 confirmed, service running, `.bashrc` configured.
 - **ACTION REQUIRED** — any required item is incomplete; list each under "Remaining Actions".
 
-### `Artifacts/Phase10-Migration/Step5/README.md`
+### `Artifacts/Phase10-Migration/Step2/README.md`
 
 ```markdown
 # Step 2 — ZDM Installation Outputs
@@ -427,5 +427,5 @@ Step 2 is complete when all of the following are true:
 1. `zdmcli -build` returns a version string containing `26.1`.
 2. `zdmservice status` shows `Running: true`.
 3. `ZDM_HOME` is set in `zdmuser`'s `~/.bashrc` with `$ZDM_HOME/bin` on the PATH.
-4. `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` is written with status `VERIFIED`.
+4. `Artifacts/Phase10-Migration/Step2/zdm-install-report.md` is written with status `VERIFIED`.
 

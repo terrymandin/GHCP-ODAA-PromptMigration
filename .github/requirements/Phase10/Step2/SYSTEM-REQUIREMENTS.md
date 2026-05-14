@@ -1,8 +1,8 @@
-ï»¿# Step3 System Requirements â€” ZDM Installation Implementation
+# Step3 System Requirements — ZDM Installation Implementation
 
 ## Scope
 
-Implementation-level constraints for Step3. The step runs entirely in the Remote-SSH terminal on the jumpbox **as `zdmuser`**. `zdmuser` does **not** have `sudo` access. Commands requiring root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo -u zdmuser` â€” the session is already `zdmuser`.
+Implementation-level constraints for Step3. The step runs entirely in the Remote-SSH terminal on the jumpbox **as `zdmuser`**. `zdmuser` does **not** have `sudo` access. Commands requiring root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo -u zdmuser` — the session is already `zdmuser`.
 
 > **Note:** Azure VM creation is handled in Step 1. S3-09 (VM creation implementation) has been moved to Step 1 system requirements.
 
@@ -10,23 +10,23 @@ Implementation-level constraints for Step3. The step runs entirely in the Remote
 
 ## S3-09B: Escalation Credential Collection
 
-Before running any phase that may require root operations, collect the escalation method **once**. Do **not** ask for connection details upfront â€” check sudo access first, then collect only what is needed for the chosen method.
+Before running any phase that may require root operations, collect the escalation method **once**. Do **not** ask for connection details upfront — check sudo access first, then collect only what is needed for the chosen method.
 
-1. **Check whether `zdmuser` already has sudo access** (run this first â€” no artifact reading needed):
+1. **Check whether `zdmuser` already has sudo access** (run this first — no artifact reading needed):
    ```bash
    sudo -n true 2>/dev/null && echo "HAS_SUDO" || echo "NO_SUDO"
    ```
-   - `HAS_SUDO` â†’ record `ESCALATION_METHOD=passwordless-sudo`; no further collection needed. Skip to S3-10.
-   - `NO_SUDO` â†’ present the user with the two escalation options below.
+   - `HAS_SUDO` ? record `ESCALATION_METHOD=passwordless-sudo`; no further collection needed. Skip to S3-10.
+   - `NO_SUDO` ? present the user with the two escalation options below.
 
 2. **Ask the user to choose an escalation method** (Option A or B). Do not ask for connection details before this choice is made.
 
-3. **Escalation option A â€” Local terminal**: No VM changes. All root operations are shown as a fully-formed PowerShell `ssh` command for the user to run from a local terminal. Record `ESCALATION_METHOD=local-terminal`. Ask the user to provide (referencing their local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):
-   - `JUMPBOX_HOST` â€” the `Public IP:` value from the `## VM Details` section
-   - `JUMPBOX_SSH_KEY` â€” the `Key path:` value from the `## SSH Key` section
-   Do **not** attempt to read this file with file tools â€” it is gitignored and will not be present on the jumpbox filesystem. All escalation commands use real values â€” no placeholders.
+3. **Escalation option A — Local terminal**: No VM changes. All root operations are shown as a fully-formed PowerShell `ssh` command for the user to run from a local terminal. Record `ESCALATION_METHOD=local-terminal`. Ask the user to provide (referencing their local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):
+   - `JUMPBOX_HOST` — the `Public IP:` value from the `## VM Details` section
+   - `JUMPBOX_SSH_KEY` — the `Key path:` value from the `## SSH Key` section
+   Do **not** attempt to read this file with file tools — it is gitignored and will not be present on the jumpbox filesystem. All escalation commands use real values — no placeholders.
 
-4. **Escalation option B â€” zdmuser sudo password**: Ask the user for the same two values (`JUMPBOX_HOST`, `JUMPBOX_SSH_KEY`) from their local Step 1 report, plus a password to set on `zdmuser` (`ZDMUSER_PASS`). Do **not** attempt to read the artifact file. Show the one-time setup command with real values substituted (no literal placeholders):
+4. **Escalation option B — zdmuser sudo password**: Ask the user for the same two values (`JUMPBOX_HOST`, `JUMPBOX_SSH_KEY`) from their local Step 1 report, plus a password to set on `zdmuser` (`ZDMUSER_PASS`). Do **not** attempt to read the artifact file. Show the one-time setup command with real values substituted (no literal placeholders):
    ```powershell
    ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
      "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
@@ -41,7 +41,7 @@ Before running any phase that may require root operations, collect the escalatio
 
 ## S3-10: Version Detection Implementation
 
-1. Probe for an installed ZDM binary in this order â€” stop at the first match:
+1. Probe for an installed ZDM binary in this order — stop at the first match:
 
    ```bash
    # Check 1: ZDM_HOME environment variable
@@ -70,7 +70,7 @@ Before running any phase that may require root operations, collect the escalatio
    ```
    Extract the `full version:` line. Confirm it contains `26.1`. If it does not contain `26.1`, report the detected version and proceed to the installation branch.
 
-4. Run `zdmservice status` to confirm the service is running. The current session is `zdmuser` â€” run the service command directly:
+4. Run `zdmservice status` to confirm the service is running. The current session is `zdmuser` — run the service command directly:
    ```bash
    "$DETECTED_ZDM_HOME/bin/zdmservice" status 2>&1
    ```
@@ -119,7 +119,7 @@ for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget;
 done
 ```
 
-If any are `MISSING`, install them using the `ESCALATION_METHOD` established in S3-09B. Use `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS` (real values â€” no literal placeholders).
+If any are `MISSING`, install them using the `ESCALATION_METHOD` established in S3-09B. Use `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS` (real values — no literal placeholders).
 
 **`ESCALATION_METHOD=local-terminal`:**
 
@@ -178,7 +178,7 @@ After the install completes, re-run the `rpm -q` loop to confirm all packages re
        oraclebase=/u01/app/zdmbase \
        ziploc="$ZDM_HOME_ZIP"
    ```
-   **Do not prefix with `sudo` or `sudo -u zdmuser`** â€” the current session already is `zdmuser` and owns the installation directories.
+   **Do not prefix with `sudo` or `sudo -u zdmuser`** — the current session already is `zdmuser` and owns the installation directories.
 
 4. Capture the full installer output. On success, the installer exits 0 and does not print an unrecoverable error.
 
@@ -188,7 +188,7 @@ After the install completes, re-run the `rpm -q` loop to confirm all packages re
 
 ## S3-14: .bashrc Update Implementation
 
-The target file is `zdmuser`'s `~/.bashrc`. The current session is `zdmuser`, so read and write `~/.bashrc` directly â€” no `sudo` required.
+The target file is `zdmuser`'s `~/.bashrc`. The current session is `zdmuser`, so read and write `~/.bashrc` directly — no `sudo` required.
 
 1. Read the current `~/.bashrc` contents:
    ```bash
@@ -225,7 +225,7 @@ The target file is `zdmuser`'s `~/.bashrc`. The current session is `zdmuser`, so
 
 ## S3-15: Artifact Report Format
 
-Write `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` using file tools. The report format is:
+Write `Artifacts/Phase10-Migration/Step2/zdm-install-report.md` using file tools. The report format is:
 
 ```markdown
 # ZDM Installation Report
@@ -262,12 +262,12 @@ VERIFIED | ACTION REQUIRED
 
 ## S3-16: Step3 README Requirement (CR-07)
 
-Write `Artifacts/Phase10-Migration/Step5/README.md` alongside the install report. It must include:
+Write `Artifacts/Phase10-Migration/Step2/README.md` alongside the install report. It must include:
 
 1. **Files generated**: `zdm-install-report.md`
 2. **Manual actions**: Any `root`-level commands the user must run (if packages were missing or `sudo` was unavailable).
 3. **Success signals**: `Running: true` in `zdmservice status`, `26.1` in `zdmcli -build`.
-4. **Next step**: Step1 (Remote-SSH Setup) â†’ Step4 (SSH Connectivity).
+4. **Next step**: Step1 (Remote-SSH Setup) ? Step4 (SSH Connectivity).
 
 ---
 

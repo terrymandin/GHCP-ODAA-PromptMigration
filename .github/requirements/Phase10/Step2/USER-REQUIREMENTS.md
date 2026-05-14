@@ -1,4 +1,4 @@
-ï»¿# Step3 User Requirements â€” ZDM Installation Verification
+# Step3 User Requirements — ZDM Installation Verification
 
 ## Objective
 
@@ -6,9 +6,9 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 > **Note:** The ZDM Azure VM is created during Step 1 (VM Create + Remote-SSH Setup). By the time Step3 runs, the VM already exists and the Remote-SSH connection is established.
 
-**Execution model**: Step3 runs entirely in the Remote-SSH VS Code session on the jumpbox, logged in as `zdmuser`. The `zdmuser` OS account, its home directory, the ZDM prerequisite packages, and the `/u01/app/zdm*` directories are all set up during Step 1 â€” this step should verify they exist before proceeding.
+**Execution model**: Step3 runs entirely in the Remote-SSH VS Code session on the jumpbox, logged in as `zdmuser`. The `zdmuser` OS account, its home directory, the ZDM prerequisite packages, and the `/u01/app/zdm*` directories are all set up during Step 1 — this step should verify they exist before proceeding.
 
-**`sudo` policy**: `zdmuser` does **not** have `sudo` access. Any command that requires root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo su zdmuser` â€” the session already is `zdmuser`. Never use `sudo -u zdmuser <command>` â€” the session is already `zdmuser`.
+**`sudo` policy**: `zdmuser` does **not** have `sudo` access. Any command that requires root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo su zdmuser` — the session already is `zdmuser`. Never use `sudo -u zdmuser <command>` — the session is already `zdmuser`.
 
 ---
 
@@ -16,7 +16,7 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 Step3 writes one artifact using file tools after verification or installation completes:
 
-- `Artifacts/Phase10-Migration/Step5/zdm-install-report.md`
+- `Artifacts/Phase10-Migration/Step2/zdm-install-report.md`
 
 The report must contain:
 
@@ -27,16 +27,16 @@ The report must contain:
 5. `zdmservice status` output snippet (Running: true/false).
 6. Final status: `VERIFIED` or `ACTION REQUIRED`, with any remaining actions listed.
 
-**Pre-populated bypass**: If `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` already exists and shows status `VERIFIED`, display a confirmation summary and skip all steps.
+**Pre-populated bypass**: If `Artifacts/Phase10-Migration/Step2/zdm-install-report.md` already exists and shows status `VERIFIED`, display a confirmation summary and skip all steps.
 
 ---
 
 ## S3-02: Execution Context
 
 1. Step3 runs in the Remote-SSH terminal on the ZDM jumpbox, logged in as `zdmuser`. The Remote-SSH connection is configured in Step 1 to connect as `zdmuser`.
-2. `zdmuser` is created during Step 1. By the time Step 2 runs, the account exists and owns `/home/zdmuser`. Step A of S3-04 verifies this â€” if the account is missing, it must be created before continuing.
+2. `zdmuser` is created during Step 1. By the time Step 2 runs, the account exists and owns `/home/zdmuser`. Step A of S3-04 verifies this — if the account is missing, it must be created before continuing.
 3. Commands that require `root` are run via `sudo`. Commands that the Remote-SSH session cannot run directly as `zdmuser` must be surfaced to the user as explicit instructions.
-4. Do not use `sudo -u zdmuser` to impersonate `zdmuser` â€” the session IS `zdmuser`.
+4. Do not use `sudo -u zdmuser` to impersonate `zdmuser` — the session IS `zdmuser`.
 
 ---
 
@@ -81,7 +81,7 @@ full version: "26.1.0"
 
 If ZDM 26.1 is not installed, guide the user through the following steps:
 
-### Step A â€” Verify `zdmuser` OS User
+### Step A — Verify `zdmuser` OS User
 
 > **Note:** `zdmuser` and the `zdm` group are created during Step 1. The prerequisite packages and `/u01/app/zdm*` directories are also prepared during Step 1. Verify they exist before proceeding:
 
@@ -93,13 +93,13 @@ stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
 
 Expected: `zdmuser` exists; `/home/zdmuser` owned by `zdmuser zdm`; all three `/u01/app/zdm*` dirs owned by `zdmuser zdm`.
 
-If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run **from a local PowerShell terminal as `azureuser`** â€” do not attempt to create them in this session:
+If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run **from a local PowerShell terminal as `azureuser`** — do not attempt to create them in this session:
 
 ```powershell
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 
-### Step B â€” Download
+### Step B — Download
 
 1. Instruct the user to navigate to the [Zero Downtime Migration Download](https://www.oracle.com/database/technologies/rac/zdm-downloads.html) page.
 2. Display the following prompt to the user:
@@ -109,7 +109,7 @@ ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo
 3. Wait for the user to paste the `wget` command (and token if separate) before proceeding.
 4. Execute the provided `wget` command on the jumpbox (running as the SSH user is acceptable for the download).
 
-### Step C â€” Pre-Installation Package Check
+### Step C — Pre-Installation Package Check
 
 Verify the prerequisite packages are installed. These should have been installed by Step 1; if any are missing, **do not attempt to install them from the `zdmuser` session**. Surface the install command for the user to run as `azureuser` from a local terminal.
 
@@ -126,7 +126,7 @@ If any are `MISSING`, display:
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
-### Step D â€” Verify Installation Directories
+### Step D — Verify Installation Directories
 
 The `/u01/app/zdm*` directories should already exist and be owned by `zdmuser`. Verify:
 ```bash
@@ -134,9 +134,9 @@ stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
 ```
 Expected: each line shows `zdmuser zdm <path>`. If missing, ask the user to run the remediation command from Step A (above) before continuing.
 
-### Step E â€” Unzip and Install as `zdmuser`
+### Step E — Unzip and Install as `zdmuser`
 
-The installer must run as `zdmuser`. Since the Remote-SSH session already is `zdmuser`, run the installer directly â€” no `sudo` or `sudo -u zdmuser` prefix:
+The installer must run as `zdmuser`. Since the Remote-SSH session already is `zdmuser`, run the installer directly — no `sudo` or `sudo -u zdmuser` prefix:
 
 ```bash
 cd /u01/app/zdm_download
@@ -149,7 +149,7 @@ unzip zdm*.zip
 
 > **Note:** Ignore the post-install message instructing you to run `orainstRoot.sh` and `root.sh`. These scripts are not required for ZDM.
 
-### Step F â€” Start and Verify the ZDM Service
+### Step F — Start and Verify the ZDM Service
 
 Start and verify the service. The session is already `zdmuser`, so run directly:
 
@@ -167,7 +167,7 @@ Expected `zdmservice status` output includes `Running: true`. Expected `zdmcli -
 
 ## S3-05: .bashrc Environment Setup
 
-After `ZDM_HOME` is confirmed or set, ensure it is persisted in `zdmuser`'s `.bashrc` (`/home/zdmuser/.bashrc`). Since the current session is `zdmuser`, read and write `~/.bashrc` directly â€” no `sudo` required.
+After `ZDM_HOME` is confirmed or set, ensure it is persisted in `zdmuser`'s `.bashrc` (`/home/zdmuser/.bashrc`). Since the current session is `zdmuser`, read and write `~/.bashrc` directly — no `sudo` required.
 
 1. Check for existing entries:
    ```bash
@@ -201,4 +201,4 @@ Step3 is complete when all of the following are true:
 1. `zdmcli -build` returns a version string containing `26.1`.
 2. `zdmservice status` shows `Running: true`.
 3. `ZDM_HOME` is set in `zdmuser`'s `/home/zdmuser/.bashrc` with `$ZDM_HOME/bin` on the PATH.
-4. `Artifacts/Phase10-Migration/Step5/zdm-install-report.md` is written with final status `VERIFIED`.
+4. `Artifacts/Phase10-Migration/Step2/zdm-install-report.md` is written with final status `VERIFIED`.
