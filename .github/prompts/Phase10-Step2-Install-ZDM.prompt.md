@@ -16,9 +16,8 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 This step runs entirely in the **Remote-SSH VS Code session** on the ZDM jumpbox, logged in as **`zdmuser`**.
 
-- `zdmuser` and `/home/zdmuser` are created and ownership is transferred during Step 1. The Remote-SSH connection is configured in Step 1 to connect as `zdmuser`.
-- Use `sudo` for commands that require `root` privileges (e.g., installing packages, creating directories under `/u01/`).
-- Do **not** use `sudo -u zdmuser` to impersonate `zdmuser` — the session is already `zdmuser`.
+- `zdmuser` and `/home/zdmuser` are created and ownership is transferred during Step 1. The prerequisite packages and `/u01/app/zdm*` directories are also prepared in Step 1. The Remote-SSH connection is configured in Step 1 to connect as `zdmuser`.
+- `zdmuser` does **not** have `sudo` access. Do not use `sudo`, `sudo -u zdmuser`, or `sudo su zdmuser` in this session. Any command requiring root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`.
 - Do not run ZDM installation commands locally. Do not use PowerShell or Windows-native commands on the jumpbox.
 - **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems.
 
@@ -91,53 +90,52 @@ full version: "26.1.0"
 
 ## Phase 2: ZDM Installation (S3-04, S3-11, S3-12, S3-13)
 
-### 2a. Verify `zdmuser` OS User
+### 2a. Verify `zdmuser` OS User and Directories
 
-`zdmuser` is created during Step 1. Confirm the account exists and owns its home directory before proceeding:
+`zdmuser` and the `/u01/app/zdm*` directories are created during Step 1. Confirm before proceeding:
 
 ```bash
 id zdmuser
 stat -c '%U %G' /home/zdmuser
+stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
 ```
 
-Expected: `zdmuser` is present and owns `/home/zdmuser`. If the account is missing (Step 1 was skipped or failed), create it using `sudo` before continuing:
+Expected: `zdmuser` is present; `/home/zdmuser` owned by `zdmuser zdm`; all three `/u01/app/zdm*` dirs owned by `zdmuser zdm`.
 
-```bash
-getent group zdm  > /dev/null 2>&1 || sudo groupadd zdm
-getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser
-sudo chown -R zdmuser:zdmuser /home/zdmuser
+If any directory is missing or not owned by `zdmuser`, surface this command for the user to run **from a local PowerShell terminal as `azureuser`** — do not attempt to fix it in this session:
+
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
-
-If `sudo` is unavailable, surface the commands to the user and ask them to run as `root` before continuing.
 
 ### 2b. Pre-Installation Package Check
 
-Before downloading, verify required packages are present:
+Verify required packages are present (they should have been installed by Step 1):
 
 ```bash
-for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl; do
+for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget; do
     rpm -q "$pkg" > /dev/null 2>&1 && echo "$pkg: OK" || echo "$pkg: MISSING"
 done
 ```
 
 Also detect the OS version:
 ```bash
-cat /etc/os-release | grep -E '^(NAME|VERSION_ID)='
+grep -E '^(NAME|VERSION_ID)=' /etc/os-release
 ```
 
-If any packages are `MISSING`, run the appropriate install command using `sudo` (the SSH user typically has sudo on Azure VMs):
+If any packages are `MISSING`, **do not attempt to install them here**. Surface the appropriate command for the user to run **from a local PowerShell terminal as `azureuser`**:
 
 **Oracle Linux 8 / RHEL 8:**
-```bash
-sudo yum install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
 ```
 
-**Oracle Linux 9 / RHEL 9:**
-```bash
-sudo yum install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget
+**Oracle Linux 9/10 / RHEL 9:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
-If `sudo` is not available, surface the command to the user and ask them to run it as `root` before continuing.
+Do not continue until all packages report `OK`.
 
 ### 2c. Download the ZDM Kit
 
@@ -161,10 +159,8 @@ Wait for the user to paste the `wget` command. Do not proceed to 2d until the co
 Once the user provides the `wget` command:
 
 1. Validate the command contains `wget` (or `curl`) and references an Oracle download host.
-2. Create a working download directory and set ownership to `zdmuser`:
+2. Navigate to the download directory (already created and owned by `zdmuser`):
    ```bash
-   sudo mkdir -p /u01/app/zdm_download
-   sudo chown zdmuser:zdm /u01/app/zdm_download
    cd /u01/app/zdm_download
    ```
 3. Execute the provided download command. Capture output and confirm a non-zero file was downloaded.
@@ -174,14 +170,13 @@ Once the user provides the `wget` command:
    ```
    Store this as `ZDM_KIT_ZIP`.
 
-### 2e. Create Installation Directories and Set Ownership
+### 2e. Verify Installation Directories
 
-Create the ZDM home and base directories and assign them to `zdmuser`:
+The `/u01/app/zdm*` directories should already exist and be owned by `zdmuser`. Confirm:
 ```bash
-sudo mkdir -p /u01/app/zdmhome
-sudo mkdir -p /u01/app/zdmbase
-sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase
+stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
 ```
+If any directory is missing, ask the user to run the remediation command from step 2a above.
 
 ### 2f. Unzip and Run the Installer
 

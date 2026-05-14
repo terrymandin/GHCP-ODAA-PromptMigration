@@ -6,7 +6,9 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 > **Note:** The ZDM Azure VM is created during Step 1 (VM Create + Remote-SSH Setup). By the time Step3 runs, the VM already exists and the Remote-SSH connection is established.
 
-**Execution model**: Step3 runs entirely in the Remote-SSH VS Code session on the jumpbox, logged in as `zdmuser`. The `zdmuser` OS account and `/home/zdmuser` ownership are set up during Step 1 — Step 2 should confirm that account exists and owns its home directory before proceeding. All ZDM installation commands that require `root` are run via `sudo`. Step3 must not run any commands locally.
+**Execution model**: Step3 runs entirely in the Remote-SSH VS Code session on the jumpbox, logged in as `zdmuser`. The `zdmuser` OS account, its home directory, the ZDM prerequisite packages, and the `/u01/app/zdm*` directories are all set up during Step 1 — this step should verify they exist before proceeding.
+
+**`sudo` policy**: `zdmuser` does **not** have `sudo` access. Any command that requires root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo su zdmuser` — the session already is `zdmuser`. Never use `sudo -u zdmuser <command>` — the session is already `zdmuser`.
 
 ---
 
@@ -81,22 +83,21 @@ If ZDM 26.1 is not installed, guide the user through the following steps:
 
 ### Step A — Verify `zdmuser` OS User
 
-> **Note:** `zdmuser` and the `zdm` group are created during Step 1. Verify the account exists before proceeding:
+> **Note:** `zdmuser` and the `zdm` group are created during Step 1. The prerequisite packages and `/u01/app/zdm*` directories are also prepared during Step 1. Verify they exist before proceeding:
 
 ```bash
 id zdmuser
 stat -c '%U %G' /home/zdmuser
+stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
 ```
 
-Expected output: `zdmuser` is present and owns `/home/zdmuser`. If the account is missing (e.g., Step 1 was skipped or failed), create it using `sudo` before continuing:
+Expected: `zdmuser` exists; `/home/zdmuser` owned by `zdmuser zdm`; all three `/u01/app/zdm*` dirs owned by `zdmuser zdm`.
 
-```bash
-getent group zdm  > /dev/null 2>&1 || sudo groupadd zdm
-getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser
-sudo chown -R zdmuser:zdmuser /home/zdmuser
+If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run **from a local PowerShell terminal as `azureuser`** — do not attempt to create them in this session:
+
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
-
-If `sudo` is unavailable, surface the commands to the user and ask them to run as `root`.
 
 ### Step B — Download
 
@@ -110,37 +111,37 @@ If `sudo` is unavailable, surface the commands to the user and ask them to run a
 
 ### Step C — Pre-Installation Package Check
 
-Before running the installer, check for required packages and report their status. Install any missing packages using `sudo` (the SSH user typically has `sudo` on Azure VMs).
+Verify the prerequisite packages are installed. These should have been installed by Step 1; if any are missing, **do not attempt to install them from the `zdmuser` session**. Surface the install command for the user to run as `azureuser` from a local terminal.
 
-For **Oracle Linux 8 / RHEL 8**:
+Check:
 ```bash
-sudo yum install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl
+for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget; do
+    rpm -q "$pkg" > /dev/null 2>&1 && echo "$pkg: OK" || echo "$pkg: MISSING"
+done
 ```
 
-For **Oracle Linux 9 / RHEL 9**:
-```bash
-sudo yum install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget
+If any are `MISSING`, display:
+```powershell
+# Run this from a LOCAL PowerShell terminal as azureuser, not in the Remote-SSH session:
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
-If `sudo` is not available, surface the command to the user and ask them to run it as `root` before continuing.
+### Step D — Verify Installation Directories
 
-### Step D — Create Installation Directories and Set Ownership
-
-Create the ZDM home and base directories and assign them to `zdmuser`:
+The `/u01/app/zdm*` directories should already exist and be owned by `zdmuser`. Verify:
 ```bash
-sudo mkdir -p /u01/app/zdmhome
-sudo mkdir -p /u01/app/zdmbase
-sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase
+stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
 ```
+Expected: each line shows `zdmuser zdm <path>`. If missing, ask the user to run the remediation command from Step A (above) before continuing.
 
 ### Step E — Unzip and Install as `zdmuser`
 
-The installer must run as `zdmuser`. Use `sudo -u zdmuser` to execute it:
+The installer must run as `zdmuser`. Since the Remote-SSH session already is `zdmuser`, run the installer directly — no `sudo` or `sudo -u zdmuser` prefix:
 
 ```bash
-cd <zdm_download_directory>
+cd /u01/app/zdm_download
 unzip zdm*.zip
-sudo -u zdmuser ./zdminstall.sh setup \
+./zdminstall.sh setup \
     oraclehome=/u01/app/zdmhome \
     oraclebase=/u01/app/zdmbase \
     ziploc=<path_to_zdm_home.zip>
@@ -150,12 +151,12 @@ sudo -u zdmuser ./zdminstall.sh setup \
 
 ### Step F — Start and Verify the ZDM Service
 
-Start and verify the service as `zdmuser` using `sudo -u zdmuser`:
+Start and verify the service. The session is already `zdmuser`, so run directly:
 
 ```bash
-sudo -u zdmuser /u01/app/zdmhome/bin/zdmservice start
-sudo -u zdmuser /u01/app/zdmhome/bin/zdmservice status
-sudo -u zdmuser /u01/app/zdmhome/bin/zdmcli -build
+/u01/app/zdmhome/bin/zdmservice start
+/u01/app/zdmhome/bin/zdmservice status
+/u01/app/zdmhome/bin/zdmcli -build
 ```
 
 Expected `zdmservice status` output includes `Running: true`. Expected `zdmcli -build` output includes `full version: "26.1.0"`.
@@ -166,18 +167,18 @@ Expected `zdmservice status` output includes `Running: true`. Expected `zdmcli -
 
 ## S3-05: .bashrc Environment Setup
 
-After `ZDM_HOME` is confirmed or set, ensure it is persisted in `zdmuser`'s `.bashrc` (`/home/zdmuser/.bashrc`). Since the current session is the SSH user, use `sudo` to read and write this file.
+After `ZDM_HOME` is confirmed or set, ensure it is persisted in `zdmuser`'s `.bashrc` (`/home/zdmuser/.bashrc`). Since the current session is `zdmuser`, read and write `~/.bashrc` directly — no `sudo` required.
 
 1. Check for existing entries:
    ```bash
-   sudo grep -n 'ZDM_HOME\|zdmhome' /home/zdmuser/.bashrc
+   grep -n 'ZDM_HOME\|zdmhome' ~/.bashrc
    ```
 
 2. If `ZDM_HOME` is already set to the correct path and `$ZDM_HOME/bin` is already on the PATH, mark as `ALREADY SET` and skip the update.
 
-3. If missing or set to an incorrect path, append the following block to `/home/zdmuser/.bashrc`:
+3. If missing or set to an incorrect path, append the following block to `~/.bashrc`:
    ```bash
-   sudo tee -a /home/zdmuser/.bashrc << 'BASHRC_EOF'
+   tee -a ~/.bashrc << 'BASHRC_EOF'
 
    # ZDM Environment
    export ZDM_HOME=/u01/app/zdmhome
@@ -186,9 +187,9 @@ After `ZDM_HOME` is confirmed or set, ensure it is persisted in `zdmuser`'s `.ba
    ```
    Use the actual confirmed `ZDM_HOME` path, not a hardcoded default, if it differs.
 
-4. Verify settings as `zdmuser`:
+4. Verify settings:
    ```bash
-   sudo -u zdmuser bash -c 'source ~/.bashrc && which zdmcli && zdmcli -build'
+   source ~/.bashrc && which zdmcli && zdmcli -build
    ```
 
 ---

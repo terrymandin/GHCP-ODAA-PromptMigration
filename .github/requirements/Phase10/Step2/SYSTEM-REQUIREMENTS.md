@@ -74,38 +74,48 @@ Implementation-level constraints for Step3. The step runs entirely in the Remote
 
 ## S3-12: Pre-Installation Package Check Implementation
 
-Before running the installer, check each required package (runs as the SSH user):
+Before running the installer, verify each required package is present. These packages should have been installed by Step 1 (as the admin user). Report any that are missing, but **do not attempt to install them from the `zdmuser` session** — `zdmuser` does not have `sudo`. If packages are missing, surface the install command for the user to run as `azureuser` (or root) before continuing.
 
+Check for missing packages:
 ```bash
-for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl; do
+for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget; do
     rpm -q "$pkg" > /dev/null 2>&1 && echo "$pkg: OK" || echo "$pkg: MISSING"
 done
 ```
 
-Aggregate all `MISSING` packages and present a single `sudo yum install` command. The SSH user (e.g., `azureuser`) typically has `sudo` on Azure VMs, so attempt the install directly rather than requiring manual root intervention.
+If any are `MISSING`, display the appropriate install command for the user to run as `azureuser` **from a local PowerShell terminal** (not in the Remote-SSH session):
 
-Detect the OS version to choose the correct package list:
+**Oracle Linux 8 / RHEL 8:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
+```
+
+**Oracle Linux 9/10 / RHEL 9:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+```
+
+Do not continue until all packages report `OK`.
+
+Detect the OS version to confirm the correct package list:
 ```bash
-cat /etc/os-release | grep -E '^(NAME|VERSION_ID)='
+grep -E '^(NAME|VERSION_ID)=' /etc/os-release
 ```
 
 ---
 
-## S3-13: `zdmuser` Creation and Installation Directory Setup
+## S3-13: Installation Directory Verification and ZDM Setup
 
-1. Create the `zdm` group and `zdmuser` account idempotently (as the SSH user via `sudo`):
+1. Verify the ZDM installation directories exist and are owned by `zdmuser` (they should have been created by Step 1):
    ```bash
-   getent group zdm   > /dev/null 2>&1 || sudo groupadd zdm
-   getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm zdmuser
+   stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
+   ```
+   Expected: each line shows `zdmuser zdm <path>`. If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run as `azureuser` from a local terminal:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
    ```
 
-2. Create installation directories and assign ownership to `zdmuser`:
-   ```bash
-   sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
-   sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download
-   ```
-
-3. Unzip the ZDM kit, then locate and run the installer **as `zdmuser`**:
+2. Unzip the ZDM kit, then locate and run the installer as `zdmuser` (the current session):
    ```bash
    cd /u01/app/zdm_download
    unzip "$ZDM_KIT_ZIP"
@@ -113,11 +123,12 @@ cat /etc/os-release | grep -E '^(NAME|VERSION_ID)='
    INSTALL_SCRIPT=$(find /u01/app/zdm_download -name "zdminstall.sh" | head -1)
    # Locate the inner zdm_home.zip
    ZDM_HOME_ZIP=$(find /u01/app/zdm_download -name "zdm_home.zip" | head -1)
-   sudo -u zdmuser "$INSTALL_SCRIPT" setup \
+   "$INSTALL_SCRIPT" setup \
        oraclehome=/u01/app/zdmhome \
        oraclebase=/u01/app/zdmbase \
        ziploc="$ZDM_HOME_ZIP"
    ```
+   **Do not prefix with `sudo` or `sudo -u zdmuser`** — the current session already is `zdmuser` and owns the installation directories.
 
 4. Capture the full installer output. On success, the installer exits 0 and does not print an unrecoverable error.
 

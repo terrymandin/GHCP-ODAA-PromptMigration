@@ -143,15 +143,15 @@ Immediately after the clone is verified, create the `zdmuser` OS account and tra
 
 2. Transfer ownership of `/home/zdmuser` to `zdmuser`:
    ```powershell
-   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdmuser /home/zdmuser"
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /home/zdmuser"
    ```
 
 3. Create `zdmuser`'s `.ssh` directory and `authorized_keys` file with the SSH public key used in this step, then lock down permissions:
    ```powershell
-   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh"
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
    # Read the public key content locally, then write it to authorized_keys on the jumpbox
    $pubKey = Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw
-   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh/authorized_keys"
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
    ```
 
 4. Verify `zdmuser` can be impersonated and owns the repo:
@@ -159,11 +159,41 @@ Immediately after the clone is verified, create the `zdmuser` OS account and tra
    ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
    ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
    ```
-   Expected: owner is `zdmuser`, group is `zdmuser` or `zdm`.
+   Expected: owner is `zdmuser`, group is `zdm`.
 
 If any step fails, surface the error and do not proceed until it is resolved.
 
-After confirming `zdmuser` exists and owns `/home/zdmuser`, proceed to S1-02 (Execution Context / SSH setup). Do not route back to Step 3 — VM creation is complete.
+### S1-00-H: Install ZDM Prerequisites and Create `/u01` Directory Structure
+
+Immediately after `zdmuser` is set up, and while still connected as the admin SSH user (`azureuser`), install the ZDM prerequisite packages and create the ZDM installation directories. Doing this now (as admin) means `zdmuser` will not need `sudo` at all in the Remote-SSH session — it already owns the directories it needs.
+
+**Steps to execute (run via SSH from the local terminal):**
+
+1. Install prerequisite packages:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+   ```
+   Confirm exit code 0 and `Complete!` or `Nothing to do.` in output.
+
+2. Create the ZDM installation directories:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+   ```
+
+3. Set ownership so `zdmuser` owns all three directories:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+   ```
+
+4. Verify:
+   ```powershell
+   ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+   ```
+   Expected: each line shows `zdmuser zdm <path>`.
+
+If any step fails, surface the error and do not proceed until it is resolved.
+
+After confirming all prerequisites are in place, proceed to S1-02 (Execution Context / SSH setup). Do not route back to Step 3 — VM creation is complete.
 
 ---
 

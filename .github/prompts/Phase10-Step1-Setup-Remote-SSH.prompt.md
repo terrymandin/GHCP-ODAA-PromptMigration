@@ -207,18 +207,18 @@ ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> 
 
 ```powershell
 # 3. Transfer ownership of /home/zdmuser to zdmuser
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdmuser /home/zdmuser"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /home/zdmuser"
 ```
 
 ```powershell
 # 4. Create zdmuser's .ssh directory with correct permissions
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
 ```
 
 ```powershell
 # 5. Install the SSH public key into zdmuser's authorized_keys
 $pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
-$sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdmuser /home/zdmuser/.ssh/authorized_keys"
+$sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> $sshCmd
 ```
 
@@ -228,10 +228,37 @@ ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> 
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
 ```
 
-- **PASS**: `stat` shows `zdmuser` as owner; `ls` lists the `.github` directory contents — confirm and continue.
-- **FAIL**: Surface the error and stop. Do not proceed to Phase 1 until `zdmuser` exists, owns `/home/zdmuser`, and the SSH key is in place.
+- **PASS**: `stat` shows `zdmuser zdm`; `ls` lists the `.github` directory contents — confirm and continue.
+- **FAIL**: Surface the error and stop. Do not proceed until `zdmuser` exists, owns `/home/zdmuser`, and the SSH key is installed.
 
-Proceed to Phase 1.
+### Post-Creation: Install ZDM Prerequisites and Create `/u01` Directories
+
+While still connected as the admin SSH user, install the ZDM prerequisite packages and create the ZDM installation directory structure. Doing this now (as admin with `sudo`) ensures `zdmuser` never needs `sudo` in the Remote-SSH session — it already owns the directories it needs. **Do not give `zdmuser` passwordless sudo.**
+
+```powershell
+# 1. Install ZDM prerequisite packages
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+```
+Expect exit code 0 and `Complete!` or `Nothing to do.` in output.
+
+```powershell
+# 2. Create ZDM installation directories under /u01
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
+```powershell
+# 3. Transfer ownership of all ZDM dirs to zdmuser
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
+```powershell
+# 4. Verify
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+Expected: each line shows `zdmuser zdm <path>`.
+
+- **PASS**: All three directories owned by `zdmuser zdm` — proceed to Phase 1.
+- **FAIL**: Surface the error and stop.
 
 ---
 
