@@ -75,35 +75,46 @@ If the output does not show `zdmuser`, stop immediately and ask the user to reco
 
 *(Skip this phase if `ssh-config.md` or `zdm-env.md` was used in the bypass check above.)*
 
-Collect values in logical groups, presenting defaults where applicable:
+Post all questions as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog. Number questions sequentially across all groups.
 
-### Group 1: Remote Server Hosts
+Post this exact question block:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_HOST` | IP address or FQDN of the **source** database server | `10.0.0.10` or `source-db.example.com` |
-| `TARGET_HOST` | IP address or FQDN of the **target** database server | `10.0.0.20` or `target-db.example.com` |
+---
 
-### Group 2: SSH Users
+**SSH Connectivity Configuration — please answer by number:**
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_SSH_USER` | SSH admin user for the source host | `azureuser`, `opc` |
-| `TARGET_SSH_USER` | SSH admin user for the target host | `azureuser`, `opc` |
+**Group 1 — Hosts**
+1. `SOURCE_HOST` — IP address or FQDN of the **source** database server (e.g. `10.0.0.10` or `source-db.example.com`)
+2. `TARGET_HOST` — IP address or FQDN of the **target** database server (e.g. `10.0.0.20` or `target-db.example.com`)
 
-### Group 3: SSH Keys (optional)
+**Group 2 — SSH Users**
+3. `SOURCE_SSH_USER` — SSH admin user for the source host (e.g. `azureuser`, `opc`)
+4. `TARGET_SSH_USER` — SSH admin user for the target host (e.g. `azureuser`, `opc`)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_SSH_KEY` | Path to SSH private key for the source host under `~/.ssh/` — leave blank to use agent/default auth | `~/.ssh/source_key.pem` |
-| `TARGET_SSH_KEY` | Path to SSH private key for the target host under `~/.ssh/` — leave blank to use agent/default auth | `~/.ssh/target_key.pem` |
+**Group 3 — SSH Keys** *(optional — leave blank for agent/default auth)*
+5. `SOURCE_SSH_KEY` — Path to SSH private key under `~/.ssh/` for source host (e.g. `~/.ssh/source_key.pem`)
+6. `TARGET_SSH_KEY` — Path to SSH private key under `~/.ssh/` for target host (e.g. `~/.ssh/target_key.pem`)
 
-### Group 4: Application Users
+**Group 4 — Application Users**
+7. `ORACLE_USER` — Oracle software owner user on the database servers *(default: `oracle`)*
+8. `ZDM_SOFTWARE_USER` — ZDM software user on the jumpbox *(default: `zdmuser`)*
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ORACLE_USER` | Oracle software owner user on the database servers | `oracle` |
-| `ZDM_SOFTWARE_USER` | ZDM software user on the jumpbox | `zdmuser` |
+*Reply with answers by number, e.g.:*
+```
+1: 10.1.0.11
+2: 10.1.0.12
+3: opc
+4: opc
+5: ~/.ssh/source_key.pem
+6:
+7: oracle
+8: zdmuser
+```
+*(Leave a line blank or omit to accept the default. Type `?` after any answer to learn more about that variable.)*
+
+---
+
+Parse the user's reply and map each answer back to its variable by number. Accept any reply format — numbered (`1: value`), bullet, or prose — and extract values accordingly.
 
 **Per-variable validation rules (S3-11):**
 

@@ -80,42 +80,64 @@ Ask the user if they would like assistance creating the ZDM Azure VM:
 
 **If the user declines**, provide a reminder of the recommended VM configuration (shown below) and wait for them to confirm the VM is ready before proceeding to Phase 1.
 
-**If the user accepts**, collect VM parameters using **grouped question collection** per CR-16. Present all questions for each group together in a single message — do **not** ask one question at a time.
+**If the user accepts**, collect VM parameters per CR-16-A. Post all questions for Groups 1–4 as a **numbered list in a single chat message**. Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
 
-**Group 1 — VM Identity** (present together):
+Post this exact question block:
 
-| Parameter | Question | Default |
-|-----------|----------|---------|
-| VM Name | What name for the ZDM jumpbox VM? | `zdm-jumpbox` |
-| Resource Group | Which Azure resource group (existing or new)? | *(ask user)* |
-| Azure Region | Which Azure region? (e.g., `eastus`, `uksouth`) | *(ask user)* |
+---
 
-**Group 2 — VM Configuration** (present together, show defaults inline):
+**Azure VM Configuration — please answer by number:**
 
-| Parameter | Question | Default |
-|-----------|----------|---------|
-| OS Image | Which OS image? (Enter to accept default) | `Oracle:Oracle-Linux:ol10-lvm-gen2:latest` |
-| VM Size | Which VM size? (Enter to accept default) | `Standard_D2s_v3` |
-| OS Disk Size (GB) | OS disk size in GB? (Enter to accept default) | `256` |
+**Group 1 — VM Identity**
+1. VM Name — what name for the ZDM jumpbox VM? *(default: `zdm-jumpbox`)*
+2. Resource Group — which Azure resource group (existing or new)?
+3. Azure Region — which Azure region? (e.g., `eastus`, `uksouth`)
 
-**Group 3 — Networking** (present together):
+**Group 2 — VM Configuration**
+4. OS Image — which OS image? *(default: `Oracle:Oracle-Linux:ol10-lvm-gen2:latest`)*
+5. VM Size — which VM size? *(default: `Standard_D2s_v3`)*
+6. OS Disk Size (GB) — OS disk size in GB? *(default: `256`)*
 
-| Parameter | Question | Default |
-|-----------|----------|---------|
-| VNet Name | Which VNet (existing or new)? | *(ask user)* |
-| Subnet Name | Which subnet (existing or new)? | *(ask user)* |
+**Group 3 — Networking**
+7. VNet Name — which VNet (existing or new)?
+8. Subnet Name — which subnet (existing or new)?
 
-**Group 4 — Authentication** (present together):
+**Group 4 — Authentication**
+9. Auth Type — SSH public key or password? *(default: SSH public key)*
+10. SSH Username — admin username for SSH login? *(default: `azureuser`)*
 
-| Parameter | Question | Default |
-|-----------|----------|---------|
-| Auth Type | SSH public key or password? | SSH public key |
-| SSH Username | Admin username for SSH login? | `azureuser` |
+*Reply with answers by number, e.g.:*
+```
+1: zdm-jumpbox
+2: my-rg
+3: eastus
+4:
+5:
+6:
+7: my-vnet
+8: my-subnet
+9: SSH public key
+10: azureuser
+```
+*(Leave a line blank or omit to accept the default.)*
 
-**Group 5 — SSH Key or Password** (present after Group 4 answer):
+---
 
-- If SSH key: ask for the path to the local public key file **and** the path to the local private key file.
-- If password: ask for the password.
+Parse the user's reply and map each answer back to its parameter by number. Accept any reply format — numbered (`1: value`), bullet, or prose.
+
+After Groups 1–4 are answered, present **Group 5** in a second message since it depends on the Group 4 authentication type answer:
+
+**Group 5 — SSH Key or Password** (present in a second message after Group 4 answer):
+
+- If SSH key was selected, post:
+  ```
+  11. Local path to the SSH **public** key file (e.g., `$env:USERPROFILE\.ssh\zdm_jumpbox_key.pub`)
+  12. Local path to the SSH **private** key file (e.g., `$env:USERPROFILE\.ssh\zdm_jumpbox_key`)
+  ```
+- If password was selected, post:
+  ```
+  11. Password for the VM admin account
+  ```
 
 After all groups, display a consolidated summary of all values and require explicit user confirmation before proceeding.
 
@@ -308,15 +330,33 @@ Do not continue to Phase 2 until the user confirms the extension is installed.
 
 ## Phase 2: Collect Jumpbox Connection Variables
 
-Collect or confirm the following values from the user before writing any configuration:
+Post all questions as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
 
-| Variable | Description | Default / Example |
-|----------|-------------|-------------------|
-| `JUMPBOX_HOST` | IP address or FQDN of the ZDM jumpbox | `10.0.0.5` or `zdm-jumpbox.example.com` |
-| `JUMPBOX_PORT` | SSH port | `22` |
-| `JUMPBOX_USER` | SSH login user (**must be `zdmuser`**) | `zdmuser` |
-| `JUMPBOX_SSH_KEY` | Local path to the private key file | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
-| `JUMPBOX_ALIAS` | Host alias in `~/.ssh/config` | `zdm-jumpbox` |
+Post this exact question block:
+
+---
+
+**Remote-SSH Jumpbox Configuration — please answer by number:**
+
+1. `JUMPBOX_HOST` — IP address or FQDN of the ZDM jumpbox (e.g. `10.0.0.5` or `zdm-jumpbox.example.com`)
+2. `JUMPBOX_PORT` — SSH port *(default: `22`)*
+3. `JUMPBOX_USER` — SSH login user — **must be `zdmuser`** *(default: `zdmuser`)*
+4. `JUMPBOX_SSH_KEY` — Local path to the private SSH key file (e.g. `$env:USERPROFILE\.ssh\zdm_jumpbox_key`)
+5. `JUMPBOX_ALIAS` — Host alias for `~/.ssh/config` *(default: `zdm-jumpbox`)*
+
+*Reply with answers by number, e.g.:*
+```
+1: 10.0.0.5
+2: 22
+3: zdmuser
+4: C:\Users\you\.ssh\zdm_jumpbox_key
+5: zdm-jumpbox
+```
+*(Leave a line blank or omit to accept the default.)*
+
+---
+
+Parse the user's reply and map each answer back to its variable by number. Accept any reply format — numbered (`1: value`), bullet, or prose.
 
 **Validation rules:**
 - `JUMPBOX_USER` **must** be `zdmuser`. If the user provides a different value, flag this and ask them to confirm — all subsequent steps depend on this user.

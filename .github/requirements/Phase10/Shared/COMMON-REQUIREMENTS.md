@@ -278,12 +278,28 @@ The learn-more content for each variable must be derived from CR-05 definitions,
 
 Applies to all Phase10 steps that collect multiple variable values interactively from the user.
 
-### CR-16-A: Present questions in groups, not one at a time
+### CR-16-A: Present questions as a numbered list in a single chat message
 
-1. When a step needs to collect multiple variables interactively, **present all questions in a single message grouped by logical category**, rather than asking one question, waiting for an answer, then asking the next.
-2. Each group must be clearly labelled with a heading (e.g., `**Hosts**`, `**SSH Users**`, `**SSH Keys**`, `**Application Users**`).
-3. Within each group, list all questions together so the user can answer all of them in one reply.
-4. Do not hold up the conversation waiting for individual answers — only pause between groups when a later group's questions depend on the answer to an earlier group (e.g., authentication type determines which key/password question to show).
+1. When a step needs to collect multiple variables interactively, **present all questions as a numbered list in a single chat message**, rather than asking one question, waiting for an answer, then asking the next. Do **not** use `vscode_askQuestions` for this — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
+2. Each group must be clearly labelled with a heading (e.g., `**Hosts**`, `**SSH Users**`, `**SSH Keys**`, `**Application Users**`). Number questions sequentially across all groups (e.g., 1, 2, 3 … not restarting at 1 per group) so the user can reply by number.
+3. The user may reply with all answers at once in any format — numbered (`1: 10.0.0.11`), bullet, or prose — and Copilot must parse the response and map answers back to the correct variables by number.
+4. Do not hold up the conversation waiting for individual answers — only send a second message when a later group's questions depend on the answer to an earlier group (e.g., authentication type determines which key/password question to show).
+5. **Example format Copilot must use:**
+   ```
+   **Hosts**
+   1. SOURCE_HOST — IP address or FQDN of the source database server (e.g. `10.0.0.10`)
+   2. TARGET_HOST — IP address or FQDN of the target database server (e.g. `10.0.0.20`)
+
+   **SSH Users**
+   3. SOURCE_SSH_USER — SSH admin user for the source host (e.g. `opc`)
+   4. TARGET_SSH_USER — SSH admin user for the target host (e.g. `opc`)
+
+   Reply with answers by number, e.g.:
+   1: 10.1.0.11
+   2: 10.1.0.12
+   3: opc
+   4: opc
+   ```
 
 ### CR-16-B: Standard groupings per step
 

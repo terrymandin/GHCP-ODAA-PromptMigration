@@ -111,29 +111,44 @@ Normalize key values: treat empty or placeholder values (containing `<...>`) as 
 
 *(Skip this phase if `db-config.md` or `zdm-env.md` was used in the bypass check above.)*
 
-Collect values in logical groups, presenting examples where helpful:
+Post all questions as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog. Number questions sequentially across all groups.
 
-### Group 1: Source Database
+Post this exact question block:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_REMOTE_ORACLE_HOME` | Oracle home path on the source host | `/u01/app/oracle/product/19.0.0/dbhome_1` |
-| `SOURCE_ORACLE_SID` | Oracle SID on the source host | `ORCL` |
-| `SOURCE_DATABASE_UNIQUE_NAME` | Database unique name on the source | `ORCL_PRIMARY` |
+---
 
-### Group 2: Target Database
+**Database & ZDM Configuration — please answer by number:**
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `TARGET_REMOTE_ORACLE_HOME` | Oracle home path on the target host | `/u01/app/oracle/product/19.0.0/dbhome_1` |
-| `TARGET_ORACLE_SID` | Oracle SID on the target host | `ORCL` |
-| `TARGET_DATABASE_UNIQUE_NAME` | Database unique name on the target | `ORCL_STANDBY` |
+**Group 1 — Database Homes**
+1. `SOURCE_REMOTE_ORACLE_HOME` — Oracle home path on the **source** host (e.g. `/u01/app/oracle/product/19.0.0/dbhome_1`)
+2. `TARGET_REMOTE_ORACLE_HOME` — Oracle home path on the **target** host (e.g. `/u01/app/oracle/product/19.0.0/dbhome_1`)
 
-### Group 3: ZDM Server
+**Group 2 — Instance Names**
+3. `SOURCE_ORACLE_SID` — Oracle SID on the source host (e.g. `ORCL`)
+4. `TARGET_ORACLE_SID` — Oracle SID on the target host; for RAC use the Node 1 instance name (e.g. `ORCL` or `ORCL1`)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ZDM_HOME` | ZDM installation home path (leave blank for auto-detection) | `/mnt/app/zdmhome` |
+**Group 3 — Database Unique Names**
+5. `SOURCE_DATABASE_UNIQUE_NAME` — Database unique name on the source (e.g. `ORCL_PRIMARY`)
+6. `TARGET_DATABASE_UNIQUE_NAME` — Database unique name on the target (e.g. `ORCL_STANDBY`)
+
+**Group 4 — ZDM Server**
+7. `ZDM_HOME` — ZDM installation home path *(leave blank for auto-detection, e.g. `/mnt/app/zdmhome`)*
+
+*Reply with answers by number, e.g.:*
+```
+1: /u01/app/oracle/product/19.0.0/dbhome_1
+2: /u01/app/oracle/product/19.0.0/dbhome_1
+3: ORCL
+4: ORCL
+5: ORCL_PRIMARY
+6: ORCL_STANDBY
+7:
+```
+*(Leave a line blank or omit to accept the default. Type `?` after any answer to learn more about that variable.)*
+
+---
+
+Parse the user's reply and map each answer back to its variable by number. Accept any reply format — numbered (`1: value`), bullet, or prose — and extract values accordingly.
 
 **Per-variable validation rules (S4-17):**
 

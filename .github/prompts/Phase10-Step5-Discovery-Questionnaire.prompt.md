@@ -295,62 +295,118 @@ Run the interview in three sequential phases. For each question:
 
 ### Phase A — Platform and Storage (A1 already confirmed above)
 
-The migration method (`MIGRATION_METHOD`) was confirmed in the Preliminary Question before the compatibility gate. Ask in order:
+The migration method (`MIGRATION_METHOD`) was confirmed in the Preliminary Question before the compatibility gate. Present questions A2 and A3 together as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
 
-> **[A2] Target Platform Type** (`PLATFORM_TYPE` RSP parameter)
-> Read the **Layer 0** rows from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A) for the current ZDM version. Present the allowed values and their RSP mappings exactly as listed in the catalog — do not hardcode the allowed values here.
-> Based on Step 4 target discovery, the recommended value is **[inferred from target environment type]**.
-> Confirm or select the correct value:
+Read the **Layer 0** rows from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A) before posting the question block, to populate the allowed values for both questions.
 
-> **[A3] Source Storage Type** (determines `zdmcli` identifier flag)
-> Read the **Layer 0** rows from the CR-14 prerequisite catalog file (loaded per CR-14-A) for the allowed source storage type values and their `zdmcli` flag mappings. Default to the value inferred from Step 4 source discovery (`db_create_file_dest` parameter or ASM PMON process evidence).
-> Confirm the inferred value or provide a correction:
+Post this question block:
 
-Do not proceed to Phase B until both Phase A questions (A2, A3) are answered.
+---
+
+**Migration Planning — Platform & Storage (please answer by number):**
+
+1. **Target Platform Type** (`PLATFORM_TYPE` RSP parameter) — [list allowed values and their RSP mappings from the Layer 0 catalog exactly as listed; do not hardcode values here]. Based on Step 4 discovery, recommended: **[inferred from target environment type]**
+2. **Source Storage Type** (determines `zdmcli` identifier flag) — [list allowed values and their CLI flag mappings from the Layer 0 catalog exactly as listed]. Based on Step 4 discovery, recommended: **[inferred from `db_create_file_dest` parameter or ASM PMON evidence]**
+
+*Reply with answers by number, e.g.:*
+```
+1: <value from catalog>
+2: <value from catalog>
+```
+
+---
+
+Parse the user's reply and map answers back by number. Do not proceed to Phase B until both questions are answered.
 
 ---
 
 ### Phase B — Migration-type-specific questions
 
-Ask **only** the questions for the method confirmed in Phase A.
+Ask **only** the questions for the method confirmed in Phase A. Present as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions`. Continue numbering sequentially from Phase A (Phase A ended at question 2).
 
-**If ONLINE_PHYSICAL:**
-
-| ID | Question | RSP Parameter | Recommended Default |
-|----|----------|---------------|---------------------|
-| B1 | Log switch interval (minutes) | `LOG_SWITCH_INTERVAL` | 20 |
-| B2 | Data Guard protection mode | `DATAGUARD_PROTECTION_MODE` | MAX_PERFORMANCE |
-| B3 | Data transfer medium | `DATA_TRANSFER_MEDIUM` | OSS |
-| B4 | Insert pause point before switchover? (YES/NO) | `PAUSE_BEFORE_SWITCHOVER` | YES |
-| B5 | Enable auto-switchover? (YES/NO) | `AUTO_SWITCHOVER` | NO |
-
-**If OFFLINE_PHYSICAL:**
-
-| ID | Question | RSP Parameter | Recommended Default |
-|----|----------|---------------|---------------------|
-| B1 | Backup/transfer medium | `DATA_TRANSFER_MEDIUM` | OSS |
-| B2 | Maximum acceptable downtime window (hours) | *(runbook planning)* | 4 |
-
-Present each question individually and wait for the operator to respond before moving to the next.
-
-Do not proceed to Phase C until all Phase B questions are answered (S5-10).
+**If ONLINE_PHYSICAL:** post this question block:
 
 ---
 
-### Phase C — Common questions (both migration methods)
+**Migration Planning — Online Physical Settings (please answer by number):**
 
-Present each question in order. Mark OCI identifiers as **🔐 Manual Entry Required** when no non-placeholder value is available from `zdm-env.md` or step config artifacts.
+3. **Log switch interval (minutes)** (`LOG_SWITCH_INTERVAL`) *(default: `20`)*
+4. **Data Guard protection mode** (`DATAGUARD_PROTECTION_MODE`) *(default: `MAX_PERFORMANCE`)*
+5. **Data transfer medium** (`DATA_TRANSFER_MEDIUM`) *(default: `OSS`)*
+6. **Insert pause point before switchover?** (`PAUSE_BEFORE_SWITCHOVER`, YES/NO) *(default: `YES`)*
+7. **Enable auto-switchover?** (`AUTO_SWITCHOVER`, YES/NO) *(default: `NO`)*
 
-| ID | Question | RSP / CLI Mapping | Source Priority |
-|----|----------|-------------------|-----------------|
-| C1 | OCI Tenancy OCID | `OCID_TENANCY` / `zdmcli -ocitenancy` | db-config.md → zdm-env.md → manual |
-| C2 | OCI User OCID | `OCID_USER` | db-config.md → zdm-env.md → manual |
-| C3 | OCI Compartment OCID | `OCID_COMPARTMENT` | db-config.md → zdm-env.md → manual |
-| C4 | Target Database OCID | `OCID_TARGET_DATABASE` | db-config.md → zdm-env.md → manual |
-| C5 | OCI Object Storage namespace | `OSS_BUCKET_NAMESPACE` | db-config.md → zdm-env.md → manual |
-| C6 | OCI Object Storage bucket name | `OSS_BUCKET_NAME` | db-config.md → zdm-env.md → manual |
-| C7 | OCI Object Storage bucket region | `OSS_BUCKET_REGION` | discovered → db-config.md |
-| C8 | Wallet/TLS migration required? (YES/NO — ask only if TDE is enabled) | `WALLET_MIGRATION` | discovered |
+*Reply with answers by number, e.g.:*
+```
+3: 20
+4: MAX_PERFORMANCE
+5: OSS
+6: YES
+7: NO
+```
+
+---
+
+**If OFFLINE_PHYSICAL:** post this question block:
+
+---
+
+**Migration Planning — Offline Physical Settings (please answer by number):**
+
+3. **Backup/transfer medium** (`DATA_TRANSFER_MEDIUM`) *(default: `OSS`)*
+4. **Maximum acceptable downtime window (hours)** *(for runbook planning, default: `4`)*
+
+*Reply with answers by number, e.g.:*
+```
+3: OSS
+4: 4
+```
+
+---
+
+Parse the user's reply and map answers back by number. Do not proceed to Phase C until all Phase B questions are answered.
+
+---
+
+### Phase C — Object Storage *(present only if OSS transfer medium was selected in Phase B)*
+
+> **Note (CR-16-B):** OCI identity parameters (Tenancy OCID, User OCID, Compartment OCID, Target Database OCID) are **not required** for physical migrations — ZDM uses the OCI config file on the ZDM host, set up during Step 2 installation. Do not ask for them.
+
+Present questions as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions`. Continue numbering sequentially from Phase B (ONLINE: Phase B ended at 7, so start at 8; OFFLINE: Phase B ended at 4, so start at 5).
+
+Post this question block *(adjusting the leading number to continue from Phase B)*:
+
+---
+
+**Migration Planning — Object Storage (please answer by number):**
+
+*(N+0).* **OCI Object Storage namespace** (`OSS_BUCKET_NAMESPACE`) — pre-fill from `db-config.md` or `zdm-env.md` if available
+*(N+1).* **OCI Object Storage bucket name** (`OSS_BUCKET_NAME`) — pre-fill from `db-config.md` or `zdm-env.md` if available
+*(N+2).* **OCI Object Storage bucket region** (`OSS_BUCKET_REGION`) — inferred from target discovery if available, otherwise ask
+
+*Reply with answers by number.*
+
+---
+
+*(If the transfer medium is not OSS, skip Phase C entirely.)*
+
+---
+
+### Phase D — TDE/Wallet *(present only if TDE is enabled on the source database)*
+
+Present as a **numbered list in a single chat message** (CR-16-A). Continue numbering sequentially from the last answered phase.
+
+Post this question block *(adjusting the leading number to continue from Phase C or Phase B)*:
+
+---
+
+**Migration Planning — TDE/Wallet (please answer by number):**
+
+*(N).* **Wallet/TLS migration required?** (`WALLET_MIGRATION`, YES/NO) — based on TDE wallet status discovered in Step 4 *(default: `YES` if TDE is enabled)*
+
+*Reply with answers by number.*
+
+---
 
 ---
 
@@ -380,10 +436,6 @@ One row per answered question. No blank or placeholder values permitted (S5-12):
 | DATA_TRANSFER_MEDIUM | `DATA_TRANSFER_MEDIUM` | OSS | confirmed by operator |
 | PAUSE_BEFORE_SWITCHOVER | `PAUSE_BEFORE_SWITCHOVER` | YES | confirmed by operator |
 | AUTO_SWITCHOVER | `AUTO_SWITCHOVER` | NO | confirmed by operator |
-| OCID_TENANCY | `OCID_TENANCY` / `zdmcli -ocitenancy` | ocid1.tenancy.oc1.. | from zdm-env.md |
-| OCID_USER | `OCID_USER` | ocid1.user.oc1.. | manual |
-| OCID_COMPARTMENT | `OCID_COMPARTMENT` | ocid1.compartment.oc1.. | manual |
-| OCID_TARGET_DATABASE | `OCID_TARGET_DATABASE` | ocid1.database.oc1.. | manual |
 | OSS_BUCKET_NAMESPACE | `OSS_BUCKET_NAMESPACE` | <namespace> | from zdm-env.md |
 | OSS_BUCKET_NAME | `OSS_BUCKET_NAME` | zdm-migration | from zdm-env.md |
 | OSS_BUCKET_REGION | `OSS_BUCKET_REGION` | uk-london-1 | discovered |
