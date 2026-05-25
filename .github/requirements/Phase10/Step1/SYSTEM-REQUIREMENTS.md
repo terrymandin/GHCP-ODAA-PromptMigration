@@ -1,8 +1,203 @@
-# Step1 System Requirements - Remote-SSH Setup Implementation
+﻿# Step1 System Requirements - Create VM + Remote-SSH Setup Implementation
 
 ## Scope
 
-This file defines implementation-level constraints for the Remote-SSH setup step. Step1 runs in the LOCAL VS Code terminal (PowerShell on Windows). No Remote-SSH session is active during this step.
+This file defines implementation-level constraints for the Step 1 setup step. Step1 runs in the LOCAL VS Code terminal (PowerShell on Windows). Azure VM creation and SSH configuration both run locally. No Remote-SSH session is active during this step.
+
+## S1-09A: Azure VM Creation Implementation
+
+This section applies only when the user confirms they want a new VM created (S1-00-B).
+
+### S1-09A-1: Parameter Validation
+
+Before running any `az` command, validate:
+- Resource group name: not empty, no spaces
+- VM name: alphanumeric, hyphens allowed, 1–15 chars for compatibility
+- Region: non-empty string
+- OS disk size: integer ≥ 30
+- Authentication type: `ssh` or `password`; if `ssh`, public key must be non-empty
+
+### S1-09A-2: VNet/Subnet Pre-check
+
+If the user specifies a new VNet/subnet, run these first in the local PowerShell terminal:
+
+```powershell
+az network vnet create `
+  --resource-group "<RESOURCE_GROUP>" `
+  --name "<VNET_NAME>" `
+  --location "<REGION>" `
+  --address-prefix "10.0.0.0/16"
+
+az network vnet subnet create `
+  --resource-group "<RESOURCE_GROUP>" `
+  --vnet-name "<VNET_NAME>" `
+  --name "<SUBNET_NAME>" `
+  --address-prefix "10.0.0.0/24"
+```
+
+### S1-09A-3: VM Creation Command
+
+Use a **two-step confirmation flow**:
+
+**Step 1 — Parameter confirmation:** Display a summary of all collected parameter values and ask the user to confirm they are correct. Do not generate or display the `az vm create` command at this stage.
+
+**Step 2 — Command display and execution confirmation:** After the user confirms the parameters, build the full `az vm create` command and display it in a fenced code block. Then ask:
+
+> "Shall I run this command now? (Yes / No)"
+
+Run the command in the local PowerShell terminal **only** after the user replies Yes. If the user replies No, ask what they would like to change.
+
+**Command template (SSH public key auth):**
+
+```powershell
+az vm create `
+  --resource-group "<RESOURCE_GROUP>" `
+  --name "<VM_NAME>" `
+  --location "<REGION>" `
+  --image "Oracle:Oracle-Linux:ol10-lvm-gen2:latest" `
+  --size "Standard_D2s_v3" `
+  --os-disk-size-gb 256 `
+  --vnet-name "<VNET_NAME>" `
+  --subnet "<SUBNET_NAME>" `
+  --admin-username "<SSH_USERNAME>" `
+  --ssh-key-values "<SSH_PUBLIC_KEY>" `
+  --public-ip-sku Standard `
+  --output json
+```
+
+**For password authentication:** replace `--ssh-key-values "<SSH_PUBLIC_KEY>"` with `--admin-password "<PASSWORD>"` and add `--authentication-type password`.
+
+**Defaults to substitute when the user accepts the recommendation:**
+- `--image`: `Oracle:Oracle-Linux:ol10-lvm-gen2:latest`
+- `--size`: `Standard_D2s_v3`
+- `--os-disk-size-gb`: `256`
+- `--admin-username`: `azureuser`
+- `--public-ip-sku`: `Standard` (always include)
+
+### S1-09A-4: Output Capture
+
+Extract from the JSON output:
+- `publicIpAddress` — record as `JUMPBOX_HOST` for use in S1-04 (variable collection)
+- `powerState` — must be `VM running` before proceeding
+
+### S1-09A-5: Post-Creation Package Installation
+
+Immediately after extracting `JUMPBOX_HOST`, install `tar` on the new VM over SSH. VS Code Server requires `tar` to extract its installation archive — without it, the Remote-SSH connection will fail with "Failed to install the VS Code Server."
+
+Run this command in the local PowerShell terminal, substituting the admin username and private key path that were used for VM creation:
+
+```powershell
+ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y tar"
+```
+
+- Capture `$LASTEXITCODE`. If non-zero, surface the SSH error and do not proceed until resolved.
+- Confirm output contains `Complete!` before continuing.
+- Do **not** skip this step even if the user believes `tar` may already be installed — Oracle Linux 10 minimal images omit `tar` by default.
+
+### S1-09A-6: Clone Migration Repo onto the Jumpbox
+
+Immediately after `tar` is confirmed installed, clone the migration repo into `/home/zdmuser` on the jumpbox via SSH from the local PowerShell terminal. Run each command separately and check `$LASTEXITCODE` after each.
+
+**Step 1 — Install git:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y git"
+```
+Check exit code 0. `git` may already be present on some images — a `Nothing to do. Complete!` response is also acceptable.
+
+**Step 2 — Create /home/zdmuser directory:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser"
+```
+
+**Step 3 — Clone the repo:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
+```
+If the directory already exists and is non-empty, skip the clone and confirm existing contents.
+
+**Step 4 — Verify clone:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+Expect output listing the `.github` directory contents. Non-zero exit or empty output = failure.
+
+**Ownership:** The cloned directory will be owned by `root`. Proceed immediately to S1-09A-7 to create `zdmuser` and transfer ownership before proceeding to any SSH configuration steps.
+
+### S1-09A-7: Create `zdmuser` and Transfer Ownership
+
+Immediately after the repo clone is verified, perform the following steps via SSH from the local PowerShell terminal. Each command must exit with code 0 before proceeding to the next.
+
+**Step 1 — Create `zdm` group (idempotent):**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
+```
+
+**Step 2 — Create `zdmuser` account (idempotent, using existing `/home/zdmuser` dir):**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
+```
+The `-M` flag prevents `useradd` from attempting to create the home directory (it already exists).
+
+**Step 3 — Transfer ownership of `/home/zdmuser` to `zdmuser`:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /home/zdmuser"
+```
+
+**Step 4 — Set up `zdmuser`'s `.ssh` directory:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
+```
+
+**Step 5 — Install the SSH public key for `zdmuser`:**
+
+Read the public key locally and write it to `authorized_keys` on the jumpbox. The key file is `<JUMPBOX_SSH_KEY>.pub` (the `.pub` counterpart of the private key used in this step).
+
+```powershell
+$pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
+$sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> $sshCmd
+```
+
+**Step 6 — Verify ownership and key access:**
+```powershell
+# Confirm ownership
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
+# Confirm zdmuser can read the repo
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+Expected outputs:
+- `stat`: `zdmuser zdm`
+- `ls`: lists `.github` directory contents
+
+If any step exits non-zero, surface the error and stop. Do not proceed to S1-09A-8 until `zdmuser` exists, owns `/home/zdmuser`, and the key is installed.
+
+### S1-09A-8: Install ZDM Prerequisites and Create `/u01` Directory Structure
+
+While still connected as the admin SSH user (e.g., `azureuser`), install the ZDM prerequisite packages and create the ZDM installation directories. Doing this now (as admin with `sudo`) means `zdmuser` will never need `sudo` in the Remote-SSH session — it already owns the directories it needs.
+
+**Step 1 — Install prerequisite packages:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+```
+Confirm exit code 0 and that output contains `Complete!` or `Nothing to do.` (packages already installed). If any package fails, surface the error and do not continue.
+
+**Step 2 — Create ZDM installation directories:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
+**Step 3 — Set ownership so `zdmuser` owns the directories:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
+**Step 4 — Verify:**
+```powershell
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+Expected: each line shows `zdmuser zdm <path>`.
+
+---
 
 ## S1-10: Extension check implementation
 
@@ -108,14 +303,22 @@ Generated: <ISO-8601 timestamp>
 - Remote hostname: <hostname returned> (on PASS)
 - Error: <error text> (on FAIL)
 
+## Repo Clone
+- Location: /home/zdmuser/GHCP-ODAA-PromptMigration
+- Result: CLONED / SKIPPED (already present) / FAILED
+- Verified: .github directory present (YES / NO)
+
 ## Status
 READY / ACTION REQUIRED
 
 ## Remaining Actions (when ACTION REQUIRED)
 - <list any steps user must complete manually>
 
+## Remaining Actions for Step 2
+- Run: sudo chown -R zdmuser:zdmuser /home/zdmuser  (after zdmuser account is created)
+
 ## Next Step
-Run Step2 (Configure SSH Connectivity) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as zdmuser.
+Run Step 2 (Install ZDM) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as <SSH_USERNAME>.
 ```
 
 ## S1-16: Local execution constraints
@@ -123,5 +326,5 @@ Run Step2 (Configure SSH Connectivity) in the Remote-SSH VS Code session connect
 1. All commands run in the LOCAL PowerShell terminal — do not use any Remote-SSH or jumpbox commands.
 2. Do not use `sudo`, `bash`, or Unix shell commands natively on Windows. Use PowerShell equivalents.
 3. File path separators use `\` on Windows. When passing paths to `ssh` or `ssh-keygen` (which are OpenSSH tools), use forward slashes (`/`) in `-i` argument values or quote paths with backslashes.
-4. Step1 must not read, modify, or create any files on the remote jumpbox.
-5. Step1 must not produce any artifacts in `Artifacts/Phase10-Migration/Step2/` or later directories — only `Step1/`.
+4. Step1 runs commands on the remote jumpbox only via `ssh` from the local terminal (package installation and repo clone). It does not open a Remote-SSH session or modify jumpbox files via VS Code file tools.
+5. Step1 must not produce any artifacts in `Artifacts/Phase10-Migration/Step6/` or later directories — only `Step1/`.

@@ -1,4 +1,4 @@
----
+﻿---
 mode: agent
 description: ZDM Step 1 - Setup Remote-SSH connection to the ZDM jumpbox (runs in local VS Code session)
 ---
@@ -6,7 +6,7 @@ description: ZDM Step 1 - Setup Remote-SSH connection to the ZDM jumpbox (runs i
 
 ## Purpose
 
-Configure the Remote-SSH extension, SSH key, and jumpbox host entry so that subsequent steps (Step 2 onward) can run in the correct Remote-SSH terminal context as `zdmuser`.
+Ensure the ZDM Azure VM exists (creating it if needed), then configure the Remote-SSH extension, SSH key, and jumpbox host entry so that subsequent steps (Step 4 onward) can run in the correct Remote-SSH terminal context as `zdmuser`.
 
 ---
 
@@ -58,6 +58,254 @@ If the file exists, read it and check whether the `## Status` section shows `REA
 
 ---
 
+## Phase 0: ZDM VM Readiness Check
+
+Before configuring SSH, confirm the target VM exists and is reachable. Ask the user:
+
+> **Is the Azure VM for the ZDM jumpbox already created and running?**
+> - Yes — it already exists and is running
+> - No — I need to create one
+
+### If the VM already exists
+
+Ask for the VM's IP address or FQDN and note it as `JUMPBOX_HOST`. Proceed to [Phase 1: Extension Check](#phase-1-extension-check-s1-03-s1-10).
+
+### If the VM does not yet exist — Azure VM Creation
+
+Ask the user if they would like assistance creating the ZDM Azure VM:
+
+> **Would you like help creating the Azure VM for ZDM?**
+> - Yes — help me create it now
+> - No — I will create it myself and come back
+
+**If the user declines**, provide a reminder of the recommended VM configuration (shown below) and wait for them to confirm the VM is ready before proceeding to Phase 1.
+
+**If the user accepts**, collect VM parameters per CR-16-A. Post all questions for Groups 1–4 as a **numbered list in a single chat message**. Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
+
+Post this exact question block:
+
+---
+
+**Azure VM Configuration — please answer by number:**
+
+**Group 1 — VM Identity**
+1. VM Name — what name for the ZDM jumpbox VM? *(default: `zdm-jumpbox`)*
+2. Resource Group — which Azure resource group (existing or new)?
+3. Azure Region — which Azure region? (e.g., `eastus`, `uksouth`)
+
+**Group 2 — VM Configuration**
+4. OS Image — which OS image? *(default: `Oracle:Oracle-Linux:ol10-lvm-gen2:latest`)*
+5. VM Size — which VM size? *(default: `Standard_D2s_v3`)*
+6. OS Disk Size (GB) — OS disk size in GB? *(default: `256`)*
+
+**Group 3 — Networking**
+7. VNet Name — which VNet (existing or new)?
+8. Subnet Name — which subnet (existing or new)?
+
+**Group 4 — Authentication**
+9. Auth Type — SSH public key or password? *(default: SSH public key)*
+10. SSH Username — admin username for SSH login? *(default: `azureuser`)*
+
+*Reply with answers by number, e.g.:*
+```
+1: zdm-jumpbox
+2: my-rg
+3: eastus
+4:
+5:
+6:
+7: my-vnet
+8: my-subnet
+9: SSH public key
+10: azureuser
+```
+*(Leave a line blank or omit to accept the default.)*
+
+---
+
+Parse the user's reply and map each answer back to its parameter by number. Accept any reply format — numbered (`1: value`), bullet, or prose.
+
+After Groups 1–4 are answered, present **Group 5** in a second message since it depends on the Group 4 authentication type answer:
+
+**Group 5 — SSH Key or Password** (present in a second message after Group 4 answer):
+
+- If SSH key was selected, post:
+  ```
+  11. Local path to the SSH **public** key file (e.g., `$env:USERPROFILE\.ssh\zdm_jumpbox_key.pub`)
+  12. Local path to the SSH **private** key file (e.g., `$env:USERPROFILE\.ssh\zdm_jumpbox_key`)
+  ```
+- If password was selected, post:
+  ```
+  11. Password for the VM admin account
+  ```
+
+After all groups, display a consolidated summary of all values and require explicit user confirmation before proceeding.
+
+> **Review your VM configuration:**
+> - Name: `<name>`
+> - Resource Group: `<rg>`
+> - Region: `<region>`
+> - Image: `<image>`
+> - Size: `<size>`
+> - OS Disk: `<disk_size_gb>` GB
+> - VNet/Subnet: `<vnet>/<subnet>`
+> - Auth: `<SSH key | password>`
+> - SSH Username: `<username>`
+>
+> **Are these parameters correct? (Yes / No)**
+
+After the user confirms the parameters, build the full `az vm create` command from the collected values and display it in a fenced code block for review. **Do not run the command yet.**
+
+> If the VNet/subnet does not yet exist, also display the `az network vnet create` and `az network vnet subnet create` commands that will be run first.
+
+```powershell
+az vm create `
+  --resource-group "<RESOURCE_GROUP>" `
+  --name "<VM_NAME>" `
+  --location "<REGION>" `
+  --image "Oracle:Oracle-Linux:ol10-lvm-gen2:latest" `
+  --size "Standard_D2s_v3" `
+  --os-disk-size-gb 256 `
+  --vnet-name "<VNET_NAME>" `
+  --subnet "<SUBNET_NAME>" `
+  --admin-username "<SSH_USERNAME>" `
+  --ssh-key-values "<SSH_PUBLIC_KEY>" `
+  --public-ip-sku Standard `
+  --output table
+```
+
+> If the user chose password authentication, replace `--ssh-key-values` with `--admin-password "<PASSWORD>"` and add `--authentication-type password`.
+
+After displaying the command, ask:
+
+> **Shall I run this command now? (Yes / No)**
+
+Run the command in the **local PowerShell terminal** only after the user replies **Yes**. If the user replies No, ask what they would like to change.
+
+After the VM is created, display the public IP address returned by `az vm create` — record it as `JUMPBOX_HOST`.
+
+> **VM created successfully.**
+> Public IP: `<public_ip>`
+>
+> This IP address will be used in Phase 2 to configure the Remote-SSH connection.
+
+### Post-Creation: Install VS Code Server Prerequisites
+
+Before configuring Remote-SSH, install `tar` on the new VM. Oracle Linux 10 minimal images do not include `tar` by default, and VS Code Server **cannot install without it** — the connection will fail with "Failed to install the VS Code Server" if this step is skipped.
+
+Run the following in the **local PowerShell terminal**:
+
+```powershell
+ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 `
+    -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> `
+    "sudo dnf install -y tar"
+```
+
+- **PASS** (`$LASTEXITCODE -eq 0` and output contains `Complete!`): Confirm `tar` installed and continue.
+- **FAIL**: Display the error and stop. Do not proceed until `tar` is successfully installed.
+
+### Post-Creation: Clone Migration Repo onto the Jumpbox
+
+Immediately after `tar` is confirmed, clone the migration repo into `/home/zdmuser` on the jumpbox via SSH from the **local PowerShell terminal**. This ensures the repo is present the moment Step 2 opens in the Remote-SSH window.
+
+**Run each command separately and verify exit code 0 before proceeding:**
+
+```powershell
+# 1. Install git
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y git"
+```
+
+```powershell
+# 2. Create /home/zdmuser
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser"
+```
+
+```powershell
+# 3. Clone the repo
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
+```
+
+```powershell
+# 4. Verify
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+
+- **PASS**: `.github` directory contents listed — confirm and continue.
+- **FAIL**: Surface the error and stop. Do not proceed to Phase 1 until the clone is verified.
+
+### Post-Creation: Create `zdmuser` and Transfer Ownership
+
+Immediately after the clone is verified, create `zdmuser` and transfer ownership of `/home/zdmuser` via SSH from the **local PowerShell terminal**. This must happen in Step 1 so the Remote-SSH connection (configured next) can connect directly as `zdmuser` and open the repo it owns.
+
+**Run each command separately and verify exit code 0 before proceeding:**
+
+```powershell
+# 1. Create the zdm group (idempotent)
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
+```
+
+```powershell
+# 2. Create zdmuser account (idempotent; -M skips home dir creation since it already exists)
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
+```
+
+```powershell
+# 3. Transfer ownership of /home/zdmuser to zdmuser
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /home/zdmuser"
+```
+
+```powershell
+# 4. Create zdmuser's .ssh directory with correct permissions
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
+```
+
+```powershell
+# 5. Install the SSH public key into zdmuser's authorized_keys
+$pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
+$sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> $sshCmd
+```
+
+```powershell
+# 6. Verify: confirm ownership and that zdmuser can read the repo
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+```
+
+- **PASS**: `stat` shows `zdmuser zdm`; `ls` lists the `.github` directory contents — confirm and continue.
+- **FAIL**: Surface the error and stop. Do not proceed until `zdmuser` exists, owns `/home/zdmuser`, and the SSH key is installed.
+
+### Post-Creation: Install ZDM Prerequisites and Create `/u01` Directories
+
+While still connected as the admin SSH user, install the ZDM prerequisite packages and create the ZDM installation directory structure. Doing this now (as admin with `sudo`) ensures `zdmuser` never needs `sudo` in the Remote-SSH session — it already owns the directories it needs. **Do not give `zdmuser` passwordless sudo.**
+
+```powershell
+# 1. Install ZDM prerequisite packages
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+```
+Expect exit code 0 and `Complete!` or `Nothing to do.` in output.
+
+```powershell
+# 2. Create ZDM installation directories under /u01
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
+```powershell
+# 3. Transfer ownership of all ZDM dirs to zdmuser
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
+```powershell
+# 4. Verify
+ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+Expected: each line shows `zdmuser zdm <path>`.
+
+- **PASS**: All three directories owned by `zdmuser zdm` — proceed to Phase 1.
+- **FAIL**: Surface the error and stop.
+
+---
+
 ## Phase 1: Extension Check (S1-03, S1-10)
 
 Check whether the Remote-SSH extension is installed by inspecting the VS Code extensions directory on disk. Do **not** invoke `code` or `code.cmd` as a subprocess — doing so opens unwanted VS Code windows in the background:
@@ -82,15 +330,33 @@ Do not continue to Phase 2 until the user confirms the extension is installed.
 
 ## Phase 2: Collect Jumpbox Connection Variables
 
-Collect or confirm the following values from the user before writing any configuration:
+Post all questions as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
 
-| Variable | Description | Default / Example |
-|----------|-------------|-------------------|
-| `JUMPBOX_HOST` | IP address or FQDN of the ZDM jumpbox | `10.0.0.5` or `zdm-jumpbox.example.com` |
-| `JUMPBOX_PORT` | SSH port | `22` |
-| `JUMPBOX_USER` | SSH login user (**must be `zdmuser`**) | `zdmuser` |
-| `JUMPBOX_SSH_KEY` | Local path to the private key file | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
-| `JUMPBOX_ALIAS` | Host alias in `~/.ssh/config` | `zdm-jumpbox` |
+Post this exact question block:
+
+---
+
+**Remote-SSH Jumpbox Configuration — please answer by number:**
+
+1. `JUMPBOX_HOST` — IP address or FQDN of the ZDM jumpbox (e.g. `10.0.0.5` or `zdm-jumpbox.example.com`)
+2. `JUMPBOX_PORT` — SSH port *(default: `22`)*
+3. `JUMPBOX_USER` — SSH login user — **must be `zdmuser`** *(default: `zdmuser`)*
+4. `JUMPBOX_SSH_KEY` — Local path to the private SSH key file (e.g. `$env:USERPROFILE\.ssh\zdm_jumpbox_key`)
+5. `JUMPBOX_ALIAS` — Host alias for `~/.ssh/config` *(default: `zdm-jumpbox`)*
+
+*Reply with answers by number, e.g.:*
+```
+1: 10.0.0.5
+2: 22
+3: zdmuser
+4: C:\Users\you\.ssh\zdm_jumpbox_key
+5: zdm-jumpbox
+```
+*(Leave a line blank or omit to accept the default.)*
+
+---
+
+Parse the user's reply and map each answer back to its variable by number. Accept any reply format — numbered (`1: value`), bullet, or prose.
 
 **Validation rules:**
 - `JUMPBOX_USER` **must** be `zdmuser`. If the user provides a different value, flag this and ask them to confirm — all subsequent steps depend on this user.
@@ -258,6 +524,17 @@ Generated: <ISO-8601 timestamp>
 - Remote hostname: <hostname returned> (on PASS)
 - Error: <error text> (on FAIL)
 
+## Repo Clone
+- Location: /home/zdmuser/GHCP-ODAA-PromptMigration
+- Result: CLONED / SKIPPED (already present) / FAILED
+- Verified: .github directory present (YES / NO)
+
+## zdmuser Setup
+- Group (zdm): CREATED / ALREADY EXISTS
+- Account (zdmuser): CREATED / ALREADY EXISTS
+- /home/zdmuser owner: zdmuser (CONFIRMED / FAILED)
+- .ssh/authorized_keys: INSTALLED / FAILED
+
 ## Status
 READY / ACTION REQUIRED
 
@@ -265,11 +542,11 @@ READY / ACTION REQUIRED
 - <list any steps the user must complete manually>
 
 ## Next Step
-Run Step 2 (Configure SSH Connectivity) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as zdmuser.
+Run Step 2 (Install ZDM) in the Remote-SSH VS Code session connected to <JUMPBOX_ALIAS> as zdmuser.
 ```
 
 Set `Status` to:
-- **READY** — extension installed, SSH config entry present, and connectivity test passed.
+- **READY** — extension installed, SSH config entry present, connectivity test passed, and repo cloned.
 - **ACTION REQUIRED** — any required item is incomplete; list each outstanding item under "Remaining Actions".
 
 ### 6b. Write the Step 1 output directory README
@@ -304,7 +581,7 @@ Step 1 runs entirely in the local VS Code terminal (Windows PowerShell). The onl
 
 ## Next Actions
 
-When status is READY, open a Remote-SSH session to the configured jumpbox and run `@Phase10-Step2-Configure-SSH-Connectivity`.
+When status is READY, open a Remote-SSH session to the configured jumpbox and run `@Phase10-Step2-Install-ZDM`.
 ```
 
 ---
@@ -330,9 +607,9 @@ If the alias does not appear in the list, verify that the SSH config entry was w
 
 **After delivering these handoff instructions, explicitly ask the user to confirm:**
 
-> _"Please confirm you have successfully opened the Remote-SSH VS Code window and that your integrated terminal prompt shows `zdmuser@<hostname>`. Reply with the hostname shown when you are ready to proceed to Step 2."_
+> _"Please confirm you have successfully opened the Remote-SSH VS Code window and that your integrated terminal prompt shows `zdmuser@<hostname>`. Reply with the hostname shown when you are ready to proceed to Step 4."_
 
-- Do **not** declare Step 1 complete or suggest running Step 2 until the user provides this confirmation.
+- Do **not** declare Step 1 complete or suggest running Step 4 until the user provides this confirmation.
 - If the user cannot connect, remain in Step 1 and help troubleshoot the connection issue before proceeding.
 
 ---
@@ -365,4 +642,4 @@ All outputs are written to `Artifacts/Phase10-Migration/Step1/` which is git-ign
 
 After Step 1 completes and you have connected to the jumpbox via Remote-SSH:
 
-> Run **`@Phase10-Step2-Configure-SSH-Connectivity`** in the Remote-SSH VS Code session connected to **`<JUMPBOX_ALIAS>`** as **`zdmuser`**.
+> Run **`@Phase10-Step2-Install-ZDM`** in the Remote-SSH VS Code session connected to **`<JUMPBOX_ALIAS>`** as **`zdmuser`**.

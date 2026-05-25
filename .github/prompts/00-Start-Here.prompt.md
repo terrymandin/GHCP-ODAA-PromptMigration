@@ -32,11 +32,13 @@ Before starting, ensure you have:
 ## First-Time Setup
 
 1. Clone this repo locally and open it in VS Code
-2. Run `@Phase10-Step1-Setup-Remote-SSH` (in a **local** VS Code session) — it will check the Remote-SSH extension, configure `~/.ssh/config`, test SSH connectivity, and write `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`
-3. Connect VS Code to the ZDM jumpbox via the **Remote-SSH** extension (as `zdmuser`) and re-open the repo
-4. Run `@Phase10-Step2-Configure-SSH-Connectivity` — it will interactively collect source host, target host, SSH users, SSH key paths, and application user names, then test connectivity and write `Artifacts/Phase10-Migration/Step2/ssh-config.md`
-5. Run `@Phase10-Step3-Generate-Discovery-Scripts` — it will interactively collect Oracle home paths, SIDs, unique names, and ZDM home, then run discovery and write `Artifacts/Phase10-Migration/Step3/db-config.md`
-6. To speed up re-runs or testing, pre-populate either config artifact file and the interactive collection phase will be skipped automatically
+2. Run `@Phase10-Step1-Setup-Remote-SSH` (in a **local** VS Code session) — it will check the Remote-SSH extension, configure `~/.ssh/config`, test SSH connectivity to the jumpbox, and write `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`
+3. Connect VS Code to the ZDM jumpbox via the **Remote-SSH** extension as the SSH user (e.g. `azureuser`) and re-open the repo
+4. Run `@Phase10-Step2-Install-ZDM` — it will optionally create the Azure VM, create the `zdmuser` OS account, install ZDM 26.1, and write `Artifacts/Phase10-Migration/Step2/zdm-install-report.md`
+5. Reconnect VS Code to the jumpbox as `zdmuser` (Remote-SSH) and re-open the repo
+6. Run `@Phase10-Step3-Configure-SSH-Connectivity` — it will interactively collect source host, target host, SSH users, SSH key paths, and application user names, then test connectivity and write `Artifacts/Phase10-Migration/Step3/ssh-config.md`
+7. Run `@Phase10-Step4-Generate-Discovery-Scripts` — it will interactively collect Oracle home paths, SIDs, unique names, and ZDM home, then run discovery and write `Artifacts/Phase10-Migration/Step4/db-config.md`
+8. To speed up re-runs or testing, pre-populate either config artifact file and the interactive collection phase will be skipped automatically
 
 ## Where Are You in the Migration?
 
@@ -56,11 +58,14 @@ For Phase 10 (ZDM migration), the workflow alternates between VS Code (prompt ge
 Local VS Code                     ZDM Jumpbox (Remote-SSH)
 ------------------------------    ------------------------------
 @ZDM-Step1 -> SSH setup (local)  -> writes remote-ssh-setup-report
-@ZDM-Step2 -> tests SSH inline   -> writes connectivity report
-@ZDM-Step3 -> runs discovery     -> writes discovery reports
-@ZDM-Step4 -> analyzes output    -> complete questionnaire manually
-@ZDM-Step5 -> fix scripts        -> run on ZDM -> iterate until clean
-@ZDM-Step6 -> generates RSP      -> copy to ZDM -> run migration
+                                  (reconnect as azureuser)
+@ZDM-Step3 -> VM + ZDM install   -> creates zdmuser, installs ZDM 26.1
+                                  (reconnect as zdmuser)
+@ZDM-Step4 -> tests SSH inline   -> writes connectivity report
+@ZDM-Step5 -> runs discovery     -> writes discovery reports
+@ZDM-Step6 -> analyzes output    -> complete questionnaire manually
+@ZDM-Step7 -> fix scripts        -> run on ZDM -> iterate until clean
+@ZDM-Step7 -> generates RSP      -> copy to ZDM -> run migration
 ```
 
 See [.github/prompts/Phase10-ZDM-Migration-Guide.md](.github/prompts/Phase10-ZDM-Migration-Guide.md) for the full swimlane diagram and prerequisites.

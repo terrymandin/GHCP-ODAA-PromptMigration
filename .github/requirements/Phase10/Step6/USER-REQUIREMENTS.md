@@ -1,67 +1,166 @@
-﻿# Step6 User Requirements - Generate Migration Artifacts
+﻿# Step7 User Requirements - Fix Issues
 
 ## Objective
 
-Generate final migration artifacts from Step4/Step5 outputs for execution on the jumpbox/ZDM server.
+Generate remediation and verification artifacts for blockers and required actions identified in Step6.
 
-## S6-01: Output contract
+## S7-01: Output contract
 
-Required generated files under `Artifacts/Phase10-Migration/Step6/`:
+Required generated artifacts under `Artifacts/Phase10-Migration/Step7/`:
 
-- `README.md`
-- `ZDM-Migration-Runbook.md`
-- `zdm_migrate.rsp`
-- `zdm_commands.sh`
+- `Issue-Resolution-Log.md`
+- `Scripts/fix_<issue-id>_<short-name>.sh` — one script per remediable issue (see S7-04 for naming)
+- `Scripts/fix_orchestrator.sh` — orchestrator that invokes individual fix scripts in dependency order
+- `Scripts/README-fix_<issue-id>_<short-name>.md` — one companion README per fix script
+- `Scripts/README-fix_orchestrator.md` — companion README for the orchestrator
+- `verify_fixes.sh` — verification script (run after fixes are applied)
+- `README.md` — step summary and review checklist
 
-## S6-02: Required input artifacts
+Non-remediable issues (e.g., provisioning changes requiring console action) must be documented in `Issue-Resolution-Log.md` with manual steps only — no script is generated for them.
 
-1. `Artifacts/Phase10-Migration/Step4/Migration-Decisions.md`
-2. `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md`
-3. `Artifacts/Phase10-Migration/Step5/Verification-Results.md` (when available)
-4. Relevant Step3 discovery outputs
+## S7-02: Iterative operation model
 
-## S6-03: README generated items
+1. Step7 supports repeated cycles until blockers are resolved.
+2. Each iteration updates issue tracking and verification outcomes.
 
-`README.md` should include at least:
+## S7-03: Issue-Resolution-Log generated items
 
-1. Migration overview and assumptions.
-2. Prerequisites checklist (including Step5 blocker resolution state when available).
-3. Generated artifact index and how each file is used.
-4. Quick-start execution flow from evaluation to migration and validation.
-5. Security and credential handling notes.
+`Issue-Resolution-Log.md` should include at least:
 
-## S6-04: Runbook generated items
+1. Issue register with IDs, severity, owner, status, and last-updated timestamp.
+2. For each issue: evidence, remediation plan, verification method, and rollback notes.
+3. Iteration history showing what changed between remediation cycles.
+4. Explicit unresolved items and blockers preventing Step7 progression.
 
-`ZDM-Migration-Runbook.md` should include at least:
+## S7-04: Remediation package generated items
 
-1. Pre-migration checklist and validation commands.
-2. Source configuration tasks.
-3. Target configuration tasks.
-4. ZDM server preparation tasks (including admin-user to zdmuser flow).
-5. Migration execution, monitoring, pause/resume, and switchover guidance.
-6. Post-migration validation and rollback procedures.
-7. Datapatch failure recovery section (required when `PLATFORM_TYPE` is `EXACS` or `EXACC`): include a clearly labeled section titled "Datapatch Failure Recovery (ZDM_DATAPATCH_TGT)" that covers:
-   - How to identify a `ZDM_DATAPATCH_TGT FAILED` status using `zdmcli query jobid <jobid>`.
-   - Manual datapatch execution steps: SSH to each target node, set Oracle environment, run `sudo -u oracle $ORACLE_HOME/OPatch/datapatch -verbose` as oracle, and capture the log.
-   - Common failure causes: missing prerequisite patches on target home, `sqlpatch.pm` incompatibility (MOS 1609718.1), stale datapatch registry entries.
-   - Remediation for the `sqlpatch.pm` / `Unsupported named object type` error: apply the MOS 1609718.1 patch to the target Oracle home before re-running datapatch.
-   - How to resume the ZDM job after manual datapatch completes: `zdmcli resume jobid <jobid>`.
-   - Note that skipping datapatch leaves the target database in an inconsistent patch state and is not supported for production use.
+### Per-issue fix script naming
 
-## S6-05: Iterate until `zdm -eval` succeeds or user skips
+Each remediable issue gets exactly one script:
 
-`zdm -eval` is **Layer 3** in the CR-14 three-layer pre-validation model. It must only be submitted after Layer 1 (infrastructure) and Layer 2 (database prerequisite queries) have both passed. It is the final and authoritative gatekeeper for ZDM-internal checks that cannot be externally reproduced.
+```
+Scripts/fix_<issue-id>_<short-name>.sh
+```
 
-After running `zdm -eval`, the agent must not proceed to migration execution until the evaluation phase passes. The expected behavior is:
+Examples:
+- `fix_B01_enable_archivelog.sh`
+- `fix_B02_create_spfile.sh`
+- `fix_W01_upgrade_timezone.sh`
 
-1. Confirm Layer 1 (`preflight_l1_infrastructure.sh`) and Layer 2 (compatibility gate in Step4 + `verify_fixes.sh` from Step5) have both passed before submitting. If either layer has outstanding failures, surface them and stop.
-2. Run the `zdm -eval` command and capture its output.
-3. If the evaluation **succeeds** (all phases show `PRECHECK_PASSED`), continue to the next step.
-4. If the evaluation **fails**, triage the failure against the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A):
-   - If the failure maps to a **Layer 1 check** in the catalog: fix at Layer 1 (regenerate `preflight_l1_infrastructure.sh` or apply the fix directly), re-run Layer 1, then re-run `zdm -eval`.
-   - If the failure maps to a **Layer 2 check** in the catalog: generate or update the relevant fix script from Step5 conventions, apply the fix, re-run `verify_fixes.sh`, then re-run `zdm -eval`.
-   - If the failure is **not in the catalog**: add it to the catalog file under the appropriate layer, noting it as `[zdm-eval-feedback <date>]` per CR-14-D. Then apply the fix and re-run `zdm -eval`. This keeps the catalog growing with real-world failures so future runs catch the issue earlier.
-5. Repeat the fix-and-retry loop until either:
-   - The `zdm -eval` exits successfully, **or**
-   - The user explicitly instructs the agent to **skip** the evaluation.
-6. If the user skips, log the skip decision and the outstanding eval errors in `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md` before continuing.
+Well-known infrastructure fix scripts for ZDM issues (generate when the corresponding Step6 gate fires):
+- `fix_W04_zdm_host_hosts_resolution.sh` — adds unresolvable target RAC node entries to `/etc/hosts` on the ZDM jumpbox; scope: `OS` on ZDM host.
+- `fix_W05_source_oracle_sudo.sh` — validates and configures sudoers on the source host for the ZDM `zdmauth` oracle sudo pattern; scope: `OS` on source host.
+- `fix_W06_datapatch_prereq_check.sh` — runs `datapatch -prereqs` on all target RAC nodes and reports full output; surfaces MOS 1609718.1 sqlpatch.pm compatibility issues before ZDM reaches `ZDM_DATAPATCH_TGT`; scope: diagnostic/read-only.
+
+`<issue-id>` uses the Issue-Resolution-Log ID. `<short-name>` is a 2–4 word snake_case description.
+
+### Orchestrator script
+
+`fix_orchestrator.sh` must:
+1. List all fix scripts it will invoke, in dependency order, at the top as comments.
+2. Invoke each fix script individually (not source them) so failures are isolated.
+3. Log pass/fail status per script to stdout.
+4. Stop on first BLOCKER-category failure unless `--continue-on-error` flag is passed.
+5. Accept an optional `--dry-run` flag that prints what would be executed without running anything.
+
+### Companion README per fix script
+
+For each `fix_<issue-id>_<short-name>.sh`, generate `README-fix_<issue-id>_<short-name>.md` containing:
+
+1. Issue ID and severity (BLOCKER / WARNING).
+2. Target server (`zdm-server`, `source-db`, or `target-db`) and rationale (see S7-05).
+3. Prerequisites and required environment variables.
+4. Step-by-step behavior summary.
+5. Exact execution command and required runtime user.
+6. Expected output or success indicators.
+7. Rollback/undo guidance when applicable.
+
+## S7-05: Target-first remediation preference
+
+When a compatibility fix can be applied to either the source or the target database, **generate the script for the target database**. Do not generate source-side scripts unless the fix is source-only by nature.
+
+Source-only fixes (always generate against source):
+- Enabling `ARCHIVELOG` mode
+- Creating/switching to SPFILE
+- RMAN configuration (`CONTROLFILE AUTOBACKUP`, snapshot controlfile location)
+- Source TDE wallet creation or key management (when target TDE is not yet applicable)
+
+Target-preferred fixes (generate against target even if source could also be changed):
+- `COMPATIBLE` parameter alignment — set source value on target (lowering source is not supported)
+- Timezone file upgrade — upgrade target to match or exceed source
+- `/tmp` execute permission — remediate on target (and source if also failing)
+- `SQLNET.ORA` encryption algorithm alignment — update target to match source
+- TDE wallet status — open/configure on target
+
+Each companion README must explicitly state which server the script targets and why (source-only by nature, or target-preferred per this policy).
+
+## S7-06: Scope classification and blast-radius awareness
+
+Each fix script must be assigned a **scope** based on the broadest system component it modifies:
+
+| Scope | Meaning | Examples |
+|-------|---------|----------|
+| `DATABASE` | Affects only the named database instance | `COMPATIBLE` parameter, ARCHIVELOG mode, SPFILE creation, TDE wallet, RMAN config |
+| `ORACLE-HOME` | Affects all databases sharing this Oracle Home | `SQLNET.ORA` encryption settings, timezone file upgrade |
+| `OS` | Affects all processes on the host | `/tmp` mount flags |
+
+Scope must be declared in:
+1. The `# TARGET:` header block of the fix script (add `# SCOPE: DATABASE | ORACLE-HOME | OS`).
+2. The companion `README-fix_<issue-id>_<short-name>.md` as a **Scope** field (with a plain-English explanation of what else on the server could be affected).
+3. The S7-07 script inventory table as a **Scope** column.
+
+When any `ORACLE-HOME` or `OS` scope scripts are present, they must be explicitly listed in the S7-11 risk banner before execution options are presented.
+
+## S7-07: Execution model and user choice
+
+After all scripts are generated and written to disk, present the user with a **script inventory table** and an explicit choice:
+
+```
+Generated fix scripts
+---------------------
+| Script | Target | Severity | Summary |
+|--------|--------|----------|---------|
+| fix_B01_enable_archivelog.sh | source-db | BLOCKER | Enable ARCHIVELOG mode on source |
+| fix_B02_compatible_param.sh  | target-db | BLOCKER | Set COMPATIBLE=12.2.0 on target  |
+| fix_W01_upgrade_timezone.sh  | target-db | WARNING | Upgrade DST timezone file        |
+| fix_orchestrator.sh          | all       | —        | Run all fixes in order           |
+
+Options:
+  A (default) — Review scripts individually and run selectively outside this prompt.
+  B — Say "run all" to execute all scripts via the orchestrator.
+  C — Say "run fix_<id>" (e.g., "run fix_B01") to execute a specific script inline.
+```
+
+Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu. See S7-12 for execution constraints.
+
+## S7-08: Layer 1 infrastructure pre-flight checks (no DB credentials required)
+
+In addition to database-level fix scripts, Step7 must generate and execute a Layer 1 infrastructure pre-flight check script that validates all CR-14 Layer 1 items. This script runs via SSH and OS commands only — no database connections.
+
+### Output contract
+
+- `Scripts/preflight_l1_infrastructure.sh` — Layer 1 pre-flight check script
+- `Scripts/README-preflight_l1_infrastructure.md` — companion README
+- Results appended to `Verification-Results.md` under a `### Layer 1 Infrastructure Pre-flight` section
+
+### Layer 1 checks (doc-derived from catalog)
+
+The specific checks that `preflight_l1_infrastructure.sh` must perform are read from the **Layer 1** section of the CR-14 prerequisite catalog file. Apply the CR-14-A version lookup protocol to read the correct catalog file before generating this script. Do not use `fetch_webpage`.
+
+Do not hardcode the check list in this requirement. The script generator must:
+1. Apply the CR-14-A version lookup protocol: determine the ZDM version and migration method, then read the matching catalog file from `.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md` using `read_file`.
+2. For each row in the "Layer 1 — Infrastructure" section, generate a corresponding shell check using the verification command from the catalog row.
+3. Label each check in the script output with the check name and doc section from the catalog row so a human can trace it back to the ZDM documentation.
+
+### Script behavior rules
+
+1. Each check must report `[PASS]`, `[FAIL]`, or `[SKIP]` with a one-line explanation.
+2. Script must not abort on first failure — run all checks and summarize at the end.
+3. Exit code 0 if all checks pass; non-zero if any check fails.
+4. All failures must include the exact command that failed and the output received.
+5. Results must be machine-parseable: prefix each result line with `L1_CHECK:<check-name>:<status>`.
+6. At the top of the script, include a comment block listing the catalog file path and the date the script was generated from it.
+
+### Relationship to database fix scripts
+
+Layer 1 failures are **blocking** — do not execute database fix scripts (`fix_orchestrator.sh`) until all Layer 1 checks pass. Surface L1 failures to the user with remediation guidance from the catalog row's `[ZDM doc section]` column (per CR-14-C) before presenting the S7-07 database fix menu.

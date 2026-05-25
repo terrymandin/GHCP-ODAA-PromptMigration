@@ -1,4 +1,4 @@
----
+﻿---
 mode: agent
 description: Generate or update Phase10 StepX prompt files from requirements
 ---
@@ -15,11 +15,11 @@ Use this meta prompt to generate or update the StepX prompt files directly from 
 > Which step do you want to regenerate?
 >
 > - **1** — Step 1: Setup Remote SSH
-> - **2** — Step 2: Configure SSH Connectivity
-> - **3** — Step 3: Generate Discovery Scripts
-> - **4** — Step 4: Discovery Questionnaire
-> - **5** — Step 5: Fix Issues
-> - **6** — Step 6: Generate Migration Artifacts
+> - **2** — Step 4: Configure SSH Connectivity
+> - **3** — Step 5: Generate Discovery Scripts
+> - **4** — Step 6: Discovery Questionnaire
+> - **5** — Step 7: Fix Issues
+> - **6** — Step 7: Generate Migration Artifacts
 > - **All** — Regenerate all steps in sequence (1 through 6)
 >
 > Type a number or "All".
@@ -73,11 +73,12 @@ The selected Step is inferred from the attached `StepX/USER-REQUIREMENTS.md` or 
 | Step | Prompt file | Requirements files |
 |------|-------------|-------------------|
 | 1 | `.github/prompts/Phase10-Step1-Setup-Remote-SSH.prompt.md` | `Step1/USER-REQUIREMENTS.md`, `Step1/SYSTEM-REQUIREMENTS.md` |
-| 2 | `.github/prompts/Phase10-Step2-Configure-SSH-Connectivity.prompt.md` | `Step2/USER-REQUIREMENTS.md`, `Step2/SYSTEM-REQUIREMENTS.md` |
-| 3 | `.github/prompts/Phase10-Step3-Generate-Discovery-Scripts.prompt.md` | `Step3/USER-REQUIREMENTS.md`, `Step3/SYSTEM-REQUIREMENTS.md` |
-| 4 | `.github/prompts/Phase10-Step4-Discovery-Questionnaire.prompt.md` | `Step4/USER-REQUIREMENTS.md`, `Step4/SYSTEM-REQUIREMENTS.md` |
-| 5 | `.github/prompts/Phase10-Step5-Fix-Issues.prompt.md` | `Step5/USER-REQUIREMENTS.md`, `Step5/SYSTEM-REQUIREMENTS.md` |
-| 6 | `.github/prompts/Phase10-Step6-Generate-Migration-Artifacts.prompt.md` | `Step6/USER-REQUIREMENTS.md`, `Step6/SYSTEM-REQUIREMENTS.md` |
+| 2 | `.github/prompts/Phase10-Step2-Install-ZDM.prompt.md` | `Step2/USER-REQUIREMENTS.md`, `Step2/SYSTEM-REQUIREMENTS.md` |
+| 3 | `.github/prompts/Phase10-Step3-Configure-SSH-Connectivity.prompt.md` | `Step3/USER-REQUIREMENTS.md`, `Step3/SYSTEM-REQUIREMENTS.md` |
+| 4 | `.github/prompts/Phase10-Step4-Generate-Discovery-Scripts.prompt.md` | `Step4/USER-REQUIREMENTS.md`, `Step4/SYSTEM-REQUIREMENTS.md` |
+| 5 | `.github/prompts/Phase10-Step5-Discovery-Questionnaire.prompt.md` | `Step5/USER-REQUIREMENTS.md`, `Step5/SYSTEM-REQUIREMENTS.md` |
+| 6 | `.github/prompts/Phase10-Step6-Fix-Issues.prompt.md` | `Step6/USER-REQUIREMENTS.md`, `Step6/SYSTEM-REQUIREMENTS.md` |
+| 7 | `.github/prompts/Phase10-Step7-Generate-Migration-Artifacts.prompt.md` | `Step7/USER-REQUIREMENTS.md`, `Step7/SYSTEM-REQUIREMENTS.md` |
 
 All requirement files live under `.github/requirements/Phase10/`. The shared file is always `.github/requirements/Phase10/Shared/COMMON-REQUIREMENTS.md`.
 
@@ -88,11 +89,11 @@ All requirement files live under `.github/requirements/Phase10/`. The shared fil
 When the user selects "All":
 
 1. Read `Shared/COMMON-REQUIREMENTS.md` once.
-2. Process each step in order (1 → 6), reading each step's `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md` and regenerating its prompt file.
+2. Process each step in order (1 → 7), reading each step's `USER-REQUIREMENTS.md` and `SYSTEM-REQUIREMENTS.md` and regenerating its prompt file.
 3. After each step, confirm the file was updated before moving to the next.
-4. After all six steps, produce a single summary table showing what changed in each.
+4. After all seven steps, produce a single summary table showing what changed in each.
 
-Do not ask the user for confirmation between steps — process all six sequentially and report at the end.
+Do not ask the user for confirmation between steps — process all seven sequentially and report at the end.
 
 ---
 

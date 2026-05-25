@@ -606,8 +606,8 @@ For each database identified in Phase 1, perform detailed assessment:
 
 **Rollback Procedure**:
 1. [Step 1]
-2. [Step 2]
-3. [Step 3]
+2. [Step 4]
+3. [Step 5]
 4. [Validation steps]
 
 **Rollback Time Estimate**: [Hours]
@@ -997,8 +997,8 @@ gantt
 
 **Recommended Next Steps**:
 1. [Step 1]
-2. [Step 2]
-3. [Step 3]
+2. [Step 4]
+3. [Step 5]
 
 **Expected Migration Timeline**: [Months]
 **Expected Benefits**: [List key benefits]

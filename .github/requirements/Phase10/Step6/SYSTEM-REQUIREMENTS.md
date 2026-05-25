@@ -1,82 +1,81 @@
-﻿# Step6 System Requirements - Migration Artifact Implementation
+﻿# Step7 System Requirements - Remediation Script Implementation
 
 ## Scope
 
-This file defines implementation-level constraints for generated Step5 runtime artifacts.
+This file defines script-level coding constraints for remediation and verification artifacts generated in Step7.
 
-## S6-06: Runtime portability constraints
+## S7-08: Runtime user model
 
-1. Generated artifacts must not require `zdm-env.md` at runtime.
-2. Document admin login flow (`ZDM_ADMIN_USER` then `sudo su - zdmuser`).
+1. All scripts run from the ZDM jumpbox as `zdmuser`.
+2. Each script must include a user guard at the top that exits non-zero when not running as `zdmuser`:
+   ```bash
+   [ "$(id -un)" = "zdmuser" ] || { echo "ERROR: must run as zdmuser"; exit 1; }
+   ```
+3. Each script header must declare its target with a comment on the first non-shebang line:
+   ```bash
+   # TARGET: zdm-server | source-db | target-db
+   ```
+4. Scripts targeting `source-db` or `target-db` execute their payload via SSH from the jumpbox, using the SSH connectivity variables from `Artifacts/Phase10-Migration/Step6/ssh-config.md` (same pattern as Step5 discovery). They must not assume a direct local connection to those hosts.
+5. Scripts targeting `zdm-server` execute locally on the jumpbox.
 
-## S6-07: Environment variable model
+## S7-09: Quoting and SQL execution safety
 
-1. Use environment variables for OCI identifiers and sensitive values.
-2. Generated RSP and command artifacts must reference env vars and include validation guidance.
+1. For SSH-based SQL helpers, use base64-wrapped SQL block execution to avoid shell quoting breakage.
+2. Normalize optional SSH keys and conditionally include `-i` only when key is set and non-placeholder.
 
-## S6-08: Version readiness gate
+## S7-10: Verification output
 
-1. Include ZDM latest-stable verification as a pre-migration gate.
-2. If ZDM version is outdated/undetermined, include a mandatory upgrade verification phase before migration execution.
+1. `verify_fixes.sh` tracks per-issue PASS/FAIL/WARN status.
+2. Verification writes structured markdown results to `Verification-Results.md` for Step7 consumption.
 
-## S6-09: RSP generated items
+## S7-11: Pre-execution risk banner and acknowledgment gate
 
-`zdm_migrate.rsp` should include:
+Before displaying the S7-07 execution menu, the prompt must always display the following risk banner. The banner is mandatory — it must not be skipped or abbreviated.
 
-1. Complete migration parameter set aligned to questionnaire decisions.
-2. Environment-variable based references for sensitive and tenant-specific values.
-3. Settings conditioned by migration type (online/offline) and discovered posture.
+```
+⚠ ENVIRONMENT SAFETY WARNING
 
-## S6-10: Command script generated items
+These Copilot agent prompts are intended to run in development/non-production
+environments only. Do not run this prompt directly against a production system.
 
-`zdm_commands.sh` should include:
+Generated scripts are safe to copy to production once reviewed and tested in
+development. For production use: review scripts, copy them to the production
+host, and run manually — do not re-run this prompt on production.
 
-1. Ordered command flow for precheck/evaluation/migration/monitoring.
-2. Guardrails and prerequisites checks before destructive phases.
-3. Clear placeholders or env var references for required runtime values.
-4. A standalone sample `zdmcli migrate database` call that can be executed directly (outside the wrapper script) for troubleshooting or manual execution.
-5. When Step4 flagged the PATCH_CHECK gate as WARNING (target RU > source RU with individually-named source patches), include `-ignore PATCH_CHECK` in both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands. Precede each command with a comment block that explains: (a) why the flag is present, (b) that the source one-off patches are subsumed by the higher target Release Update and are not individually required, and (c) that this is the expected and documented approach when the target is at a higher RU than the source. This prevents operators from needing to diagnose repeated PRGT-1017 eval failures before discovering the flag.
+[If any ORACLE-HOME or OS scope scripts exist, list them here:]
+  The following scripts affect Oracle Home or OS level settings and will impact
+  ALL databases sharing that Oracle Home or host — not just the migration target:
+    - <script_name>  →  <ORACLE-HOME | OS> scope  (<what it changes>)
 
-## S6-11: -sourcenode value must be the source database host
+Type CONFIRM to proceed to the execution menu, or press Enter to review scripts
+manually (Option A — no execution).
+```
 
-1. The `-sourcenode` parameter in `zdmcli migrate database` must always be set to `$SOURCE_HOST` (the source database hostname captured in `ssh-config.md`).
-2. Never set `-sourcenode` to the ZDM jumpbox hostname. ZDM's `-sourcenode` identifies the host running the source Oracle instance, not the host running ZDM. Using the ZDM host causes PRGZ-3928 because ZDM cannot find the source instance there.
-3. Add an inline comment in `zdm_commands.sh` adjacent to `-sourcenode` that states: `# -sourcenode must be the source DB host, not the ZDM jumpbox host`.
+Behavior rules:
+1. Always show the banner before the S7-07 menu, even on subsequent iterations of Step7.
+2. If no `ORACLE-HOME` or `OS` scope scripts are present, omit the blast-radius paragraph but keep the rest of the banner.
+3. Do not display the S7-07 execution options until the user types `CONFIRM`.
+4. If the user does not type `CONFIRM` (presses Enter or provides any other input), default to Option A (review only — no execution).
 
-## S6-12: -sourcesid vs -sourcedb selection based on SOURCE_GI_TYPE
+## S7-12: Default no-execution — conditional execution on explicit user request
 
-1. Read `SOURCE_GI_TYPE` from `Artifacts/Phase10-Migration/Step3/db-config.md` (set by Step3 source discovery).
-2. If `SOURCE_GI_TYPE=grid`: use `-sourcedb $SOURCE_DATABASE_UNIQUE_NAME` in `zdmcli migrate database`. This is required when the source database is registered with Grid Infrastructure/srvctl.
-3. If `SOURCE_GI_TYPE=standalone` or blank: use `-sourcesid $SOURCE_ORACLE_SID` in `zdmcli migrate database`.
-4. Using the wrong flag for the source configuration causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` that documents which flag was chosen and why.
+1. Remediation scripts and the verification script are **generated and saved to disk only** by default.
+2. The prompt must **not execute** any remediation or verification script unless the user explicitly requests execution after seeing the S7-07 script inventory and choice menu.
+3. Explicit execution triggers:
+   - `run all` — invoke `fix_orchestrator.sh` inline via the terminal.
+   - `run fix_<id>` (e.g., `run fix_B01`) — invoke the matching `fix_<issue-id>_*.sh` script inline.
+4. When executing a script inline:
+   - Display the exact command being run before executing it.
+   - Capture stdout and stderr and display them in the chat.
+   - Record the exit code and execution timestamp in `Issue-Resolution-Log.md`.
+   - After execution, run `verify_fixes.sh` automatically for the affected issue(s) and report PASS/FAIL.
+5. Never execute a script silently or without prior display of the S7-07 menu.
 
-## S6-13: RSP parameter name validation against ZDM 26.1
+## S7-13: Verification-Results generated items
 
-1. All RSP parameter names written to `zdm_migrate.rsp` must match the names published in the ZDM 26.1 documentation and the Layer 0 table in the loaded prerequisite catalog (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`).
-2. Do not use pre-26.x parameter names or aliases. Legacy parameter names are silently ignored by ZDM 26.1, causing PRGZ-3127 (unrecognized or ignored parameter) without error messages that identify the cause.
-3. Before finalizing `zdm_migrate.rsp`, cross-check each parameter name against the Layer 0 RSP mappings in the loaded catalog file. Flag any parameter not found in the catalog as `[UNVERIFIED — confirm against ZDM 26.1 docs]` in a comment above the parameter.
-4. Known parameter name changes to enforce:
-   - Use `TGT_REDODG` (not any legacy disk group alias).
-   - Use `TGT_RECODG` (not any legacy recovery disk group alias).
-   - Use `PLATFORM_TYPE` values `EXACS`, `EXACC`, `VMDB`, `NON_CLOUD` exactly as documented.
+`Verification-Results.md` should include:
 
-## S6-14: Auto-include -tdekeystorepasswd when wallet type is PASSWORD
-
-1. Read the TDE wallet type from Step3 discovery evidence (the `WALLET_TYPE` column from `v$encryption_wallet`).
-2. If `WALLET_TYPE=PASSWORD` on the source database: add `-tdekeystorepasswd` to the `zdmcli migrate database` (and `-eval`) command with a placeholder for the wallet password (e.g., `$TDE_KEYSTORE_PASSWORD`). Do not embed the password literally.
-3. If `WALLET_TYPE=AUTOLOGIN`: omit `-tdekeystorepasswd`.
-4. Omitting `-tdekeystorepasswd` when the wallet type is PASSWORD causes PRGZ-3111 (keystore password required). Add an inline comment in `zdm_commands.sh` that states which wallet type was detected and why the flag is or is not present.
-
-## S6-15: DB_NAME_CHECK ignore for ODAA when DB names differ
-
-1. Compare source `DB_NAME` (from Step3 source discovery, `SELECT name FROM v$database`) against target `DB_NAME` (from Step3 target discovery).
-2. If `PLATFORM_TYPE` is `EXACS` or `EXACC` AND source `DB_NAME` ≠ target `DB_NAME`: add `-ignore DB_NAME_CHECK` to both the `zdmcli migrate database -eval` and `zdmcli migrate database` commands.
-3. Precede the command with a comment block explaining: (a) that ODAA/ExaCS targets are sometimes provisioned with a DB_NAME that differs from the source (e.g., different case or provisioning default), (b) that this flag suppresses the DB_NAME equality check, (c) that the operator must confirm the DB_NAME difference is intentional before proceeding.
-4. Do not add `-ignore DB_NAME_CHECK` when `PLATFORM_TYPE=VMDB` or when DB names already match — it is not needed and may mask a real provisioning error.
-
-## S6-16: TGT_SSH_TUNNEL_PORT — omit when direct SQL*Net connectivity works
-
-1. Before including `TGT_SSH_TUNNEL_PORT` in `zdm_migrate.rsp`, verify whether Layer 1 infrastructure checks confirmed that direct SQL*Net connectivity from source to target SCAN port 1521 succeeded (check `nc -zv $TARGET_SCAN_ADDR 1521` result from Step3/Step5 discovery or Layer 1 check output).
-2. If direct SQL*Net connectivity was confirmed: do NOT include `TGT_SSH_TUNNEL_PORT` in the RSP. Adding this parameter when direct connectivity works causes `localhost:<port>` precheck failures because ZDM routes traffic through a local tunnel that was never established.
-3. If direct SQL*Net connectivity failed and an SSH tunnel was set up: include `TGT_SSH_TUNNEL_PORT` with the configured local port.
-4. Add an inline comment in `zdm_migrate.rsp` adjacent to where `TGT_SSH_TUNNEL_PORT` would appear, documenting the decision (present or absent) and the connectivity check result that drove it.
+1. Per-issue status table (PASS/FAIL/WARN).
+2. Evidence detail per issue (what was checked and observed values).
+3. Overall blocker resolution result indicating Step7 readiness.
+4. Remaining warnings/recommendations that are not hard blockers.

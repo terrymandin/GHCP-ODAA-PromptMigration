@@ -1,8 +1,8 @@
 ﻿---
 mode: agent
-description: ZDM Step 2 - Collect SSH configuration and test connectivity to source and target from the ZDM jumpbox
+description: ZDM Step 3 - Collect SSH configuration and test connectivity to source and target from the ZDM jumpbox
 ---
-# ZDM Migration Step 2: Configure SSH Connectivity
+# ZDM Migration Step 3: Configure SSH Connectivity
 
 ## Purpose
 
@@ -48,10 +48,10 @@ once reviewed and tested — run them manually there.
 Before prompting for any input, check whether the SSH configuration artifact already exists:
 
 ```bash
-ls -la Artifacts/Phase10-Migration/Step2/ssh-config.md
+ls -la Artifacts/Phase10-Migration/Step3/ssh-config.md
 ```
 
-**Resolution order (S2-10):**
+**Resolution order (S3-10):**
 
 1. **`ssh-config.md` exists** → Read and use its values directly. Display a confirmation summary of the loaded values and proceed to [Phase 3: SSH Key Validation](#phase-3-ssh-key-validation) — skip interactive collection.
 2. **`zdm-env.md` is explicitly attached** (and `ssh-config.md` does not exist) → Parse its values as a legacy override and display a confirmation summary. Skip interactive collection. Proceed to [Phase 4: Write ssh-config.md](#phase-4-write-ssh-config.md).
@@ -75,37 +75,48 @@ If the output does not show `zdmuser`, stop immediately and ask the user to reco
 
 *(Skip this phase if `ssh-config.md` or `zdm-env.md` was used in the bypass check above.)*
 
-Collect values in logical groups, presenting defaults where applicable:
+Post all questions as a **numbered list in a single chat message** (CR-16-A). Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog. Number questions sequentially across all groups.
 
-### Group 1: Remote Server Hosts
+Post this exact question block:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_HOST` | IP address or FQDN of the **source** database server | `10.0.0.10` or `source-db.example.com` |
-| `TARGET_HOST` | IP address or FQDN of the **target** database server | `10.0.0.20` or `target-db.example.com` |
+---
 
-### Group 2: SSH Users
+**SSH Connectivity Configuration — please answer by number:**
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_SSH_USER` | SSH admin user for the source host | `azureuser`, `opc` |
-| `TARGET_SSH_USER` | SSH admin user for the target host | `azureuser`, `opc` |
+**Group 1 — Hosts**
+1. `SOURCE_HOST` — IP address or FQDN of the **source** database server (e.g. `10.0.0.10` or `source-db.example.com`)
+2. `TARGET_HOST` — IP address or FQDN of the **target** database server (e.g. `10.0.0.20` or `target-db.example.com`)
 
-### Group 3: SSH Keys (optional)
+**Group 2 — SSH Users**
+3. `SOURCE_SSH_USER` — SSH admin user for the source host (e.g. `azureuser`, `opc`)
+4. `TARGET_SSH_USER` — SSH admin user for the target host (e.g. `azureuser`, `opc`)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `SOURCE_SSH_KEY` | Path to SSH private key for the source host under `~/.ssh/` — leave blank to use agent/default auth | `~/.ssh/source_key.pem` |
-| `TARGET_SSH_KEY` | Path to SSH private key for the target host under `~/.ssh/` — leave blank to use agent/default auth | `~/.ssh/target_key.pem` |
+**Group 3 — SSH Keys** *(optional — leave blank for agent/default auth)*
+5. `SOURCE_SSH_KEY` — Path to SSH private key under `~/.ssh/` for source host (e.g. `~/.ssh/source_key.pem`)
+6. `TARGET_SSH_KEY` — Path to SSH private key under `~/.ssh/` for target host (e.g. `~/.ssh/target_key.pem`)
 
-### Group 4: Application Users
+**Group 4 — Application Users**
+7. `ORACLE_USER` — Oracle software owner user on the database servers *(default: `oracle`)*
+8. `ZDM_SOFTWARE_USER` — ZDM software user on the jumpbox *(default: `zdmuser`)*
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ORACLE_USER` | Oracle software owner user on the database servers | `oracle` |
-| `ZDM_SOFTWARE_USER` | ZDM software user on the jumpbox | `zdmuser` |
+*Reply with answers by number, e.g.:*
+```
+1: 10.1.0.11
+2: 10.1.0.12
+3: opc
+4: opc
+5: ~/.ssh/source_key.pem
+6:
+7: oracle
+8: zdmuser
+```
+*(Leave a line blank or omit to accept the default. Type `?` after any answer to learn more about that variable.)*
 
-**Per-variable validation rules (S2-11):**
+---
+
+Parse the user's reply and map each answer back to its variable by number. Accept any reply format — numbered (`1: value`), bullet, or prose — and extract values accordingly.
+
+**Per-variable validation rules (S3-11):**
 
 | Variable | Rule |
 |----------|------|
@@ -126,14 +137,14 @@ After collecting all values, display a full confirmation summary before writing 
 
 *(Skip this phase if `ssh-config.md` was loaded from the bypass check — the file already exists.)*
 
-After user confirmation of variable values, write `Artifacts/Phase10-Migration/Step2/ssh-config.md` using file tools **before** running any SSH tests.
+After user confirmation of variable values, write `Artifacts/Phase10-Migration/Step3/ssh-config.md` using file tools **before** running any SSH tests.
 
 Do not overwrite an existing `ssh-config.md` without explicit user confirmation.
 
-Use this exact format (S2-12):
+Use this exact format (S3-12):
 
 ```markdown
-# ZDM SSH Configuration — Generated by Step2
+# ZDM SSH Configuration — Generated by Step3
 ## Remote Server Hostnames
 - SOURCE_HOST: <value>
 - TARGET_HOST: <value>
@@ -154,7 +165,7 @@ Use this exact format (S2-12):
 After writing, confirm the file exists and is non-empty:
 
 ```bash
-ls -la Artifacts/Phase10-Migration/Step2/ssh-config.md
+ls -la Artifacts/Phase10-Migration/Step3/ssh-config.md
 ```
 
 ---
@@ -217,7 +228,7 @@ After 3 failed attempts per endpoint: stop, do not retry. Report exactly what wa
 
 After all SSH tests complete (regardless of PASS/FAIL), write both report files using file tools — not via shell script. Use timestamp format `YYYYMMDD-HHMMSS`.
 
-### Markdown report: `Artifacts/Phase10-Migration/Step2/Validation/ssh-connectivity-report-<timestamp>.md`
+### Markdown report: `Artifacts/Phase10-Migration/Step3/Validation/ssh-connectivity-report-<timestamp>.md`
 
 Required content:
 
@@ -231,7 +242,7 @@ Required content:
 3. **Overall status**: PASS (all endpoints succeeded) or FAIL (any endpoint failed).
 4. **Remediation steps** for any failures.
 
-### JSON report: `Artifacts/Phase10-Migration/Step2/Validation/ssh-connectivity-report-<timestamp>.json`
+### JSON report: `Artifacts/Phase10-Migration/Step3/Validation/ssh-connectivity-report-<timestamp>.json`
 
 Must be aligned with the markdown report. Required fields:
 
@@ -263,31 +274,31 @@ Must be aligned with the markdown report. Required fields:
 }
 ```
 
-**Report completeness check (S2-02A):** Both files must exist and be non-empty. Markdown and JSON values for `overall_status` and `failure_count` must match. If either check fails, do not proceed — fix and re-write.
+**Report completeness check (S3-02A):** Both files must exist and be non-empty. Markdown and JSON values for `overall_status` and `failure_count` must match. If either check fails, do not proceed — fix and re-write.
 
 ---
 
 ## Phase 7: Inline Chat Summary
 
-After writing the reports, summarize results directly in the chat (S2-06):
+After writing the reports, summarize results directly in the chat (S3-06):
 
 - **Source connectivity**: PASS/FAIL — remote hostname (on PASS) or error summary (on FAIL)
 - **Target connectivity**: PASS/FAIL — remote hostname (on PASS) or error summary (on FAIL)
 - **Overall**: PASS or FAIL
-- **Report location**: `Artifacts/Phase10-Migration/Step2/Validation/`
+- **Report location**: `Artifacts/Phase10-Migration/Step3/Validation/`
 
 Provide `cat` commands for the user to review the written reports:
 
 ```bash
-cat Artifacts/Phase10-Migration/Step2/Validation/ssh-connectivity-report-<timestamp>.md
-cat Artifacts/Phase10-Migration/Step2/Validation/ssh-connectivity-report-<timestamp>.json
+cat Artifacts/Phase10-Migration/Step3/Validation/ssh-connectivity-report-<timestamp>.md
+cat Artifacts/Phase10-Migration/Step3/Validation/ssh-connectivity-report-<timestamp>.json
 ```
 
 ---
 
 ## Manual SSH Reference Commands
 
-Include these commands in the chat output so users can independently verify connectivity outside of Copilot (S2-07):
+Include these commands in the chat output so users can independently verify connectivity outside of Copilot (S3-07):
 
 **Default key/agent mode (no key path provided):**
 ```bash
@@ -303,14 +314,14 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o
 
 ---
 
-## Write Step 2 Output Directory README
+## Write Step 3 Output Directory README
 
-Write `Artifacts/Phase10-Migration/Step2/README.md` using file tools (CR-07):
+Write `Artifacts/Phase10-Migration/Step3/README.md` using file tools (CR-07):
 
 ```markdown
-# Step 2 — SSH Connectivity Outputs
+# Step 3 — SSH Connectivity Outputs
 
-This directory contains artifacts generated by Step 2 of the ZDM Phase 10 migration workflow.
+This directory contains artifacts generated by Step 3 of the ZDM Phase 10 migration workflow.
 
 ## Files
 
@@ -324,7 +335,7 @@ This directory contains artifacts generated by Step 2 of the ZDM Phase 10 migrat
 
 ## Notes
 
-- `ssh-config.md` is the authoritative SSH config artifact for subsequent steps. If you need to change connectivity values, edit this file and re-run Step 2.
+- `ssh-config.md` is the authoritative SSH config artifact for subsequent steps. If you need to change connectivity values, edit this file and re-run Step 3.
 - Validation reports capture the SSH test results for source and target endpoints.
 - All files are git-ignored and not committed.
 
@@ -334,31 +345,31 @@ Both source and target SSH connectivity tests return exit code 0 (PASS) and the 
 
 ## Next Actions
 
-When SSH connectivity is confirmed PASS for both endpoints, run `@Phase10-Step3-Generate-Discovery-Scripts` in this Remote-SSH session.
+When SSH connectivity is confirmed PASS for both endpoints, run `@Phase10-Step4-Generate-Discovery-Scripts` in this Remote-SSH session.
 ```
 
 ---
 
 ## Optional Debug Script
 
-If direct inline terminal commands are insufficient (for example, multi-step key diagnostics require a script), generate `Artifacts/Phase10-Migration/Step2/Scripts/zdm_test_ssh_connectivity.sh` and leave it in place for debugging. The primary validation reports must still be written using file tools — not via the script.
+If direct inline terminal commands are insufficient (for example, multi-step key diagnostics require a script), generate `Artifacts/Phase10-Migration/Step3/Scripts/zdm_test_ssh_connectivity.sh` and leave it in place for debugging. The primary validation reports must still be written using file tools — not via the script.
 
 If the script is generated:
-- Shell-safe report rendering applies (S2-08): use `printf -- '...\n'` or `%s`-based formatting to avoid `printf` option parsing errors on leading-dash literals.
-- Report write verification applies (S2-09): after writing, verify both markdown and JSON files exist, are non-empty, and have matching `overall_status` and `failure_count`. Exit non-zero if any verification fails.
-- Syntax validation required (CR-11): run `bash -n Artifacts/Phase10-Migration/Step2/Scripts/zdm_test_ssh_connectivity.sh` before using the script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
+- Shell-safe report rendering applies (S3-08): use `printf -- '...\n'` or `%s`-based formatting to avoid `printf` option parsing errors on leading-dash literals.
+- Report write verification applies (S3-09): after writing, verify both markdown and JSON files exist, are non-empty, and have matching `overall_status` and `failure_count`. Exit non-zero if any verification fails.
+- Syntax validation required (CR-11): run `bash -n Artifacts/Phase10-Migration/Step3/Scripts/zdm_test_ssh_connectivity.sh` before using the script. If `shellcheck` is available, run it and resolve actionable findings. Failed validation is a stop-ship condition — fix and re-run until all checks pass. Include validation evidence (checks run and pass/fail status) in the inline summary.
 
 ---
 
 ## Success Criteria
 
-Step 2 is complete when all of the following are true:
+Step 3 is complete when all of the following are true:
 
 1. Session confirmed as `zdmuser`.
-2. `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists and is non-empty with all required variables populated.
+2. `Artifacts/Phase10-Migration/Step3/ssh-config.md` exists and is non-empty with all required variables populated.
 3. SSH key permissions are verified (or corrected to `600`) for each specified key.
 4. Both source and target SSH connectivity tests pass (exit code 0), **or** the user acknowledges a failure and opts to proceed manually.
-5. Both `ssh-connectivity-report-<timestamp>.md` and `ssh-connectivity-report-<timestamp>.json` are written in `Artifacts/Phase10-Migration/Step2/Validation/` and are non-empty with matching overall status.
+5. Both `ssh-connectivity-report-<timestamp>.md` and `ssh-connectivity-report-<timestamp>.json` are written in `Artifacts/Phase10-Migration/Step3/Validation/` and are non-empty with matching overall status.
 6. Results are summarized inline in the chat.
 
 ---
@@ -369,11 +380,11 @@ All outputs are git-ignored and not committed.
 
 | File | Description |
 |------|-------------|
-| `Artifacts/Phase10-Migration/Step2/ssh-config.md` | SSH configuration artifact — consumed by Steps 3–6 as read-only input |
-| `Artifacts/Phase10-Migration/Step2/Validation/ssh-connectivity-report-<timestamp>.md` | Connectivity validation report (markdown) |
-| `Artifacts/Phase10-Migration/Step2/Validation/ssh-connectivity-report-<timestamp>.json` | Connectivity validation report (JSON) |
-| `Artifacts/Phase10-Migration/Step2/README.md` | Step 2 output directory index |
-| `Artifacts/Phase10-Migration/Step2/Scripts/zdm_test_ssh_connectivity.sh` | Optional debug script (only if inline commands insufficient) |
+| `Artifacts/Phase10-Migration/Step3/ssh-config.md` | SSH configuration artifact — consumed by Steps 3–6 as read-only input |
+| `Artifacts/Phase10-Migration/Step3/Validation/ssh-connectivity-report-<timestamp>.md` | Connectivity validation report (markdown) |
+| `Artifacts/Phase10-Migration/Step3/Validation/ssh-connectivity-report-<timestamp>.json` | Connectivity validation report (JSON) |
+| `Artifacts/Phase10-Migration/Step3/README.md` | Step 3 output directory index |
+| `Artifacts/Phase10-Migration/Step3/Scripts/zdm_test_ssh_connectivity.sh` | Optional debug script (only if inline commands insufficient) |
 
 ---
 
@@ -381,4 +392,4 @@ All outputs are git-ignored and not committed.
 
 After SSH connectivity is confirmed for both source and target:
 
-> Run **`@Phase10-Step3-Generate-Discovery-Scripts`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.
+> Run **`@Phase10-Step4-Generate-Discovery-Scripts`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.

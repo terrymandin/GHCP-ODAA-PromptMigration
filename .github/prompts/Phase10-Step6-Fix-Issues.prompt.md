@@ -1,12 +1,12 @@
 ﻿---
 mode: agent
-description: ZDM Step 5 - Resolve blockers identified in Step 4 discovery analysis and produce a verified Issue Resolution Log before migration artifact generation
+description: ZDM Step 6 - Resolve blockers identified in Step 5 discovery analysis and produce a verified Issue Resolution Log before migration artifact generation
 ---
-# ZDM Migration Step 5: Fix Issues
+# ZDM Migration Step 6: Fix Issues
 
 ## Purpose
 
-This step generates remediation and verification artifacts for all blockers and required actions identified in the Step 4 Discovery Summary. **Iteration may be required** until all blockers are resolved.
+This step generates remediation and verification artifacts for all blockers and required actions identified in the Step 5 Discovery Summary. **Iteration may be required** until all blockers are resolved.
 
 Generated artifacts:
 - `Issue-Resolution-Log.md` — issue register with status, evidence, remediation plans, and iteration history
@@ -14,10 +14,10 @@ Generated artifacts:
 - `Scripts/fix_orchestrator.sh` — orchestrator that invokes individual fix scripts in dependency order
 - `Scripts/README-fix_<issue-id>_<short-name>.md` — companion README per fix script
 - `Scripts/README-fix_orchestrator.md` — companion README for the orchestrator
-- `Scripts/verify_fixes.sh` — generates `Verification-Results.md` for Step 6 consumption
+- `Scripts/verify_fixes.sh` — generates `Verification-Results.md` for Step 7 consumption
 - `README.md` — step summary and review checklist
 
-**Scripts are generated and saved to disk by default** (S5-09). Execution is the operator's responsibility after reviewing the generated artifacts. Conditional inline execution is available after the script inventory and risk banner are presented — see Part 5.
+**Scripts are generated and saved to disk by default** (S6-09). Execution is the operator's responsibility after reviewing the generated artifacts. Conditional inline execution is available after the script inventory and risk banner are presented — see Part 5.
 
 ---
 
@@ -25,16 +25,16 @@ Generated artifacts:
 
 This step runs under the **Remote-SSH execution model** (CR-03): VS Code is connected to the ZDM jumpbox as `zdmuser`, and Copilot generates all artifacts using file tools — **no scripts are executed during this prompt**.
 
-- All outputs are written to `Artifacts/Phase10-Migration/Step5/` (git-ignored). No generated files are committed or create PRs.
+- All outputs are written to `Artifacts/Phase10-Migration/Step6/` (git-ignored). No generated files are committed or create PRs.
 - OCI CLI is not required for this step or any Phase10 migration execution step (CR-06).
 - Generated scripts must not read, source, or parse config artifacts at runtime (CR-02).
 - **Environment scope (CR-13):** This prompt step is intended for **development and non-production environments only**. Do not run Copilot agent steps directly against production systems. Generated scripts are safe to copy to production once reviewed and tested in development — see the risk banner in Part 5 for the script promotion path.
 
 Input precedence rules (CR-01):
-1. `Artifacts/Phase10-Migration/Step4/Discovery-Summary.md` — primary evidence input (observed runtime state).
-2. `Artifacts/Phase10-Migration/Step4/Migration-Decisions.md` — confirmed RSP parameter decisions from Step 4.
-3. `Artifacts/Phase10-Migration/Step3/db-config.md` — DB and ZDM variable source for script generation.
-4. `Artifacts/Phase10-Migration/Step2/ssh-config.md` — SSH connectivity variables for script generation.
+1. `Artifacts/Phase10-Migration/Step5/Discovery-Summary.md` — primary evidence input (observed runtime state).
+2. `Artifacts/Phase10-Migration/Step5/Migration-Decisions.md` — confirmed RSP parameter decisions from Step 5.
+3. `Artifacts/Phase10-Migration/Step4/db-config.md` — DB and ZDM variable source for script generation.
+4. `Artifacts/Phase10-Migration/Step3/ssh-config.md` — SSH connectivity variables for script generation.
 5. `zdm-env.md` (when explicitly attached) — legacy override with higher precedence than step artifacts.
 6. If configured intent conflicts with discovery evidence, keep both: generate fixes aligned to the configured intent and explicitly document the mismatch and required verification step.
 7. Placeholder values containing `<...>` are treated as unset.
@@ -57,29 +57,29 @@ once reviewed and tested — run them manually there.
 
 Before running this prompt:
 1. ✅ Complete `@Phase10-Step1-Setup-Remote-SSH` — VS Code is connected via Remote-SSH as `zdmuser`
-2. ✅ Complete `@Phase10-Step2-Configure-SSH-Connectivity` — `Artifacts/Phase10-Migration/Step2/ssh-config.md` exists
-3. ✅ Complete `@Phase10-Step3-Generate-Discovery-Scripts` — discovery reports exist in `Artifacts/Phase10-Migration/Step3/Discovery/`
-4. ✅ Complete `@Phase10-Step4-Discovery-Questionnaire` — `Artifacts/Phase10-Migration/Step4/Discovery-Summary.md` and `Migration-Decisions.md` exist
+2. ✅ Complete `@Phase10-Step3-Configure-SSH-Connectivity` — `Artifacts/Phase10-Migration/Step3/ssh-config.md` exists
+3. ✅ Complete `@Phase10-Step4-Generate-Discovery-Scripts` — discovery reports exist in `Artifacts/Phase10-Migration/Step4/Discovery/`
+4. ✅ Complete `@Phase10-Step5-Discovery-Questionnaire` — `Artifacts/Phase10-Migration/Step5/Discovery-Summary.md` and `Migration-Decisions.md` exist
 5. ✅ Review Discovery Summary for critical blockers and required actions
 
 ---
 
 ## How to Use This Prompt
 
-Attach the Step 4 artifacts and run this prompt:
+Attach the Step 5 artifacts and run this prompt:
 
 ```
-@Phase10-Step5-Fix-Issues
+@Phase10-Step6-Fix-Issues
 
 Please generate remediation scripts and the Issue Resolution Log for all blockers and required actions.
 
 ## Attached Configuration (read-only)
-#file:Artifacts/Phase10-Migration/Step2/ssh-config.md
-#file:Artifacts/Phase10-Migration/Step3/db-config.md
+#file:Artifacts/Phase10-Migration/Step3/ssh-config.md
+#file:Artifacts/Phase10-Migration/Step4/db-config.md
 
-## Step 4 Analysis Artifacts
-#file:Artifacts/Phase10-Migration/Step4/Discovery-Summary.md
-#file:Artifacts/Phase10-Migration/Step4/Migration-Decisions.md
+## Step 5 Analysis Artifacts
+#file:Artifacts/Phase10-Migration/Step5/Discovery-Summary.md
+#file:Artifacts/Phase10-Migration/Step5/Migration-Decisions.md
 
 ## Optional: Legacy override
 #file:zdm-env.md
@@ -87,13 +87,13 @@ Please generate remediation scripts and the Issue Resolution Log for all blocker
 
 ---
 
-## Iterative Operation Model (S5-02)
+## Iterative Operation Model (S6-02)
 
-Step 5 supports repeated cycles until all blockers are resolved:
+Step 6 supports repeated cycles until all blockers are resolved:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Step 5: Fix Issues - Iterative Process                 │
+│  Step 6: Fix Issues - Iterative Process                 │
 ├─────────────────────────────────────────────────────────┤
 │  1. Review blockers from Discovery Summary              │
 │           ↓                                             │
@@ -103,14 +103,14 @@ Step 5 supports repeated cycles until all blockers are resolved:
 │           ↓                                             │
 │  4. Operator runs verify_fixes.sh to check results      │
 │           ↓                                             │
-│  5. Re-run Step 3 discovery if evidence refresh needed  │
+│  5. Re-run Step 4 discovery if evidence refresh needed  │
 │           ↓                                             │
 │  6. Update Issue Resolution Log (re-run this prompt)    │
 │           ↓                                             │
 │  ┌──────────────────────────────────────────┐           │
 │  │ All blockers resolved?                   │           │
-│  │   NO  → Return to step 2                 │           │
-│  │   YES → Proceed to Step 6                │           │
+│  │   NO  → Return to Step 3                 │           │
+│  │   YES → Proceed to Step 7                │           │
 │  └──────────────────────────────────────────┘           │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -131,7 +131,7 @@ Analyze the Discovery Summary and categorize all issues:
 
 ---
 
-## Part 1b: Generate Layer 1 Infrastructure Pre-flight Script (S5-08, CR-14-A)
+## Part 1b: Generate Layer 1 Infrastructure Pre-flight Script (S6-08, CR-14-A)
 
 Before generating database-level fix scripts, generate the Layer 1 infrastructure pre-flight check script from the CR-14 prerequisite catalog.
 
@@ -152,8 +152,8 @@ Do NOT use `fetch_webpage` for ZDM documentation. Do NOT read or write `Artifact
 
 Write the following files using file tools:
 
-- `Artifacts/Phase10-Migration/Step5/Scripts/preflight_l1_infrastructure.sh`
-- `Artifacts/Phase10-Migration/Step5/Scripts/README-preflight_l1_infrastructure.md`
+- `Artifacts/Phase10-Migration/Step6/Scripts/preflight_l1_infrastructure.sh`
+- `Artifacts/Phase10-Migration/Step6/Scripts/README-preflight_l1_infrastructure.md`
 
 ### Script generation rules
 
@@ -182,13 +182,13 @@ Write the following files using file tools:
 
 ### Layer 1 pre-flight relationship to database fix scripts
 
-Layer 1 failures are **blocking** for the database-level fix menu (S5-07). This script will be executed in Part 5 (Step 5b) after the operator confirms the CONFIRM banner. All Layer 1 checks must PASS before the database fix script inventory (Step 5c) is presented.
+Layer 1 failures are **blocking** for the database-level fix menu (S6-07). This script will be executed in Part 5 (Step 5b) after the operator confirms the CONFIRM banner. All Layer 1 checks must PASS before the database fix script inventory (Step 5c) is presented.
 
 ---
 
 ## Part 2: Generate Remediation Scripts
 
-For each blocker and required action, generate a remediation script under `Artifacts/Phase10-Migration/Step5/Scripts/`. Use this naming convention (S5-07):
+For each blocker and required action, generate a remediation script under `Artifacts/Phase10-Migration/Step6/Scripts/`. Use this naming convention (S6-07):
 
 ```
 Scripts/fix_<issue-id>_<short-name>.sh
@@ -196,14 +196,14 @@ Scripts/fix_<issue-id>_<short-name>.sh
 
 Examples: `fix_B01_enable_archivelog.sh`, `fix_B02_create_spfile.sh`, `fix_W01_upgrade_timezone.sh`.
 
-Well-known infrastructure fix scripts for ZDM issues (generate when the corresponding Step 4 gate fires):
+Well-known infrastructure fix scripts for ZDM issues (generate when the corresponding Step 5 gate fires):
 - `fix_W04_zdm_host_hosts_resolution.sh` — adds unresolvable target RAC node entries to `/etc/hosts` on the ZDM jumpbox; scope: `OS` on ZDM host.
 - `fix_W05_source_oracle_sudo.sh` — validates and configures sudoers on the source host for the ZDM `zdmauth` oracle sudo pattern; scope: `OS` on source host.
 - `fix_W06_datapatch_prereq_check.sh` — runs `datapatch -prereqs` on all target RAC nodes and reports full output; surfaces MOS 1609718.1 sqlpatch.pm compatibility issues before ZDM reaches `ZDM_DATAPATCH_TGT`; scope: diagnostic/read-only.
 
 `<issue-id>` uses the Issue-Resolution-Log ID. `<short-name>` is a 2–4 word snake_case description.
 
-### Target-first remediation preference (S5-10)
+### Target-first remediation preference (S6-10)
 
 When a compatibility fix can be applied to either source or target, **generate the script for the target database**. Source-side scripts are generated only when the fix is source-only by nature:
 
@@ -221,7 +221,7 @@ When a compatibility fix can be applied to either source or target, **generate t
 
 Each companion README must state which server the script targets and **why** (source-only by nature, or target-preferred per this policy).
 
-### Scope classification (S5-12)
+### Scope classification (S6-12)
 
 Each fix script must declare its **scope** based on the broadest system component it modifies:
 
@@ -236,7 +236,7 @@ Scope must be declared in:
 2. The companion `README-fix_<issue-id>_<short-name>.md` as a **Scope** field with a plain-English explanation of what else on the server could be affected.
 3. The script inventory table in Part 5 as a **Scope** column.
 
-**Script requirements (S5-03, S5-04):**
+**Script requirements (S6-03, S6-04):**
 
 1. All scripts run as `zdmuser` on the ZDM server. Include a user guard at the top of every script:
    ```bash
@@ -260,7 +260,7 @@ Scope must be declared in:
    TARGET_SSH_KEY_NORM="$(normalize_optional_key "${TARGET_SSH_KEY:-}")"
    ```
 
-4. **SSH-based SQL helpers must use base64-wrapped execution** (S5-04) to avoid shell quoting breakage when SQL contains single-quoted strings:
+4. **SSH-based SQL helpers must use base64-wrapped execution** (S6-04) to avoid shell quoting breakage when SQL contains single-quoted strings:
    ```bash
    run_sql_on_source() {
      local sql_block="$1"
@@ -280,24 +280,24 @@ Scope must be declared in:
    ```
    Apply the same pattern to `run_sql_on_target`. Base64 output (`A–Z a–z 0–9 + / =`) never conflicts with shell quoting delimiters.
 
-5. **Scripts are written to disk by default** (S5-09). Values from config artifacts and `zdm-env.md` are generation-time input; generated scripts must not read, source, or parse them at runtime. Inline execution requires explicit user request after the Part 5 risk banner and inventory are presented.
+5. **Scripts are written to disk by default** (S6-09). Values from config artifacts and `zdm-env.md` are generation-time input; generated scripts must not read, source, or parse them at runtime. Inline execution requires explicit user request after the Part 5 risk banner and inventory are presented.
 
-### Orchestrator script (S5-07)
+### Orchestrator script (S6-07)
 
-Generate `Artifacts/Phase10-Migration/Step5/Scripts/fix_orchestrator.sh` that:
+Generate `Artifacts/Phase10-Migration/Step6/Scripts/fix_orchestrator.sh` that:
 1. Lists all fix scripts it will invoke, in dependency order, at the top as comments.
 2. Invokes each fix script individually (not sources them) so failures are isolated.
 3. Logs pass/fail status per script to stdout.
 4. Stops on first BLOCKER-category failure unless the `--continue-on-error` flag is passed.
 5. Accepts a `--dry-run` flag that prints what would be executed without running anything.
 
-Generate `Artifacts/Phase10-Migration/Step5/Scripts/README-fix_orchestrator.md` documenting all of the above.
+Generate `Artifacts/Phase10-Migration/Step6/Scripts/README-fix_orchestrator.md` documenting all of the above.
 
-**Per-script companion README (S5-07):**
+**Per-script companion README (S6-07):**
 
 For every `fix_<issue-id>_<short-name>.sh`, create `Scripts/README-fix_<issue-id>_<short-name>.md` containing:
 - **Purpose**: one-sentence summary
-- **Target Server**: which server (`source-db`, `target-db`, or `zdm-server`) and why (source-only by nature or target-preferred per S5-10)
+- **Target Server**: which server (`source-db`, `target-db`, or `zdm-server`) and why (source-only by nature or target-preferred per S6-10)
 - **Scope**: `DATABASE`, `ORACLE-HOME`, or `OS` — with plain-English explanation of what else could be affected
 - **Prerequisites**: required tools, credentials, prior steps
 - **Environment Variables**: every variable the script reads, with description and example value
@@ -310,7 +310,7 @@ For every `fix_<issue-id>_<short-name>.sh`, create `Scripts/README-fix_<issue-id
 
 ## Part 3: Create Issue Resolution Log
 
-Write `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md` (S5-06) using this structure:
+Write `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md` (S6-06) using this structure:
 
 ```markdown
 # Issue Resolution Log
@@ -352,22 +352,22 @@ Write `Artifacts/Phase10-Migration/Step5/Issue-Resolution-Log.md` (S5-06) using 
 
 ---
 
-## Unresolved Items and Blockers (Step 6 Prerequisites)
+## Unresolved Items and Blockers (Step 7 Prerequisites)
 
 | Issue ID | Issue | Current Status | Blocking Reason |
 |----------|-------|----------------|-----------------|
-| [I-XX] | [Issue name] | 🔄 In Progress | [Why it prevents Step 6 progression] |
+| [I-XX] | [Issue name] | 🔄 In Progress | [Why it prevents Step 7 progression] |
 
-> ⚠️ **Step 6 must not proceed until all ❌ Blocker items are listed as ✅ Resolved.**
+> ⚠️ **Step 7 must not proceed until all ❌ Blocker items are listed as ✅ Resolved.**
 ```
 
 ---
 
 ## Part 4: Generate Verification Script
 
-Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks all blockers and writes `Verification-Results.md` to `Artifacts/Phase10-Migration/Step5/`.
+Write `Artifacts/Phase10-Migration/Step6/Scripts/verify_fixes.sh` that checks all blockers and writes `Verification-Results.md` to `Artifacts/Phase10-Migration/Step6/`.
 
-**Required capabilities (S5-05, S5-08):**
+**Required capabilities (S6-05, S6-08):**
 
 1. **Per-issue status tracking** — declare variables with safe defaults for each issue:
    ```bash
@@ -386,7 +386,7 @@ Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks al
    fi
    ```
 
-3. **Write `Verification-Results.md`** (S5-08) after all checks complete — structured markdown visible in VS Code:
+3. **Write `Verification-Results.md`** (S6-08) after all checks complete — structured markdown visible in VS Code:
    ```bash
    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
    STEP5_ARTIFACTS_DIR="$(dirname "${SCRIPT_DIR}")"
@@ -395,12 +395,12 @@ Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks al
    _icon() { case "$1" in PASS) echo "✅ PASS";; FAIL) echo "❌ FAIL";; WARN) echo "⚠️  WARN";; *) echo "❓ UNKNOWN";; esac; }
 
    cat > "${RESULTS_FILE}" << RESULTS_EOF
-   # Step 5 Verification Results
+   # Step 6 Verification Results
 
    **Verified:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
    **Verified By:** $(whoami) on $(hostname)
 
-   ## Blocker Status (Must Be Resolved Before Step 6)
+   ## Blocker Status (Must Be Resolved Before Step 7)
 
    | # | Issue | Status | Detail |
    |---|-------|--------|---------|
@@ -415,11 +415,11 @@ Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks al
 
    ## Summary
 
-   - **Proceed to Step 6:** [YES — all blockers resolved / NO — N blocker(s) still pending]
+   - **Proceed to Step 7:** [YES — all blockers resolved / NO — N blocker(s) still pending]
    RESULTS_EOF
 
    echo "Verification results written to: ${RESULTS_FILE}"
-   echo "Attach this file when running @Phase10-Step6-Generate-Migration-Artifacts"
+   echo "Attach this file when running @Phase10-Step7-Generate-Migration-Artifacts"
    ```
 
 4. Log output directory: `${STEP5_ARTIFACTS_DIR}/Verification/`
@@ -430,7 +430,7 @@ Write `Artifacts/Phase10-Migration/Step5/Scripts/verify_fixes.sh` that checks al
 
 After all scripts and companions are written to disk and the quality gate (Part 6) passes, execute this sequence.
 
-### Step 5a: Pre-execution risk banner (S5-13, CR-13)
+### Step 5a: Pre-execution risk banner (S6-13, CR-13)
 
 Always display the following banner. It is mandatory — do not skip or abbreviate it.
 
@@ -457,12 +457,12 @@ If no `ORACLE-HOME` or `OS` scope scripts are present, omit the blast-radius par
 
 Do **not** display the execution menu until the user types `CONFIRM`. If the user does not type `CONFIRM`, default to Option A (review only — no execution).
 
-### Step 5b: Run Layer 1 Infrastructure Pre-flight (S5-08)
+### Step 5b: Run Layer 1 Infrastructure Pre-flight (S6-08)
 
 After `CONFIRM` is received, execute the Layer 1 pre-flight check script inline before presenting the database fix inventory:
 
 ```bash
-bash ~/Artifacts/Phase10-Migration/Step5/Scripts/preflight_l1_infrastructure.sh
+bash ~/Artifacts/Phase10-Migration/Step6/Scripts/preflight_l1_infrastructure.sh
 ```
 
 Display the full output of the pre-flight run inline in the chat.
@@ -477,7 +477,7 @@ Display the full output of the pre-flight run inline in the chat.
 - **Do not present the Step 5c database fix script inventory until all Layer 1 checks pass.**
 - Instruct the operator to resolve Layer 1 failures manually using the ZDM documentation referenced in each failing check row, then re-run this prompt to retry.
 
-### Step 5c: Script inventory table (S5-11)
+### Step 5c: Script inventory table (S6-11)
 
 After `CONFIRM` is received, present the script inventory table:
 
@@ -497,9 +497,9 @@ Options:
   C — Say "run fix_<id>" (e.g., "run fix_B01") to execute a specific script inline.
 ```
 
-Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu (S5-09).
+Do not execute any script unless the user explicitly says `run all` or `run fix_<id>` after seeing this menu (S6-09).
 
-### Step 5d: Conditional inline execution (S5-09)
+### Step 5d: Conditional inline execution (S6-09)
 
 When the user triggers execution:
 - **`run all`** — invoke `fix_orchestrator.sh` inline via the terminal.
@@ -513,15 +513,15 @@ For each execution:
 
 ---
 
-## Part 6: Generate Step 5 README
+## Part 6: Generate Step 6 README
 
-Write `Artifacts/Phase10-Migration/Step5/README.md` (CR-07) summarizing:
+Write `Artifacts/Phase10-Migration/Step6/README.md` (CR-07) summarizing:
 - **Generated files** and their purpose:
   - `Issue-Resolution-Log.md` — issue register with evidence, remediation plans, iteration history
   - `Scripts/` — remediation scripts + `README-<scriptname>.md` companions
   - `Scripts/verify_fixes.sh` — generates `Verification-Results.md`
   - `Verification-Results.md` — written by running `verify_fixes.sh` (not generated by this prompt)
-- **What the operator must do** before proceeding to Step 6:
+- **What the operator must do** before proceeding to Step 7:
   - Review `Issue-Resolution-Log.md` for all blockers and required actions
   - Run each remediation script from the jumpbox terminal as `zdmuser`
   - Run `verify_fixes.sh` and confirm all blockers PASS
@@ -537,7 +537,7 @@ After all scripts are written to disk, run syntax validation in the jumpbox term
 
 1. **Mandatory — bash syntax check** for every `.sh` file:
    ```bash
-   for f in ~/Artifacts/Phase10-Migration/Step5/Scripts/*.sh; do
+   for f in ~/Artifacts/Phase10-Migration/Step6/Scripts/*.sh; do
      bash -n "$f" && echo "OK: $f" || echo "FAIL: $f"
    done
    ```
@@ -545,7 +545,7 @@ After all scripts are written to disk, run syntax validation in the jumpbox term
 2. **Optional — shellcheck** (run if available):
    ```bash
    if command -v shellcheck &>/dev/null; then
-     shellcheck ~/Artifacts/Phase10-Migration/Step5/Scripts/*.sh
+     shellcheck ~/Artifacts/Phase10-Migration/Step6/Scripts/*.sh
    fi
    ```
 
@@ -599,7 +599,7 @@ stat -c '%a %n' ~/.oci/oci_api_key.pem
 #### SSH Key Authentication Issues
 
 > **Note:** ZDM uses admin users with `sudo -u oracle`, not direct SSH as oracle.
-> If Step 3 discovery completed successfully, SSH is already working.
+> If Step 4 discovery completed successfully, SSH is already working.
 > All remediation scripts run as `zdmuser` on the ZDM server; SSH keys must be in `/home/zdmuser/.ssh/`.
 
 ```bash
@@ -623,7 +623,7 @@ nc -zv ${TARGET_HOST} 1521
 
 ## Re-Running Discovery
 
-After fixing issues, refresh evidence by re-running `@Phase10-Step3-Generate-Discovery-Scripts`. New discovery reports will be written to `Artifacts/Phase10-Migration/Step3/Discovery/` (timestamped) and can be re-attached for a follow-up Step 4 + Step 5 cycle.
+After fixing issues, refresh evidence by re-running `@Phase10-Step4-Generate-Discovery-Scripts`. New discovery reports will be written to `Artifacts/Phase10-Migration/Step4/Discovery/` (timestamped) and can be re-attached for a follow-up Step 5 + Step 6 cycle.
 
 ---
 
@@ -637,7 +637,7 @@ Artifacts/Phase10-Migration/
     ├── Verification-Results.md                 # Written by operator running verify_fixes.sh
     ├── Verification/                           # Verification script log output directory
     └── Scripts/
-        ├── preflight_l1_infrastructure.sh      # Layer 1 infrastructure pre-flight checks (S5-08)
+        ├── preflight_l1_infrastructure.sh      # Layer 1 infrastructure pre-flight checks (S6-08)
         ├── README-preflight_l1_infrastructure.md  # Companion README for Layer 1 pre-flight
         ├── verify_fixes.sh                     # Verification script — writes Verification-Results.md
         ├── fix_<issue-id>_<short-name>.sh      # Per-issue remediation script(s)
@@ -652,14 +652,14 @@ All files are git-ignored. No outputs are committed or create PRs.
 
 ## Completion Checklist
 
-Before proceeding to Step 6, confirm:
+Before proceeding to Step 7, confirm:
 
 - [ ] All ❌ Blockers resolved in `Issue-Resolution-Log.md`
 - [ ] All ⚠️ Required Actions completed
 - [ ] `preflight_l1_infrastructure.sh` generated and all Layer 1 checks PASS (visible in `Verification-Results.md` under `### Layer 1 Infrastructure Pre-flight`)
 - [ ] Each remediation script has a `README-<scriptname>.md` alongside it
 - [ ] `verify_fixes.sh` has been run by the operator — all blocker checks PASS
-- [ ] `Verification-Results.md` is present in `Artifacts/Phase10-Migration/Step5/`
+- [ ] `Verification-Results.md` is present in `Artifacts/Phase10-Migration/Step6/`
 - [ ] No new blockers introduced by remediation
 
 ---
@@ -668,5 +668,4 @@ Before proceeding to Step 6, confirm:
 
 After all blockers are resolved and `Verification-Results.md` shows all-PASS:
 
-> Run **`@Phase10-Step6-Generate-Migration-Artifacts`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.
-
+> Run **`@Phase10-Step7-Generate-Migration-Artifacts`** in this Remote-SSH VS Code session connected to the ZDM jumpbox as **`zdmuser`**.

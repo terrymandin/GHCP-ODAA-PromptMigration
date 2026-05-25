@@ -1,4 +1,4 @@
-# Common Requirements for Phase 10 (Step1-Step6)
+﻿# Common Requirements for Phase 10 (Step1-Step7)
 
 ## Scope
 
@@ -7,8 +7,8 @@ These requirements apply to all Phase10 ZDM prompts unless a step explicitly ove
 ## CR-01: Source of truth precedence
 
 1. Treat step configuration artifacts as the primary authoritative generation input (see CR-12):
-   - `Artifacts/Phase10-Migration/Step2/ssh-config.md` for SSH connectivity variables.
-   - `Artifacts/Phase10-Migration/Step3/db-config.md` for database and ZDM variables.
+   - `Artifacts/Phase10-Migration/Step6/ssh-config.md` for SSH connectivity variables.
+   - `Artifacts/Phase10-Migration/Step7/db-config.md` for database and ZDM variables.
 2. When `zdm-env.md` is explicitly attached, treat it as a legacy override with higher precedence than the step artifacts.
 3. Prefer artifact or `zdm-env.md` values over template defaults and examples.
 4. If values conflict with discovery evidence, do not silently override. Explicitly report the mismatch.
@@ -37,7 +37,7 @@ All Phase10 prompts use the **Remote-SSH execution** model **except Step1**:
 
 ## CR-05: Variable scope for Phase10
 
-DB-specific values used across Step2-Step6:
+DB-specific values used across Step4-Step7:
 
 - `SOURCE_REMOTE_ORACLE_HOME`
 - `SOURCE_ORACLE_SID`
@@ -45,18 +45,18 @@ DB-specific values used across Step2-Step6:
 - `TARGET_ORACLE_SID`
 - `SOURCE_DATABASE_UNIQUE_NAME`
 - `TARGET_DATABASE_UNIQUE_NAME`
-- `SOURCE_GI_TYPE` (auto-detected in Step3 source discovery: `standalone` or `grid`; controls `-sourcesid` vs `-sourcedb` CLI flag in Step6)
+- `SOURCE_GI_TYPE` (auto-detected in Step5 source discovery: `standalone` or `grid`; controls `-sourcesid` vs `-sourcedb` CLI flag in Step7)
 - `TGT_REDODG` (target ASM redo disk group name; required RSP parameter for EXACS/EXACC platform types)
 - `TGT_RECODG` (target ASM recovery/FRA disk group name; required RSP parameter for EXACS/EXACC platform types)
 
-ZDM-specific value used across Step2-Step6:
+ZDM-specific value used across Step4-Step7:
 
 - `ZDM_HOME`
 
 Variable-to-artifact mapping:
 
-- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step2/ssh-config.md`.
-- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step3/db-config.md`.
+- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step6/ssh-config.md`.
+- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step7/db-config.md`.
 
 ## CR-06: OCI CLI requirement
 
@@ -120,8 +120,8 @@ Naming rule:
 
 ## CR-12: Configuration artifact contract
 
-1. Step2 writes `Artifacts/Phase10-Migration/Step2/ssh-config.md` containing SSH connectivity variables.
-2. Step3 writes `Artifacts/Phase10-Migration/Step3/db-config.md` containing database and ZDM variables.
+1. Step4 writes `Artifacts/Phase10-Migration/Step6/ssh-config.md` containing SSH connectivity variables.
+2. Step5 writes `Artifacts/Phase10-Migration/Step7/db-config.md` containing database and ZDM variables.
 3. Both artifact files use the same key-value markdown format as `zdm-env.md`:
    - One variable per line: `- KEY: value`
    - Blank value means unset: `- KEY: `
@@ -171,7 +171,7 @@ The catalog files are located in the repository at:
 **Version lookup protocol** — run at the start of any step that needs the check catalog (Steps 3–6):
 
 1. Obtain the ZDM version string from discovery (e.g., `26.1`). If not yet discovered, use `26.1` as default.
-2. Determine the migration method (`ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`) from `db-config.md` or Step 4 answers. Default to `ONLINE_PHYSICAL` if not yet confirmed.
+2. Determine the migration method (`ONLINE_PHYSICAL` or `OFFLINE_PHYSICAL`) from `db-config.md` or Step 6 answers. Default to `ONLINE_PHYSICAL` if not yet confirmed.
 3. Select the matching catalog file:
    - `ONLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/online-physical.md`
    - `OFFLINE_PHYSICAL` → `.github/requirements/Phase10/ZDM-Prerequisites/<version>/offline-physical.md`
@@ -216,9 +216,9 @@ Each catalog file uses the following structured markdown format. Steps consume i
 
 ### CR-14-C: Layer execution rules
 
-1. **Layer 0** is answered during the Step4 migration planning interview. Its answers propagate directly to RSP and `zdmcli` flags — no runtime verification needed.
-2. **Layer 1** checks are executed by `preflight_l1_infrastructure.sh` (generated in Step5, S5-08). All L1 checks must pass before L2 checks run.
-3. **Layer 2** checks are evaluated as the Step4 compatibility gate (S4-05). For customers who do not permit automated DB connections, each L2 query is surfaced as a copy-paste block for the DBA to run manually and return results.
+1. **Layer 0** is answered during the Step6 migration planning interview. Its answers propagate directly to RSP and `zdmcli` flags — no runtime verification needed.
+2. **Layer 1** checks are executed by `preflight_l1_infrastructure.sh` (generated in Step7, S7-08). All L1 checks must pass before L2 checks run.
+3. **Layer 2** checks are evaluated as the Step6 compatibility gate (S6-05). For customers who do not permit automated DB connections, each L2 query is surfaced as a copy-paste block for the DBA to run manually and return results.
 4. **Layer 3** (`zdm -eval`) is submitted only after L0 + L1 + L2 all pass. Any eval failure is triaged against the catalog: if it maps to an L1 or L2 check, fix at that layer. If it is not in the catalog, add it to the catalog file under the appropriate layer with a note `[new — added <date>, source: zdm-eval-feedback]` and commit the change.
 
 ### CR-14-D: Catalog lifecycle
@@ -233,7 +233,7 @@ Each catalog file uses the following structured markdown format. Steps consume i
 
 ## CR-15: Interactive variable collection — learn-more option
 
-Applies to all Phase10 steps that prompt the user to supply a variable value interactively (e.g., Step2 SSH connectivity collection, Step3 database variable collection, Step4 migration planning interview).
+Applies to all Phase10 steps that prompt the user to supply a variable value interactively (e.g., Step4 SSH connectivity collection, Step5 database variable collection, Step6 migration planning interview).
 
 ### CR-15-A: Learn-more offer
 
@@ -273,3 +273,66 @@ The learn-more content for each variable must be derived from CR-05 definitions,
 | `ZDM_HOME` | Installation directory of ZDM on the jumpbox | `which zdmcli` then strip `/bin/zdmcli`; or check common paths like `/mnt/app/zdmhome` | Leave blank for auto-detection; if set incorrectly, all `zdmcli` invocations will fail | `/mnt/app/zdmhome` |
 | `TGT_REDODG` | ASM disk group used for redo logs on the target | `asmcmd lsdg` on target as grid user; look for group mounted as `REDO` or similar; or `SELECT name FROM v$asm_diskgroup WHERE name LIKE '%REDO%'` | Required RSP param for EXACS/EXACC; omitting it causes PRCG-1054 | `DATA` or `REDO` (varies by provisioning) |
 | `TGT_RECODG` | ASM disk group used for recovery/FRA on the target | Same as `TGT_REDODG` but look for `RECO`, `FRA`, or `RECOC1` | Required RSP param for EXACS/EXACC; omitting it causes PRCG-1054 | `RECO` |
+
+## CR-16: Grouped interactive question collection
+
+Applies to all Phase10 steps that collect multiple variable values interactively from the user.
+
+### CR-16-A: Present questions as a numbered list in a single chat message
+
+1. When a step needs to collect multiple variables interactively, **present all questions as a numbered list in a single chat message**, rather than asking one question, waiting for an answer, then asking the next. Do **not** use `vscode_askQuestions` for this — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
+2. Each group must be clearly labelled with a heading (e.g., `**Hosts**`, `**SSH Users**`, `**SSH Keys**`, `**Application Users**`). Number questions sequentially across all groups (e.g., 1, 2, 3 … not restarting at 1 per group) so the user can reply by number.
+3. The user may reply with all answers at once in any format — numbered (`1: 10.0.0.11`), bullet, or prose — and Copilot must parse the response and map answers back to the correct variables by number.
+4. Do not hold up the conversation waiting for individual answers — only send a second message when a later group's questions depend on the answer to an earlier group (e.g., authentication type determines which key/password question to show).
+5. **Example format Copilot must use:**
+   ```
+   **Hosts**
+   1. SOURCE_HOST — IP address or FQDN of the source database server (e.g. `10.0.0.10`)
+   2. TARGET_HOST — IP address or FQDN of the target database server (e.g. `10.0.0.20`)
+
+   **SSH Users**
+   3. SOURCE_SSH_USER — SSH admin user for the source host (e.g. `opc`)
+   4. TARGET_SSH_USER — SSH admin user for the target host (e.g. `opc`)
+
+   Reply with answers by number, e.g.:
+   1: 10.1.0.11
+   2: 10.1.0.12
+   3: opc
+   4: opc
+   ```
+
+### CR-16-B: Standard groupings per step
+
+Use these canonical group layouts when collecting variables. Steps may add extra groups or merge groups where the variable count is small, but must not split a group across separate messages.
+
+**Step 1 — VM Parameter Collection:**
+- Group 1 — VM Identity: VM name, resource group, Azure region
+- Group 2 — VM Configuration: image (show default), VM size (show default), OS disk size (show default)
+- Group 3 — Networking: VNet name, subnet name
+- Group 4 — Authentication: auth type (SSH key / password), SSH username (show default)
+- Group 5 — SSH Key or Password: SSH public key path or password (dependent on Group 4 answer)
+
+**Step 3 — SSH Connectivity Collection (S4-08):**
+- Group 1 — Hosts: source host IP/FQDN, target host IP/FQDN
+- Group 2 — SSH Users: SSH admin user for source, SSH admin user for target
+- Group 3 — SSH Keys: source SSH key path (blank = agent/default), target SSH key path
+- Group 4 — Application Users: Oracle software owner (default: `oracle`), ZDM software user (default: `zdmuser`)
+
+**Step 4 — Discovery Variable Collection:**
+- Group 1 — Database Homes: `SOURCE_REMOTE_ORACLE_HOME`, `TARGET_REMOTE_ORACLE_HOME`
+- Group 2 — Instance Names: `SOURCE_ORACLE_SID`, `TARGET_ORACLE_SID`
+- Group 3 — Unique Names: `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`
+- Group 4 — ZDM Server: `ZDM_HOME` (blank = auto-detect)
+
+**Step 5 — Migration Planning Interview (S6-08):**
+- Group A — Migration Type & Platform (present together): migration method (ONLINE_PHYSICAL / OFFLINE_PHYSICAL), target platform type, source storage type.
+- Group B-Online — Online-specific settings (present together, only if ONLINE_PHYSICAL confirmed): log switch interval, Data Guard protection mode, data transfer medium, pause before switchover, auto-switchover.
+- Group B-Offline — Offline-specific settings (present together, only if OFFLINE_PHYSICAL confirmed): backup/transfer medium, maximum downtime window.
+- Group C — Object Storage (present together, only if OSS transfer medium): namespace, bucket name, bucket region. Note: OCI identity parameters (Tenancy OCID, User OCID, Compartment OCID, Target Database OCID) are **not required** for physical migrations — ZDM uses the OCI config file on the ZDM host, set up during Step 2 installation. Do not ask for them.
+- Group D — TDE/Wallet (present together, only if TDE enabled): wallet transfer medium (`WALLET_MIGRATION`).
+
+  Pre-filled values from `zdm-env.md` or `db-config.md` must be shown as defaults in the group prompt. Only ask groups whose questions are applicable given prior answers (e.g., skip Group B-Online if method is OFFLINE_PHYSICAL). Each group is still subject to the inter-group dependency rule in CR-16-A: a later group may depend on a confirmed answer from an earlier group.
+
+### CR-16-C: Confirmation summary before action
+
+After collecting all groups, display a single consolidated summary of all collected values and require the user to confirm before writing any artifact or running any command. This confirmation is separate from the group collection and must show all values together.

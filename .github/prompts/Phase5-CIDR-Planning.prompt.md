@@ -44,7 +44,7 @@ Start by gathering the required parameters from the user through a series of que
 - CIDR ranges don't overlap with existing networks
 - For Oracle Exadata X9M, account for reserved ranges: 100.106.0.0/16 and 100.107.0.0/16
 
-### Step 2: Leverage Best Practices
+### Step 4: Leverage Best Practices
 Use the MCP server to fetch and apply best practices from:
 - [Plan IP address space for Oracle Database@Azure](https://learn.microsoft.com/en-us/azure/oracle/oracle-db/oracle-database-plan-ip)
 
@@ -62,7 +62,7 @@ Calculate IP requirements based on Microsoft documentation:
 **Autonomous Database (if applicable):**
 - Minimum CIDR size: /27
 
-### Step 3: Calculate CIDR Ranges
+### Step 5: Calculate CIDR Ranges
 Based on the requirements, calculate:
 
 1. **Total IP Requirements**:
@@ -79,7 +79,7 @@ Based on the requirements, calculate:
    - Backup subnet CIDR
    - Autonomous Database subnet CIDR (if applicable)
 
-### Step 4: Validate Against Constraints
+### Step 6: Validate Against Constraints
 Ensure the calculated ranges:
 - âœ“ Don't overlap with existing VNet CIDRs
 - âœ“ Don't use reserved ranges (100.106.0.0/16, 100.107.0.0/16 for X9M)
@@ -87,7 +87,7 @@ Ensure the calculated ranges:
 - âœ“ Meet minimum CIDR size requirements
 - âœ“ Account for cross-region routing requirements
 
-### Step 5: Generate CIDR Definition Document
+### Step 7: Generate CIDR Definition Document
 Create or update the file `Artifacts/Phase5-CIDR/CIDR-Definition.md` with the following structure:
 
 ```markdown
