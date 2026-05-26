@@ -1,5 +1,7 @@
 {
-    "chat.promptFilesLocations": [".github/prompts"],
+    "chat.promptFilesLocations": {
+        ".github/prompts": true
+    },
     "mcp": {
         "servers": {
             "azure-mcp": {
