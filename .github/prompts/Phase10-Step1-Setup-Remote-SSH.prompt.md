@@ -220,7 +220,37 @@ After displaying the command, ask:
 
 Run the command in the **local PowerShell terminal** only after the user replies **Yes**. If the user replies No, ask what they would like to change.
 
+### Command Integrity Gate (CR-19, S1-09D)
+
+Immediately after the user approves the command, create an in-memory approved command record for this Step 1 run containing:
+
+- Approved command text (exactly as displayed)
+- Approval timestamp
+- Parsed critical fields
+
+For Step1 `az vm create`, critical fields are:
+
+- `--image`
+- `--name`
+- `--resource-group`
+- `--location`
+- `--size`
+- `--os-disk-size-gb`
+- `--vnet-name`
+- `--subnet`
+- `--admin-username`
+- Auth mode fields (`--ssh-key-values` OR `--authentication-type password` + `--admin-password`)
+
+Before executing (and before any retry), compare the about-to-run command to the approved record:
+
+- If all critical fields match: proceed.
+- If any critical field differs: **block execution**, show a field-by-field diff, and require explicit re-approval.
+
+If the execution tool call is canceled/interrupted/times out, retry by replaying the same approved command record. Do **not** synthesize a new command variant from defaults, prior shell history, or alternate images.
+
 If using MCP for VM creation, still display the equivalent `az vm create` command preview for transparency before execution, then run via MCP after confirmation.
+
+When using MCP for VM creation, apply the same critical-field lock by comparing MCP request parameters to the approved command record before invoking MCP.
 
 After the VM is created, display the public IP address returned by `az vm create` — record it as `JUMPBOX_HOST`.
 
@@ -624,6 +654,18 @@ Generated: <ISO-8601 timestamp>
 - Location: /home/zdmuser/GHCP-ODAA-PromptMigration
 - Result: CLONED / SKIPPED (already present) / FAILED
 - Verified: .github directory present (YES / NO)
+
+## MCP Context Alignment
+- Local CLI context: subscription <id> / tenant <id> / state <Enabled|Disabled>
+- MCP context: subscription visibility/result <summary>
+- Azure execution path: MCP / az-fallback
+
+## Command Integrity
+- Approved command fingerprint: <hash or deterministic digest>
+- Executed command fingerprint: <hash or deterministic digest>
+- Critical-field match: PASS / FAIL
+- Retry replay used: YES / NO
+- Execution path: MCP / az-fallback
 
 ## zdmuser Setup
 - Group (zdm): CREATED / ALREADY EXISTS

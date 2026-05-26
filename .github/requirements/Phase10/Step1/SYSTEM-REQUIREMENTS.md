@@ -282,6 +282,25 @@ $env:AZURE_TENANT_ID = "<TENANT_ID>"
    - MCP context snapshot (target subscription state or mismatch note),
    - execution path marker: `MCP` or `az-fallback`.
 
+## S1-09D: Approved command lock and replay enforcement
+
+Applies to VM create execution after the user confirms the command in S1-09A-3.
+
+1. Build an approved command record immediately after user approval with:
+   - approved command text,
+   - critical fields parsed from the command,
+   - approval timestamp.
+2. Critical fields for Step1 VM creation are:
+   - `--image`, `--name`, `--resource-group`, `--location`, `--size`, `--os-disk-size-gb`,
+   - `--vnet-name`, `--subnet`, `--admin-username`,
+   - auth mode fields (`--ssh-key-values` or `--authentication-type password` + `--admin-password`).
+3. Before every execute or retry attempt, compare about-to-run command critical fields to the approved record:
+   - if all match, continue,
+   - if any differ, block execution and show a field-level diff, then require explicit re-approval.
+4. If a tool call is canceled/interrupted, retry by replaying the same approved command record. Do not regenerate from defaults, previous sessions, or alternate image variants.
+5. When MCP path is selected, enforce the same critical field lock by comparing MCP request parameters to the approved command record before invocation.
+6. Do not proceed to post-create steps unless the executed command trace is tied to the active approved record.
+
 ---
 
 ## S1-10: Extension check implementation
@@ -403,6 +422,13 @@ Generated: <ISO-8601 timestamp>
 - Location: /home/zdmuser/GHCP-ODAA-PromptMigration
 - Result: CLONED / SKIPPED (already present) / FAILED
 - Verified: .github directory present (YES / NO)
+
+## Command Integrity
+- Approved command fingerprint: <hash or deterministic digest>
+- Executed command fingerprint: <hash or deterministic digest>
+- Critical-field match: PASS / FAIL
+- Execution path: MCP / az-fallback
+- Retry replay used: YES / NO
 
 ## Status
 READY / ACTION REQUIRED

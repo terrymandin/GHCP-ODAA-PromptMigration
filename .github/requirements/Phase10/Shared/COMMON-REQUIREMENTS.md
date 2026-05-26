@@ -400,3 +400,36 @@ Applies to Phase10 Step1 whenever Azure MCP is used for subscription lookup, VM 
    - local CLI subscription id + state,
    - MCP-visible subscription state used for execution,
    - whether execution path was `MCP` or `az-fallback`.
+
+## CR-19: Approved command integrity and replay safety
+
+Applies to all Phase10 steps that require explicit user approval before running a command.
+
+1. After approval, persist an approved command record in step runtime state containing:
+   - full command text as shown to the user,
+   - parsed critical fields for that command,
+   - approval timestamp.
+2. The executed command must preserve approved critical fields exactly. Non-critical flags may vary only when explicitly documented in the step implementation requirements.
+3. If a command execution is canceled, interrupted, or times out before completion, the retry must replay the same approved command. Do not synthesize a new command variant unless the user re-opens parameter confirmation and re-approves.
+4. If any critical field differs between approved and about-to-execute command, block execution and show a field-by-field diff. Require explicit re-approval before proceeding.
+5. Prompts must not silently change image, region, size, auth mode, identity, or target resource names between approval and execution.
+6. Step reports must include approval-versus-execution evidence:
+   - approved command fingerprint,
+   - executed command fingerprint,
+   - critical-field match status (`PASS` or `FAIL`),
+   - execution path marker (`MCP` or `az-fallback` when relevant).
+
+### CR-19-A: Step1 `az vm create` critical fields
+
+For Step1 VM creation, the critical field set is:
+
+- `--image`
+- `--name`
+- `--resource-group`
+- `--location`
+- `--size`
+- `--os-disk-size-gb`
+- `--vnet-name`
+- `--subnet`
+- auth mode fields (`--ssh-key-values` or `--authentication-type password` + `--admin-password`)
+- `--admin-username`
