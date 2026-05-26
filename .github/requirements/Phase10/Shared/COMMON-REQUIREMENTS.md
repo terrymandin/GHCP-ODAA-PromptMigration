@@ -325,7 +325,16 @@ Use these canonical group layouts when collecting variables. Steps may add extra
 - Group 2 — VM Configuration: image (show default), VM size (show default), OS disk size (show default)
 - Group 3 — Networking: VNet name, subnet name
 - Group 4 — Authentication: auth type (SSH key / password), SSH username (show default)
-- Group 5 — SSH Key or Password: SSH public key path or password (dependent on Group 4 answer)
+- Group 5 — SSH Key or Password: SSH public/private key paths (key mode) or admin password (password mode), dependent on Group 4 answer
+
+### CR-16-D: Jumpbox dual-auth baseline
+
+1. Jumpbox interactions (local terminal to ZDM server admin account in Step1/Step2) must support both authentication modes:
+   - `ssh-key` mode: `ssh -i <key> -o BatchMode=yes ...`
+   - `password` mode: `ssh ...` without `-i` and without `BatchMode=yes`, allowing an interactive password prompt in terminal.
+2. Source/target Oracle host interactions remain certificate/key-based. Do not switch Step3-Step7 source/target connectivity checks to password mode.
+3. When password mode is selected, never write plaintext passwords to artifacts. Reports may note `Auth mode: password` and `Credential: interactive` only.
+4. Any command examples that include key flags for jumpbox admin access must include or reference the password-mode equivalent.
 
 **Step 3 — SSH Connectivity Collection (S4-08):**
 - Group 1 — Hosts: source host IP/FQDN, target host IP/FQDN

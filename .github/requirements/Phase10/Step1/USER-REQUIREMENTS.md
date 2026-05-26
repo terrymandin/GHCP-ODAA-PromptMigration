@@ -15,7 +15,7 @@ Step1 writes one artifact using file tools after setup completes:
 The report must contain:
 
 1. Extension check result (installed / not installed, with version when available).
-2. SSH key location and mode (existing key used vs. new key generated).
+2. Jumpbox authentication mode (`ssh-key` or `password`) and credential reference (key path for key mode, interactive for password mode).
 3. The host alias added or confirmed in `~/.ssh/config`.
 4. Connection command the user can run to manually verify: `ssh zdmuser@<jumpbox-alias>`.
 5. Final status: READY or ACTION REQUIRED, with remaining manual actions listed.
@@ -239,12 +239,18 @@ Collect or confirm these values interactively before writing the SSH config entr
 | `JUMPBOX_HOST` | IP address or FQDN of the ZDM jumpbox | `10.0.0.5` or `zdm-jumpbox.example.com` |
 | `JUMPBOX_PORT` | SSH port (default: 22) | `22` |
 | `JUMPBOX_USER` | SSH login user (must be `zdmuser`) | `zdmuser` |
-| `JUMPBOX_SSH_KEY` | Local path to the private key file | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
+| `JUMPBOX_AUTH_MODE` | Jumpbox auth mode (`ssh-key` or `password`) | `ssh-key` |
+| `JUMPBOX_SSH_KEY` | Local path to the private key file (required when `JUMPBOX_AUTH_MODE=ssh-key`) | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
 | `JUMPBOX_ALIAS` | Host alias for `~/.ssh/config` (default: `zdm-jumpbox`) | `zdm-jumpbox` |
 
 **Pre-populated bypass (CR-12)**: If `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` already exists and shows status READY, skip interactive collection and display a confirmation that setup is already complete.
 
-## S1-05: SSH key handling
+## S1-05: Jumpbox authentication handling
+
+1. If `JUMPBOX_AUTH_MODE=password`, skip key generation and do not require `JUMPBOX_SSH_KEY`.
+2. If `JUMPBOX_AUTH_MODE=ssh-key`, apply key handling rules below.
+3. For password mode, all jumpbox admin commands run without `-i` and without `-o BatchMode=yes` so the terminal can prompt for password interactively.
+4. For key mode, continue using `-i <JUMPBOX_SSH_KEY>` and `-o BatchMode=yes`.
 
 1. If `JUMPBOX_SSH_KEY` points to an existing file, confirm it exists and note its path. Do not regenerate. Proceed directly to S1-06 (SSH config entry and connectivity test).
 2. If the key file does not exist or the user states they have no key yet, offer to generate one:
@@ -267,12 +273,16 @@ Host <JUMPBOX_ALIAS>
     HostName <JUMPBOX_HOST>
     Port <JUMPBOX_PORT>
     User <JUMPBOX_USER>
-    IdentityFile <JUMPBOX_SSH_KEY>
+   # Include IdentityFile only when JUMPBOX_AUTH_MODE=ssh-key
+   IdentityFile <JUMPBOX_SSH_KEY>
     ServerAliveInterval 60
     ServerAliveCountMax 10
 ```
 
-5. After writing the entry, run `ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p <JUMPBOX_PORT> -i "<JUMPBOX_SSH_KEY>" <JUMPBOX_USER>@<JUMPBOX_HOST> hostname` to verify connectivity. Report PASS (with returned hostname) or FAIL (with error text).
+5. After writing the entry, verify connectivity using the auth mode:
+   - `ssh-key` mode: `ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p <JUMPBOX_PORT> -i "<JUMPBOX_SSH_KEY>" <JUMPBOX_USER>@<JUMPBOX_HOST> hostname`
+   - `password` mode: `ssh -o StrictHostKeyChecking=accept-new -p <JUMPBOX_PORT> <JUMPBOX_USER>@<JUMPBOX_HOST> hostname`
+   Report PASS (with returned hostname) or FAIL (with error text).
 
 ## S1-07: User handoff to Remote-SSH connect
 

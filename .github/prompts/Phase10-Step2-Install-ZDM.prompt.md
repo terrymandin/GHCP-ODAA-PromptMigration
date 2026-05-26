@@ -72,21 +72,29 @@ Ask the user the following question in chat (CR-16-A). Do NOT use `vscode_askQue
 **If Option A:**
 - Record `ESCALATION_METHOD=local-terminal`.
 - Post the following in chat (CR-16-A — do NOT use `vscode_askQuestions`):
-  > **Two values are needed to generate the escalation command (both are in your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
+  > **Jumpbox connection values are needed to generate the escalation command (from your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
   > 1. **Jumpbox public IP** — `Public IP:` line in the `## VM Details` section (e.g., `51.105.43.11`)
-  > 2. **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section (e.g., `C:\Users\you\SSHTesting\key.pem`)
-- Store as `JUMPBOX_HOST` and `JUMPBOX_SSH_KEY`. All escalation commands will use these real values — no placeholders.
+  > 2. **Jumpbox admin auth mode** — `ssh-key` or `password`
+  > 3. If `ssh-key`, provide **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section
+- Store as `JUMPBOX_HOST` and admin auth details. All escalation commands will use these real values — no placeholders.
 
 **If Option B:**
 - Post the following in chat (CR-16-A — do NOT use `vscode_askQuestions`):
-  > **Two values are needed for the one-time sudo setup (both are in your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
+  > **Jumpbox connection values are needed for the one-time sudo setup (from your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
   > 1. **Jumpbox public IP** — `Public IP:` line in the `## VM Details` section
-  > 2. **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section
-  > 3. **What password do you want to set for `zdmuser`?**
-- Store as `JUMPBOX_HOST`, `JUMPBOX_SSH_KEY`, and `ZDMUSER_PASS` (session variable — never written to disk or any file).
+  > 2. **Jumpbox admin auth mode** — `ssh-key` or `password`
+  > 3. If `ssh-key`, provide **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section
+  > 4. **What password do you want to set for `zdmuser`?**
+- Store as `JUMPBOX_HOST`, jumpbox admin auth details, and `ZDMUSER_PASS` (session variable — never written to disk or any file).
 - Show the one-time setup command with real values substituted for `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS`:
   ```powershell
   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
+    "echo 'zdmuser:$ZDMUSER_PASS' | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
+  ```
+
+  Password-mode equivalent:
+  ```powershell
+  ssh -p 22 azureuser@$JUMPBOX_HOST `
     "echo 'zdmuser:$ZDMUSER_PASS' | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
   ```
 - After the user confirms it ran, verify in-session:
@@ -147,6 +155,11 @@ Expected: `zdmuser` exists; `/home/zdmuser` owned by `zdmuser zdm`; all three `/
 If any directory is missing or not owned by `zdmuser`, escalate using `ESCALATION_METHOD` from Phase 0:
 
 **`ESCALATION_METHOD=local-terminal`** — run from your local PowerShell terminal:
+
+Use jumpbox admin auth mode when running local-terminal commands:
+- `ssh-key`: keep `-o BatchMode=yes -i "$JUMPBOX_SSH_KEY"`
+- `password`: omit `-i` and `BatchMode`, and enter password interactively
+
 ```powershell
 ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
@@ -176,6 +189,10 @@ done
 If any are `MISSING`, install them using the `ESCALATION_METHOD` from Phase 0:
 
 **`ESCALATION_METHOD=local-terminal`** — run from your local PowerShell terminal:
+
+Use jumpbox admin auth mode when running local-terminal commands:
+- `ssh-key`: keep `-o BatchMode=yes -i "$JUMPBOX_SSH_KEY"`
+- `password`: omit `-i` and `BatchMode`, and enter password interactively
 
 *Oracle Linux 8 / RHEL 8:*
 ```powershell

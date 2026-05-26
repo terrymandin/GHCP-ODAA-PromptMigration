@@ -209,6 +209,14 @@ ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 `
     "sudo dnf install -y tar"
 ```
 
+If jumpbox admin auth mode is password, use this equivalent command (interactive password prompt expected):
+
+```powershell
+ssh -o StrictHostKeyChecking=accept-new -p 22 `
+  <SSH_USERNAME>@<JUMPBOX_HOST> `
+  "sudo dnf install -y tar"
+```
+
 - **PASS** (`$LASTEXITCODE -eq 0` and output contains `Complete!`): Confirm `tar` installed and continue.
 - **FAIL**: Display the error and stop. Do not proceed until `tar` is successfully installed.
 
@@ -216,12 +224,18 @@ ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 `
 
 Immediately after `tar` is confirmed, clone the migration repo into `/home/zdmuser` on the jumpbox via SSH from the **local PowerShell terminal**. This ensures the repo is present the moment Step 2 opens in the Remote-SSH window.
 
+Jumpbox admin command auth rules for all commands below:
+- `ssh-key` mode: keep `-o BatchMode=yes -i "<JUMPBOX_SSH_KEY>"`
+- `password` mode: remove `-i` and remove `-o BatchMode=yes` to allow interactive password prompt
+
 **Run each command separately and verify exit code 0 before proceeding:**
 
 ```powershell
 # 1. Install git
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y git"
 ```
+
+If jumpbox admin auth mode is password, run the same command without `-i` and without `-o BatchMode=yes`.
 
 ```powershell
 # 2. Create /home/zdmuser
@@ -349,16 +363,18 @@ Post this exact question block:
 1. `JUMPBOX_HOST` — IP address or FQDN of the ZDM jumpbox (e.g. `10.0.0.5` or `zdm-jumpbox.example.com`)
 2. `JUMPBOX_PORT` — SSH port *(default: `22`)*
 3. `JUMPBOX_USER` — SSH login user — **must be `zdmuser`** *(default: `zdmuser`)*
-4. `JUMPBOX_SSH_KEY` — Local path to the private SSH key file (e.g. `$env:USERPROFILE\.ssh\zdm_jumpbox_key`)
-5. `JUMPBOX_ALIAS` — Host alias for `~/.ssh/config` *(default: `zdm-jumpbox`)*
+4. `JUMPBOX_AUTH_MODE` — `ssh-key` or `password` *(default: `ssh-key`)*
+5. `JUMPBOX_SSH_KEY` — Local path to the private SSH key file (required only when auth mode is `ssh-key`)
+6. `JUMPBOX_ALIAS` — Host alias for `~/.ssh/config` *(default: `zdm-jumpbox`)*
 
 *Reply with answers by number, e.g.:*
 ```
 1: 10.0.0.5
 2: 22
 3: zdmuser
-4: C:\Users\you\.ssh\zdm_jumpbox_key
-5: zdm-jumpbox
+4: ssh-key
+5: C:\Users\you\.ssh\zdm_jumpbox_key
+6: zdm-jumpbox
 ```
 *(Leave a line blank or omit to accept the default.)*
 
@@ -374,6 +390,8 @@ Parse the user's reply and map each answer back to its variable by number. Accep
 ---
 
 ## Phase 3: SSH Key Setup
+
+If `JUMPBOX_AUTH_MODE=password`, skip this phase and continue to Phase 4.
 
 ### 3a. Check for existing key
 

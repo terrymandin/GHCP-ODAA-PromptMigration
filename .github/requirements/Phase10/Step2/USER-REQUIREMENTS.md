@@ -10,6 +10,10 @@ Verify that Zero Downtime Migration (ZDM) version 26.1 is installed and running 
 
 **`sudo` policy**: `zdmuser` does **not** have `sudo` access. Any command that requires root must be surfaced to the user to run from a local PowerShell terminal as `azureuser`. Never use `sudo su zdmuser`; the session already is `zdmuser`. Never use `sudo -u zdmuser <command>`; the session is already `zdmuser`.
 
+Jumpbox admin escalation supports both authentication modes:
+- `ssh-key` mode: local terminal commands use `-i <JUMPBOX_SSH_KEY>` and may include `-o BatchMode=yes`.
+- `password` mode: local terminal commands omit `-i` and `BatchMode`; the user enters password interactively.
+
 ---
 
 ## S2-01: Output Contract
@@ -99,6 +103,12 @@ If any directory is missing or not owned by `zdmuser`, surface the following com
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 
+Password-mode equivalent:
+
+```powershell
+ssh -p 22 azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+```
+
 ### Step B - Download
 
 1. Instruct the user to navigate to the [Zero Downtime Migration Download](https://www.oracle.com/database/technologies/rac/zdm-downloads.html) page.
@@ -124,6 +134,12 @@ If any are `MISSING`, display:
 ```powershell
 # Run this from a LOCAL PowerShell terminal as azureuser, not in the Remote-SSH session:
 ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+```
+
+Password-mode equivalent:
+
+```powershell
+ssh -p 22 azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
 ### Step D - Verify Installation Directories

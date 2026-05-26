@@ -4,6 +4,17 @@
 
 This file defines implementation-level constraints for the Step 1 setup step. Step1 runs in the LOCAL VS Code terminal (PowerShell on Windows). Azure VM creation and SSH configuration both run locally. No Remote-SSH session is active during this step.
 
+## S1-09A-0: Jumpbox admin auth mode
+
+All jumpbox admin SSH interactions in Step1 must support both modes:
+
+- `JUMPBOX_AUTH_MODE=ssh-key`:
+   - `ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "<cmd>"`
+- `JUMPBOX_AUTH_MODE=password`:
+   - `ssh -p 22 <SSH_USERNAME>@<JUMPBOX_HOST> "<cmd>"`
+
+For password mode, omit `-i` and omit `BatchMode=yes` so the terminal can prompt for password interactively.
+
 ## S1-09A: Azure VM Creation Implementation
 
 This section applies only when the user confirms they want a new VM created (S1-00-B).
@@ -84,10 +95,16 @@ Extract from the JSON output:
 
 Immediately after extracting `JUMPBOX_HOST`, install `tar` on the new VM over SSH. VS Code Server requires `tar` to extract its installation archive — without it, the Remote-SSH connection will fail with "Failed to install the VS Code Server."
 
-Run this command in the local PowerShell terminal, substituting the admin username and private key path that were used for VM creation:
+Run this command in the local PowerShell terminal, substituting the admin username and auth mode used for VM creation:
 
 ```powershell
 ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y tar"
+```
+
+Password-mode equivalent:
+
+```powershell
+ssh -o StrictHostKeyChecking=accept-new -p 22 <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y tar"
 ```
 
 - Capture `$LASTEXITCODE`. If non-zero, surface the SSH error and do not proceed until resolved.
@@ -274,7 +291,7 @@ After generation:
 
 ## S1-14: SSH connectivity test
 
-The connectivity verification test (S1-06 point 5) uses these options to avoid interactive prompts:
+The connectivity verification test (S1-06 point 5) must match `JUMPBOX_AUTH_MODE`:
 
 ```powershell
 ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes `
@@ -282,7 +299,14 @@ ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes `
     <JUMPBOX_USER>@<JUMPBOX_HOST> hostname
 ```
 
-- `BatchMode=yes` prevents password prompts and makes key-auth failures explicit.
+```powershell
+ssh -o StrictHostKeyChecking=accept-new `
+   -p <JUMPBOX_PORT> `
+   <JUMPBOX_USER>@<JUMPBOX_HOST> hostname
+```
+
+- In key mode, `BatchMode=yes` prevents password prompts and makes key-auth failures explicit.
+- In password mode, do not use `BatchMode=yes`; allow interactive password entry.
 - `StrictHostKeyChecking=accept-new` adds the host to `known_hosts` on first connection without prompting, but will fail if the key changes.
 - Capture the exit code: `$LASTEXITCODE`. Non-zero = FAIL.
 - Capture stdout (remote hostname) and stderr (error message) separately using redirection.
@@ -303,6 +327,10 @@ Generated: <ISO-8601 timestamp>
 - Key path: <JUMPBOX_SSH_KEY>
 - Mode: existing / generated
 - Public key location: <JUMPBOX_SSH_KEY>.pub
+
+## Jumpbox Auth
+- Mode: ssh-key / password
+- Credential handling: key path / interactive password
 
 ## SSH Config Entry
 - Config file: <config path>

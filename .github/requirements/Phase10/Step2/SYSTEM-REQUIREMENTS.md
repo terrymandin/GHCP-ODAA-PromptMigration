@@ -23,14 +23,21 @@ Before running any phase that may require root operations, collect the escalatio
 
 3. **Escalation option A - Local terminal**: No VM changes. All root operations are shown as a fully-formed PowerShell `ssh` command for the user to run from a local terminal. Record `ESCALATION_METHOD=local-terminal`. Ask the user to provide (referencing their local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):
    - `JUMPBOX_HOST` - the `Public IP:` value from the `## VM Details` section
-   - `JUMPBOX_SSH_KEY` - the `Key path:` value from the `## SSH Key` section
+   - `JUMPBOX_ADMIN_AUTH_MODE` - `ssh-key` or `password`
+   - If `ssh-key`: `JUMPBOX_SSH_KEY` - the `Key path:` value from the `## SSH Key` section
+   - If `password`: `JUMPBOX_ADMIN_PASSWORD` (interactive use only; never written to files)
    Do **not** attempt to read this file with file tools; it is gitignored and will not be present on the jumpbox filesystem. All escalation commands use real values with no placeholders.
 
-4. **Escalation option B - zdmuser sudo password**: Ask the user for the same two values (`JUMPBOX_HOST`, `JUMPBOX_SSH_KEY`) from their local Step 1 report, plus a password to set on `zdmuser` (`ZDMUSER_PASS`). Do **not** attempt to read the artifact file. Show the one-time setup command with real values substituted (no literal placeholders):
+4. **Escalation option B - zdmuser sudo password**: Ask the user for `JUMPBOX_HOST`, plus jumpbox admin auth details (`JUMPBOX_ADMIN_AUTH_MODE` and either `JUMPBOX_SSH_KEY` or `JUMPBOX_ADMIN_PASSWORD`), and a password to set on `zdmuser` (`ZDMUSER_PASS`). Do **not** attempt to read the artifact file. Show the one-time setup command with real values substituted (no literal placeholders):
    ```powershell
-   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
+    ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
      "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
    ```
+    Password-mode equivalent:
+    ```powershell
+    ssh -p 22 azureuser@$JUMPBOX_HOST `
+       "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
+    ```
    After the user confirms, verify in-session:
    ```bash
    echo "$ZDMUSER_PASS" | sudo -S true 2>/dev/null && echo "SUDO_OK" || echo "SUDO_FAIL"
@@ -119,7 +126,7 @@ for pkg in expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget;
 done
 ```
 
-If any are `MISSING`, install them using the `ESCALATION_METHOD` established in S3-09B. Use `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS` (real values with no literal placeholders).
+If any are `MISSING`, install them using the `ESCALATION_METHOD` established in S3-09B and jumpbox admin auth mode (`ssh-key` or `password`). Use real values with no literal placeholders.
 
 **`ESCALATION_METHOD=local-terminal`:**
 
