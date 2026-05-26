@@ -195,6 +195,18 @@ If any step fails, surface the error and do not proceed until it is resolved.
 
 After confirming all prerequisites are in place, proceed to S1-02 (Execution Context / SSH setup). Do not route back to Step 3 — VM creation is complete.
 
+## S1-01A: MCP-first Azure VM operations
+
+When MCP servers are available, Step1 should prefer MCP-backed Azure operations for VM discovery and provisioning:
+
+Runtime reference (recommended): Microsoft Azure MCP Server (`@azure/mcp`) launched as `npx -y @azure/mcp@latest server start`.
+
+1. Use `mcp_azure_mcp_subscription_list` to resolve the active/default subscription before any VM lookup or create action.
+2. Use `mcp_azure_mcp_compute` list/query operations to determine whether the jumpbox VM already exists and to retrieve state/public IP details.
+3. Use `mcp_azure_mcp_compute` create operations for VM creation when the user approves creation in S1-00.
+4. If MCP cannot perform the requested operation in the current environment, fall back to the documented `az` command flow in S1-00-D.
+5. Regardless of MCP or CLI path, preserve the same output contract in S1-01 and record `JUMPBOX_HOST` from the final verified VM public endpoint.
+
 ---
 
 ## S1-02: Execution context

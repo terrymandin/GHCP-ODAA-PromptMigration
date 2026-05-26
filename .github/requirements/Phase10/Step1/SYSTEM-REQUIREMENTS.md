@@ -197,6 +197,21 @@ ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> 
 ```
 Expected: each line shows `zdmuser zdm <path>`.
 
+## S1-09B: MCP-backed Azure control plane implementation
+
+When MCP servers are available in the execution environment, implement Azure control-plane actions in this order:
+
+Implementation runtime reference: Microsoft Azure MCP Server (`@azure/mcp`) started with `npx -y @azure/mcp@latest server start`.
+For reduced tool count and faster startup in this scenario, prefer namespace scoping: `--mode namespace --namespace compute --namespace network --namespace monitor`.
+
+1. Resolve subscription context using `mcp_azure_mcp_subscription_list` before any VM lookup/create call.
+2. Query existing VM resources with `mcp_azure_mcp_compute` to avoid duplicate `az vm create` calls.
+3. Execute VM creation with `mcp_azure_mcp_compute` after the user confirms parameters per S1-09A-3.
+4. Use MCP query/read responses to extract public IP and running state (`JUMPBOX_HOST`, power state).
+5. If MCP calls fail or do not support a required field, continue with the existing `az` command templates from S1-09A-2 and S1-09A-3.
+
+MCP or CLI path must produce the same downstream variables and report fields.
+
 ---
 
 ## S1-10: Extension check implementation

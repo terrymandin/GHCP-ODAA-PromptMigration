@@ -1,5 +1,58 @@
 {
     "chat.promptFilesLocations": [".github/prompts"],
+    "mcp": {
+        "servers": {
+            "azure-mcp": {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@azure/mcp@latest",
+                    "server",
+                    "start",
+                    "--mode",
+                    "namespace",
+                    "--namespace",
+                    "compute",
+                    "--namespace",
+                    "network",
+                    "--namespace",
+                    "monitor"
+                ]
+            },
+            "github": {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-github"
+                ],
+                "env": {
+                    "GITHUB_TOKEN": "${env:GITHUB_TOKEN}"
+                }
+            },
+            "oracle-oci-api": {
+                "command": "uvx",
+                "args": [
+                    "oracle.oci-api-mcp-server"
+                ],
+                "env": {
+                    "OCI_CONFIG_PROFILE": "DEFAULT",
+                    "OCI_CONFIG_FILE": "${env:USERPROFILE}/.oci/config",
+                    "FASTMCP_LOG_LEVEL": "ERROR"
+                }
+            },
+            "oracle-oci-database": {
+                "command": "uvx",
+                "args": [
+                    "oracle.oci-database-mcp-server"
+                ],
+                "env": {
+                    "OCI_CONFIG_PROFILE": "DEFAULT",
+                    "OCI_CONFIG_FILE": "${env:USERPROFILE}/.oci/config",
+                    "FASTMCP_LOG_LEVEL": "ERROR"
+                }
+            }
+        }
+    },
     "chat.tools.terminal.autoApprove": {
         "Set-Content": true,
         "New-Item": true,

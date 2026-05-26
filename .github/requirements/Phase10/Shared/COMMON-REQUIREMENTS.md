@@ -351,3 +351,18 @@ Use these canonical group layouts when collecting variables. Steps may add extra
 ### CR-16-C: Confirmation summary before action
 
 After collecting all groups, display a single consolidated summary of all collected values and require the user to confirm before writing any artifact or running any command. This confirmation is separate from the group collection and must show all values together.
+
+## CR-17: MCP server selection baseline
+
+To improve automation quality and reduce brittle shell parsing, Phase10 prompts should prefer MCP servers for cloud control-plane operations and optional database metadata discovery when available.
+
+1. Step1 Azure control-plane operations (subscription lookup, VM existence checks, VM creation and post-create inspection) should prefer Azure MCP servers over raw CLI calls:
+   - Preferred Microsoft server runtime: Azure MCP Server via `npx -y @azure/mcp@latest server start` (or equivalent extension-managed runtime).
+   - For this workflow, prefer namespace-scoped startup to reduce tool noise and improve startup latency, for example: `--mode namespace --namespace compute --namespace network --namespace monitor`.
+   - `mcp_azure_mcp_subscription_list` for subscription discovery/default resolution.
+   - `mcp_azure_mcp_compute` for VM list/create/state/public IP discovery.
+   - `mcp_azure_mcp_extension_cli_install` when Azure CLI/azd/func/azqr installation guidance is needed.
+2. VM discovery (finding an existing jumpbox before creating a new VM) should use MCP query/list operations first, then fall back to `az vm list` only if MCP is unavailable.
+3. Step5 and Step6 database discovery/compatibility checks remain SSH+SQL*Plus as the canonical baseline, but an Oracle MCP server may be used as an optional accelerator for read-only SQL evidence collection when direct DB connectivity is permitted.
+4. Any Oracle MCP usage in Phase10 must remain read-only (metadata and SELECT checks only). No DDL, DML, parameter mutation, service restarts, or host-level changes are allowed via MCP.
+5. If an MCP server is unavailable or returns insufficient data, prompts must fall back to the existing shell/SQL workflow without changing output contracts.

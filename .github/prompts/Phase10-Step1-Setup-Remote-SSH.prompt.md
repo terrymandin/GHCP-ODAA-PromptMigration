@@ -8,6 +8,8 @@ description: ZDM Step 1 - Setup Remote-SSH connection to the ZDM jumpbox (runs i
 
 Ensure the ZDM Azure VM exists (creating it if needed), then configure the Remote-SSH extension, SSH key, and jumpbox host entry so that subsequent steps (Step 4 onward) can run in the correct Remote-SSH terminal context as `zdmuser`.
 
+For Azure control-plane operations in this step, prefer MCP-backed operations when available (Azure MCP Server), and fall back to raw `az` CLI commands only when MCP is unavailable or missing required fields.
+
 ---
 
 ## IMPORTANT: Execution Context
@@ -70,6 +72,8 @@ Before configuring SSH, confirm the target VM exists and is reachable. Ask the u
 
 Ask for the VM's IP address or FQDN and note it as `JUMPBOX_HOST`. Proceed to [Phase 1: Extension Check](#phase-1-extension-check-s1-03-s1-10).
 
+When Azure MCP is available, first attempt VM existence and endpoint discovery via MCP tools (subscription/context + compute listing/read operations). If VM details are returned, confirm `JUMPBOX_HOST` from MCP output and continue. If MCP is unavailable or inconclusive, continue with the interactive question flow below.
+
 ### If the VM does not yet exist — Azure VM Creation
 
 Ask the user if they would like assistance creating the ZDM Azure VM:
@@ -81,6 +85,8 @@ Ask the user if they would like assistance creating the ZDM Azure VM:
 **If the user declines**, provide a reminder of the recommended VM configuration (shown below) and wait for them to confirm the VM is ready before proceeding to Phase 1.
 
 **If the user accepts**, collect VM parameters per CR-16-A. Post all questions for Groups 1–4 as a **numbered list in a single chat message**. Do NOT use `vscode_askQuestions` — questions must appear in the chat as plain numbered markdown, not as a VS Code dialog.
+
+If Azure MCP is available, use MCP for the create operation after user confirmation of parameters. If not, use the `az vm create` command flow already defined in this phase.
 
 Post this exact question block:
 
@@ -181,6 +187,8 @@ After displaying the command, ask:
 > **Shall I run this command now? (Yes / No)**
 
 Run the command in the **local PowerShell terminal** only after the user replies **Yes**. If the user replies No, ask what they would like to change.
+
+If using MCP for VM creation, still display the equivalent `az vm create` command preview for transparency before execution, then run via MCP after confirmation.
 
 After the VM is created, display the public IP address returned by `az vm create` — record it as `JUMPBOX_HOST`.
 

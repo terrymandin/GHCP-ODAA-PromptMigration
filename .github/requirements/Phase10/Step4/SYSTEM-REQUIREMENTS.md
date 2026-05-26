@@ -26,6 +26,16 @@ Copilot must perform these actions inline in the jumpbox terminal:
 10. Continue execution when one discovery target fails; report per-target status.
 11. Never suppress SSH errors.
 
+## S5-11A: Oracle MCP execution precedence (optional)
+
+When an Oracle MCP server is configured and reachable, Step5 may use it for selected read-only discovery items. Apply this precedence:
+
+1. Prefer Oracle MCP for read-only SQL evidence that does not require host-level commands.
+2. Always use SSH for host OS checks, filesystem checks, listener/process checks, and sudo-dependent checks.
+3. If an Oracle MCP query fails, times out, or returns insufficient columns for a required discovery item, retry with SSH+SQL*Plus and continue.
+4. Preserve item-level traceability in reports: each item must indicate data source (`oracle-mcp` or `ssh/sqlplus`).
+5. Oracle MCP usage must not relax any required check from S5-06.
+
 ## S5-12: Copilot output visibility during execution
 
 During Step5 execution, Copilot must show inline status in the chat for each major stage:
