@@ -137,7 +137,8 @@ Post this exact question block:
 
 **Group 4 — Authentication**
 9. Auth Type — SSH public key or password? *(default: SSH public key)*
-10. SSH Username — admin username for SSH login? *(default: `azureuser`)*
+10. Admin SSH Username — admin username for VM creation/bootstrap SSH login? *(default: `azureuser`)*
+11. ZDM SSH Username — username for final Remote-SSH login? *(default: `zdmuser`)*
 
 *Reply with answers by number, e.g.:*
 ```
@@ -164,12 +165,15 @@ After Groups 1–4 are answered, present **Group 5** in a second message since i
 
 - If SSH key was selected, post:
   ```
-  11. Local path to the SSH **public** key file (e.g., `$env:USERPROFILE\.ssh\zdm_jumpbox_key.pub`)
-  12. Local path to the SSH **private** key file (e.g., `$env:USERPROFILE\.ssh\zdm_jumpbox_key`)
+  12. Local path to the ADMIN (`azureuser`) SSH **public** key file
+  13. Local path to the ADMIN (`azureuser`) SSH **private** key file
+  14. Local path to the ZDM (`zdmuser`) SSH **public** key file
+  15. Local path to the ZDM (`zdmuser`) SSH **private** key file
   ```
 - If password was selected, post:
   ```
-  11. Password for the VM admin account
+  12. Password for the VM admin account (`azureuser`)
+  13. Password for the ZDM account (`zdmuser`)
   ```
 
 After all groups, display a consolidated summary of all values and require explicit user confirmation before proceeding.
@@ -183,7 +187,8 @@ After all groups, display a consolidated summary of all values and require expli
 > - OS Disk: `<disk_size_gb>` GB
 > - VNet/Subnet: `<vnet>/<subnet>`
 > - Auth: `<SSH key | password>`
-> - SSH Username: `<username>`
+> - Admin SSH Username: `<admin_username>`
+> - ZDM SSH Username: `<zdm_username>`
 >
 > **Are these parameters correct? (Yes / No)**
 
@@ -201,13 +206,13 @@ az vm create `
   --os-disk-size-gb 256 `
   --vnet-name "<VNET_NAME>" `
   --subnet "<SUBNET_NAME>" `
-  --admin-username "<SSH_USERNAME>" `
-  --ssh-key-values "<SSH_PUBLIC_KEY>" `
+  --admin-username "<ADMIN_SSH_USERNAME>" `
+  --ssh-key-values "<ADMIN_SSH_PUBLIC_KEY>" `
   --public-ip-sku Standard `
   --output table
 ```
 
-> If the user chose password authentication, replace `--ssh-key-values` with `--admin-password "<PASSWORD>"` and add `--authentication-type password`.
+> If the user chose password authentication, replace `--ssh-key-values` with `--admin-password "<ADMIN_PASSWORD>"` and add `--authentication-type password`.
 
 After displaying the command, ask:
 
@@ -233,9 +238,9 @@ Run the following in the **local PowerShell terminal**:
 Resolve one jumpbox admin SSH command prefix from the selected auth mode and use only that prefix for all Step 1 jumpbox admin commands in this run:
 
 - If `Auth Type = SSH public key`:
-  - `<JUMPBOX_ADMIN_SSH_CMD> = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST>`
+  - `<JUMPBOX_ADMIN_SSH_CMD> = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<ADMIN_SSH_KEY>" <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST>`
 - If `Auth Type = password`:
-  - `<JUMPBOX_ADMIN_SSH_CMD> = ssh -o StrictHostKeyChecking=accept-new -p 22 <SSH_USERNAME>@<JUMPBOX_HOST>`
+  - `<JUMPBOX_ADMIN_SSH_CMD> = ssh -o StrictHostKeyChecking=accept-new -p 22 <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST>`
 
 Do not show or run the other auth mode's command variants in this run.
 
@@ -310,17 +315,17 @@ Run the next credential bootstrap based on the selected mode:
 
 ```powershell
 # 5a. Install the SSH public key into zdmuser's authorized_keys
-$pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
+$pubKey = (Get-Content "<ZDMUSER_SSH_KEY>.pub" -Raw).Trim()
 $sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
 <JUMPBOX_ADMIN_SSH_CMD> $sshCmd
 ```
 
 ```powershell
-# 5b. Password mode only: set zdmuser password interactively
-<JUMPBOX_ADMIN_SSH_CMD> "sudo passwd zdmuser"
+# 5b. Password mode only: set zdmuser password non-interactively from collected value
+<JUMPBOX_ADMIN_SSH_CMD> "echo 'zdmuser:<ZDMUSER_PASSWORD>' | sudo chpasswd"
+# Verify account is not locked (shadow entry must not contain :!:)
+<JUMPBOX_ADMIN_SSH_CMD> "sudo getent shadow zdmuser"
 ```
-
-For Step 5b, complete the interactive password prompts in the terminal and confirm success before continuing.
 
 ```powershell
 # 6. Verify: confirm ownership and that zdmuser can read the repo
@@ -398,7 +403,7 @@ Post this exact question block:
 2. `JUMPBOX_PORT` — SSH port *(default: `22`)*
 3. `JUMPBOX_USER` — SSH login user — **must be `zdmuser`** *(default: `zdmuser`)*
 4. `JUMPBOX_AUTH_MODE` — `ssh-key` or `password` *(default: `ssh-key`)*
-5. `JUMPBOX_SSH_KEY` — Local path to the private SSH key file (required only when auth mode is `ssh-key`)
+5. `JUMPBOX_SSH_KEY` — Local path to the `zdmuser` private SSH key file (required only when auth mode is `ssh-key`)
 6. `JUMPBOX_ALIAS` — Host alias for `~/.ssh/config` *(default: `zdm-jumpbox`)*
 
 *Reply with answers by number, e.g.:*

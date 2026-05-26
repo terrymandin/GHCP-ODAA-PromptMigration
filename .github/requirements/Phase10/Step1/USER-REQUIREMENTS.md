@@ -70,11 +70,19 @@ Collect VM parameters using **grouped question collection** per CR-16. Present a
 | Parameter | Question | Default |
 |-----------|----------|---------|
 | Auth Type | SSH public key or password? | SSH public key |
-| SSH Username | What admin username for SSH login? | `azureuser` |
+| Admin SSH Username | What admin username for SSH login (VM create/admin bootstrap)? | `azureuser` |
+| ZDM SSH Username | What username will VS Code Remote-SSH use for migration steps? | `zdmuser` |
 
 **Group 5 — SSH Key or Password** (present after Group 4 answer; content depends on auth type):
-- If SSH key: ask for the Azure key resource name OR path to local public key file AND path to local private key file.
-- If password: ask for the password.
+- If SSH key:
+   - Ask for admin (`azureuser`) public key source and private key path used for VM creation/admin bootstrap.
+   - Ask for `zdmuser` public key source and private key path used for final Remote-SSH connectivity.
+   - Allow the user to explicitly choose to reuse the same keypair for both users.
+- If password:
+   - Ask for admin (`azureuser`) password.
+   - Ask for `zdmuser` password.
+
+The prompt must collect credentials for both users in the selected mode before any VM create/bootstrap commands run.
 
 After all groups are answered, display a consolidated summary of all values and require explicit user confirmation before proceeding to the command display step (S1-00-D).
 
@@ -97,9 +105,9 @@ Immediately after VM creation succeeds, install the packages required for VS Cod
 Resolve a single jumpbox admin command prefix from `JUMPBOX_AUTH_MODE` and use that prefix for all Step1 jumpbox admin SSH commands:
 
 - `ssh-key` mode:
-   - `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST>`
+   - `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<ADMIN_SSH_KEY>" <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST>`
 - `password` mode:
-   - `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -p 22 <SSH_USERNAME>@<JUMPBOX_HOST>`
+   - `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -p 22 <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST>`
 
 Do not mix mode-specific command variants in the same run.
 
@@ -163,15 +171,19 @@ Immediately after the clone is verified, create the `zdmuser` OS account and tra
    ```powershell
    <JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
    # Read the public key content locally, then write it to authorized_keys on the jumpbox
-   $pubKey = Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw
+   $pubKey = Get-Content "<ZDMUSER_SSH_KEY>.pub" -Raw
    <JUMPBOX_ADMIN_SSH_CMD> "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
    ```
 
    If `password` mode:
    ```powershell
-   <JUMPBOX_ADMIN_SSH_CMD> "sudo passwd zdmuser"
+   <JUMPBOX_ADMIN_SSH_CMD> "echo 'zdmuser:<ZDMUSER_PASSWORD>' | sudo chpasswd"
    ```
-   Complete the interactive prompt and confirm password update succeeded.
+   Then verify the account is not locked before continuing:
+   ```powershell
+   <JUMPBOX_ADMIN_SSH_CMD> "sudo getent shadow zdmuser"
+   ```
+   The shadow entry must not contain `:!:` in the password field.
 
 4. Verify `zdmuser` can be impersonated and owns the repo:
    ```powershell
@@ -278,7 +290,8 @@ Collect or confirm these values interactively before writing the SSH config entr
 | `JUMPBOX_PORT` | SSH port (default: 22) | `22` |
 | `JUMPBOX_USER` | SSH login user (must be `zdmuser`) | `zdmuser` |
 | `JUMPBOX_AUTH_MODE` | Jumpbox auth mode (`ssh-key` or `password`) | `ssh-key` |
-| `JUMPBOX_SSH_KEY` | Local path to the private key file (required when `JUMPBOX_AUTH_MODE=ssh-key`) | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
+| `JUMPBOX_SSH_KEY` | Local path to the `zdmuser` private key file for final Remote-SSH login (required when `JUMPBOX_AUTH_MODE=ssh-key`) | `$env:USERPROFILE\.ssh\zdm_jumpbox_key` |
+| `ADMIN_SSH_KEY` | Local path to the admin (`azureuser`) private key file for bootstrap commands (required when `JUMPBOX_AUTH_MODE=ssh-key`) | `$env:USERPROFILE\.ssh\zdm_jumpbox_admin_key` |
 | `JUMPBOX_ALIAS` | Host alias for `~/.ssh/config` (default: `zdm-jumpbox`) | `zdm-jumpbox` |
 
 **Pre-populated bypass (CR-12)**: If `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` already exists and shows status READY, skip interactive collection and display a confirmation that setup is already complete.

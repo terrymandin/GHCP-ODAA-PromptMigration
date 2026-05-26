@@ -6,12 +6,12 @@ This file defines implementation-level constraints for the Step 1 setup step. St
 
 ## S1-09A-0: Jumpbox admin auth mode
 
-All jumpbox admin SSH interactions in Step1 must support both modes:
+All jumpbox admin SSH interactions in Step1 must support both modes using admin credentials (`azureuser` by default):
 
 - `JUMPBOX_AUTH_MODE=ssh-key`:
-   - `ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "<cmd>"`
+   - `ssh -o BatchMode=yes -p 22 -i "<ADMIN_SSH_KEY>" <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST> "<cmd>"`
 - `JUMPBOX_AUTH_MODE=password`:
-   - `ssh -p 22 <SSH_USERNAME>@<JUMPBOX_HOST> "<cmd>"`
+   - `ssh -p 22 <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST> "<cmd>"`
 
 For password mode, omit `-i` and omit `BatchMode=yes` so the terminal can prompt for password interactively.
 
@@ -19,7 +19,12 @@ Execution consistency requirement:
 - Resolve `JUMPBOX_AUTH_MODE` once per Step1 run and lock that choice for all subsequent jumpbox admin SSH commands.
 - Render and run only the selected mode's command variant in that run.
 - Do not present or execute mixed key/password variants in the same run.
-- When `JUMPBOX_AUTH_MODE=password`, do not run `authorized_keys` installation steps; instead, require interactive `zdmuser` password setup before the Phase 5 connectivity test.
+- When `JUMPBOX_AUTH_MODE=password`, do not run `authorized_keys` installation steps; instead, require non-interactive `zdmuser` password setup using the collected `ZDMUSER_PASSWORD` and verify the account is unlocked before the Phase 5 connectivity test.
+
+Credential collection requirement:
+- Prompt for both admin and `zdmuser` credentials in the selected auth mode.
+- SSH key mode: collect both keypairs (or explicit same-key reuse) for admin bootstrap and `zdmuser` final login.
+- Password mode: collect both admin password and `zdmuser` password.
 
 ## S1-09A: Azure VM Creation Implementation
 
@@ -82,13 +87,13 @@ az vm create `
   --output json
 ```
 
-**For password authentication:** replace `--ssh-key-values "<SSH_PUBLIC_KEY>"` with `--admin-password "<PASSWORD>"` and add `--authentication-type password`.
+**For password authentication:** replace `--ssh-key-values "<ADMIN_SSH_PUBLIC_KEY>"` with `--admin-password "<ADMIN_PASSWORD>"` and add `--authentication-type password`.
 
 **Defaults to substitute when the user accepts the recommendation:**
 - `--image`: `Oracle:Oracle-Linux:ol10-lvm-gen2:latest`
 - `--size`: `Standard_D2s_v3`
 - `--os-disk-size-gb`: `256`
-- `--admin-username`: `azureuser`
+- `--admin-username`: `azureuser` (or collected `ADMIN_SSH_USERNAME`)
 - `--public-ip-sku`: `Standard` (always include)
 
 ### S1-09A-4: Output Capture
@@ -103,8 +108,8 @@ Immediately after extracting `JUMPBOX_HOST`, install `tar` on the new VM over SS
 
 Build one admin SSH command prefix for the selected `JUMPBOX_AUTH_MODE` and use only that variant for this Step1 run:
 
-- key mode: `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST>`
-- password mode: `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -p 22 <SSH_USERNAME>@<JUMPBOX_HOST>`
+- key mode: `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<ADMIN_SSH_KEY>" <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST>`
+- password mode: `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -p 22 <ADMIN_SSH_USERNAME>@<JUMPBOX_HOST>`
 
 Run this command in the local PowerShell terminal:
 
@@ -174,19 +179,25 @@ If key mode:
 
 **Step 5 — Install the SSH public key for `zdmuser` (key mode):**
 
-Read the public key locally and write it to `authorized_keys` on the jumpbox. The key file is `<JUMPBOX_SSH_KEY>.pub` (the `.pub` counterpart of the private key used in this step).
+Read the `zdmuser` public key locally and write it to `authorized_keys` on the jumpbox. The key file is `<ZDMUSER_SSH_KEY>.pub`.
 
 ```powershell
-$pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
+$pubKey = (Get-Content "<ZDMUSER_SSH_KEY>.pub" -Raw).Trim()
 $sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
 <JUMPBOX_ADMIN_SSH_CMD> $sshCmd
 ```
 
 If password mode:
 ```powershell
-<JUMPBOX_ADMIN_SSH_CMD> "sudo passwd zdmuser"
+<JUMPBOX_ADMIN_SSH_CMD> "echo 'zdmuser:<ZDMUSER_PASSWORD>' | sudo chpasswd"
 ```
-Complete the interactive prompt and confirm password update succeeded.
+After setting password, verify account is not locked:
+
+```powershell
+<JUMPBOX_ADMIN_SSH_CMD> "sudo getent shadow zdmuser"
+```
+
+The verification output must not contain `zdmuser:!:`.
 
 **Step 6 — Verify ownership and access:**
 ```powershell
