@@ -4,11 +4,9 @@ This directory stores source-of-truth requirements used to (re)generate and main
 
 ## Layout
 
-- `Shared/COMMON-REQUIREMENTS.md`: requirements that apply to Steps 0–6.
-- `Step3/USER-REQUIREMENTS.md`: Azure VM creation and ZDM installation — user-facing requirements.
-- `Step3/SYSTEM-REQUIREMENTS.md`: Azure VM creation and ZDM installation — implementation constraints.
-- `StepX/USER-REQUIREMENTS.md`: step-specific user-facing requirements (Steps 1–6).
-- `StepX/SYSTEM-REQUIREMENTS.md`: step-specific implementation/script-level requirements (Steps 1–6).
+- `Shared/COMMON-REQUIREMENTS.md`: requirements that apply to Steps 1–7.
+- `StepX/USER-REQUIREMENTS.md`: step-specific user-facing requirements (Steps 1–7).
+- `StepX/SYSTEM-REQUIREMENTS.md`: step-specific implementation/script-level requirements (Steps 1–7).
 - `ZDM-Prerequisites/`: pre-loaded ZDM prerequisite check catalogs by ZDM version.
 - `PROMPT-UPDATE-PROCESS.md`: standard workflow for updating requirements and regenerating prompts.
 

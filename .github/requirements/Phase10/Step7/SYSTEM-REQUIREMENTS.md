@@ -45,7 +45,7 @@ This file defines implementation-level constraints for generated Step7 runtime a
 
 ## S7-12: -sourcesid vs -sourcedb selection based on SOURCE_GI_TYPE
 
-1. Read `SOURCE_GI_TYPE` from `Artifacts/Phase10-Migration/Step7/db-config.md` (set by Step5 source discovery).
+1. Read `SOURCE_GI_TYPE` from `Artifacts/Phase10-Migration/Step4/db-config.md` (set by Step4 source discovery).
 2. If `SOURCE_GI_TYPE=grid`: use `-sourcedb $SOURCE_DATABASE_UNIQUE_NAME` in `zdmcli migrate database`. This is required when the source database is registered with Grid Infrastructure/srvctl.
 3. If `SOURCE_GI_TYPE=standalone` or blank: use `-sourcesid $SOURCE_ORACLE_SID` in `zdmcli migrate database`.
 4. Using the wrong flag for the source configuration causes PRGZ-3928. Add an inline comment in `zdm_commands.sh` that documents which flag was chosen and why.

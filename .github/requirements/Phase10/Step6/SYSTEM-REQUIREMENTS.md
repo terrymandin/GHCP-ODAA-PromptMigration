@@ -15,7 +15,7 @@ This file defines script-level coding constraints for remediation and verificati
    ```bash
    # TARGET: zdm-server | source-db | target-db
    ```
-4. Scripts targeting `source-db` or `target-db` execute their payload via SSH from the jumpbox, using the SSH connectivity variables from `Artifacts/Phase10-Migration/Step6/ssh-config.md` (same pattern as Step5 discovery). They must not assume a direct local connection to those hosts.
+4. Scripts targeting `source-db` or `target-db` execute their payload via SSH from the jumpbox, using the SSH connectivity variables from `Artifacts/Phase10-Migration/Step3/ssh-config.md` (same pattern as Step5 discovery). They must not assume a direct local connection to those hosts.
 5. Scripts targeting `zdm-server` execute locally on the jumpbox.
 
 ## S7-09: Quoting and SQL execution safety

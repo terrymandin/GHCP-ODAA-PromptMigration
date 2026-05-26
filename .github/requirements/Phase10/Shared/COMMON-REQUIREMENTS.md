@@ -4,11 +4,26 @@
 
 These requirements apply to all Phase10 ZDM prompts unless a step explicitly overrides them.
 
+## Canonical Phase10 Contract
+
+1. Step sequence is fixed:
+   - Step1: Setup Remote-SSH (local VS Code session)
+   - Step2: Install/Verify ZDM (Remote-SSH jumpbox)
+   - Step3: Configure SSH connectivity
+   - Step4: Run discovery
+   - Step5: Discovery questionnaire
+   - Step6: Fix issues
+   - Step7: Generate migration artifacts
+2. Config artifacts are fixed:
+   - `Artifacts/Phase10-Migration/Step3/ssh-config.md`
+   - `Artifacts/Phase10-Migration/Step4/db-config.md`
+3. Any prompt, requirement, or doc that conflicts with this contract is non-canonical and must be updated to match this file.
+
 ## CR-01: Source of truth precedence
 
 1. Treat step configuration artifacts as the primary authoritative generation input (see CR-12):
-   - `Artifacts/Phase10-Migration/Step6/ssh-config.md` for SSH connectivity variables.
-   - `Artifacts/Phase10-Migration/Step7/db-config.md` for database and ZDM variables.
+   - `Artifacts/Phase10-Migration/Step3/ssh-config.md` for SSH connectivity variables.
+   - `Artifacts/Phase10-Migration/Step4/db-config.md` for database and ZDM variables.
 2. When `zdm-env.md` is explicitly attached, treat it as a legacy override with higher precedence than the step artifacts.
 3. Prefer artifact or `zdm-env.md` values over template defaults and examples.
 4. If values conflict with discovery evidence, do not silently override. Explicitly report the mismatch.
@@ -55,8 +70,8 @@ ZDM-specific value used across Step4-Step7:
 
 Variable-to-artifact mapping:
 
-- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step6/ssh-config.md`.
-- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step7/db-config.md`.
+- SSH variables (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`, `SOURCE_SSH_KEY`, `TARGET_SSH_KEY`, `ORACLE_USER`, `ZDM_SOFTWARE_USER`) are captured in `Artifacts/Phase10-Migration/Step3/ssh-config.md`.
+- DB and ZDM variables (`SOURCE_REMOTE_ORACLE_HOME`, `SOURCE_ORACLE_SID`, `TARGET_REMOTE_ORACLE_HOME`, `TARGET_ORACLE_SID`, `SOURCE_DATABASE_UNIQUE_NAME`, `TARGET_DATABASE_UNIQUE_NAME`, `ZDM_HOME`, `SOURCE_GI_TYPE`, `TGT_REDODG`, `TGT_RECODG`) are captured in `Artifacts/Phase10-Migration/Step4/db-config.md`.
 
 ## CR-06: OCI CLI requirement
 
@@ -120,14 +135,14 @@ Naming rule:
 
 ## CR-12: Configuration artifact contract
 
-1. Step4 writes `Artifacts/Phase10-Migration/Step6/ssh-config.md` containing SSH connectivity variables.
-2. Step5 writes `Artifacts/Phase10-Migration/Step7/db-config.md` containing database and ZDM variables.
+1. Step3 writes `Artifacts/Phase10-Migration/Step3/ssh-config.md` containing SSH connectivity variables.
+2. Step4 writes `Artifacts/Phase10-Migration/Step4/db-config.md` containing database and ZDM variables.
 3. Both artifact files use the same key-value markdown format as `zdm-env.md`:
    - One variable per line: `- KEY: value`
    - Blank value means unset: `- KEY: `
    - Placeholder values containing `<...>` are treated as unset.
-4. Steps 3–6 consume `ssh-config.md` as a read-only input for SSH connectivity context.
-5. Steps 4–6 consume `db-config.md` as a read-only input for database context.
+4. Steps 4–7 consume `ssh-config.md` as a read-only input for SSH connectivity context.
+5. Steps 5–7 consume `db-config.md` as a read-only input for database context.
 6. **Pre-populated file bypass**: If the artifact file already exists at the expected path when the step starts, use it directly and skip interactive collection. This enables testing acceleration — users may pre-populate either artifact file to bypass the collection phase.
 7. Generated scripts and runtime artifacts must not read, source, or parse either config artifact at runtime (CR-02 applies).
 

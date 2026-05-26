@@ -10,7 +10,7 @@ Step4 uses the **Remote-SSH execution** model (see CR-03): VS Code is connected 
 
 Configuration artifact written by Copilot using file tools before SSH tests run:
 
-- `Artifacts/Phase10-Migration/Step6/ssh-config.md`
+- `Artifacts/Phase10-Migration/Step3/ssh-config.md`
 
 Primary validation outputs written by Copilot using file tools after SSH tests complete:
 
@@ -60,7 +60,7 @@ Optional:
 
 Input resolution order (see CR-12):
 
-1. If `Artifacts/Phase10-Migration/Step6/ssh-config.md` already exists, use it directly and skip interactive collection.
+1. If `Artifacts/Phase10-Migration/Step3/ssh-config.md` already exists, use it directly and skip interactive collection.
 2. If `zdm-env.md` is explicitly attached and contains these values, use it as a legacy override and skip interactive collection.
 3. Otherwise, collect values interactively (see S4-08) and write `ssh-config.md` after user confirmation.
 
@@ -105,5 +105,5 @@ When neither `ssh-config.md` nor `zdm-env.md` provides the required values, Copi
    - **Group 4 — Application Users**: Oracle software owner user (default: `oracle`); ZDM software user (default: `zdmuser`).
 2. After collecting all groups, display a single consolidated confirmation summary before writing the artifact (per CR-16-C).
 3. Do not proceed to SSH testing until the user confirms or corrects the displayed values.
-4. Write `Artifacts/Phase10-Migration/Step6/ssh-config.md` with the confirmed values before running SSH tests.
+4. Write `Artifacts/Phase10-Migration/Step3/ssh-config.md` with the confirmed values before running SSH tests.
 5. If any required value (`SOURCE_HOST`, `TARGET_HOST`, `SOURCE_SSH_USER`, `TARGET_SSH_USER`) is blank after collection, stop and ask the user to supply the missing value before proceeding.

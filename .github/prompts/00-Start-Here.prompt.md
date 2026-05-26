@@ -23,7 +23,7 @@ Run `@GetStatus` at any time to see the current migration progress.
 ## Prerequisites
 
 Before starting, ensure you have:
-- GitHub Copilot with Claude Sonnet 4.5+ model
+- GitHub Copilot with Auto model selection (recommended)
 - Azure MCP Server Extension installed in VS Code
 - Oracle Developer Extension installed in VS Code
 - GitHub Copilot for Azure Extension installed
@@ -57,15 +57,15 @@ For Phase 10 (ZDM migration), the workflow alternates between VS Code (prompt ge
 ```
 Local VS Code                     ZDM Jumpbox (Remote-SSH)
 ------------------------------    ------------------------------
-@ZDM-Step1 -> SSH setup (local)  -> writes remote-ssh-setup-report
+@Phase10-Step1-Setup-Remote-SSH -> SSH setup (local)  -> writes remote-ssh-setup-report
                                   (reconnect as azureuser)
-@ZDM-Step3 -> VM + ZDM install   -> creates zdmuser, installs ZDM 26.1
+@Phase10-Step2-Install-ZDM -> VM + ZDM install   -> creates zdmuser, installs ZDM 26.1
                                   (reconnect as zdmuser)
-@ZDM-Step4 -> tests SSH inline   -> writes connectivity report
-@ZDM-Step5 -> runs discovery     -> writes discovery reports
-@ZDM-Step6 -> analyzes output    -> complete questionnaire manually
-@ZDM-Step7 -> fix scripts        -> run on ZDM -> iterate until clean
-@ZDM-Step7 -> generates RSP      -> copy to ZDM -> run migration
+@Phase10-Step3-Configure-SSH-Connectivity -> tests SSH inline   -> writes connectivity report
+@Phase10-Step4-Generate-Discovery-Scripts -> runs discovery     -> writes discovery reports
+@Phase10-Step5-Discovery-Questionnaire -> analyzes output    -> complete questionnaire manually
+@Phase10-Step6-Fix-Issues -> fix scripts        -> run on ZDM -> iterate until clean
+@Phase10-Step7-Generate-Migration-Artifacts -> generates RSP      -> copy to ZDM -> run migration
 ```
 
 See [.github/prompts/Phase10-ZDM-Migration-Guide.md](.github/prompts/Phase10-ZDM-Migration-Guide.md) for the full swimlane diagram and prerequisites.

@@ -56,7 +56,7 @@ Applies only when `zdm_test_ssh_connectivity.sh` is generated as a debug artifac
 4. If any verification fails, print fail reason to console and exit non-zero.
 ## S4-14: Pre-populated file detection
 
-1. At the start of Step4 execution, before any interactive prompting, check whether `Artifacts/Phase10-Migration/Step6/ssh-config.md` exists in the workspace.
+1. At the start of Step3 execution, before any interactive prompting, check whether `Artifacts/Phase10-Migration/Step3/ssh-config.md` exists in the workspace.
 2. If the file exists, read and use its values directly. Display the values to the user as a confirmation summary and proceed without interactive collection.
 3. If `zdm-env.md` is explicitly attached (and `ssh-config.md` does not exist), parse its values and use them as a legacy override. Skip interactive collection.
 4. Only proceed to interactive collection (S4-08) when neither `ssh-config.md` nor `zdm-env.md` provides the required values.
@@ -81,7 +81,7 @@ When a required value fails validation, stop and report the failing variable wit
 
 ## S4-16: Artifact write specification
 
-1. Write `Artifacts/Phase10-Migration/Step6/ssh-config.md` using file tools after user confirmation but before SSH tests run.
+1. Write `Artifacts/Phase10-Migration/Step3/ssh-config.md` using file tools after user confirmation but before SSH tests run.
 2. File format must match the `zdm-env.md` key-value convention:
 
 ```markdown

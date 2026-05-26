@@ -21,8 +21,8 @@ Primary inputs:
 
 Optional companion inputs for configured intent/baseline comparison (see CR-12):
 
-- `Artifacts/Phase10-Migration/Step6/ssh-config.md` — SSH connectivity configuration written by Step4.
-- `Artifacts/Phase10-Migration/Step7/db-config.md` — database and ZDM configuration written by Step5.
+- `Artifacts/Phase10-Migration/Step3/ssh-config.md` — SSH connectivity configuration written by Step3.
+- `Artifacts/Phase10-Migration/Step4/db-config.md` — database and ZDM configuration written by Step4.
 - `zdm-env.md` — legacy override, used when step config artifacts are absent.
 
 ## S6-03: Mismatch handling
@@ -219,7 +219,7 @@ For each group: show pre-filled defaults from `zdm-env.md` or `db-config.md` inl
 
 ## S6-10: Decisions Record output
 
-After the interview is complete, write `Migration-Decisions.md` as a **Decisions Record** '€” not a form to fill in.
+After the interview is complete, write `Migration-Decisions.md` as a **Decisions Record** - not a form to fill in.
 
 The file must contain:
 
@@ -233,6 +233,6 @@ The file must contain:
 
 Source values: `discovered` (from Step5 evidence), `from zdm-env.md` (pre-filled and confirmed), `manual` (operator entered directly).
 
-3. **Runbook planning notes** '€” any non-RSP answers (e.g., downtime window) recorded as free-form notes for the runbook author.
+3. **Runbook planning notes** - any non-RSP answers (e.g., downtime window) recorded as free-form notes for the runbook author.
 
 No blank or placeholder values are permitted in this file. All rows must be answered before the file is written.

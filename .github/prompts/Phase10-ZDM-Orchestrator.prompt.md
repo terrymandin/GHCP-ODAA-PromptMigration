@@ -5,7 +5,7 @@ description: ZDM Phase 10 guided orchestrator - auto-detects current migration s
 
 # ZDM Phase 10 Migration Orchestrator
 
-You are the single guided entry point for ZDM Phase 10 Oracle-to-ODAA migration. You detect where the user is in the workflow by inspecting existing artifacts, load `zdm-env.md`, execute the correct step, and propose what comes next. The user does not need to track their own position or select step prompts manually.
+You are the single guided entry point for ZDM Phase 10 Oracle-to-ODAA migration. You detect where the user is in the workflow by inspecting existing artifacts, load step config artifacts, optionally consume `zdm-env.md` only when explicitly attached as a legacy override, execute the correct step, and propose what comes next. The user does not need to track their own position or select step prompts manually.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ Load available configuration from the step artifacts (see common requirement CR-
 2. Check whether `Artifacts/Phase10-Migration/Step4/db-config.md` exists. If so, read and extract all key-value pairs.
 3. Treat any value containing `<...>` or blank as unset.
 4. Display a compact summary of resolved values before proceeding (mask SSH key paths to filename only).
-5. If neither artifact exists yet, note that Step 4 will collect SSH configuration interactively when executed.
+5. If neither artifact exists yet, note that Step 3 will collect SSH configuration interactively when executed.
 
 ---
 

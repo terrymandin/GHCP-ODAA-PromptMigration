@@ -10,7 +10,7 @@ Step5 uses the **Remote-SSH execution model** (see CR-03): VS Code is connected 
 
 Configuration artifact written by Copilot using file tools before discovery runs:
 
-- `Artifacts/Phase10-Migration/Step7/db-config.md`
+- `Artifacts/Phase10-Migration/Step4/db-config.md`
 
 Primary discovery outputs written by Copilot using file tools during discovery execution:
 
@@ -21,7 +21,7 @@ Primary discovery outputs written by Copilot using file tools during discovery e
 - `Artifacts/Phase10-Migration/Step7/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.md`
 - `Artifacts/Phase10-Migration/Step7/Discovery/target/zdm_target_discovery_<hostname>_<timestamp>.json`
 
-Optional debug artifacts '€” only created if direct inline terminal commands are insufficient for a discovery stage:
+Optional debug artifacts - only created if direct inline terminal commands are insufficient for a discovery stage:
 
 - `Artifacts/Phase10-Migration/Step7/Scripts/zdm_source_discovery.sh`
 - `Artifacts/Phase10-Migration/Step7/Scripts/zdm_target_discovery.sh`
@@ -54,7 +54,7 @@ All outputs are git-ignored. No files are committed or create PRs.
 ## S5-05: Execution model
 
 1. Copilot runs discovery commands directly in the jumpbox terminal.
-2. Discovery runs in order: ZDM server '†’ source '†’ target.
+2. Discovery runs in order: ZDM server -> source -> target.
 3. A failure in one discovery target does not abort discovery for the remaining targets.
 4. Discovery outputs are written by Copilot using file tools after each discovery stage completes.
 
@@ -171,7 +171,7 @@ After writing all discovery reports, Copilot must summarize results directly in 
 
 ## S5-09: Required input values and collection model
 
-SSH connectivity variables are read from `Artifacts/Phase10-Migration/Step6/ssh-config.md` (written by Step4). If `ssh-config.md` is not present, fall back to `zdm-env.md` as a legacy override.
+SSH connectivity variables are read from `Artifacts/Phase10-Migration/Step3/ssh-config.md` (written by Step3). If `ssh-config.md` is not present, fall back to `zdm-env.md` as a legacy override.
 
 Required SSH variables:
 
@@ -187,7 +187,7 @@ Optional SSH variables:
 
 Database and ZDM variables are resolved in this order (see CR-12):
 
-1. If `Artifacts/Phase10-Migration/Step7/db-config.md` already exists, use it directly and skip interactive collection.
+1. If `Artifacts/Phase10-Migration/Step4/db-config.md` already exists, use it directly and skip interactive collection.
 2. If `zdm-env.md` is explicitly attached and contains these values, use them and skip interactive collection.
 3. Otherwise, collect values interactively (see S5-10) and write `db-config.md` after user confirmation.
 
@@ -212,5 +212,5 @@ When neither `db-config.md` nor `zdm-env.md` provides the required database vari
 2. For each variable prompt, append a learn-more hint per CR-15-A so the user can type `?` to get detailed guidance on the variable before answering.
 3. After collecting all values, display a confirmation summary before writing the artifact.
 4. Do not proceed to discovery until the user confirms or corrects the displayed values.
-5. Write `Artifacts/Phase10-Migration/Step7/db-config.md` with the confirmed values before running discovery commands.
+5. Write `Artifacts/Phase10-Migration/Step4/db-config.md` with the confirmed values before running discovery commands.
 6. If any required database variable is blank after collection, warn the user that Step5 will attempt auto-detection from `/etc/oratab` and PMON processes during discovery, but values should be provided when known to avoid errors.
