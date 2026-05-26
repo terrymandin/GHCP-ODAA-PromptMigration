@@ -62,6 +62,33 @@ If the file exists, read it and check whether the `## Status` section shows `REA
 
 ## Phase 0: ZDM VM Readiness Check
 
+### MCP/Azure Context Alignment Gate (run before VM discovery/create)
+
+Before using Azure MCP tools for subscription lookup, VM discovery, or VM creation, align MCP context with the local Azure CLI context.
+
+1. Get local CLI context (subscription, state, tenant, account):
+
+```powershell
+az account show --query "{name:name,id:id,state:state,tenantId:tenantId,user:user.name}" -o json
+```
+
+2. Query MCP subscriptions using `mcp_azure_mcp_subscription_list`.
+3. Compare results:
+  - If MCP includes the same subscription and it is `Enabled`, continue with MCP-backed VM operations.
+  - If MCP reports only `Disabled` subscriptions but local CLI shows an `Enabled` subscription, treat this as MCP context mismatch.
+4. On mismatch, run this remediation sequence, refresh MCP session, then retry MCP subscription discovery:
+
+```powershell
+az account set --subscription "<SUBSCRIPTION_ID>"
+$env:AZURE_SUBSCRIPTION_ID = "<SUBSCRIPTION_ID>"
+$env:AZURE_TENANT_ID = "<TENANT_ID>"
+```
+
+5. If MCP still reports only `Disabled` subscriptions after remediation, continue Step 1 using `az` CLI for VM discovery/create and state clearly:
+  - "MCP context is not aligned with local Azure CLI; proceeding with az CLI fallback for Step 1 Azure operations."
+
+Never claim subscriptions are globally disabled unless both local CLI and MCP show disabled state.
+
 Before configuring SSH, confirm the target VM exists and is reachable. Ask the user:
 
 > **Is the Azure VM for the ZDM jumpbox already created and running?**

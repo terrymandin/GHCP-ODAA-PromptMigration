@@ -226,6 +226,25 @@ Runtime reference (recommended): Microsoft Azure MCP Server (`@azure/mcp`) launc
 4. If MCP cannot perform the requested operation in the current environment, fall back to the documented `az` command flow in S1-00-D.
 5. Regardless of MCP or CLI path, preserve the same output contract in S1-01 and record `JUMPBOX_HOST` from the final verified VM public endpoint.
 
+## S1-01B: MCP and az context alignment gate
+
+Before using MCP for any Step1 Azure control-plane operation, run an alignment gate so MCP and local `az` point to the same account/subscription context.
+
+1. Show the active local Azure CLI context (subscription, tenant, account identity).
+2. Query MCP subscription visibility and compare with local CLI:
+   - If both see the intended `Enabled` subscription, proceed with MCP.
+   - If MCP reports only `Disabled` subscriptions while local CLI has an `Enabled` subscription, do not treat that as an Azure provisioning failure.
+3. In the mismatch case, provide and run remediation steps in this order:
+   - set `az` default subscription to the user-selected `Enabled` subscription,
+   - set session variables `AZURE_SUBSCRIPTION_ID` and `AZURE_TENANT_ID`,
+   - restart/refresh MCP session,
+   - re-check MCP subscription discovery.
+4. If MCP is still not aligned after remediation, continue Step1 using `az` CLI for VM discovery/create and explicitly tell the user MCP is being bypassed due to context mismatch.
+5. Include a concise alignment summary in the Step1 report:
+   - local CLI subscription state,
+   - MCP subscription state,
+   - final execution path (`MCP` or `az` fallback).
+
 ---
 
 ## S1-02: Execution context

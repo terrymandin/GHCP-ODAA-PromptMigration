@@ -377,3 +377,26 @@ To improve automation quality and reduce brittle shell parsing, Phase10 prompts 
 3. Step5 and Step6 database discovery/compatibility checks remain SSH+SQL*Plus as the canonical baseline, but an Oracle MCP server may be used as an optional accelerator for read-only SQL evidence collection when direct DB connectivity is permitted.
 4. Any Oracle MCP usage in Phase10 must remain read-only (metadata and SELECT checks only). No DDL, DML, parameter mutation, service restarts, or host-level changes are allowed via MCP.
 5. If an MCP server is unavailable or returns insufficient data, prompts must fall back to the existing shell/SQL workflow without changing output contracts.
+
+## CR-18: Azure MCP and az CLI context alignment
+
+Applies to Phase10 Step1 whenever Azure MCP is used for subscription lookup, VM discovery, or VM creation.
+
+1. Before the first Azure MCP control-plane call, run a local Azure CLI context check and capture:
+   - active subscription id and name,
+   - active tenant id,
+   - active account identity.
+2. Compare Azure MCP subscription visibility with local Azure CLI context:
+   - If MCP can see the same subscription and the state is `Enabled`, continue with MCP and pass the subscription explicitly in MCP calls when supported.
+   - If MCP reports only `Disabled` subscriptions while local CLI shows an `Enabled` default subscription, treat this as **context misalignment** (not as a VM or quota failure).
+3. On context misalignment, prompts must provide a deterministic remediation sequence before retrying MCP:
+   - set local CLI default subscription to the intended `Enabled` subscription,
+   - set `AZURE_SUBSCRIPTION_ID` and `AZURE_TENANT_ID` environment variables in the current session,
+   - restart or refresh the MCP host/session,
+   - re-run MCP subscription discovery.
+4. If MCP remains misaligned after remediation, continue with `az` CLI for Step1 Azure control-plane operations and clearly state that fallback reason in user-facing output.
+5. Prompts must never claim subscriptions are globally disabled unless both local CLI and MCP confirm the same state.
+6. Step1 reporting must include alignment evidence:
+   - local CLI subscription id + state,
+   - MCP-visible subscription state used for execution,
+   - whether execution path was `MCP` or `az-fallback`.

@@ -242,6 +242,35 @@ For reduced tool count and faster startup in this scenario, prefer namespace sco
 
 MCP or CLI path must produce the same downstream variables and report fields.
 
+## S1-09C: MCP context alignment implementation
+
+When Step1 intends to use Azure MCP for control-plane actions, enforce this implementation sequence before the first MCP compute call:
+
+1. Capture local CLI context in the local PowerShell terminal:
+
+```powershell
+az account show --query "{name:name,id:id,state:state,tenantId:tenantId,user:user.name}" -o json
+```
+
+2. Capture MCP subscription context using `mcp_azure_mcp_subscription_list`.
+3. Evaluate alignment rules:
+   - Aligned: MCP includes the same subscription id and `state=Enabled` -> continue MCP path.
+   - Misaligned: MCP reports only `Disabled` subscriptions while CLI default is `Enabled` -> run remediation.
+4. Remediation commands (local PowerShell), then refresh MCP session and retry MCP subscription listing:
+
+```powershell
+az account set --subscription "<SUBSCRIPTION_ID>"
+$env:AZURE_SUBSCRIPTION_ID = "<SUBSCRIPTION_ID>"
+$env:AZURE_TENANT_ID = "<TENANT_ID>"
+```
+
+5. If MCP remains misaligned after one remediation cycle, switch to CLI path for VM list/create and continue without blocking Step1.
+6. For MCP calls that support subscription scoping, pass the target subscription explicitly instead of relying on ambient defaults.
+7. Persist alignment evidence in `remote-ssh-setup-report.md`:
+   - CLI context snapshot (subscription id, tenant id, state),
+   - MCP context snapshot (target subscription state or mismatch note),
+   - execution path marker: `MCP` or `az-fallback`.
+
 ---
 
 ## S1-10: Extension check implementation
