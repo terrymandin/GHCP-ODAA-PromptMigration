@@ -14,6 +14,8 @@ Jumpbox admin escalation supports both authentication modes:
 - `ssh-key` mode: local terminal commands use `-i <JUMPBOX_SSH_KEY>` and may include `-o BatchMode=yes`.
 - `password` mode: local terminal commands omit `-i` and `BatchMode`; the user enters password interactively.
 
+Within a single Step2 run, select one jumpbox admin auth mode and lock it for all local-terminal escalation commands in that run. Do not mix key-mode and password-mode command variants.
+
 ---
 
 ## S2-01: Output Contract
@@ -99,14 +101,12 @@ Expected: `zdmuser` exists; `/home/zdmuser` owned by `zdmuser zdm`; all three `/
 
 If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run **from a local PowerShell terminal as `azureuser`**; do not attempt to create them in this session:
 
-```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
-```
-
-Password-mode equivalent:
+First resolve one command prefix based on the selected mode and use it for all local-terminal escalation commands in this run:
+- `ssh-key`: `JUMPBOX_ADMIN_SSH_CMD = ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST>`
+- `password`: `JUMPBOX_ADMIN_SSH_CMD = ssh -p 22 azureuser@<JUMPBOX_HOST>`
 
 ```powershell
-ssh -p 22 azureuser@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 
 ### Step B - Download
@@ -133,13 +133,7 @@ done
 If any are `MISSING`, display:
 ```powershell
 # Run this from a LOCAL PowerShell terminal as azureuser, not in the Remote-SSH session:
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
-```
-
-Password-mode equivalent:
-
-```powershell
-ssh -p 22 azureuser@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
 ### Step D - Verify Installation Directories

@@ -12,6 +12,11 @@ Implementation-level constraints for Step2. The step runs entirely in the Remote
 
 Before running any phase that may require root operations, collect the escalation method **once**. Do **not** ask for connection details upfront; check sudo access first, then collect only what is needed for the chosen method.
 
+Auth consistency requirement for local-terminal escalation:
+- Resolve one jumpbox admin auth mode (`ssh-key` or `password`) once per Step2 run.
+- Build one local-terminal prefix command from that mode and use it for all local-terminal escalation commands in that run.
+- Do not present or execute mixed key/password local-terminal command variants in the same run.
+
 1. **Check whether `zdmuser` already has sudo access** (run this first; no artifact reading needed):
    ```bash
    sudo -n true 2>/dev/null && echo "HAS_SUDO" || echo "NO_SUDO"
@@ -30,14 +35,9 @@ Before running any phase that may require root operations, collect the escalatio
 
 4. **Escalation option B - zdmuser sudo password**: Ask the user for `JUMPBOX_HOST`, plus jumpbox admin auth details (`JUMPBOX_ADMIN_AUTH_MODE` and either `JUMPBOX_SSH_KEY` or `JUMPBOX_ADMIN_PASSWORD`), and a password to set on `zdmuser` (`ZDMUSER_PASS`). Do **not** attempt to read the artifact file. Show the one-time setup command with real values substituted (no literal placeholders):
    ```powershell
-    ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
+    <JUMPBOX_ADMIN_SSH_CMD> `
      "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
    ```
-    Password-mode equivalent:
-    ```powershell
-    ssh -p 22 azureuser@$JUMPBOX_HOST `
-       "echo zdmuser:<ZDMUSER_PASS> | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
-    ```
    After the user confirms, verify in-session:
    ```bash
    echo "$ZDMUSER_PASS" | sudo -S true 2>/dev/null && echo "SUDO_OK" || echo "SUDO_FAIL"
@@ -132,12 +132,12 @@ If any are `MISSING`, install them using the `ESCALATION_METHOD` established in 
 
 *Oracle Linux 8 / RHEL 8:*
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
 ```
 
 *Oracle Linux 9/10 / RHEL 9:*
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
 **`ESCALATION_METHOD=sudo-password`:**
@@ -165,7 +165,7 @@ After the install completes, re-run the `rpm -q` loop to confirm all packages re
    Expected: each line shows `zdmuser zdm <path>`. If any directory is missing or not owned by `zdmuser`, surface the following command for the user to run as `azureuser` from a local terminal:
    ```powershell
    # ESCALATION_METHOD=local-terminal (use real $JUMPBOX_SSH_KEY and $JUMPBOX_HOST values):
-   ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+   <JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 
    # ESCALATION_METHOD=sudo-password:
    # echo "$ZDMUSER_PASS" | sudo -S mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download

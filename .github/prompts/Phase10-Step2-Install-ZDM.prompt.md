@@ -78,6 +78,11 @@ Ask the user the following question in chat (CR-16-A). Do NOT use `vscode_askQue
   > 3. If `ssh-key`, provide **azureuser SSH key path** — `Key path:` line in the `## SSH Key` section
 - Store as `JUMPBOX_HOST` and admin auth details. All escalation commands will use these real values — no placeholders.
 
+Resolve one local-terminal command prefix from the selected jumpbox admin auth mode and use only that prefix for all local-terminal escalation commands in this Step2 run:
+- `ssh-key`: `<JUMPBOX_ADMIN_SSH_CMD> = ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST`
+- `password`: `<JUMPBOX_ADMIN_SSH_CMD> = ssh -p 22 azureuser@$JUMPBOX_HOST`
+Do not show mixed key/password variants in the same run.
+
 **If Option B:**
 - Post the following in chat (CR-16-A — do NOT use `vscode_askQuestions`):
   > **Jumpbox connection values are needed for the one-time sudo setup (from your local `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` on Windows):**
@@ -88,13 +93,7 @@ Ask the user the following question in chat (CR-16-A). Do NOT use `vscode_askQue
 - Store as `JUMPBOX_HOST`, jumpbox admin auth details, and `ZDMUSER_PASS` (session variable — never written to disk or any file).
 - Show the one-time setup command with real values substituted for `$JUMPBOX_SSH_KEY`, `$JUMPBOX_HOST`, and `$ZDMUSER_PASS`:
   ```powershell
-  ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST `
-    "echo 'zdmuser:$ZDMUSER_PASS' | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
-  ```
-
-  Password-mode equivalent:
-  ```powershell
-  ssh -p 22 azureuser@$JUMPBOX_HOST `
+  <JUMPBOX_ADMIN_SSH_CMD> `
     "echo 'zdmuser:$ZDMUSER_PASS' | sudo chpasswd && echo 'zdmuser ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/zdmuser-pwd && sudo chmod 440 /etc/sudoers.d/zdmuser-pwd"
   ```
 - After the user confirms it ran, verify in-session:
@@ -156,12 +155,10 @@ If any directory is missing or not owned by `zdmuser`, escalate using `ESCALATIO
 
 **`ESCALATION_METHOD=local-terminal`** — run from your local PowerShell terminal:
 
-Use jumpbox admin auth mode when running local-terminal commands:
-- `ssh-key`: keep `-o BatchMode=yes -i "$JUMPBOX_SSH_KEY"`
-- `password`: omit `-i` and `BatchMode`, and enter password interactively
+Use `<JUMPBOX_ADMIN_SSH_CMD>` resolved in Phase 0.
 
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download && sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 
 **`ESCALATION_METHOD=sudo-password`** — run in the jumpbox terminal:
@@ -190,17 +187,15 @@ If any are `MISSING`, install them using the `ESCALATION_METHOD` from Phase 0:
 
 **`ESCALATION_METHOD=local-terminal`** — run from your local PowerShell terminal:
 
-Use jumpbox admin auth mode when running local-terminal commands:
-- `ssh-key`: keep `-o BatchMode=yes -i "$JUMPBOX_SSH_KEY"`
-- `password`: omit `-i` and `BatchMode`, and enter password interactively
+Use `<JUMPBOX_ADMIN_SSH_CMD>` resolved in Phase 0.
 
 *Oracle Linux 8 / RHEL 8:*
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl"
 ```
 *Oracle Linux 9/10 / RHEL 9:*
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "$JUMPBOX_SSH_KEY" azureuser@$JUMPBOX_HOST "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 
 **`ESCALATION_METHOD=sudo-password`** — run in the jumpbox terminal:

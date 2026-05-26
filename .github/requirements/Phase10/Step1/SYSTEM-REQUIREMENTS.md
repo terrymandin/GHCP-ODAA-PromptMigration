@@ -15,6 +15,12 @@ All jumpbox admin SSH interactions in Step1 must support both modes:
 
 For password mode, omit `-i` and omit `BatchMode=yes` so the terminal can prompt for password interactively.
 
+Execution consistency requirement:
+- Resolve `JUMPBOX_AUTH_MODE` once per Step1 run and lock that choice for all subsequent jumpbox admin SSH commands.
+- Render and run only the selected mode's command variant in that run.
+- Do not present or execute mixed key/password variants in the same run.
+- When `JUMPBOX_AUTH_MODE=password`, do not run `authorized_keys` installation steps; instead, require interactive `zdmuser` password setup before the Phase 5 connectivity test.
+
 ## S1-09A: Azure VM Creation Implementation
 
 This section applies only when the user confirms they want a new VM created (S1-00-B).
@@ -95,16 +101,15 @@ Extract from the JSON output:
 
 Immediately after extracting `JUMPBOX_HOST`, install `tar` on the new VM over SSH. VS Code Server requires `tar` to extract its installation archive — without it, the Remote-SSH connection will fail with "Failed to install the VS Code Server."
 
-Run this command in the local PowerShell terminal, substituting the admin username and auth mode used for VM creation:
+Build one admin SSH command prefix for the selected `JUMPBOX_AUTH_MODE` and use only that variant for this Step1 run:
+
+- key mode: `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST>`
+- password mode: `JUMPBOX_ADMIN_SSH_CMD = ssh -o StrictHostKeyChecking=accept-new -p 22 <SSH_USERNAME>@<JUMPBOX_HOST>`
+
+Run this command in the local PowerShell terminal:
 
 ```powershell
-ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y tar"
-```
-
-Password-mode equivalent:
-
-```powershell
-ssh -o StrictHostKeyChecking=accept-new -p 22 <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y tar"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y tar"
 ```
 
 - Capture `$LASTEXITCODE`. If non-zero, surface the SSH error and do not proceed until resolved.
@@ -117,24 +122,24 @@ Immediately after `tar` is confirmed installed, clone the migration repo into `/
 
 **Step 1 — Install git:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y git"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y git"
 ```
 Check exit code 0. `git` may already be present on some images — a `Nothing to do. Complete!` response is also acceptable.
 
 **Step 2 — Create /home/zdmuser directory:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /home/zdmuser"
 ```
 
 **Step 3 — Clone the repo:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo git clone https://github.com/terrymandin/GHCP-ODAA-PromptMigration.git /home/zdmuser/GHCP-ODAA-PromptMigration"
 ```
 If the directory already exists and is non-empty, skip the clone and confirm existing contents.
 
 **Step 4 — Verify clone:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+<JUMPBOX_ADMIN_SSH_CMD> "ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
 ```
 Expect output listing the `.github` directory contents. Non-zero exit or empty output = failure.
 
@@ -146,47 +151,55 @@ Immediately after the repo clone is verified, perform the following steps via SS
 
 **Step 1 — Create `zdm` group (idempotent):**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
+<JUMPBOX_ADMIN_SSH_CMD> "getent group zdm > /dev/null 2>&1 || sudo groupadd zdm"
 ```
 
 **Step 2 — Create `zdmuser` account (idempotent, using existing `/home/zdmuser` dir):**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
+<JUMPBOX_ADMIN_SSH_CMD> "getent passwd zdmuser > /dev/null 2>&1 || sudo useradd -g zdm -d /home/zdmuser -M zdmuser"
 ```
 The `-M` flag prevents `useradd` from attempting to create the home directory (it already exists).
 
 **Step 3 — Transfer ownership of `/home/zdmuser` to `zdmuser`:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /home/zdmuser"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo chown -R zdmuser:zdm /home/zdmuser"
 ```
 
-**Step 4 — Set up `zdmuser`'s `.ssh` directory:**
+**Step 4 — Set up `zdmuser` credentials based on mode:**
+
+If key mode:
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /home/zdmuser/.ssh && sudo chmod 700 /home/zdmuser/.ssh && sudo chown zdmuser:zdm /home/zdmuser/.ssh"
 ```
 
-**Step 5 — Install the SSH public key for `zdmuser`:**
+**Step 5 — Install the SSH public key for `zdmuser` (key mode):**
 
 Read the public key locally and write it to `authorized_keys` on the jumpbox. The key file is `<JUMPBOX_SSH_KEY>.pub` (the `.pub` counterpart of the private key used in this step).
 
 ```powershell
 $pubKey = (Get-Content "<JUMPBOX_SSH_KEY>.pub" -Raw).Trim()
 $sshCmd = "echo '$pubKey' | sudo tee /home/zdmuser/.ssh/authorized_keys > /dev/null && sudo chmod 600 /home/zdmuser/.ssh/authorized_keys && sudo chown zdmuser:zdm /home/zdmuser/.ssh/authorized_keys"
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> $sshCmd
+<JUMPBOX_ADMIN_SSH_CMD> $sshCmd
 ```
 
-**Step 6 — Verify ownership and key access:**
+If password mode:
+```powershell
+<JUMPBOX_ADMIN_SSH_CMD> "sudo passwd zdmuser"
+```
+Complete the interactive prompt and confirm password update succeeded.
+
+**Step 6 — Verify ownership and access:**
 ```powershell
 # Confirm ownership
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G' /home/zdmuser"
+<JUMPBOX_ADMIN_SSH_CMD> "stat -c '%U %G' /home/zdmuser"
 # Confirm zdmuser can read the repo
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo -u zdmuser ls /home/zdmuser/GHCP-ODAA-PromptMigration/.github"
 ```
 Expected outputs:
 - `stat`: `zdmuser zdm`
 - `ls`: lists `.github` directory contents
 
-If any step exits non-zero, surface the error and stop. Do not proceed to S1-09A-8 until `zdmuser` exists, owns `/home/zdmuser`, and the key is installed.
+If any step exits non-zero, surface the error and stop. Do not proceed to S1-09A-8 until `zdmuser` exists, owns `/home/zdmuser`, and the selected credential bootstrap is complete.
 
 ### S1-09A-8: Install ZDM Prerequisites and Create `/u01` Directory Structure
 
@@ -194,23 +207,23 @@ While still connected as the admin SSH user (e.g., `azureuser`), install the ZDM
 
 **Step 1 — Install prerequisite packages:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo dnf install -y expect glibc-devel libnsl ncurses-compat-libs libaio unzip perl wget"
 ```
 Confirm exit code 0 and that output contains `Complete!` or `Nothing to do.` (packages already installed). If any package fails, surface the error and do not continue.
 
 **Step 2 — Create ZDM installation directories:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo mkdir -p /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 
 **Step 3 — Set ownership so `zdmuser` owns the directories:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+<JUMPBOX_ADMIN_SSH_CMD> "sudo chown -R zdmuser:zdm /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 
 **Step 4 — Verify:**
 ```powershell
-ssh -o BatchMode=yes -p 22 -i "<JUMPBOX_SSH_KEY>" <SSH_USERNAME>@<JUMPBOX_HOST> "stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
+<JUMPBOX_ADMIN_SSH_CMD> "stat -c '%U %G %n' /u01/app/zdmhome /u01/app/zdmbase /u01/app/zdm_download"
 ```
 Expected: each line shows `zdmuser zdm <path>`.
 

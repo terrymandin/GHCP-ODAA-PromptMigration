@@ -335,6 +335,8 @@ Use these canonical group layouts when collecting variables. Steps may add extra
 2. Source/target Oracle host interactions remain certificate/key-based. Do not switch Step3-Step7 source/target connectivity checks to password mode.
 3. When password mode is selected, never write plaintext passwords to artifacts. Reports may note `Auth mode: password` and `Credential: interactive` only.
 4. Any command examples that include key flags for jumpbox admin access must include or reference the password-mode equivalent.
+5. In a single step execution, choose one jumpbox auth mode and lock it for the entire run. Do not mix key-mode and password-mode command variants in the same run.
+6. Once the mode is chosen, render and execute only that mode's command variant for jumpbox admin actions.
 
 **Step 3 — SSH Connectivity Collection (S4-08):**
 - Group 1 — Hosts: source host IP/FQDN, target host IP/FQDN
