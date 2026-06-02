@@ -56,6 +56,12 @@ All outputs are git-ignored. No files are committed or create PRs.
 2. Source and target discovery: Copilot SSH-es to the remote host as `SOURCE_SSH_USER` / `TARGET_SSH_USER`, then runs SQL commands as `oracle` via `sudo -u oracle`.
 3. ZDM server discovery: Copilot runs commands locally as `zdmuser`.
 
+## S5-03b: Banner rendering mode
+
+1. All safety banners in Step5 must be rendered as chat text only.
+2. Copilot must not print banner text via terminal commands (for example `printf` or `echo`).
+3. Copilot must not concatenate banner text with shell commands in a single command line.
+
 ## S5-04: Key normalization
 
 1. Empty or placeholder key values (containing `<...>`) must be treated as unset.

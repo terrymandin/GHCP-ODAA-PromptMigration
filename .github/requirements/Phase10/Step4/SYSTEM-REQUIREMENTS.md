@@ -54,6 +54,7 @@ When an Oracle MCP server is configured and reachable, Step5 may use it for sele
 During Step5 execution, Copilot must show inline status in the chat for each major stage:
 
 1. Session user validation result.
+2. Safety banners are posted in chat only; do not emit banner text via terminal commands.
 2. SSH key existence and permission check result per key (if applicable).
 3. Discovery stage started: "ZDM server discovery...", "Source discovery...", "Target discovery...".
 4. Per discovery target: PASS (with remote hostname) or FAIL (with error text).

@@ -43,6 +43,11 @@ Optional acceleration: when an Oracle MCP server is configured and direct DB con
 
 Before doing anything else, display the following banner in the chat:
 
+Rendering rule:
+- Post this banner as chat text only.
+- Do not run terminal commands to print the banner (for example `printf` or `echo`).
+- Do not combine banner text with shell commands in a single terminal command.
+
 ```
 ⚠ ENVIRONMENT SAFETY: This prompt is for development/non-production use only.
 Do not run against production. Generated scripts may be copied to production
@@ -272,6 +277,10 @@ If either value does not match the required state:
 ## Pre-Execution Risk Banner (CR-13.4)
 
 Before running any discovery commands, display the following full risk banner and wait for the user to type `CONFIRM`:
+
+Rendering rule:
+- Post this banner as chat text only.
+- Do not run terminal commands to print the banner.
 
 ```
 ⚠ ENVIRONMENT SAFETY WARNING
