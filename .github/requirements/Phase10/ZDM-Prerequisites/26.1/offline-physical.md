@@ -64,6 +64,8 @@ Run via `sqlplus / as sysdba` over SSH using `sudo -u oracle`.
 | Check name | SQL or command | Pass condition | Severity | Doc section |
 |------------|---------------|----------------|----------|-------------|
 | SPFILE in use | `SELECT value FROM v$parameter WHERE name='spfile';` | Non-null, non-empty path (Note: offline migration supports non-SPFILE sources, but SPFILE strongly recommended) | WARNING | 4.2 Preparing the Source and Target Databases |
+| Source database role | `SELECT database_role FROM v$database;` | `PRIMARY` | BLOCKER | 4.3 Source Database Prerequisites |
+| Source open mode | `SELECT open_mode FROM v$database;` | `READ WRITE` | BLOCKER | 4.3 Source Database Prerequisites |
 | COMPATIBLE parameter value | `SELECT value FROM v$parameter WHERE name='compatible';` | Record value — must match target | BLOCKER | 4.2 Preparing the Source and Target Databases |
 | DB_NAME | `SELECT name FROM v$database;` | Record value — must match target `DB_NAME` (ExaDB-D/C@C) or can differ (OCI) | BLOCKER | 4.4 Target Database Prerequisites |
 | DB_UNIQUE_NAME | `SELECT db_unique_name FROM v$database;` | Record value — target must be unique | BLOCKER | 4.4 Target Database Prerequisites |

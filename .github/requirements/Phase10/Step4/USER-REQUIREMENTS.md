@@ -64,9 +64,25 @@ All outputs are git-ignored. No files are committed or create PRs.
 ## S5-05: Execution model
 
 1. Copilot runs discovery commands directly in the jumpbox terminal.
-2. Discovery runs in order: ZDM server -> source -> target.
-3. A failure in one discovery target does not abort discovery for the remaining targets.
-4. Discovery outputs are written by Copilot using file tools after each discovery stage completes.
+2. Before any discovery stage runs, Copilot must execute a source database state gate query: `SELECT database_role, open_mode FROM v$database;` on the source as `oracle`.
+3. The source gate must pass with `DATABASE_ROLE=PRIMARY` and `OPEN_MODE=READ WRITE`.
+4. If the source gate fails, Copilot must halt Step4 discovery immediately and must not continue with ZDM server or target discovery until the source state is corrected.
+5. Discovery runs in order after the source gate passes: ZDM server -> source -> target.
+6. A failure in one discovery target does not abort discovery for the remaining targets (except the source state gate in items 2-4, which is a hard stop).
+7. Discovery outputs are written by Copilot using file tools after each discovery stage completes.
+
+## S5-05c: Source state hard gate
+
+1. The source must be in `PRIMARY` plus `READ WRITE` state to perform discovery.
+2. Gate evidence command: `SELECT database_role, open_mode FROM v$database;`.
+3. On gate failure, Copilot must:
+	- Report the observed `database_role` and `open_mode` values.
+	- Ask the operator: "Do you want to move the source database to PRIMARY + READ WRITE now? (yes/no)".
+	- If the operator answers `yes`, provide concise next-step guidance for performing the role/open-mode transition using the DBA/Data Guard runbook, then wait for the operator to complete it and re-run the gate query.
+	- If the operator answers `no`, stop the step immediately.
+	- Mark the step as blocked with reason: source is not `PRIMARY` + `READ WRITE`.
+	- Stop before any additional discovery collection.
+	- Instruct the operator to correct source role/open mode and re-run Step4.
 
 ## S5-05b: Prerequisite catalog initialization
 
@@ -113,6 +129,12 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 15. ZDM compatibility items (required for compatibility gate in Step6): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect. Do not limit collection to a hardcoded subset. Additionally always collect:
 	- `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
 	- Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
+	- Source role/open mode evidence: `SELECT database_role, open_mode FROM v$database;` — Step6 compatibility gate requires `DATABASE_ROLE=PRIMARY` and `OPEN_MODE=READ WRITE`.
+	- SPFILE evidence: `SELECT value FROM v$parameter WHERE name='spfile';`.
+	- `COMPATIBLE` parameter value: `SELECT value FROM v$parameter WHERE name='compatible';`.
+	- Character set value: `SELECT value FROM nls_database_parameters WHERE parameter='NLS_CHARACTERSET';`.
+	- Source timezone file version: `SELECT * FROM v$timezone_file;`.
+	- `SQLNET.ORA` encryption settings: capture `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` explicitly, either from database parameters or the resolved `sqlnet.ora` content, so Step5 can compare source and target values directly.
 	- Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host; this is a ZDM-specific requirement separate from standard Oracle DB setup docs. BLOCKER for Step6 gate.
 	- Patch inventory: run `$ORACLE_HOME/OPatch/opatch lspatches` as oracle on the source host. Capture the full list — required for the Step6 PATCH_CHECK gate that compares source individual patch numbers against the target Release Update.
 16. Grid Infrastructure detection: run `crsctl query crs activeversion 2>/dev/null` and `srvctl status database -d $SOURCE_ORACLE_SID 2>/dev/null` on the source host. If GI/CRS is active and the database is registered with srvctl, set `SOURCE_GI_TYPE=grid`; otherwise set `SOURCE_GI_TYPE=standalone`. Record the value in db-config.md. This value controls whether `-sourcedb` (GI) or `-sourcesid` (standalone) is used in the `zdmcli migrate database` command — using the wrong flag causes PRGZ-3928.
@@ -132,7 +154,7 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 5. CDB/PDB posture: CDB status and PDB open mode(s), including pre-created migration PDB.
 6. TDE wallet status/type.
 7. Storage posture: ASM disk groups and free space (plus Exadata cell/grid disk details when available).
-8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step6 SCAN tnsping gate; do not rely on ZDM auto-detection), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), and `tnsnames.ora`.
+8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step6 SCAN tnsping gate; do not rely on ZDM auto-detection), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), RAC node IP addresses for those hostnames (capture via `getent hosts <node>` or equivalent on the target host while each node name is still in scope), and `tnsnames.ora`.
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
@@ -157,7 +179,14 @@ Use this section as the editable source-of-truth list for discovery coverage. Ad
 7. Network context: IP/routing/DNS summaries.
 8. Optional connectivity tests to source/target when env vars are provided (ping/port checks).
 9. Endpoint traceability: source and target endpoint values used during discovery.
-10. RAC node hostname resolution (run after target discovery completes, if target is RAC): for each RAC node hostname collected in target discovery, run `getent hosts <node>` from the ZDM host. Record pass/fail per node. BLOCKER if any node fails to resolve — ZDM communicates with all RAC nodes directly by hostname during migration. Remediation: add missing entries to `/etc/hosts` on the ZDM jumpbox.
+10. RAC node hostname resolution (run after target discovery completes, if target is RAC): for each RAC node hostname collected in target discovery, run `getent hosts <node>` from the ZDM host. Record pass/fail per node. BLOCKER if any node fails to resolve — ZDM communicates with all RAC nodes directly by hostname during migration.
+
+	When any node fails to resolve, Copilot must treat this as an immediate remediation branch in Step4, not just a note for a later step:
+	- Reuse the RAC node IP addresses collected during target discovery. If any node IP was not collected, run a target-host lookup now and capture it before proceeding.
+	- Display a concise explanation that the failure is on the ZDM jumpbox name-resolution path, not on the target cluster itself.
+	- Generate a concrete jumpbox-admin command that appends the missing `<ip> <fqdn> <shortname>` rows to `/etc/hosts` on the ZDM jumpbox and then verifies them with `getent hosts <node>`.
+	- If the current Remote-SSH user lacks privilege to edit `/etc/hosts`, instruct the user to run the generated command using the jumpbox admin account from Step1/Step2 (for example `azureuser`) and then resume Step4.
+	- Record the exact missing host entries and the generated remediation command in the Step4 discovery report so Step5 and Step6 do not need to reconstruct them.
 
 ## S5-07: Iteration and retry behavior
 

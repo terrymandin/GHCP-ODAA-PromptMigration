@@ -244,6 +244,31 @@ Confirm and report the resolved SSH key handling mode (explicit key vs. default/
 
 ---
 
+## Phase 6a: Source State Hard Gate (PRIMARY + READ WRITE required)
+
+Before running any discovery stage (ZDM server, source, or target), run this source gate query as `oracle` on the source host:
+
+```bash
+echo "SELECT database_role, open_mode FROM v\$database;" | \
+   ssh ... "${SOURCE_SSH_USER}@${SOURCE_HOST}" \
+   "sudo -u oracle bash -c 'ORACLE_HOME=<OH> ORACLE_SID=<SID> <OH>/bin/sqlplus -s / as sysdba'"
+```
+
+Gate pass criteria:
+- `DATABASE_ROLE=PRIMARY`
+- `OPEN_MODE=READ WRITE`
+
+If either value does not match the required state:
+1. Stop Step 4 immediately.
+2. Do not run ZDM server, source, or target discovery stages.
+3. Report the observed `database_role` and `open_mode` values in the chat.
+4. Mark the step blocked with reason: source is not `PRIMARY` + `READ WRITE`.
+5. Ask the operator: `Do you want to move the source database to PRIMARY + READ WRITE now? (yes/no)`.
+6. If the operator answers `yes`, provide concise next-step guidance for performing the role/open-mode transition using the DBA/Data Guard runbook, then wait for the operator to complete it and re-run this gate query.
+7. If the operator answers `no`, stop and instruct the operator to re-run this step after source role/open mode is corrected.
+
+---
+
 ## Pre-Execution Risk Banner (CR-13.4)
 
 Before running any discovery commands, display the following full risk banner and wait for the user to type `CONFIRM`:
@@ -267,7 +292,7 @@ Do **not** proceed to Phase 7 (ZDM Server Discovery) until the user types `CONFI
 
 ## Phase 7: ZDM Server Discovery
 
-Run ZDM server discovery locally on the jumpbox as `zdmuser`. Collect all items from the [ZDM Server Discovery](#zdm-server-discovery) list.
+Run ZDM server discovery locally on the jumpbox as `zdmuser` only after Phase 6a source gate passes. Collect all items from the [ZDM Server Discovery](#zdm-server-discovery) list.
 
 If `ZDM_HOME` was not provided, attempt auto-detection:
 
@@ -481,6 +506,12 @@ Collect all of the following (S4-06):
 15. ZDM compatibility items (required for compatibility gate in Step 5): run **all** Layer 1 and Layer 2 source checks from the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`). The catalog is the authoritative list of what to collect — do not limit collection to a hardcoded subset. Additionally always collect:
    - `/tmp` mount flags: `mount | grep -E '\s/tmp\s'` or `findmnt /tmp` (Layer 1 OS check).
    - Full DB version banner: `SELECT banner FROM v$version WHERE banner LIKE 'Oracle Database%'`.
+   - Source role/open mode evidence: `SELECT database_role, open_mode FROM v$database;` — Step 5 compatibility gate requires `DATABASE_ROLE=PRIMARY` and `OPEN_MODE=READ WRITE`.
+   - SPFILE evidence: `SELECT value FROM v$parameter WHERE name='spfile';`.
+   - `COMPATIBLE` parameter value: `SELECT value FROM v$parameter WHERE name='compatible';`.
+   - Character set value: `SELECT value FROM nls_database_parameters WHERE parameter='NLS_CHARACTERSET';`.
+   - Source timezone file version: `SELECT * FROM v$timezone_file;`.
+   - `SQLNET.ORA` encryption settings: capture `SQLNET.ENCRYPTION_SERVER` and `SQLNET.ENCRYPTION_TYPES_SERVER` explicitly, either from database parameters or the resolved `sqlnet.ora` content, so Step 5 can compare source and target values directly.
    - Oracle-user sudo (ZDM `zdmauth` pattern): run `ssh $SSH_OPTS ${SOURCE_SSH_KEY:+-i "$SOURCE_SSH_KEY"} "${SOURCE_SSH_USER}@${SOURCE_HOST}" "sudo -u oracle id"` — must return an oracle UID without error. ZDM installs a helper Perl script under the oracle account and requires unrestricted `sudo -u oracle` on the source host. BLOCKER for Step 5 gate.
    - Patch inventory: `ssh ... "sudo -u oracle $ORACLE_HOME/OPatch/opatch lspatches"` — capture the full output. Required for the Step 5 PATCH_CHECK gate comparing source individual patch numbers against the target Release Update.
 16. **Grid Infrastructure detection** (S4-06 item 16): run the following on the source host:
@@ -509,7 +540,7 @@ Collect all of the following (S4-06):
 5. CDB/PDB posture: CDB status and PDB open mode(s), including pre-created migration PDB.
 6. TDE wallet status/type.
 7. Storage posture: ASM disk groups and free space (plus Exadata cell/grid disk details when available).
-8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step 5 SCAN tnsping gate; do not rely on ZDM auto-detection which may return `null:null` if SCAN is not in DNS), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), and `tnsnames.ora`.
+8. Network posture: listener status, SCAN listener address (capture explicitly from listener output — required for Step 5 SCAN tnsping gate; do not rely on ZDM auto-detection which may return `null:null` if SCAN is not in DNS), all RAC node hostnames when RAC/GI is present (capture from `srvctl status nodeapps` or `crsctl stat res -t`; required for ZDM host resolution check), RAC node IP addresses for those hostnames (capture via `getent hosts <node>` or equivalent on the target host while each node name is still in scope), and `tnsnames.ora`.
 9. OCI/Azure integration metadata (sanitized profile/metadata only).
 10. Grid infrastructure status when RAC/Exadata applies.
 11. Network security checks relevant to SSH/listener ports.
@@ -548,7 +579,14 @@ Collect all of the following (S4-06):
 7. Network context: IP/routing/DNS summaries.
 8. Optional connectivity tests to source/target when env vars are provided (ping/port checks).
 9. Endpoint traceability: source and target endpoint values used during discovery.
-10. RAC node hostname resolution (run after target discovery completes, if target is RAC): for each RAC node hostname collected in target discovery, run `getent hosts <node>` from the ZDM host. Record pass/fail per node. BLOCKER if any node fails to resolve — ZDM communicates with all RAC nodes directly by hostname during migration. Remediation: add missing entries to `/etc/hosts` on the ZDM jumpbox.
+10. RAC node hostname resolution (run after target discovery completes, if target is RAC): for each RAC node hostname collected in target discovery, run `getent hosts <node>` from the ZDM host. Record pass/fail per node. BLOCKER if any node fails to resolve — ZDM communicates with all RAC nodes directly by hostname during migration.
+
+   When any node fails to resolve, treat this as an immediate remediation branch in Step 4, not just a note for a later step:
+   - Reuse the RAC node IP addresses collected during target discovery. If any node IP was not collected, run a target-host lookup now and capture it before proceeding.
+   - Display a concise explanation that the failure is on the ZDM jumpbox name-resolution path, not on the target cluster itself.
+   - Generate a concrete jumpbox-admin command that appends the missing `<ip> <fqdn> <shortname>` rows to `/etc/hosts` on the ZDM jumpbox and then verifies them with `getent hosts <node>`.
+   - If the current Remote-SSH user lacks privilege to edit `/etc/hosts`, instruct the user to run the generated command using the jumpbox admin account from Step 1/Step 2 (for example `azureuser`) and then resume Step 4.
+   - Record the exact missing host entries and the generated remediation command in the Step 4 discovery report so Step 5 and Step 6 do not need to reconstruct them.
 
 ---
 

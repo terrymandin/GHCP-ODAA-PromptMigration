@@ -16,7 +16,7 @@ Required generated artifacts under `Artifacts/Phase10-Migration/Step7/`:
 - `verify_fixes.sh` — verification script (run after fixes are applied)
 - `README.md` — step summary and review checklist
 
-Non-remediable issues (e.g., provisioning changes requiring console action) must be documented in `Issue-Resolution-Log.md` with manual steps only — no script is generated for them.
+Non-remediable issues (e.g., provisioning changes requiring console action, or source database role/open-mode transitions such as switching to `PRIMARY` + `READ WRITE`) must be documented in `Issue-Resolution-Log.md` with manual steps only — no script is generated for them.
 
 ## S7-02: Iterative operation model
 

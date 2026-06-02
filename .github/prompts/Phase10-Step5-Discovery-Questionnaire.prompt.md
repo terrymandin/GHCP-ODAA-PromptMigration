@@ -131,6 +131,7 @@ ZDM Compatibility Gate
 | `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
 | `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
 | `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
+| Source role and open mode | Source must be `DATABASE_ROLE=PRIMARY` and `OPEN_MODE=READ WRITE` | BLOCKER |
 | TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
 | Hostname | Source and target hostnames must differ | BLOCKER |
 | `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
@@ -141,7 +142,7 @@ ZDM Compatibility Gate
 | Source one-off patches vs target RU (PATCH_CHECK) | Compare `opatch lspatches` on source and target. If target RU ≥ source RU and source has individually-named patches subsumed by the target RU, flag PATCH_CHECK risk. See remediation below. | WARNING — pre-populate `-ignore PATCH_CHECK` in Step 7 when flagged |
 | Target datapatch compatibility | `datapatch -prereqs` exits cleanly on all target nodes without `Unsupported named object type` error at `sqlpatch.pm` | WARNING |
 
-**Missing data handling:** If a required compatibility value was not collected in Step 4, flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER — re-run Step 4 with the updated discovery scope before proceeding.
+**Missing data handling:** If a required compatibility value was not collected in Step 4, flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER — re-run Step 4 with the updated discovery scope before proceeding (for example missing source `DATABASE_ROLE` / `OPEN_MODE` evidence).
 
 ### 3. Executive Summary
 
@@ -160,13 +161,14 @@ Table by component — Source Database, Target Environment, ZDM Server, Network:
 
 ### 5. Source Database Details
 - Database identification: name, unique name, version, size, character set
-- ARCHIVELOG mode, Force Logging, Supplemental Logging, TDE — current state vs. required state with status
+- ARCHIVELOG mode, source role/open mode, Force Logging, Supplemental Logging, TDE — current state vs. required state with status
 
 Configuration status table:
 
 | Requirement | Current State | Required State | Status |
 |-------------|---------------|----------------|--------|
 | ARCHIVELOG Mode | YES/NO | YES | ✅/❌ |
+| Source Role / Open Mode | `<DATABASE_ROLE>` / `<OPEN_MODE>` | PRIMARY / READ WRITE | ✅/❌ |
 | Force Logging | YES/NO | YES | ✅/❌ |
 | Supplemental Logging | YES/NO | YES (online) | ✅/⚠️ |
 | TDE Enabled | YES/NO | N/A | ✅ |
@@ -257,6 +259,12 @@ Provision a new target with the same character set as source, or perform charact
 
 **SPFILE not in use:**
 `CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
+
+**Source is not PRIMARY and READ WRITE:**
+Physical migration requires the source database to be the active primary opened read-write at migration time. Verify with `SELECT database_role, open_mode FROM v$database;`.
+1. If source is a standby role (`PHYSICAL STANDBY` / `LOGICAL STANDBY` / `SNAPSHOT STANDBY`), perform a controlled Data Guard switchover/failover so the intended migration source becomes `PRIMARY`, then re-check.
+2. If role is `PRIMARY` but open mode is not `READ WRITE` (for example `MOUNTED` or `READ ONLY`), open the database read-write using standard DBA runbook procedures, then re-check.
+3. After role/open-mode correction, re-run Step 4 discovery so Step 5 compatibility gate uses refreshed evidence.
 
 **TDE wallet not OPEN:**
 `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.

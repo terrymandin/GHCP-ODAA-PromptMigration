@@ -58,6 +58,7 @@ Evaluate the following using Step5 discovery evidence. Present results in a stru
 | `COMPATIBLE` parameter | Must be the same value on source and target | BLOCKER |
 | `ARCHIVELOG` mode | Source must be in `ARCHIVELOG` mode (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
 | `SPFILE` in use | Source must run from SPFILE (required for online migration) | BLOCKER if confirmed method is `ONLINE_PHYSICAL` / WARNING if `OFFLINE_PHYSICAL` |
+| Source role and open mode | Source must be `DATABASE_ROLE=PRIMARY` and `OPEN_MODE=READ WRITE` | BLOCKER |
 | TDE wallet status | Source wallet must be OPEN (mandatory for cloud targets, DB 12.2+) | BLOCKER |
 | Hostname | Source and target hostnames must differ | BLOCKER |
 | `/tmp` execute permission | `/tmp` must be mounted with `execute` on both source and target | BLOCKER |
@@ -97,7 +98,7 @@ ZDM Compatibility Gate
 
 ### Handling missing discovery data
 
-If a required compatibility value was not collected in Step5 (e.g., `COMPATIBLE` parameter or timezone version not present in discovery files), flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER requiring re-run of Step5 with the updated discovery scope before proceeding.
+If a required compatibility value was not collected in Step5 (e.g., `COMPATIBLE` parameter, source `DATABASE_ROLE`/`OPEN_MODE`, or timezone version not present in discovery files), flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER requiring re-run of Step5 with the updated discovery scope before proceeding.
 
 ## S6-06: Compatibility gate remediation paths
 
@@ -120,6 +121,12 @@ Enable archivelog mode on source: `SHUTDOWN IMMEDIATE; STARTUP MOUNT; ALTER DATA
 
 **SPFILE not in use:**
 Create SPFILE from PFILE: `CREATE SPFILE FROM PFILE; SHUTDOWN IMMEDIATE; STARTUP;`
+
+**Source is not PRIMARY and READ WRITE:**
+Physical migration requires the source database to be the active primary opened read-write at migration time. Verify with `SELECT database_role, open_mode FROM v$database;`.
+1. If source is a standby role (`PHYSICAL STANDBY` / `LOGICAL STANDBY` / `SNAPSHOT STANDBY`), perform a controlled Data Guard switchover/failover so the intended migration source becomes `PRIMARY`, then re-check.
+2. If role is `PRIMARY` but open mode is not `READ WRITE` (for example `MOUNTED` or `READ ONLY`), open the database read-write using standard DBA runbook procedures, then re-check.
+3. After role/open-mode correction, re-run Step5 discovery so Step6 compatibility gate uses refreshed evidence.
 
 **TDE wallet not OPEN (CDB):**
 Open the TDE wallet: `ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY <password>;` (non-CDB) or with `CONTAINER=ALL` for CDB. Verify with `SELECT * FROM v$encryption_wallet;`.
@@ -155,7 +162,7 @@ Upgrade target timezone file before migration: apply the appropriate DST patch t
 When target is at a higher Release Update (RU) than source and source has individually-named one-off patches (e.g., 19.3 one-offs migrating to a 19.29 target), ZDM's PATCH_CHECK phase will flag each source patch not individually present in the target home, even though those patches are subsumed by the target's higher RU. This is documented ZDM behavior, not a configuration error. The safe resolution is to add `-ignore PATCH_CHECK` to the `zdmcli migrate database` and `zdmcli migrate database -eval` commands. This flag suppresses the individual patch-number comparison and relies on the target RU for supersession. Confirm that target RU ≥ source RU before using this flag. When Step6 flags PATCH_CHECK as WARNING, Step7 must pre-populate `-ignore PATCH_CHECK` in `zdm_commands.sh` with an explanatory comment (see S7-10).
 
 **ZDM host cannot resolve target RAC node hostnames:**
-Add the missing RAC node hostname-to-IP entries to `/etc/hosts` on the ZDM jumpbox (not the source or target). Use `getent hosts <node>` to verify after editing.
+Add the missing RAC node hostname-to-IP entries to `/etc/hosts` on the ZDM jumpbox (not the source or target). Prefer the exact host rows and jumpbox-admin remediation command recorded by Step4 discovery; do not reconstruct them manually unless Step4 did not capture them. Use `getent hosts <node>` to verify after editing.
 
 **Source oracle user sudo not configured:**
 Configure sudoers on the source host to allow the ZDM admin user (`azureuser` or equivalent) to run commands as `oracle` without a password. Add a line to `/etc/sudoers.d/zdmauth` (or equivalent): `<zdm-admin-user> ALL=(oracle) NOPASSWD: ALL`. Verify with `ssh <src-user>@<src-host> "sudo -u oracle id"`. This is a ZDM-specific requirement documented in the ZDM Installation Guide (not in standard Oracle DB setup docs).
@@ -169,6 +176,7 @@ Configure sudoers on the source host to allow the ZDM admin user (`azureuser` or
 3. Executive summary by component (source/target/ZDM/network) with status.
 4. Migration method recommendation with explicit justification.
 5. Source database details and readiness checks (archivelog/force/supplemental/TDE and related prechecks).
+   - Include source role/open mode evidence and status (`PRIMARY` + `READ WRITE` required).
 6. Target environment details relevant to migration readiness.
 7. ZDM server details including discovered version evidence and service posture.
 8. Required actions split by severity (critical vs recommended) — compatibility gate blockers appear first.

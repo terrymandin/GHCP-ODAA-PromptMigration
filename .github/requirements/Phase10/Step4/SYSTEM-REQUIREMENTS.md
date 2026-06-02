@@ -19,12 +19,25 @@ Copilot must perform these actions inline in the jumpbox terminal:
 	- Display current user and home directory.
 	- List `.pem`/`.key` inventory in `~/.ssh/`.
 	- Confirm resolved SSH key handling mode (explicit key vs. default/agent) and key existence.
-6. Run ZDM server discovery locally (as `zdmuser`) for all items in S5-06 ZDM server discovery list.
-7. Run source discovery via SSH to `SOURCE_HOST` as `SOURCE_SSH_USER` for all items in S5-06 source discovery list.
-8. Run target discovery via SSH to `TARGET_HOST` as `TARGET_SSH_USER` for all items in S5-06 target discovery list.
-9. Treat placeholder values containing `<...>` as unset.
-10. Continue execution when one discovery target fails; report per-target status.
-11. Never suppress SSH errors.
+6. Before running any discovery stage, execute source gate SQL (`SELECT database_role, open_mode FROM v$database;`) on source as oracle.
+7. Require gate pass values `DATABASE_ROLE=PRIMARY` and `OPEN_MODE=READ WRITE`.
+8. If gate fails, ask the operator whether to move the source database to `PRIMARY` + `READ WRITE` now (`yes/no`).
+9. If operator answers `yes`, provide concise next-step guidance for role/open-mode transition and wait for the operator; do not run discovery until the operator confirms and the gate query passes.
+10. If operator answers `no`, stop Step4 immediately.
+11. Do not run ZDM server, source, or target discovery stages until the source gate passes.
+12. Run ZDM server discovery locally (as `zdmuser`) for all items in S5-06 ZDM server discovery list only after the gate passes.
+13. Run source discovery via SSH to `SOURCE_HOST` as `SOURCE_SSH_USER` for all items in S5-06 source discovery list only after the gate passes.
+14. Run target discovery via SSH to `TARGET_HOST` as `TARGET_SSH_USER` for all items in S5-06 target discovery list only after the gate passes.
+15. If target discovery shows a RAC/GI environment, collect and retain a normalized table of RAC node hostnames, FQDNs, and IP addresses while still connected to the target host. This data is required for the subsequent ZDM-host resolution check and must not be deferred to a later step.
+16. After target discovery, run the ZDM-host `getent hosts <node>` check for every discovered RAC node hostname before closing Step4.
+17. If any RAC node fails to resolve on the ZDM host:
+	- classify the condition as an immediate Step4 blocker,
+	- generate the exact `/etc/hosts` rows required in `<ip> <fqdn> <shortname>` format,
+	- generate a concrete jumpbox-admin remediation command that appends those rows and re-runs `getent hosts` verification,
+	- if the current session user cannot edit `/etc/hosts`, present the command for execution via the jumpbox admin account from Step1/Step2 instead of leaving the operator to construct it manually.
+18. Treat placeholder values containing `<...>` as unset.
+19. Continue execution when one discovery target fails; report per-target status (except source gate failure, which is a hard stop).
+20. Never suppress SSH errors.
 
 ## S5-11A: Oracle MCP execution precedence (optional)
 
@@ -46,6 +59,7 @@ During Step5 execution, Copilot must show inline status in the chat for each maj
 4. Per discovery target: PASS (with remote hostname) or FAIL (with error text).
 5. Retry state when retrying: which attempt number and what fix was applied.
 6. Final overall status after all discovery stages complete.
+7. When RAC node resolution fails on the ZDM host, show the missing host entries and the generated remediation command inline before ending the step.
 
 After execution, Copilot must provide the paths to the written report files (`Artifacts/Phase10-Migration/Step7/Discovery/`) so users can review with `cat` or open directly.
 
@@ -109,12 +123,13 @@ When running commands on remote hosts over SSH, Copilot must:
 1. Both markdown and JSON report files must exist and be non-empty for each discovery target.
 2. Reports must include all discovery items from S5-06, with a PASS/FAIL/SKIP status per item.
 3. Failed items must include the error text and recommended remediation.
-4. Copilot must confirm report files exist and are non-empty after writing.
-5. Markdown and JSON summary values must match for overall status.
-6. Report file naming:
+4. When RAC node hostname resolution fails, reports must include the exact missing host rows, the generated remediation command, and whether verification passed after the fix.
+5. Copilot must confirm report files exist and are non-empty after writing.
+6. Markdown and JSON summary values must match for overall status.
+7. Report file naming:
 	- `zdm_<type>_discovery_<hostname>_<timestamp>.md`
 	- `zdm_<type>_discovery_<hostname>_<timestamp>.json`
-7. JSON output must include a top-level `status` field (`success` or `partial`) and a `warnings` array.
+8. JSON output must include a top-level `status` field (`success` or `partial`) and a `warnings` array.
 
 ## S5-17: Shell-safe implementation constraints (applies when optional scripts are generated)
 
