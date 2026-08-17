@@ -39,6 +39,11 @@ Input precedence rules (CR-01):
 6. If configured intent conflicts with discovery evidence, keep both: generate fixes aligned to the configured intent and explicitly document the mismatch and required verification step.
 7. Placeholder values containing `<...>` are treated as unset.
 
+Deterministic mapping model (CR-17):
+1. Load `.github/requirements/Phase10/Rules/zdm-errors.yaml` before issue categorization.
+2. For known PRGZ/PRGT/PRCG findings, use mapped `ERR-*` remediation text from the catalog.
+3. For unknown findings, mark as `UNMAPPED_ERROR` and add a `Knowledgebase Update Needed` note in `Issue-Resolution-Log.md`.
+
 ---
 
 ## First Action: Display Environment Safety Banner (CR-13.3)
@@ -334,6 +339,9 @@ Write `Artifacts/Phase10-Migration/Step6/Issue-Resolution-Log.md` (S6-06) using 
 **Evidence:**
 [Observed values, query results, or error messages from discovery]
 
+**Error Mapping:**
+[ERR-<code> from zdm-errors.yaml, or UNMAPPED_ERROR]
+
 **Remediation Plan:**
 [Step-by-step plan — which server, which user, which script to run]
 
@@ -423,6 +431,8 @@ Write `Artifacts/Phase10-Migration/Step6/Scripts/verify_fixes.sh` that checks al
    ```
 
 4. Log output directory: `${STEP5_ARTIFACTS_DIR}/Verification/`
+5. Include machine-scannable rule lines in `Verification-Results.md`:
+  - `RULE:<id>:<PASS|FAIL|WARN>:<issue-id-or-none>`
 
 ---
 

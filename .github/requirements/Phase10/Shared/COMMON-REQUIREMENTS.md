@@ -336,3 +336,42 @@ Use these canonical group layouts when collecting variables. Steps may add extra
 ### CR-16-C: Confirmation summary before action
 
 After collecting all groups, display a single consolidated summary of all collected values and require the user to confirm before writing any artifact or running any command. This confirmation is separate from the group collection and must show all values together.
+
+## CR-17: Deterministic Rule Catalog and Error Knowledgebase
+
+Phase10 prompts must externalize migration correctness logic into versioned rule catalogs. Prompts orchestrate collection and reporting; rule catalogs define deterministic pass/fail behavior.
+
+### CR-17-A: Rule and error catalog files
+
+Rule and error catalogs are pre-loaded in the repository at:
+
+```
+.github/requirements/Phase10/Rules/
+   README.md
+   zdm-errors.yaml
+   26.1/
+      zdm-26.1-rules.yaml
+```
+
+Default rule version: `26.1`.
+
+If a discovered ZDM version does not have a matching folder under `Rules/`, use `Rules/26.1/` and log a warning.
+
+### CR-17-B: Runtime usage model
+
+1. Steps 5-7 must load the rule catalog and error catalog using `read_file` from the repository.
+2. Prompts must not call `fetch_webpage` to build or refresh rules at runtime.
+3. Any blocking decision that affects continuation to artifact generation must reference a rule id from `zdm-26.1-rules.yaml`.
+4. Any mapped ZDM error must reference an error id from `zdm-errors.yaml`.
+5. If a migration failure cannot be mapped to an existing error entry, record it in step output as `UNMAPPED_ERROR` and instruct operators to add it to `zdm-errors.yaml` in the next requirements update.
+
+### CR-17-C: Rule validation report
+
+Before generating final Step7 migration artifacts, produce a deterministic rule-validation summary in markdown that includes:
+
+1. Rule version and migration method.
+2. Rule ids evaluated and pass/fail status.
+3. Blocking rule failures (if any) with remediation references.
+4. Warning-only rule results.
+
+If any blocking rule fails, halt before generating final migration artifacts.

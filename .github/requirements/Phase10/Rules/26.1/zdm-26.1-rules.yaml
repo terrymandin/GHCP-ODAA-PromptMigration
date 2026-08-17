@@ -1,0 +1,108 @@
+version: "26.1"
+description: "Initial deterministic Phase10 rules for physical migrations"
+
+rules:
+  - id: RULE-001
+    name: required_unique_names
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "SOURCE_DATABASE_UNIQUE_NAME and TARGET_DATABASE_UNIQUE_NAME are both set and non-placeholder"
+    remediation_ref: "ERR-PRGZ-3127"
+
+  - id: RULE-002
+    name: source_target_release_match
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "source.release_major_minor == target.release_major_minor"
+    remediation_ref: "REMEDIATION-DB-RELEASE-MISMATCH"
+
+  - id: RULE-003
+    name: source_target_charset_match
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "source.nls_characterset == target.nls_characterset"
+    remediation_ref: "ERR-PRGZ-2101"
+
+  - id: RULE-004
+    name: source_target_compatible_match
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "source.compatible == target.compatible"
+    remediation_ref: "REMEDIATION-COMPATIBLE-MISMATCH"
+
+  - id: RULE-005
+    name: source_archivelog_required_online
+    applies_to: [ONLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "source.log_mode == ARCHIVELOG"
+    remediation_ref: "REMEDIATION-ENABLE-ARCHIVELOG"
+
+  - id: RULE-006
+    name: source_spfile_required_online
+    applies_to: [ONLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "source.spfile_in_use == true"
+    remediation_ref: "REMEDIATION-SPFILE-REQUIRED"
+
+  - id: RULE-007
+    name: source_target_hosts_must_differ
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "SOURCE_HOST != TARGET_HOST"
+    remediation_ref: "REMEDIATION-HOST-COLLISION"
+
+  - id: RULE-008
+    name: platform_type_supported_values
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "PLATFORM_TYPE in [EXACS, EXACC, VMDB, NON_CLOUD]"
+    remediation_ref: "REMEDIATION-PLATFORM-TYPE"
+
+  - id: RULE-009
+    name: exacs_exacc_requires_disk_groups
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "if PLATFORM_TYPE in [EXACS, EXACC] then TGT_REDODG and TGT_RECODG are set"
+    remediation_ref: "ERR-PRCG-1054"
+
+  - id: RULE-010
+    name: source_gi_type_flag_selection
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "SOURCE_GI_TYPE=grid uses -sourcedb and SOURCE_GI_TYPE=standalone uses -sourcesid"
+    remediation_ref: "ERR-PRGZ-3928"
+
+  - id: RULE-011
+    name: target_timezone_not_lower_than_source
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: WARNING
+    condition: "target.timezone_version >= source.timezone_version"
+    remediation_ref: "REMEDIATION-TIMEZONE-UPGRADE"
+
+  - id: RULE-012
+    name: zdm_host_resolves_target_rac_nodes
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "for RAC targets, getent hosts resolves each target node name from ZDM host"
+    remediation_ref: "REMEDIATION-HOSTS-RESOLUTION"
+
+  - id: RULE-013
+    name: source_oracle_sudo_pattern
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "ssh source as admin user can run sudo -u oracle id without password prompt"
+    remediation_ref: "REMEDIATION-SOURCE-SUDO"
+
+  - id: RULE-014
+    name: tde_keystore_password_flag_required
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: BLOCKER
+    condition: "if source.wallet_type == PASSWORD then zdm command includes -tdekeystorepasswd"
+    remediation_ref: "ERR-PRGZ-3111"
+
+  - id: RULE-015
+    name: patch_check_ignore_when_target_ru_supersedes
+    applies_to: [ONLINE_PHYSICAL, OFFLINE_PHYSICAL]
+    severity: WARNING
+    condition: "if target.ru >= source.ru and source one-off patches are superseded, include -ignore PATCH_CHECK"
+    remediation_ref: "ERR-PRGT-1017"

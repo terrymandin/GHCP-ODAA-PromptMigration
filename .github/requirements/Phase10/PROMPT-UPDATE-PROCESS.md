@@ -39,8 +39,12 @@ This replaces the old workflow where scripts had to be committed, pushed, pulled
   Replace `X` only in the Step requirements paths. The meta prompt infers target prompt files from the Step path.
   Include both step files so user-facing and implementation constraints are both applied.
 
-5. Validate prompt text against requirements with the checklist below.
-6. Commit both requirement and prompt updates in the same PR.
+5. If deterministic catalogs changed, include them as prompt regeneration context attachments:
+  - `.github/requirements/Phase10/Rules/zdm-errors.yaml`
+  - `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml`
+
+6. Validate prompt text against requirements with the checklist below.
+7. Commit both requirement and prompt updates in the same PR.
 
 ## Prompt Regeneration Checklist
 
@@ -57,6 +61,7 @@ For each updated step prompt, verify:
 9. *(Applies to steps that generate shell scripts only)* Any runtime report contract includes explicit completeness/parity checks and non-zero exit behavior on report-write failures.
 10. *(Applies to steps that generate shell scripts only)* Prompt instructions include a generation quality gate that requires local syntax validation before final output.
 11. Prompt output includes concise validation evidence (checks run and pass/fail state) when scripts/artifacts are generated or commands are executed.
+12. If rule catalogs were updated, prompt behavior references rule ids and error mapping ids instead of freeform-only blocker text.
 
 ## Suggested PR Structure
 

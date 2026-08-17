@@ -10,6 +10,7 @@ This directory stores source-of-truth requirements used to (re)generate and main
 - `StepX/USER-REQUIREMENTS.md`: step-specific user-facing requirements (Steps 1–6).
 - `StepX/SYSTEM-REQUIREMENTS.md`: step-specific implementation/script-level requirements (Steps 1–6).
 - `ZDM-Prerequisites/`: pre-loaded ZDM prerequisite check catalogs by ZDM version.
+- `Rules/`: deterministic rule and error knowledgebase catalogs used by Steps 5–7.
 - `PROMPT-UPDATE-PROCESS.md`: standard workflow for updating requirements and regenerating prompts.
 
 ## Operating Rule

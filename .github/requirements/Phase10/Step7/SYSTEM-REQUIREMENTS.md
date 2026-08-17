@@ -80,3 +80,19 @@ This file defines implementation-level constraints for generated Step7 runtime a
 2. If direct SQL*Net connectivity was confirmed: do NOT include `TGT_SSH_TUNNEL_PORT` in the RSP. Adding this parameter when direct connectivity works causes `localhost:<port>` precheck failures because ZDM routes traffic through a local tunnel that was never established.
 3. If direct SQL*Net connectivity failed and an SSH tunnel was set up: include `TGT_SSH_TUNNEL_PORT` with the configured local port.
 4. Add an inline comment in `zdm_migrate.rsp` adjacent to where `TGT_SSH_TUNNEL_PORT` would appear, documenting the decision (present or absent) and the connectivity check result that drove it.
+
+## S7-17: Rule-validation gate before artifact finalization
+
+1. Before finalizing Step7 artifacts, load and evaluate `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml` (fallback version `26.1`).
+2. Write `Artifacts/Phase10-Migration/Step7/Rule-Validation-Report.md` containing:
+   - catalog version and migration method,
+   - evaluated rule ids and pass/fail/warn status,
+   - blocking failures with remediation references,
+   - warning-only findings.
+3. If any BLOCKER rule fails, stop before finalizing `zdm_migrate.rsp` and `zdm_commands.sh`.
+
+## S7-18: Deterministic eval-failure mapping
+
+1. During `zdm -eval` retries, map known PRGZ/PRGT/PRCG failures using `.github/requirements/Phase10/Rules/zdm-errors.yaml`.
+2. For mapped failures, use the mapped remediation text and include the `ERR-*` id in `Issue-Resolution-Log.md`.
+3. For unmapped failures, log `UNMAPPED_ERROR` and include a requirement to update `zdm-errors.yaml` in the next requirements iteration.
