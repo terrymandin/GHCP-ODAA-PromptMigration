@@ -36,6 +36,11 @@ Evidence selection when multiple discovery files exist per component (S5-08):
 - Use the most recent file set by timestamp (highest timestamp = most recent).
 - Keep source, target, and server evidence references explicit in generated outputs.
 
+Deterministic validation model (CR-17):
+- Load `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml` (fallback `26.1`).
+- Load `.github/requirements/Phase10/Rules/zdm-errors.yaml`.
+- Use rule ids and `ERR-*` mappings in blocker output; do not rely on freeform-only classifications.
+
 ---
 
 ## First Action: Display Environment Safety Banner (CR-13.3)
@@ -142,6 +147,16 @@ ZDM Compatibility Gate
 | Target datapatch compatibility | `datapatch -prereqs` exits cleanly on all target nodes without `Unsupported named object type` error at `sqlpatch.pm` | WARNING |
 
 **Missing data handling:** If a required compatibility value was not collected in Step 4, flag it as `[DATA MISSING]` in the gate output and treat it as a BLOCKER — re-run Step 4 with the updated discovery scope before proceeding.
+
+### 2b. Rule Evaluation (CR-17)
+
+After the compatibility gate table, include a `Rule Evaluation` section with one line per evaluated rule:
+
+```
+RULE:<id>:<PASS|FAIL|WARN>:<remediation_ref-or-none>
+```
+
+For mapped failures, include the matching `ERR-*` id from `.github/requirements/Phase10/Rules/zdm-errors.yaml`.
 
 ### 3. Executive Summary
 

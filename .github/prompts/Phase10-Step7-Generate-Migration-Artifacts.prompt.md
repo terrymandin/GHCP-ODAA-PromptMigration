@@ -13,6 +13,7 @@ Generated artifacts under `Artifacts/Phase10-Migration/Step7/` (S7-01):
 - `ZDM-Migration-Runbook.md`
 - `zdm_migrate.rsp`
 - `zdm_commands.sh`
+- `Rule-Validation-Report.md`
 
 Conditional artifact:
 - `Issue-Resolution-Log.md`  created only when the user explicitly skips `zdm -eval`; logs the skip decision and all outstanding eval errors.
@@ -39,6 +40,12 @@ Input precedence rules (CR-01):
 7. `zdm-env.md` (when explicitly attached)  legacy override with higher precedence than step artifacts.
 8. If configured intent conflicts with discovery evidence, keep both: generate artifacts aligned to the configured intent and explicitly document the mismatch.
 9. Placeholder values containing `<...>` are treated as unset.
+
+Deterministic validation model (CR-17):
+1. Load `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml` (fallback `26.1`).
+2. Load `.github/requirements/Phase10/Rules/zdm-errors.yaml`.
+3. Write `Rule-Validation-Report.md` before finalizing artifacts.
+4. If any BLOCKER rule fails, halt and direct remediation before continuing.
 
 ---
 
@@ -335,6 +342,9 @@ Do **not** begin the `zdm -eval` loop until the user types `CONFIRM`. If the use
 
 After the quality gate passes, begin the evaluation loop:
 
+0. Generate `Rule-Validation-Report.md` summarizing rule catalog version, evaluated rule ids, and PASS/FAIL/WARN counts.
+   - If any BLOCKER rule is FAIL, stop the flow and direct the user to Step6 remediation.
+
 1. **Before running `zdm -eval`**, confirm both prerequisite layers have passed:
    - **Layer 1**: `Scripts/preflight_l1_infrastructure.sh` results in `Artifacts/Phase10-Migration/Step6/Verification-Results.md` show all-PASS under `### Layer 1 Infrastructure Pre-flight`. If any Layer 1 check is FAIL, surface the failures and stop — do not submit `zdm -eval`.
    - **Layer 2**: `Artifacts/Phase10-Migration/Step6/Verification-Results.md` from `verify_fixes.sh` shows all blocker checks PASS. If any Layer 2 blocker is outstanding, surface them and stop.
@@ -343,6 +353,7 @@ After the quality gate passes, begin the evaluation loop:
 2. If evaluation **succeeds** (exit code 0 / no blocking errors), surface the success output and proceed to the Completion Checklist.
 3. If evaluation **fails**, surface the error output and triage the failure against the CR-14 prerequisite catalog file (`.github/requirements/Phase10/ZDM-Prerequisites/<version>/<method>.md`, loaded per CR-14-A):
    - If the failure **matches a catalog entry**: apply the remediation guidance from that catalog row (re-run the relevant fix script from Step 6 or adjust `zdm_migrate.rsp`), then re-run `zdm -eval`.
+   - If the failure maps to `.github/requirements/Phase10/Rules/zdm-errors.yaml`, include the `ERR-*` id in `Issue-Resolution-Log.md` and use mapped remediation text.
    - If the failure is **NOT in the catalog**: add it to the catalog file under the appropriate layer section, noting it as `[zdm-eval-feedback <date>]` per CR-14-D. Then attempt remediation (adjust `zdm_migrate.rsp` or create a new fix script) and re-run `zdm -eval`.
 4. Repeat the fix-and-retry loop until either:
    - `zdm -eval` exits successfully, **or**

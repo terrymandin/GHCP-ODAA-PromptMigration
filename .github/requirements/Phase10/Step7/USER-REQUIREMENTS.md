@@ -12,6 +12,7 @@ Required generated files under `Artifacts/Phase10-Migration/Step7/`:
 - `ZDM-Migration-Runbook.md`
 - `zdm_migrate.rsp`
 - `zdm_commands.sh`
+- `Rule-Validation-Report.md`
 
 ## S7-02: Required input artifacts
 
@@ -65,3 +66,12 @@ After running `zdm -eval`, the agent must not proceed to migration execution unt
    - The `zdm -eval` exits successfully, **or**
    - The user explicitly instructs the agent to **skip** the evaluation.
 6. If the user skips, log the skip decision and the outstanding eval errors in `Artifacts/Phase10-Migration/Step7/Issue-Resolution-Log.md` before continuing.
+
+## S7-06: Rule validation and continuation policy
+
+1. Step7 must evaluate the deterministic rule catalog before final artifact completion and write results to `Rule-Validation-Report.md`.
+2. If any BLOCKER rule fails, Step7 must halt and direct the user back to Step6 remediation before continuing.
+3. Final chat summary must include:
+   - rule catalog version used,
+   - count of PASS/FAIL/WARN rules,
+   - whether artifact generation continued or halted due to blocking rules.

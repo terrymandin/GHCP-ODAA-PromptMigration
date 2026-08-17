@@ -79,3 +79,15 @@ Behavior rules:
 2. Evidence detail per issue (what was checked and observed values).
 3. Overall blocker resolution result indicating Step7 readiness.
 4. Remaining warnings/recommendations that are not hard blockers.
+
+## S7-14: Deterministic mapping constraints
+
+1. When Step6 categorizes or verifies issues, it must load `.github/requirements/Phase10/Rules/zdm-errors.yaml` and use mapped remediation text for known PRGZ/PRGT/PRCG codes.
+2. `Issue-Resolution-Log.md` must include `Error Mapping` for each issue (`ERR-*` id from the catalog, or `UNMAPPED_ERROR`).
+3. If an issue is `UNMAPPED_ERROR`, append a `Knowledgebase Update Needed` note with the candidate error code and symptom.
+
+## S7-15: Rule-aware verification summary lines
+
+1. `Verification-Results.md` must include one machine-scannable line per relevant rule in this format:
+   - `RULE:<id>:<PASS|FAIL|WARN>:<issue-id-or-none>`
+2. Rule ids come from `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml` (fallback `26.1` if version directory is absent).

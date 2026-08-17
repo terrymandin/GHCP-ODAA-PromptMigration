@@ -236,3 +236,16 @@ Source values: `discovered` (from Step5 evidence), `from zdm-env.md` (pre-filled
 3. **Runbook planning notes** '€” any non-RSP answers (e.g., downtime window) recorded as free-form notes for the runbook author.
 
 No blank or placeholder values are permitted in this file. All rows must be answered before the file is written.
+
+## S6-11: Rule-first compatibility evaluation
+
+1. Before writing `Discovery-Summary.md`, load and evaluate the deterministic rule catalog from `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml` (CR-17).
+2. Include a `Rule Evaluation` section in `Discovery-Summary.md` listing each evaluated rule id and status (`PASS`, `FAIL`, `WARN`).
+3. For every failed BLOCKER rule, include the exact `rule id`, `condition`, and `remediation_ref` in the Critical actions section.
+4. If any BLOCKER rule fails, halt before writing `Migration-Decisions.md`.
+
+## S6-12: Deterministic error mapping output
+
+1. Load `.github/requirements/Phase10/Rules/zdm-errors.yaml` and map known PRGZ/PRGT/PRCG findings to catalog entries.
+2. In `Discovery-Summary.md`, each mapped issue must include the error mapping id (`ERR-*`) and the mapped remediation bullets.
+3. If an issue does not map to any error entry, mark it as `UNMAPPED_ERROR` and include a follow-up action to add it to `zdm-errors.yaml` during the next requirements update.
