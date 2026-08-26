@@ -1,0 +1,10 @@
+name: validate-network
+version: 1.0.0
+phase: validation
+inputs:
+  - source_hosts
+  - zdm_host
+  - source_listener_endpoint
+  - target_listener_endpoint
+outputs:
+  - network_validation

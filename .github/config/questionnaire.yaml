@@ -1,0 +1,378 @@
+version: 2.0
+
+profile_mapping:
+  source_platform: migration.source.platform
+  target_platform: migration.target.platform
+  migration_method: migration.method
+  migration_mode: migration.mode
+  data_transfer_medium: migration.transfer.medium
+  backup_path: migration.transfer.backup_path
+  nfs_action: migration.transfer.nfs.action
+  azure_nfs_resource_group: migration.transfer.nfs.azure.resource_group
+  azure_nfs_region: migration.transfer.nfs.azure.region
+  azure_nfs_share_name: migration.transfer.nfs.azure.file_share_name
+  azure_nfs_capacity_gib: migration.transfer.nfs.azure.provisioned_capacity_gib
+  azure_nfs_redundancy: migration.transfer.nfs.azure.redundancy
+  azure_nfs_vnet_resource_group: migration.transfer.nfs.azure.vnet_resource_group
+  azure_nfs_vnet_name: migration.transfer.nfs.azure.vnet_name
+  azure_nfs_private_endpoint_subnet: migration.transfer.nfs.azure.private_endpoint_subnet
+  target_db_unique_name: migration.target.database_unique_name
+  target_data_dg: migration.target.data_dg
+  target_redo_dg: migration.target.redo_dg
+  target_reco_dg: migration.target.reco_dg
+  skip_fallback: migration.requirements.skip_fallback
+  source_ssh_node: migration.source.ssh_node
+  source_listener_endpoint: migration.source.listener_endpoint
+  source_ssh_user: migration.source.ssh_user
+  source_identity_file: migration.source.identity_file
+  source_sudo_path: migration.source.sudo_path
+  source_db_service: migration.source.database_service
+  source_sys_auth_verified: migration.source.sys_auth_verified
+  target_ssh_node: migration.target.ssh_node
+  target_listener_endpoint: migration.target.listener_endpoint
+  target_ssh_user: migration.target.ssh_user
+  target_identity_file: migration.target.identity_file
+  target_sudo_path: migration.target.sudo_path
+  target_oracle_home: migration.target.oracle_home
+  target_patch_parity_verified: migration.target.patch_parity_verified
+  zdm_release: migration.zdm.release
+  zdm_response_file: migration.zdm.response_file
+  prompt_for_tde_keystore_password: migration.security.prompt_for_tde_keystore_password
+  source_db_version: migration.source.database_version
+  source_db_patch_level: migration.source.patch_level
+  database_architecture: migration.source.architecture
+  oracle_sid: migration.source.oracle_sid
+  pdb_names: migration.source.pdb_names
+  wallet_root: migration.security.wallet_root
+  selected_tablespaces: migration.security.selected_tablespaces
+  database_size_tb: migration.source.database_size_tb
+  downtime_requirement: migration.requirements.downtime
+  tde_enabled: migration.security.tde_enabled
+
+questions:
+  - id: source_platform
+    prompt: Source platform
+    type: choice
+    required: true
+    options:
+      - exadata
+      - oracle_iaas
+
+  - id: target_platform
+    prompt: Target platform
+    type: choice
+    required: true
+    options:
+      - odaa
+      - adb
+
+  - id: migration_method
+    prompt: Migration method
+    type: choice
+    required: true
+    options:
+      - physical
+      - logical
+
+  - id: migration_mode
+    prompt: Migration mode
+    type: choice
+    required: true
+    options:
+      - online
+      - offline
+
+  - id: data_transfer_medium
+    prompt: Physical migration data transfer medium
+    type: choice
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    options:
+      - nfs
+
+  - id: backup_path
+    prompt: Shared NFS backup path visible to source and target
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: nfs_action
+    prompt: Use an existing NFS share or create an Azure Files NFS share
+    type: choice
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+      field: migration.transfer.medium
+      equals: nfs
+    options:
+      - use_existing
+      - create_azure_files
+
+  - id: azure_nfs_resource_group
+    prompt: Resource group for the Azure Files NFS share
+    type: text
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+
+  - id: azure_nfs_region
+    prompt: Azure region for the NFS share
+    type: text
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+
+  - id: azure_nfs_share_name
+    prompt: Standalone Azure Files NFS share name
+    type: text
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+
+  - id: azure_nfs_capacity_gib
+    prompt: Provisioned NFS share capacity in GiB
+    type: number
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+    validation:
+      minimum: 32
+      maximum: 262144
+
+  - id: azure_nfs_redundancy
+    prompt: Azure Files NFS redundancy
+    type: choice
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+    options:
+      - Local
+      - Zone
+
+  - id: azure_nfs_vnet_resource_group
+    prompt: Resource group containing the private-endpoint virtual network
+    type: text
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+
+  - id: azure_nfs_vnet_name
+    prompt: Virtual network for the NFS private endpoint
+    type: text
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+
+  - id: azure_nfs_private_endpoint_subnet
+    prompt: Subnet for the NFS private endpoint
+    type: text
+    required_when:
+      field: migration.transfer.nfs.action
+      equals: create_azure_files
+
+  - id: target_db_unique_name
+    prompt: Target database unique name
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_data_dg
+    prompt: Target ASM data disk group
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_redo_dg
+    prompt: Target ASM redo disk group
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_reco_dg
+    prompt: Target ASM recovery disk group
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: skip_fallback
+    prompt: Disable ZDM fallback handling
+    type: boolean
+    required: false
+
+  - id: source_ssh_node
+    prompt: Source SSH node used by ZDM
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: source_listener_endpoint
+    prompt: Source database listener or SCAN endpoint
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: source_ssh_user
+    prompt: Source SSH user used by ZDM
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: source_identity_file
+    prompt: Source private-key file path on the ZDM host
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: source_sudo_path
+    prompt: Source sudo binary path
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: source_db_service
+    prompt: Source database service used for password-based SYSDBA validation
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: source_sys_auth_verified
+    prompt: Has password-based SYSDBA authentication been verified using the source service ZDM will use?
+    type: boolean
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_ssh_node
+    prompt: Target SSH node used by ZDM
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_listener_endpoint
+    prompt: Target database listener or SCAN endpoint
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_ssh_user
+    prompt: Target SSH user used by ZDM
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_identity_file
+    prompt: Target private-key file path on the ZDM host
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: target_sudo_path
+    prompt: Target sudo binary path
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: target_oracle_home
+    prompt: Target Oracle home
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: target_patch_parity_verified
+    prompt: Has ZDM-compatible target Oracle-home patch parity with the source been verified?
+    type: boolean
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: zdm_release
+    prompt: Installed ZDM release
+    type: text
+    required: true
+
+  - id: zdm_response_file
+    prompt: Absolute response-file path on the ZDM host
+    type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+    validation:
+      absolute_path: true
+
+  - id: prompt_for_tde_keystore_password
+    prompt: Prompt locally for the TDE keystore password when ZDM runs
+    type: boolean
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: source_db_version
+    prompt: Oracle database version
+    type: choice
+    required: true
+    options:
+      - 11g
+      - 12c
+      - 19c
+      - 21c
+      - 23ai
+
+  - id: source_db_patch_level
+    prompt: Oracle database patch level (RU/RUR)
+    type: text
+    required: true
+
+  - id: tde_enabled
+    prompt: Is TDE enabled on the source database?
+    type: boolean
+    required: true
+
+  - id: database_architecture
+    prompt: Database architecture for TDE remediation
+    type: choice
+    required: false
+    options:
+      - cdb
+      - non_cdb
+
+  - id: oracle_sid
+    prompt: Oracle SID or CDB name for TDE remediation
+    type: text
+    required: false
+
+  - id: pdb_names
+    prompt: Comma-separated PDB names for TDE remediation
+    type: text
+    required: false
+
+  - id: wallet_root
+    prompt: Absolute wallet root path for TDE remediation
+    type: text
+    required: false
+
+  - id: selected_tablespaces
+    prompt: Comma-separated user tablespaces approved for TDE encryption
+    type: text
+    required: false
+
+  - id: downtime_requirement
+    prompt: Acceptable downtime
+    type: choice
+    required: true
+    options:
+      - near_zero
+      - less_than_1_hour
+      - less_than_4_hours
+      - scheduled_outage
+
+  - id: database_size_tb
+    prompt: Database size (TB)
+    type: number
+    required: true

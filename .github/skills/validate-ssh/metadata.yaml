@@ -1,0 +1,9 @@
+name: validate-ssh
+version: 1.0.0
+phase: validation
+inputs:
+  - source_hosts
+  - zdm_host
+  - ssh_user
+outputs:
+  - ssh_validation

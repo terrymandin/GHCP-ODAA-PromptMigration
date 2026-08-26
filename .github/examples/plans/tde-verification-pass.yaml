@@ -1,0 +1,24 @@
+tde_enablement:
+  status: pass
+  action: customer-execution-required
+  evidence:
+    database_version: 19c
+    database_architecture: cdb
+    containers:
+      - CDB$ROOT
+      - SAMPLEPDB
+    wallet_status: OPEN
+    wallet_type: AUTOLOGIN
+    keystore_mode: UNITED
+    master_key_count:
+      CDB$ROOT: 1
+      SAMPLEPDB: 1
+    tablespaces:
+      APP_DATA:
+        encrypted: true
+        algorithm: AES256
+      APP_INDEX:
+        encrypted: true
+        algorithm: AES256
+    result_marker: VERIFY_COMPLETE
+  findings: []

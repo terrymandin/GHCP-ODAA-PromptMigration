@@ -1,0 +1,68 @@
+migration:
+  method:
+  mode:
+
+  transfer:
+    medium:
+    backup_path:
+    nfs:
+      action:
+      validated:
+      azure:
+        resource_group:
+        region:
+        file_share_name:
+        provisioned_capacity_gib:
+        redundancy:
+        vnet_resource_group:
+        vnet_name:
+        private_endpoint_subnet:
+
+  source:
+    platform:
+    ssh_node:
+    listener_endpoint:
+    ssh_user:
+    identity_file:
+    sudo_path:
+    database_version:
+    patch_level:
+    database_size_tb:
+    architecture:
+    oracle_sid:
+    database_service:
+    sys_auth_verified:
+    pdb_names:
+
+  target:
+    platform:
+    ssh_node:
+    listener_endpoint:
+    ssh_user:
+    identity_file:
+    sudo_path:
+    oracle_home:
+    patch_parity_verified:
+    database_unique_name:
+    platform_type:
+    data_dg:
+    redo_dg:
+    reco_dg:
+
+  security:
+    tde_enabled:
+    prompt_for_tde_keystore_password:
+    wallet_root:
+    selected_tablespaces:
+
+  requirements:
+    downtime:
+    skip_fallback:
+
+  zdm:
+    release:
+    response_file:
+
+  metadata:
+    questionnaire_version: 2.0
+    updated_on:

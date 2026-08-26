@@ -1,5 +1,5 @@
 ---
-applyTo: '**'
+applyTo: '.github/prompts/Phase6-*.prompt.md,Artifacts/Phase6-IaC/**'
 ---
 ## Creating Infrastructure Using Azure Verified Modules (AVM)
 

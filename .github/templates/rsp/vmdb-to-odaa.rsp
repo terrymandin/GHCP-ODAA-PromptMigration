@@ -1,0 +1,14 @@
+# Oracle ZDM response-file template: VM DB to ODAA
+# Oracle ZDM 26.1 physical-offline migration to ODAA Exadata.
+MIGRATION_METHOD=OFFLINE_PHYSICAL
+DATA_TRANSFER_MEDIUM=NFS
+BACKUP_PATH={{backup_path}}
+
+TGT_DB_UNIQUE_NAME={{target_db_unique_name}}
+PLATFORM_TYPE=EXACS
+
+TGT_DATADG={{target_data_dg}}
+TGT_REDODG={{target_redo_dg}}
+TGT_RECODG={{target_reco_dg}}
+
+SKIP_FALLBACK=TRUE

@@ -1,0 +1,22 @@
+migration:
+  source:
+    platform: onprem_rac
+    deployment: onprem
+    database_version: 19c
+    database_size_tb: 2
+  target:
+    platform: odaa
+    region: example-region-1
+  security:
+    tde_enabled: false
+    database_architecture: cdb
+    oracle_sid: SAMPLECDB
+    pdb_names: SAMPLEPDB
+    wallet_root: /opt/oracle/admin/samplecdb/wallet
+    selected_tablespaces: APP_DATA,APP_INDEX
+  requirements:
+    downtime: scheduled_outage
+
+expected_tde_enablement:
+  status: pending
+  action: customer-execution-required

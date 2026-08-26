@@ -3,7 +3,7 @@ mode: agent
 description: Get the current Oracle Database@Azure migration status
 ---
 
-# Oracle Database@Azure Migration â€” Status
+# Oracle Database@Azure Migration Status
 
 ## Instructions
 
@@ -22,11 +22,10 @@ Create it with the following initial content, then display it:
 - [ ] Phase 0: ODAA Readiness Assessment
 - [ ] Phase 5: CIDR Range Planning
 - [ ] Phase 6: Infrastructure as Code (Terraform)
-- [ ] Phase 10 â€” Step 1: ZDM SSH Connectivity
-- [ ] Phase 10 â€” Step 4: ZDM Discovery Scripts
-- [ ] Phase 10 â€” Step 5: ZDM Migration Planning
-- [ ] Phase 10 â€” Step 6: ZDM Issue Resolution
-- [ ] Phase 10 â€” Step 7: ZDM Migration Artifacts
+- [ ] Phase 10: ZDM profile and route selected
+- [ ] Phase 10: Required remediation and validation passed
+- [ ] Phase 10: Response file and eval command generated
+- [ ] Phase 10: Customer-run ZDM eval passed
 
 ## Next Step
 Run `@Phase0-ODAA-Readiness` to begin the migration readiness assessment.
@@ -35,17 +34,17 @@ Run `@Phase0-ODAA-Readiness` to begin the migration readiness assessment.
 ### If `Artifacts/Report-Status.md` exists
 Read its content, summarize the current state, and ensure it contains:
 
-1. **Executive Summary** â€” source database, target ODAA environment, overall completion %
-2. **Phase completion checklist** â€” `[x]` for completed phases with timestamps, `[ ]` for pending
-3. **Database configuration** â€” source host, target host, database name, migration method (ZDM/DataGuard/RMAN/DataPump/GoldenGate)
-4. **ZDM readiness** (if applicable) â€” SSH connectivity status, discovery status, blockers resolved Y/N
-5. **Blockers and issues** â€” severity (Critical / High / Medium), current resolution state
-6. **Next recommended step** â€” specific `@PromptName` command to run next
+1. **Executive Summary** - source database, target ODAA environment, overall completion %
+2. **Phase completion checklist** - `[x]` for completed phases with timestamps, `[ ]` for pending
+3. **Database configuration** - source and target roles, database name, and selected migration route; do not persist private endpoints
+4. **ZDM readiness** - remediation, validation, artifact generation, and observed eval status
+5. **Blockers and issues** - severity and current resolution state
+6. **Next recommended step** - a prompt invocation or selection of the `ZDM Migration` custom agent
 
 ## Status File Format Rules
 
 - Use `[x]` for completed phases, `[ ]` for pending
-- Include timestamps for completed phases: `[x] Phase 0 â€” Completed 2026-03-01`
-- Format blockers with severity: `âŒ Critical`, `âš ï¸ High`, `âœ… Resolved`
+- Include timestamps for completed phases: `[x] Phase 0 - Completed 2026-03-01`
+- Format blockers with text severity labels: `Critical`, `High`, or `Resolved`
 - Keep the file human-readable markdown
-- Always end with a **Next Steps** section containing a specific `@PromptName` invocation
+- Always end with a **Next Steps** section containing a prompt invocation or custom-agent selection

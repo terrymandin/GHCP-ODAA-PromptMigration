@@ -1,0 +1,36 @@
+version: 1.1
+
+skills:
+  - id: enable-tde
+    path: ../skills/enable-tde
+    phase: remediation
+  - id: provision-azure-files-nfs
+    path: ../skills/provision-azure-files-nfs
+    phase: remediation
+  - id: validate-source
+    path: ../skills/validate-source
+    phase: validation
+  - id: validate-target
+    path: ../skills/validate-target
+    phase: validation
+  - id: validate-ssh
+    path: ../skills/validate-ssh
+    phase: validation
+  - id: validate-network
+    path: ../skills/validate-network
+    phase: validation
+  - id: validate-tde
+    path: ../skills/validate-tde
+    phase: validation
+  - id: generate-rsp
+    path: ../skills/generate-rsp
+    phase: generation
+  - id: generate-eval-command
+    path: ../skills/generate-eval-command
+    phase: generation
+  - id: validate-zdm-eval
+    path: ../skills/validate-zdm-eval
+    phase: evaluation
+  - id: generate-readiness-report
+    path: ../skills/generate-readiness-report
+    phase: review

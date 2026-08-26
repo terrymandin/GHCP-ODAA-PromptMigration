@@ -1,0 +1,35 @@
+version: 1.1
+
+plans:
+  - id: physical-zdm
+    phases:
+      - id: remediation
+        fail_fast: true
+        skills:
+          - enable-tde
+          - id: provision-azure-files-nfs
+            when:
+              field: migration.transfer.medium
+              equals: nfs
+      - id: validation
+        fail_fast: true
+        skills:
+          - validate-source
+          - validate-target
+          - validate-tde
+          - validate-network
+          - validate-ssh
+      - id: generation
+        fail_fast: true
+        skills:
+          - generate-rsp
+          - generate-eval-command
+      - id: evaluation
+        fail_fast: true
+        customer_action_required: true
+        skills:
+          - validate-zdm-eval
+      - id: review
+        run_always: true
+        skills:
+          - generate-readiness-report

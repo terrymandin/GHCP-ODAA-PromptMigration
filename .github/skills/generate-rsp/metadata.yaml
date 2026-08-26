@@ -1,0 +1,8 @@
+name: generate-rsp
+version: 1.0.0
+phase: generation
+inputs:
+  - migration_profile
+  - rsp_template
+outputs:
+  - zdm-response-file.rsp

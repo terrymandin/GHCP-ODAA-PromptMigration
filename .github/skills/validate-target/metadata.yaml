@@ -1,0 +1,9 @@
+name: validate-target
+version: 1.0.0
+phase: validation
+inputs:
+  - target_platform
+  - target_oracle_home
+  - target_patch_parity_verified
+outputs:
+  - target_validation

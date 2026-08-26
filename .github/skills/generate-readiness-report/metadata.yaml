@@ -1,0 +1,11 @@
+name: generate-readiness-report
+version: 1.0.0
+phase: review
+inputs:
+  - migration_profile
+  - remediation_results
+  - validation_results
+  - generation_results
+  - zdm_eval_validation
+outputs:
+  - migration-report.md

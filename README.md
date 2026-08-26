@@ -47,10 +47,8 @@ To reduce hallucinations during the migration, use `@GetStatus` to maintain a `r
 
 During each phase, read the AI's response summary carefully to understand what will be delivered and what inputs are needed.
 
-- **Pro tip**: Step 0 optionally creates the ZDM Azure VM and then installs/verifies ZDM 26.1, writing `Artifacts/Phase10-Migration/Step0/zdm-install-report.md`.
-- **Pro tip**: Step 1 sets up the Remote-SSH connection to the ZDM jumpbox and writes `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md`.
-- **Pro tip**: Step 2 collects SSH configuration interactively and writes `Artifacts/Phase10-Migration/Step2/ssh-config.md`. Pre-populate this file to skip interactive prompting during testing.
-- **Pro tip**: Step 3 collects database variables interactively and writes `Artifacts/Phase10-Migration/Step3/db-config.md`. Pre-populate this file to skip interactive prompting during testing.
+- **Pro tip**: Select the `ZDM Migration` custom agent for Phase 10. It collects normalized inputs, selects a supported route, and invokes registered skills in phase order.
+- **Pro tip**: Runtime state and generated files are written under `Artifacts/` and are not committed.
 - **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
 - **Pro tip**: Don't assume anything — always verify ZDM requirements and OCI identifiers with the documentation.
 
@@ -62,19 +60,11 @@ During each phase, read the AI's response summary carefully to understand what w
   - `Phase0-ODAA-Readiness.prompt.md` — readiness assessment
   - `Phase5-CIDR-Planning.prompt.md` — CIDR range planning
   - `Phase6-IaC.prompt.md` — Terraform infrastructure generation
-  - `Phase10-ZDM-Orchestrator.prompt.md` — guided ZDM migration orchestrator (auto-detects step)
-  - `Phase10-Step0-Install-ZDM.prompt.md` — optionally create ZDM Azure VM; install/verify ZDM 26.1
-  - `Phase10-Step1-Setup-Remote-SSH.prompt.md` — configure VS Code Remote-SSH to the jumpbox
-  - `Phase10-Step2-Configure-SSH-Connectivity.prompt.md` — SSH connectivity between source, target, and ZDM server
-  - `Phase10-Step3-Generate-Discovery-Scripts.prompt.md` — generate and run database discovery scripts
-  - `Phase10-Step4-Discovery-Questionnaire.prompt.md` — analyze discovery output and complete migration decisions
-  - `Phase10-Step5-Fix-Issues.prompt.md` — resolve ZDM prerequisite check failures
-  - `Phase10-Step6-Generate-Migration-Artifacts.prompt.md` — generate ZDM response file and migration runbook
-  - `Phase10-Generate-Step-Prompts-From-Requirements.prompt.md` — regenerate step prompts from requirements files
-
-- **`Artifacts/`**: Generated output from running prompts (git-ignored content)
-  - **`Artifacts/Phase10-Migration/Step2/ssh-config.md`** — SSH connectivity config written interactively by Step 2 (pre-populate to bypass interactive collection)
-  - **`Artifacts/Phase10-Migration/Step3/db-config.md`** — database and ZDM config written interactively by Step 3 (pre-populate to bypass interactive collection)
+- **`.github/agents/`**: Custom-agent entry points
+  - `zdm-migration.agent.md` - Phase 10 ZDM coordinator
+- **`.github/config/`**: Phase 10 questionnaire, supported routes, execution plans, skill catalog, and provenance
+- **`.github/skills/`**: Composable validation, remediation, generation, and review skills
+- **`Artifacts/`**: Generated runtime state and output (git-ignored content)
 
 ## Migration & Modernization Process
 
@@ -125,7 +115,7 @@ Determine the best tool for migrating databases to Azure such as Zero Migration 
 
 ### Phase 10: Migrate databases from on-premise to Azure ✅
 
-Use the migration tool to migrate to Azure. The ZDM-based workflow (Steps 0–6) is fully implemented via Copilot prompt files. Step 0 optionally provisions the ZDM Azure VM and installs ZDM 26.1; Steps 1–6 configure SSH connectivity, run discovery, validate prerequisites, and generate the migration runbook.
+Use the `ZDM Migration` custom agent to assess readiness and generate customer-run ZDM artifacts. The currently enabled route is Oracle IaaS to ODAA using ZDM 26.1 offline physical migration; unverified routes remain disabled.
 
 ## Key Features
 
@@ -155,22 +145,21 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 1. Clone this repository and open it in VS Code
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
 3. Install the **Azure MCP Server**, **GitHub Copilot for Azure** and **Oracle Developer** extensions
-4. Connect VS Code to your ZDM jumpbox via the **Remote-SSH** extension (as `zdmuser`)
-5. Open GitHub Copilot Chat and type `@00-Start-Here` to begin — Step 1 will collect all environment values interactively
+4. Open GitHub Copilot Chat and type `@00-Start-Here` for phase navigation
+5. For Phase 10, select the `ZDM Migration` custom agent and describe the source and target
 6. Use `@GetStatus` at any time to check the current migration progress
 
 ## ZDM Migration Quick Reference
 
-The Phase 10 ZDM migration uses a 5-step workflow that alternates between VS Code (generating scripts) and the ZDM server (running them):
+The Phase 10 custom agent follows the registered execution plan and pauses whenever customer-run evidence or approval is required:
 
-| Step | Run In | Purpose |
-|------|--------|---------|
-| `@Phase10-ZDM-Step1-Test-SSH-Connectivity` | VS Code | Generate SSH precheck script |
-| `@Phase10-ZDM-Step2-Generate-Discovery-Scripts` | VS Code | Generate database discovery scripts |
-| Run discovery scripts | ZDM Server | Collect source/target/ZDM facts |
-| `@Phase10-ZDM-Step3-Discovery-Questionnaire` | VS Code | Analyze results, create migration plan |
-| `@Phase10-ZDM-Step4-Fix-Issues` | VS Code + ZDM | Resolve blockers iteratively |
-| `@Phase10-ZDM-Step5-Generate-Migration-Artifacts` | VS Code | Generate RSP, runbook, and migration commands |
+| Phase | Purpose |
+|-------|---------|
+| Questionnaire and routing | Normalize inputs and select an explicitly supported route |
+| Discovery and remediation | Present safe customer-run checks and gated remediation |
+| Validation | Require observed SSH, network, database, target, and NFS evidence as applicable |
+| Generation | Produce the ZDM response file and eval command only after all gates pass |
+| Evaluation and review | Parse sanitized customer-run eval evidence and report readiness |
 
 ## Contributing
 

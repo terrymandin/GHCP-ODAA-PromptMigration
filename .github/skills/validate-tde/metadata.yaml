@@ -1,0 +1,8 @@
+name: validate-tde
+version: 1.0.0
+phase: validation
+inputs:
+  - tde_enabled
+  - tde_enablement
+outputs:
+  - tde_validation

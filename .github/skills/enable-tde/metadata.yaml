@@ -1,0 +1,7 @@
+name: enable-tde
+version: 1.0.0
+phase: remediation
+inputs:
+  - migration_profile
+outputs:
+  - tde_enablement

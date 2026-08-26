@@ -1,0 +1,7 @@
+migration:
+  source:
+    ssh_node: source-db.example.internal
+    listener_endpoint: source-scan.example.internal
+  target:
+    ssh_node: target-ssh.example.internal
+    listener_endpoint: target-scan.example.internal

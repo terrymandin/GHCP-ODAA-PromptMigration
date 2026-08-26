@@ -1,0 +1,12 @@
+tde_enablement:
+  status: fail
+  action: customer-execution-required
+  evidence:
+    stage_marker: CONFIGURE
+    result_marker: absent
+  findings:
+    - code: ORA_ERROR
+      summary: Customer output contained an Oracle error and verification did not complete.
+  remediation:
+    - Have the responsible Oracle DBA review the error and database state.
+    - Re-run precheck before attempting another change.

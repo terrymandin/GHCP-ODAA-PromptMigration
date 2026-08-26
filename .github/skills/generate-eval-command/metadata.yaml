@@ -1,0 +1,8 @@
+name: generate-eval-command
+version: 1.0.0
+phase: generation
+inputs:
+  - migration_profile
+  - zdm-response-file.rsp
+outputs:
+  - zdm-eval-command.sh

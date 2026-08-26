@@ -1,0 +1,17 @@
+migration:
+  source:
+    platform: exadata
+    deployment: onprem
+    database_version: 19c
+    database_size_tb: 4
+  target:
+    platform: odaa
+    region: example-region-1
+  security:
+    tde_enabled: true
+  requirements:
+    downtime: near_zero
+
+expected_tde_enablement:
+  status: pass
+  action: none

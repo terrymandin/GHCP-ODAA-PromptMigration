@@ -1,0 +1,91 @@
+version: 2.0
+
+selection:
+  exact_match_fields:
+    - source_platform
+    - target_platform
+    - migration_method
+    - migration_mode
+  require_enabled: true
+  reject_unmatched: true
+
+patterns:
+  - id: vmdb-to-odaa-physical-offline-zdm26.1
+    enabled: true
+    match:
+      source_platform: oracle_iaas
+      target_platform: odaa
+      migration_method: physical
+      migration_mode: offline
+    zdm_release:
+      minimum: "26.1"
+      maximum: "26.1"
+    execution_plan: physical-zdm
+    rsp_template: ../templates/rsp/vmdb-to-odaa.rsp
+    provenance: ../config/route-provenance.yaml#vmdb-to-odaa-physical-offline-zdm26.1
+    required_profile_fields:
+      - migration.transfer.medium
+      - migration.transfer.backup_path
+      - migration.transfer.nfs.action
+      - migration.transfer.nfs.validated
+      - migration.source.ssh_node
+      - migration.source.listener_endpoint
+      - migration.source.ssh_user
+      - migration.source.identity_file
+      - migration.source.sudo_path
+      - migration.source.oracle_sid
+      - migration.source.database_service
+      - migration.source.sys_auth_verified
+      - migration.target.ssh_node
+      - migration.target.listener_endpoint
+      - migration.target.ssh_user
+      - migration.target.identity_file
+      - migration.target.sudo_path
+      - migration.target.oracle_home
+      - migration.target.patch_parity_verified
+      - migration.target.database_unique_name
+      - migration.target.data_dg
+      - migration.target.redo_dg
+      - migration.target.reco_dg
+      - migration.security.prompt_for_tde_keystore_password
+      - migration.zdm.release
+      - migration.zdm.response_file
+    forbidden_rsp_properties:
+      - SHUTDOWN_SRC
+    expected_rsp_properties:
+      - MIGRATION_METHOD
+      - DATA_TRANSFER_MEDIUM
+      - BACKUP_PATH
+      - TGT_DB_UNIQUE_NAME
+      - PLATFORM_TYPE
+      - TGT_DATADG
+      - TGT_REDODG
+      - TGT_RECODG
+      - SKIP_FALLBACK
+
+  - id: exadata-to-odaa
+    enabled: false
+    match:
+      source_platform: exadata
+      target_platform: odaa
+      migration_method: physical
+      migration_mode: offline
+    unsupported_reason: Authoritative ZDM 26.1 RSP and eval fixtures are not available.
+
+  - id: exadata-to-adb
+    enabled: false
+    match:
+      source_platform: exadata
+      target_platform: adb
+      migration_method: physical
+      migration_mode: offline
+    unsupported_reason: The ZDM 26.1 method and mode require authoritative ADB route evidence.
+
+  - id: vmdb-to-adb
+    enabled: false
+    match:
+      source_platform: oracle_iaas
+      target_platform: adb
+      migration_method: physical
+      migration_mode: offline
+    unsupported_reason: The ZDM 26.1 method and mode require authoritative ADB route evidence.

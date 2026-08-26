@@ -1,0 +1,2 @@
+result: pass
+target_listener_endpoint: target-scan.example.internal

@@ -1,0 +1,44 @@
+version: 1.0
+
+routes:
+  vmdb-to-odaa-physical-offline-zdm26.1:
+    zdm_release: "26.1.0"
+    status: enabled
+    verified_on: 2026-08-20
+    evidence:
+      rsp_fixture: ../../Artifacts/zdm-response-file.rsp
+      eval_command_fixture: ../../Artifacts/zdm-eval-command.sh
+      eval_job_creation_observed: true
+      eval_pass_observed: false
+    rsp_properties:
+      MIGRATION_METHOD: OFFLINE_PHYSICAL
+      DATA_TRANSFER_MEDIUM: NFS
+      PLATFORM_TYPE: EXACS
+      customer_values:
+        - BACKUP_PATH
+        - TGT_DB_UNIQUE_NAME
+        - TGT_DATADG
+        - TGT_REDODG
+        - TGT_RECODG
+      optional_values:
+        - SKIP_FALLBACK
+    nfs_requirements:
+      invocation_condition: migration.transfer.medium == nfs
+      same_backup_path_on_source_and_target: true
+      source_database_user_access: rwx
+      target_database_user_access: read
+      zdm_host_mount_required: false
+      validation_required_before_generation: true
+    readiness_limit: ready_for_evaluation
+
+  exadata-to-odaa:
+    status: disabled
+    reason: No authoritative ZDM 26.1 RSP and eval fixture is checked in.
+
+  exadata-to-adb:
+    status: disabled
+    reason: No authoritative ZDM 26.1 method, RSP, and eval fixture is checked in.
+
+  vmdb-to-adb:
+    status: disabled
+    reason: No authoritative ZDM 26.1 method, RSP, and eval fixture is checked in.

@@ -1,0 +1,12 @@
+name: validate-source
+version: 1.0.0
+phase: validation
+inputs:
+  - source_platform
+  - source_db_version
+  - source_db_patch_level
+  - database_size_tb
+  - source_db_service
+  - source_sys_auth_verified
+outputs:
+  - source_validation
