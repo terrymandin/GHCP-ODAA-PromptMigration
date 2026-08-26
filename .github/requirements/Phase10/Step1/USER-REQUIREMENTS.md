@@ -291,3 +291,11 @@ Step1 is complete when **all** of the following are true:
 4. `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` is written with status READY or ACTION REQUIRED.
 5. The user has been given clear step-by-step instructions to open a Remote-SSH session via the VS Code Command Palette.
 6. **The user has explicitly confirmed** that they have successfully opened a Remote-SSH VS Code window connected to `<JUMPBOX_ALIAS>` and that their integrated terminal prompt shows `zdmuser@<hostname>`.
+
+## S1-10: Scripted execution experience
+
+1. Step 1 uses the committed PowerShell script `scripts/Phase10/Step01/Initialize-Step01Jumpbox.ps1` for deterministic local setup.
+2. The prompt must retain the safety banner, grouped questions, configuration summary, approval before apply, and Remote-SSH handoff.
+3. Before mutation, the prompt runs or displays the script in `-Mode Plan` and shows the resulting plan. After explicit approval, it offers the user two equivalent choices: let Copilot run `-Mode Apply` or copy the exact command and run it manually.
+4. Step 1 scripted provisioning supports SSH public-key authentication only. The prompt must not collect, display, or serialize VM admin passwords.
+5. The prompt reads the JSON result, reports failed checks or remaining actions, and uses its report path as the pre-populated bypass source on later runs.

@@ -122,6 +122,7 @@ Before finishing each step, verify:
 2. Shared constraints are present unless explicitly narrowed by StepX requirements.
 3. Output paths, filenames, and variable names match requirements exactly.
 4. Next-step handoff points to the correct next Phase10 prompt.
+5. When requirements define a committed script, the prompt preserves user interaction and approval gates while invoking the script by its exact path and documented interface. Do not duplicate deterministic script implementation as inline terminal commands.
 
 ## Output Expectations
 

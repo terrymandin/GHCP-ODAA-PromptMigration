@@ -24,7 +24,8 @@ This replaces the old workflow where scripts had to be committed, pushed, pulled
   - ` .github/requirements/Phase10/StepX/SYSTEM-REQUIREMENTS.md`
 3. If shared behavior changed, update:
    - ` .github/requirements/Phase10/Shared/COMMON-REQUIREMENTS.md`
-4. Regenerate prompt files from requirements using this command pattern:
+4. If a step uses committed scripts, update the matching files under `scripts/Phase10/StepNN/` and validate their documented interfaces before regenerating the prompt.
+5. Regenerate prompt files from requirements using this command pattern:
 
    ```text
    @Phase10-Generate-Step-Prompts-From-Requirements
@@ -39,12 +40,12 @@ This replaces the old workflow where scripts had to be committed, pushed, pulled
   Replace `X` only in the Step requirements paths. The meta prompt infers target prompt files from the Step path.
   Include both step files so user-facing and implementation constraints are both applied.
 
-5. If deterministic catalogs changed, include them as prompt regeneration context attachments:
+6. If deterministic catalogs changed, include them as prompt regeneration context attachments:
   - `.github/requirements/Phase10/Rules/zdm-errors.yaml`
   - `.github/requirements/Phase10/Rules/<version>/zdm-<version>-rules.yaml`
 
-6. Validate prompt text against requirements with the checklist below.
-7. Commit both requirement and prompt updates in the same PR.
+7. Validate prompt text against requirements with the checklist below.
+8. Commit requirements, scripts, and prompt updates in the same PR.
 
 ## Prompt Regeneration Checklist
 
@@ -62,6 +63,7 @@ For each updated step prompt, verify:
 10. *(Applies to steps that generate shell scripts only)* Prompt instructions include a generation quality gate that requires local syntax validation before final output.
 11. Prompt output includes concise validation evidence (checks run and pass/fail state) when scripts/artifacts are generated or commands are executed.
 12. If rule catalogs were updated, prompt behavior references rule ids and error mapping ids instead of freeform-only blocker text.
+13. For script-based steps, the prompt invokes the committed script, exposes its reviewed manual-run command, preserves required confirmation gates, and does not duplicate the script's deterministic command sequence.
 
 ## Suggested PR Structure
 

@@ -328,3 +328,16 @@ Run Step 2 (Install ZDM) in the Remote-SSH VS Code session connected to <JUMPBOX
 3. File path separators use `\` on Windows. When passing paths to `ssh` or `ssh-keygen` (which are OpenSSH tools), use forward slashes (`/`) in `-i` argument values or quote paths with backslashes.
 4. Step1 runs commands on the remote jumpbox only via `ssh` from the local terminal (package installation and repo clone). It does not open a Remote-SSH session or modify jumpbox files via VS Code file tools.
 5. Step1 must not produce any artifacts in `Artifacts/Phase10-Migration/Step6/` or later directories — only `Step1/`.
+
+## S1-17: Committed Step 1 PowerShell Script
+
+1. Implement `scripts/Phase10/Step01/Initialize-Step01Jumpbox.ps1`. The script runs only from the local Windows PowerShell terminal.
+2. The script must accept `-Mode Plan|Apply`, `-VmMode ExistingVm|CreateVm`, `-JumpboxHost`, `-JumpboxPort`, `-JumpboxAlias`, `-JumpboxUser`, `-JumpboxSshKey`, `-GenerateSshKey`, and `-WorkspaceRoot`. VM creation additionally accepts the approved VM, resource-group, network, admin-user, and public-key values.
+3. `-Mode Plan` must not modify local SSH files, generate keys, create Azure resources, or connect to the jumpbox. It returns the planned operations and any local validation failures.
+4. `-Mode Apply` checks the Remote-SSH extension, validates the private key and user, creates or updates only the named SSH config host block, and captures the connectivity-test stdout and stderr separately.
+5. When `-VmMode CreateVm`, apply mode must create the approved VNet/subnet when requested, create the VM using SSH public-key authentication, capture its public IP, then use SSH from local PowerShell to install prerequisites, clone the repository, create `zdmuser`, install the SSH public key, set ownership, and verify the `/u01` directory structure.
+6. When `-VmMode ExistingVm`, the script must not modify the jumpbox except through the explicitly requested connectivity test. Bootstrap operations are limited to the new-VM path.
+7. The script must never accept an admin password, must not invoke `code` or `code.cmd`, and must not modify unrelated SSH config blocks.
+8. Apply mode writes `Artifacts/Phase10-Migration/Step1/remote-ssh-setup-report.md` and `README.md`. Set report status to `READY` only when the extension, SSH config, connectivity test, and required new-VM bootstrap checks succeed; otherwise set it to `ACTION REQUIRED`.
+9. The script emits the CR-18 JSON result schema to stdout and emits human-readable diagnostics only to stderr. Use exit code 0 for READY, 2 for ACTION REQUIRED, and 1 for unexpected blocking failures.
+10. Validate script syntax with the installed PowerShell parser before use. Run PSScriptAnalyzer when it is available.

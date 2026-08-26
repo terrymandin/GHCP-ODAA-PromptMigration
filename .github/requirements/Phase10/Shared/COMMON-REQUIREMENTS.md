@@ -375,3 +375,16 @@ Before generating final Step7 migration artifacts, produce a deterministic rule-
 4. Warning-only rule results.
 
 If any blocking rule fails, halt before generating final migration artifacts.
+
+## CR-18: Committed Script Execution Contract
+
+1. Prompts remain responsible for user interaction: safety banners, grouped input collection, displaying plans, explicit approvals, and result summaries.
+2. Committed scripts are responsible for deterministic execution. Scripts live under `scripts/Phase10/StepNN/`, where `NN` is a zero-padded step number. Step 1 uses PowerShell; steps that execute on the Linux jumpbox use Bash.
+3. Prompts must invoke a committed script version rather than recreate its implementation as inline terminal commands. Prompts may show the exact script command so an operator can run the same reviewed script manually.
+4. Every execution script must support a non-mutating plan mode and an apply mode. Plan mode may inspect local state but must not create, modify, or delete resources, files, accounts, or configuration.
+5. Scripts accept only validated non-secret values through parameters. Passwords, tokens, and private key material must never be passed as command-line arguments, emitted in structured output, or written to reports.
+6. Scripts must not read, source, or parse `zdm-env.md`, `ssh-config.md`, or `db-config.md` at runtime. Prompts may read those artifacts and pass approved values to scripts as parameters.
+7. Scripts must emit one structured JSON result to stdout with `step`, `operation`, `status`, `succeeded`, `checks`, `artifactPaths`, and `remainingActions`. Human-readable progress and diagnostics must use stderr.
+8. Script exit codes are: `0` for success, `1` for a blocking failure, and `2` for action required. Scripts must stop after a blocking prerequisite fails and must identify the failed check in their JSON result.
+9. Scripts must document idempotency and any operation that changes Azure, remote-host, account, or local SSH configuration state. Prompts must preserve an explicit user confirmation before apply mode for state-changing operations.
+10. Generated prompts and script changes must be updated together from the requirements and validated according to CR-11.
