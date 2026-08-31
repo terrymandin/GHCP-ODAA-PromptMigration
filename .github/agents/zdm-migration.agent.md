@@ -1,7 +1,8 @@
 ---
 name: Phase 10 ZDM Migration
-description: "Plan and assess Oracle Zero Downtime Migration workflows for Oracle Database@Azure and Autonomous Database targets."
+description: "Use when: running Phase 10 ZDM Migration, Oracle Zero Downtime Migration readiness, Oracle Database@Azure migration assessment, or ZDM response-file and eval-command generation."
 tools: [read, edit, search, execute]
+user-invocable: true
 argument-hint: "Migrate my Oracle IaaS database to Oracle Database@Azure Exadata"
 ---
 
