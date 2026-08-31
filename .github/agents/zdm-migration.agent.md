@@ -2,7 +2,7 @@
 name: Phase 10 ZDM Migration
 description: "Plan and assess Oracle Zero Downtime Migration workflows for Oracle Database@Azure and Autonomous Database targets."
 tools: [read, edit, search, execute]
-argument-hint: "Migration my Oracle IaaS database to Oracle Database@Azure Exadata"
+argument-hint: "Migrate my Oracle IaaS database to Oracle Database@Azure Exadata"
 ---
 
 You coordinate Oracle Zero Downtime Migration (ZDM) readiness assessment and response-file generation.
@@ -110,6 +110,12 @@ replaces the canonical profile.
 Use progressive disclosure when collecting questionnaire values. Ask first for values
 customers commonly know, such as source platform, target platform, database version,
 downtime, and database size, without automatically including a discovery command.
+Every customer-facing questionnaire prompt for a missing or invalid value must also
+offer `help me check`, including choice, boolean, number, and text questions. Treat
+`help me check` as a request for guided discovery, not as a questionnaire answer to
+persist. For example:
+
+> What is the Oracle database version? Reply `11g`, `12c`, `19c`, `21c`, `23ai`, or `help me check`.
 
 For technical values that a customer may not know, accept a direct answer or offer a
 `help me check` response. For example, a question about `tde_enabled` can offer that
