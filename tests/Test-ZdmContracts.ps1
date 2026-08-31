@@ -29,6 +29,7 @@ foreach ($field in @(
     'migration.target.listener_endpoint',
     'migration.target.sudo_path',
     'migration.target.oracle_home',
+    'migration.target.patch_level',
     'migration.target.patch_parity_verified',
     'migration.zdm.response_file'
 )) {
@@ -40,6 +41,9 @@ $mappingBlock = [regex]::Match($questionnaire, '(?ms)^profile_mapping:\r?\n(.*?)
 $mappingIds = [regex]::Matches($mappingBlock, '(?m)^  ([a-z0-9_]+):') | ForEach-Object { $_.Groups[1].Value }
 $questionIds = [regex]::Matches($questionnaire, '(?m)^  - id: ([a-z0-9_]+)\r?$') | ForEach-Object { $_.Groups[1].Value }
 Assert-Contract ($mappingIds.Count -eq $questionIds.Count) 'every questionnaire ID must have exactly one profile mapping'
+Assert-Contract ($questionnaire.StartsWith('version: 2.2')) 'the questionnaire contract version must be 2.2'
+Assert-Contract ($mappingBlock.Contains('assessment_environment: migration.metadata.assessment_environment')) 'assessment environment must map to profile metadata'
+Assert-Contract ([regex]::IsMatch($questionnaire, '(?ms)^  - id: assessment_environment\r?\n.*?required: true.*?options:\r?\n      - non_production\r?\n      - production')) 'assessment environment must be required with non-production and production options'
 foreach ($questionId in $questionIds) {
     Assert-Contract ($mappingIds -contains $questionId) "$questionId must have a profile mapping"
 }
@@ -50,7 +54,7 @@ foreach ($questionId in @(
     'source_sys_auth_verified',
     'target_ssh_node',
     'target_listener_endpoint',
-    'target_patch_parity_verified',
+    'target_db_patch_level',
     'zdm_release',
     'zdm_response_file'
 )) {
@@ -61,6 +65,9 @@ foreach ($questionId in @(
         Assert-Contract ([regex]::IsMatch($questionnaire, $conditionalPattern)) "$questionId must be conditionally required"
     }
 }
+Assert-Contract (-not $mappingBlock.Contains('target_patch_parity_verified:')) 'derived target patch parity must not be a questionnaire mapping'
+Assert-Contract (-not $questionnaire.Contains('id: target_patch_parity_verified')) 'derived target patch parity must not be a questionnaire question'
+Assert-Contract ($mappingBlock.Contains('target_db_patch_level: migration.target.patch_level')) 'target patch level must map to the target profile'
 
 $rsp = Read-RepoFile 'tests/fixtures/zdm-response-file.rsp'
 $properties = @{}
@@ -99,11 +106,15 @@ Assert-Contract (-not [regex]::IsMatch($command, '(?i)password[:=]')) 'command m
 Assert-Contract (-not $command.Contains('-ignore')) 'command must not bypass checks'
 Assert-Contract (-not $command.Contains('StrictHostKeyChecking=no')) 'command must not bypass host-key checks'
 
-$profile = Read-RepoFile 'tests/fixtures/migration-profile.yaml'
+$migrationProfileFixture = Read-RepoFile 'tests/fixtures/migration-profile.yaml'
 $network = Read-RepoFile 'tests/fixtures/network-validation.yaml'
 $ssh = Read-RepoFile 'tests/fixtures/ssh-validation.yaml'
-Assert-Contract ($profile.Contains('ssh_node: target-ssh.example.internal')) 'profile must retain the target SSH node'
-Assert-Contract ($profile.Contains('listener_endpoint: target-scan.example.internal')) 'profile must retain the target listener endpoint'
+Assert-Contract ($migrationProfileFixture.Contains('ssh_node: target-ssh.example.internal')) 'profile must retain the target SSH node'
+Assert-Contract ($migrationProfileFixture.Contains('listener_endpoint: target-scan.example.internal')) 'profile must retain the target listener endpoint'
+Assert-Contract ([regex]::Matches($migrationProfileFixture, '(?m)^    patch_level:').Count -eq 2) 'profile must retain normalized source and target patch levels'
+Assert-Contract ($migrationProfileFixture.Contains('patch_parity_verified: true')) 'profile must retain skill-derived patch parity'
+Assert-Contract ($migrationProfileFixture.Contains('questionnaire_version: 2.2')) 'profile fixture must use questionnaire version 2.2'
+Assert-Contract ($migrationProfileFixture.Contains('assessment_environment: non_production')) 'profile fixture must identify a sanitized non-production assessment'
 Assert-Contract ($network.Contains('target_listener_endpoint: target-scan.example.internal')) 'network evidence must identify the listener endpoint'
 Assert-Contract (-not $network.Contains('target-ssh.example.internal')) 'network evidence must not claim an SSH-node listener test'
 Assert-Contract ($ssh.Contains('target_ssh_node: target-ssh.example.internal')) 'SSH evidence must identify the SSH node'
@@ -112,10 +123,50 @@ Assert-Contract (-not $ssh.Contains('target-scan.example.internal')) 'SSH eviden
 $executionPlan = Read-RepoFile '.github/config/execution-plans.yaml'
 $skillCatalog = Read-RepoFile '.github/config/skill-catalog.yaml'
 $evalSkill = Read-RepoFile '.github/skills/validate-zdm-eval/SKILL.md'
+$sourceSkill = Read-RepoFile '.github/skills/validate-source/SKILL.md'
+$targetSkill = Read-RepoFile '.github/skills/validate-target/SKILL.md'
+$targetMetadata = Read-RepoFile '.github/skills/validate-target/metadata.yaml'
+$agent = Read-RepoFile '.github/agents/zdm-migration.agent.md'
+$phase10Rules = Read-RepoFile '.github/instructions/Phase10.instructions.md'
+$provenance = Read-RepoFile '.github/config/route-provenance.yaml'
+$profileTemplate = Read-RepoFile '.github/templates/migration-profile.yaml'
+$readinessSkill = Read-RepoFile '.github/skills/generate-readiness-report/SKILL.md'
+$readinessTemplate = Read-RepoFile '.github/skills/generate-readiness-report/templates/readiness-report.md'
+$startHere = Read-RepoFile '.github/prompts/00-Start-Here.prompt.md'
 Assert-Contract ($executionPlan.Contains('- validate-target')) 'target validation must run before generation'
 Assert-Contract ($skillCatalog.Contains('id: validate-target')) 'target validation must be registered'
 Assert-Contract ($evalSkill.Contains('source database login failures return to')) 'eval source login failures must route to validation'
 Assert-Contract ($evalSkill.Contains('`validate-target`')) 'eval target patch failures must route to target validation'
+Assert-Contract ($sourceSkill.Contains('FROM dba_registry_sqlpatch')) 'source validation must own source SQL patch discovery'
+Assert-Contract ($sourceSkill.Contains('$ORACLE_HOME/OPatch/opatch lspatches')) 'source validation must own the source OPatch fallback'
+Assert-Contract ($targetSkill.Contains('FROM dba_registry_sqlpatch')) 'target validation must own target SQL patch discovery'
+Assert-Contract ($targetSkill.Contains('$ORACLE_HOME/OPatch/opatch lspatches')) 'target validation must own the target OPatch fallback'
+Assert-Contract ($targetSkill.Contains('Derive `migration.target.patch_parity_verified`')) 'target validation must derive patch parity from evidence'
+Assert-Contract ([regex]::IsMatch($targetSkill, 'A newer target RU\s+alone is not proof')) 'target validation must not equate a newer RU with parity'
+Assert-Contract ($targetMetadata.Contains('- source_db_patch_level')) 'target validation must consume source patch level data'
+Assert-Contract ($targetMetadata.Contains('- target_db_patch_level')) 'target validation must consume target patch level data'
+Assert-Contract (-not $targetMetadata.Contains('- target_patch_parity_verified')) 'target validation must not consume a customer parity assertion'
+Assert-Contract (-not $agent.Contains('FROM dba_registry_sqlpatch')) 'the coordinator must not embed patch-discovery SQL'
+Assert-Contract (-not $agent.Contains('$ORACLE_HOME/OPatch/opatch lspatches')) 'the coordinator must not embed OPatch commands'
+Assert-Contract ($agent.Contains('invoke the registered skill that owns the value or')) 'the coordinator must delegate technical evidence collection generically'
+Assert-Contract ($agent.Contains('Do not reproduce those')) 'the coordinator must prohibit duplicated skill procedures'
+Assert-Contract (-not $agent.Contains('When target patch evidence is needed')) 'the coordinator must not contain patch-specific dispatch logic'
+Assert-Contract ($agent.Contains('../../Artifacts/Phase10/migration-profile.yaml')) 'the canonical Phase 10 profile must be stored under Artifacts/Phase10'
+Assert-Contract ($agent.Contains('../../Artifacts/Phase10/test-answers.yaml')) 'the optional Phase 10 prefill must be read from Artifacts/Phase10'
+Assert-Contract ($agent.Contains('Do not write Phase 10 outputs directly under')) 'the agent must prohibit unscoped Phase 10 outputs'
+Assert-Contract ($phase10Rules.Contains('under `Artifacts/Phase10/`')) 'Phase 10 maintenance rules must require the dedicated artifact directory'
+Assert-Contract ($profileTemplate.Contains('questionnaire_version: 2.2')) 'profile template must use questionnaire version 2.2'
+Assert-Contract ($profileTemplate.Contains('assessment_environment:')) 'profile template must include assessment environment metadata'
+Assert-Contract ($agent.Contains('representative non-production environment')) 'the coordinator must recommend non-production first'
+Assert-Contract ($agent.Contains('warn') -and [regex]::IsMatch($agent, 'allow the\s+assessment to continue')) 'production assessment must warn without being blocked'
+Assert-Contract ($agent.Contains('Do not generate or present ZDM execution commands without the `-eval` flag')) 'the coordinator must forbid non-eval ZDM execution commands'
+Assert-Contract ($phase10Rules.Contains('This release is eval-only')) 'Phase 10 maintenance rules must keep this release eval-only'
+Assert-Contract ($readinessSkill.Contains('representative non-production assessment is strongly recommended first')) 'readiness reporting must recommend non-production first when needed'
+Assert-Contract ($readinessTemplate.Contains('## Scope and Limitations')) 'the readiness report must include scope limitations'
+Assert-Contract ($readinessTemplate.Contains('does not prove migration success')) 'the readiness report must not overclaim eval success'
+Assert-Contract ($startHere.Contains('does not establish migration, cutover, fallback, rollback, or production readiness')) 'onboarding must describe the eval-only milestone'
+Assert-Contract ($provenance.Contains('../../Artifacts/Phase10/zdm-response-file.rsp')) 'RSP provenance must use the Phase 10 artifact directory'
+Assert-Contract ($provenance.Contains('../../Artifacts/Phase10/zdm-eval-command.sh')) 'eval-command provenance must use the Phase 10 artifact directory'
 
 foreach ($removedPath in @(
     'requirements/migration-questionnaire.yaml',

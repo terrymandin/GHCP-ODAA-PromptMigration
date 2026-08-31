@@ -1,6 +1,7 @@
-version: 2.0
+version: 2.2
 
 profile_mapping:
+  assessment_environment: migration.metadata.assessment_environment
   source_platform: migration.source.platform
   target_platform: migration.target.platform
   migration_method: migration.method
@@ -34,7 +35,7 @@ profile_mapping:
   target_identity_file: migration.target.identity_file
   target_sudo_path: migration.target.sudo_path
   target_oracle_home: migration.target.oracle_home
-  target_patch_parity_verified: migration.target.patch_parity_verified
+  target_db_patch_level: migration.target.patch_level
   zdm_release: migration.zdm.release
   zdm_response_file: migration.zdm.response_file
   prompt_for_tde_keystore_password: migration.security.prompt_for_tde_keystore_password
@@ -50,6 +51,14 @@ profile_mapping:
   tde_enabled: migration.security.tde_enabled
 
 questions:
+  - id: assessment_environment
+    prompt: Environment being assessed
+    type: choice
+    required: true
+    options:
+      - non_production
+      - production
+
   - id: source_platform
     prompt: Source platform
     type: choice
@@ -288,9 +297,9 @@ questions:
     validation:
       absolute_path: true
 
-  - id: target_patch_parity_verified
-    prompt: Has ZDM-compatible target Oracle-home patch parity with the source been verified?
-    type: boolean
+  - id: target_db_patch_level
+    prompt: Oracle target database patch level (RU/RUR)
+    type: text
     required_when:
       pattern: vmdb-to-odaa-physical-offline-zdm26.1
 

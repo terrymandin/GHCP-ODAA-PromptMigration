@@ -42,6 +42,7 @@ migration:
     identity_file:
     sudo_path:
     oracle_home:
+    patch_level:
     patch_parity_verified:
     database_unique_name:
     platform_type:
@@ -64,5 +65,6 @@ migration:
     response_file:
 
   metadata:
-    questionnaire_version: 2.0
+    questionnaire_version: 2.2
+    assessment_environment:
     updated_on:

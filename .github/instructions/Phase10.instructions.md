@@ -10,7 +10,8 @@ applyTo: '.github/agents/zdm-migration.agent.md,.github/config/**,.github/skills
 - Select only a route explicitly enabled by `.github/config/migration-patterns.yaml`; never infer a method or mode from downtime.
 - Use only plans and skills registered in `.github/config/execution-plans.yaml` and `.github/config/skill-catalog.yaml`.
 - Keep the agent, configuration, skill metadata, templates, examples, and contract tests synchronized when changing a workflow contract.
-- Write runtime output under `Artifacts/`; do not overwrite source templates or commit generated customer artifacts.
+- Write every Phase 10 runtime output under `Artifacts/Phase10/`; do not write Phase 10 files directly under `Artifacts/`, overwrite source templates, modify another phase's artifacts, or commit generated customer artifacts.
+- Strongly recommend a representative non-production assessment before production. Record whether the assessed environment is `non_production` or `production`; warn but do not block when production is selected.
 - Never include passwords, private keys, wallet contents, credentials, tokens, connection strings, subscription or tenant IDs, private IPs, or raw customer output in generated files, reports, examples, or tests.
 - Treat customer-pasted output as transient and persist only sanitized, allowlisted evidence.
 - Never execute customer database or operating-system mutations.
@@ -18,5 +19,7 @@ applyTo: '.github/agents/zdm-migration.agent.md,.github/config/**,.github/skills
 - Never overwrite or delete an existing Azure resource, and never enable unrestricted public access for an NFS share.
 - Stop and report missing required inputs or failed validation before generating a ZDM response file.
 - Keep database listener or SCAN endpoints separate from SSH execution nodes.
-- A generated eval command means only `ready for evaluation`; migration readiness requires passing sanitized customer-run ZDM eval evidence.
+- A generated eval command means only `ready for evaluation`; a passing sanitized customer-run ZDM eval establishes only the result of that eval assessment.
+- Never treat eval success as proof of migration success, rehearsal completion, cutover readiness, fallback or rollback readiness, or production readiness.
+- This release is eval-only. Do not generate or present non-eval ZDM migration, cutover, fallback, rollback, or recovery commands.
 - Keep `tests/fixtures/` sanitized and environment-independent so contract tests run from a clean clone.

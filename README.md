@@ -47,24 +47,24 @@ To reduce hallucinations during the migration, use `@GetStatus` to maintain a `r
 
 During each phase, read the AI's response summary carefully to understand what will be delivered and what inputs are needed.
 
-- **Pro tip**: Select the `ZDM Migration` custom agent for Phase 10. It collects normalized inputs, selects a supported route, and invokes registered skills in phase order.
-- **Pro tip**: Runtime state and generated files are written under `Artifacts/` and are not committed.
+- **Phase 10 workflow**: Run the `Phase 10 ZDM Migration` custom agent. Start with a representative non-production environment whenever possible. It collects normalized inputs, selects a supported route, and invokes registered skills in phase order.
+- **Pro tip**: Phase 10 runtime state and generated files are written under `Artifacts/Phase10/` and are not committed.
 - **Pro tip**: Use `@GetStatus` at the start of each session to re-establish context.
 - **Pro tip**: Don't assume anything — always verify ZDM requirements and OCI identifiers with the documentation.
 
 ## Repository Structure
 
-- **`.github/prompts/`**: Copilot prompt files for each migration phase — invoke with `@PromptName` in Copilot Chat
+- **`.github/prompts/`**: Copilot prompt files for supported migration phases — invoke with `@PromptName` in Copilot Chat. Phase 10 uses a custom agent instead.
   - `00-Start-Here.prompt.md` — onboarding guide and navigation
   - `GetStatus.prompt.md` — check current migration progress
   - `Phase0-ODAA-Readiness.prompt.md` — readiness assessment
   - `Phase5-CIDR-Planning.prompt.md` — CIDR range planning
   - `Phase6-IaC.prompt.md` — Terraform infrastructure generation
 - **`.github/agents/`**: Custom-agent entry points
-  - `zdm-migration.agent.md` - Phase 10 ZDM coordinator
+  - `zdm-migration.agent.md` - `Phase 10 ZDM Migration` workflow entry point and coordinator
 - **`.github/config/`**: Phase 10 questionnaire, supported routes, execution plans, skill catalog, and provenance
 - **`.github/skills/`**: Composable validation, remediation, generation, and review skills
-- **`Artifacts/`**: Generated runtime state and output (git-ignored content)
+- **`Artifacts/`**: Generated runtime state and output by phase (git-ignored content); Phase 10 uses `Artifacts/Phase10/`
 
 ## Migration & Modernization Process
 
@@ -115,7 +115,7 @@ Determine the best tool for migrating databases to Azure such as Zero Migration 
 
 ### Phase 10: Migrate databases from on-premise to Azure ✅
 
-Use the `ZDM Migration` custom agent to assess readiness and generate customer-run ZDM artifacts. The currently enabled route is Oracle IaaS to ODAA using ZDM 26.1 offline physical migration; unverified routes remain disabled.
+Run the `Phase 10 ZDM Migration` custom agent to execute the Phase 10 workflow, preferably against a representative non-production environment first. It assesses readiness for customer-run ZDM `-eval` and writes artifacts under `Artifacts/Phase10/`. The currently enabled route is Oracle IaaS to ODAA using ZDM 26.1 offline physical migration; unverified routes remain disabled.
 
 ## Key Features
 
@@ -146,12 +146,12 @@ Status reports are stored in the `reports/Report-Status.md` file, providing a ce
 2. Install [GitHub Copilot](https://copilot.github.com/) with Claude Sonnet 4.5+ model
 3. Install the **Azure MCP Server**, **GitHub Copilot for Azure** and **Oracle Developer** extensions
 4. Open GitHub Copilot Chat and type `@00-Start-Here` for phase navigation
-5. For Phase 10, select the `ZDM Migration` custom agent and describe the source and target
+5. To run Phase 10, select the `Phase 10 ZDM Migration` custom agent and submit its sample question or describe the source and target
 6. Use `@GetStatus` at any time to check the current migration progress
 
-## ZDM Migration Quick Reference
+## Phase 10 ZDM Migration Quick Reference
 
-The Phase 10 custom agent follows the registered execution plan and pauses whenever customer-run evidence or approval is required:
+The `Phase 10 ZDM Migration` custom agent runs the registered execution plan and pauses whenever customer-run evidence or approval is required:
 
 | Phase | Purpose |
 |-------|---------|
@@ -160,6 +160,10 @@ The Phase 10 custom agent follows the registered execution plan and pauses whene
 | Validation | Require observed SSH, network, database, target, and NFS evidence as applicable |
 | Generation | Produce the ZDM response file and eval command only after all gates pass |
 | Evaluation and review | Parse sanitized customer-run eval evidence and report readiness |
+
+This release stops after observed customer-run `-eval` validation. A passing eval does
+not prove migration success, cutover readiness, fallback or rollback readiness, or
+production readiness. It does not generate non-eval migration or cutover commands.
 
 ## Contributing
 

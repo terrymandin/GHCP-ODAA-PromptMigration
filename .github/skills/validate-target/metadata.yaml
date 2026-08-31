@@ -1,9 +1,10 @@
 name: validate-target
-version: 1.0.0
+version: 1.1.0
 phase: validation
 inputs:
   - target_platform
   - target_oracle_home
-  - target_patch_parity_verified
+  - source_db_patch_level
+  - target_db_patch_level
 outputs:
   - target_validation

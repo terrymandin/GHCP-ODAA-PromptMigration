@@ -9,7 +9,8 @@ description: "Validate Oracle source database compatibility for ZDM migrations, 
 
 1. Read the source fields from the migration profile.
 2. Verify that platform, database version, patch level, size, and the database service
-	ZDM will use are present.
+	ZDM will use are present. Treat a supplied patch level as profile data, not observed
+	patch evidence, until the customer returns one of the sanitized results below.
 3. Compare the values with the selected migration pattern and target prerequisites.
 4. Require observed success from password-based SYSDBA authentication through that
 	service. A local operating-system-authenticated `sqlplus / as sysdba` session does
@@ -33,10 +34,11 @@ After connecting, the customer may run `SELECT 'SYS_AUTH_PASS' FROM dual;` and r
 only `SYS_AUTH_PASS`, or return only the `ORA-` error number on failure. Do not ask for
 the password, connect descriptor, or raw session transcript.
 
-## Missing patch-level evidence
+## Source patch-level evidence
 
-If the source patch level is unknown, offer these customer-run, read-only checks.
-Ask for only the latest successful Database Release Update description and patch ID.
+When the source patch level is unknown or observed patch evidence is required, offer
+these customer-run, read-only checks. Ask for only the latest successful Database
+Release Update description and patch ID.
 
 Run this in SQL*Plus or SQLcl as an account permitted to query
 `DBA_REGISTRY_SQLPATCH`:
@@ -58,6 +60,7 @@ $ORACLE_HOME/OPatch/opatch lspatches
 Explain that the customer should paste only the database RU/RUR line or patch ID and
 may redact hostnames, paths, and other environment identifiers. Do not infer that an
 installed patch is valid for the selected migration pattern until it is compared with
-the target prerequisites.
+the target prerequisites. Normalize accepted evidence as the source RU/RUR description
+and patch ID; never persist the raw SQL or OPatch output.
 
 Do not collect credentials or expose connection secrets in validation output.

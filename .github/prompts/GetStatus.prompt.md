@@ -38,8 +38,10 @@ Read its content, summarize the current state, and ensure it contains:
 2. **Phase completion checklist** - `[x]` for completed phases with timestamps, `[ ]` for pending
 3. **Database configuration** - source and target roles, database name, and selected migration route; do not persist private endpoints
 4. **ZDM readiness** - remediation, validation, artifact generation, and observed eval status
+	- Record the assessment environment as `non_production` or `production`.
+	- Treat an observed eval pass as an eval milestone only, not migration, cutover, fallback, rollback, or production readiness.
 5. **Blockers and issues** - severity and current resolution state
-6. **Next recommended step** - a prompt invocation or selection of the `ZDM Migration` custom agent
+6. **Next recommended step** - a prompt invocation for an earlier phase or an instruction to run the `Phase 10 ZDM Migration` custom agent for Phase 10
 
 ## Status File Format Rules
 
@@ -47,4 +49,4 @@ Read its content, summarize the current state, and ensure it contains:
 - Include timestamps for completed phases: `[x] Phase 0 - Completed 2026-03-01`
 - Format blockers with text severity labels: `Critical`, `High`, or `Resolved`
 - Keep the file human-readable markdown
-- Always end with a **Next Steps** section containing a prompt invocation or custom-agent selection
+- Always end with a **Next Steps** section containing a prompt invocation for an earlier phase or an instruction to run the `Phase 10 ZDM Migration` custom agent for Phase 10

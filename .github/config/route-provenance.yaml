@@ -6,8 +6,8 @@ routes:
     status: enabled
     verified_on: 2026-08-20
     evidence:
-      rsp_fixture: ../../Artifacts/zdm-response-file.rsp
-      eval_command_fixture: ../../Artifacts/zdm-eval-command.sh
+      rsp_fixture: ../../Artifacts/Phase10/zdm-response-file.rsp
+      eval_command_fixture: ../../Artifacts/Phase10/zdm-eval-command.sh
       eval_job_creation_observed: true
       eval_pass_observed: false
     rsp_properties:

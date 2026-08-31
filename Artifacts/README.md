@@ -8,26 +8,31 @@ Prompts and custom agents write generated artifacts here. Runtime contents are g
 
 ## Directory Structure (After Running Prompts)
 
-The Phase 10 custom agent creates files as its registered skills run. Depending on the selected route and progress, the directory can contain:
+The `Phase 10 ZDM Migration` custom agent creates files under its dedicated `Phase10/` directory as its registered skills run. Depending on the selected route and progress, the directory can contain:
 
 ```
 Artifacts/
-├── migration-profile.yaml
-├── test-answers.yaml                 # Optional local test prefill; never a customer record
-├── zdm-response-file.rsp
-├── zdm-eval-command.sh
-├── network-validation.yaml
-├── ssh-validation.yaml
-├── nfs-validation.yaml
-└── readiness-report.md
+└── Phase10/
+	├── migration-profile.yaml
+	├── test-answers.yaml             # Optional local test prefill; never a customer record
+	├── zdm-response-file.rsp
+	├── zdm-eval-command.sh
+	├── network-validation.yaml
+	├── ssh-validation.yaml
+	├── nfs-validation.yaml
+	└── readiness-report.md
 ```
 
 ## Getting Started
 
 1. Clone this repository and open it in VS Code.
-2. Select the `ZDM Migration` custom agent in Copilot Chat.
-3. Answer its questionnaire and provide only sanitized customer-run evidence.
+2. Run the Phase 10 workflow by selecting the `Phase 10 ZDM Migration` custom agent in Copilot Chat.
+3. Start with a representative non-production environment whenever possible, answer the questionnaire, and provide only sanitized customer-run evidence.
 4. Review generated artifacts before executing any command.
+
+The current workflow stops after customer-run ZDM `-eval` validation. A passing eval is
+not evidence of migration success, cutover readiness, fallback or rollback readiness,
+or production readiness. No non-eval migration command is generated.
 
 ## Note
 

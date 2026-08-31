@@ -1,7 +1,13 @@
 migration:
+  metadata:
+    questionnaire_version: 2.2
+    assessment_environment: non_production
   source:
     ssh_node: source-db.example.internal
     listener_endpoint: source-scan.example.internal
+    patch_level: "19.25.0.0.0 RU; patch ID 36912597"
   target:
     ssh_node: target-ssh.example.internal
     listener_endpoint: target-scan.example.internal
+    patch_level: "19.25.0.0.0 RU; patch ID 36912597"
+    patch_parity_verified: true

@@ -1,5 +1,5 @@
 name: validate-source
-version: 1.0.0
+version: 1.1.0
 phase: validation
 inputs:
   - source_platform
