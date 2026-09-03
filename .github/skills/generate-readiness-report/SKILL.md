@@ -20,6 +20,9 @@ description: "Generate an Oracle ZDM migration readiness report from questionnai
     capacity, persistence, and approvals. Never include subscription or tenant IDs,
     private IPs, host names, connection strings, mount output, or filesystem contents.
 5. Separate blockers, warnings, and informational findings.
+    Treat an explicit target patch-parity override as an unresolved warning, never as
+    verification or a passing target validation. State that it permits eval artifact
+    generation only and does not establish migration, cutover, or production readiness.
 6. Derive the assessment decision deterministically:
      - `not ready` when any required remediation, validation, generation, or observed
          eval result is `fail`;

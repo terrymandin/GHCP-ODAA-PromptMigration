@@ -12,12 +12,14 @@ applyTo: '.github/agents/zdm-migration.agent.md,.github/config/**,.github/skills
 - Keep the agent, configuration, skill metadata, templates, examples, and contract tests synchronized when changing a workflow contract.
 - Write every Phase 10 runtime output under `Artifacts/Phase10/`; do not write Phase 10 files directly under `Artifacts/`, overwrite source templates, modify another phase's artifacts, or commit generated customer artifacts.
 - Strongly recommend a representative non-production assessment before production. Record whether the assessed environment is `non_production` or `production`; warn but do not block when production is selected.
-- Never include passwords, private keys, wallet contents, credentials, tokens, connection strings, subscription or tenant IDs, private IPs, or raw customer output in generated files, reports, examples, or tests.
+- Never include passwords, private keys, wallet contents, credentials, tokens, connection strings, subscription or tenant IDs, or raw customer output in generated files, reports, examples, or tests.
+- Private IP addresses are permitted only as normalized questionnaire values in local, git-ignored Phase 10 operational artifacts when required for source or target SSH, listener, or SCAN connectivity. Redact private IPs from sanitized evidence, readiness reports, examples, tests, and every committed file.
 - Treat customer-pasted output as transient and persist only sanitized, allowlisted evidence.
 - Never execute customer database or operating-system mutations.
 - Never execute customer Azure mutations. Require explicit approval before presenting Azure resource-creation commands and separate approval before package installation, mounting, or persistent host changes.
 - Never overwrite or delete an existing Azure resource, and never enable unrestricted public access for an NFS share.
 - Stop and report missing required inputs or failed validation before generating a ZDM response file.
+- Permit unverified target patch parity to proceed to eval artifact generation only when the customer explicitly selects the profile override. Preserve target validation as `needs-review`, report the override as an unresolved warning, and never represent it as verified parity or migration readiness.
 - Keep database listener or SCAN endpoints separate from SSH execution nodes.
 - A generated eval command means only `ready for evaluation`; a passing sanitized customer-run ZDM eval establishes only the result of that eval assessment.
 - Never treat eval success as proof of migration success, rehearsal completion, cutover readiness, fallback or rollback readiness, or production readiness.

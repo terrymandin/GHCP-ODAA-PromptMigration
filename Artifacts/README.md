@@ -36,4 +36,7 @@ or production readiness. No non-eval migration command is generated.
 
 ## Note
 
-Do not commit generated artifacts. Never place passwords, wallet contents, keys, tokens, connection strings, private IPs, or raw customer output here.
+Do not commit generated artifacts. Never place passwords, wallet contents, keys, tokens,
+connection strings, or raw customer output here. Private IP addresses may appear only
+in local Phase 10 operational artifacts when required for migration connectivity; they
+must be redacted from evidence and readiness reports and must never be committed.

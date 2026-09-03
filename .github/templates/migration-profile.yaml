@@ -44,6 +44,7 @@ migration:
     oracle_home:
     patch_level:
     patch_parity_verified:
+    patch_parity_override: false
     database_unique_name:
     platform_type:
     data_dg:
@@ -65,6 +66,6 @@ migration:
     response_file:
 
   metadata:
-    questionnaire_version: 2.2
+    questionnaire_version: 2.3
     assessment_environment:
     updated_on:

@@ -31,6 +31,7 @@ foreach ($field in @(
     'migration.target.oracle_home',
     'migration.target.patch_level',
     'migration.target.patch_parity_verified',
+    'migration.target.patch_parity_override',
     'migration.zdm.response_file'
 )) {
     Assert-Contract ($patterns.Contains("- $field")) "enabled route must require $field"
@@ -41,7 +42,7 @@ $mappingBlock = [regex]::Match($questionnaire, '(?ms)^profile_mapping:\r?\n(.*?)
 $mappingIds = [regex]::Matches($mappingBlock, '(?m)^  ([a-z0-9_]+):') | ForEach-Object { $_.Groups[1].Value }
 $questionIds = [regex]::Matches($questionnaire, '(?m)^  - id: ([a-z0-9_]+)\r?$') | ForEach-Object { $_.Groups[1].Value }
 Assert-Contract ($mappingIds.Count -eq $questionIds.Count) 'every questionnaire ID must have exactly one profile mapping'
-Assert-Contract ($questionnaire.StartsWith('version: 2.2')) 'the questionnaire contract version must be 2.2'
+Assert-Contract ($questionnaire.StartsWith('version: 2.3')) 'the questionnaire contract version must be 2.3'
 Assert-Contract ($mappingBlock.Contains('assessment_environment: migration.metadata.assessment_environment')) 'assessment environment must map to profile metadata'
 Assert-Contract ([regex]::IsMatch($questionnaire, '(?ms)^  - id: assessment_environment\r?\n.*?required: true.*?options:\r?\n      - non_production\r?\n      - production')) 'assessment environment must be required with non-production and production options'
 foreach ($questionId in $questionIds) {
@@ -55,6 +56,7 @@ foreach ($questionId in @(
     'target_ssh_node',
     'target_listener_endpoint',
     'target_db_patch_level',
+    'target_patch_parity_override',
     'zdm_release',
     'zdm_response_file'
 )) {
@@ -68,6 +70,8 @@ foreach ($questionId in @(
 Assert-Contract (-not $mappingBlock.Contains('target_patch_parity_verified:')) 'derived target patch parity must not be a questionnaire mapping'
 Assert-Contract (-not $questionnaire.Contains('id: target_patch_parity_verified')) 'derived target patch parity must not be a questionnaire question'
 Assert-Contract ($mappingBlock.Contains('target_db_patch_level: migration.target.patch_level')) 'target patch level must map to the target profile'
+Assert-Contract ($mappingBlock.Contains('target_patch_parity_override: migration.target.patch_parity_override')) 'explicit patch parity override must map to the target profile'
+Assert-Contract ([regex]::IsMatch($questionnaire, '(?ms)^  - id: target_patch_parity_override\r?\n.*?type: boolean')) 'patch parity override must be an explicit Boolean question'
 
 $rsp = Read-RepoFile 'tests/fixtures/zdm-response-file.rsp'
 $properties = @{}
@@ -113,7 +117,8 @@ Assert-Contract ($migrationProfileFixture.Contains('ssh_node: target-ssh.example
 Assert-Contract ($migrationProfileFixture.Contains('listener_endpoint: target-scan.example.internal')) 'profile must retain the target listener endpoint'
 Assert-Contract ([regex]::Matches($migrationProfileFixture, '(?m)^    patch_level:').Count -eq 2) 'profile must retain normalized source and target patch levels'
 Assert-Contract ($migrationProfileFixture.Contains('patch_parity_verified: true')) 'profile must retain skill-derived patch parity'
-Assert-Contract ($migrationProfileFixture.Contains('questionnaire_version: 2.2')) 'profile fixture must use questionnaire version 2.2'
+Assert-Contract ($migrationProfileFixture.Contains('patch_parity_override: false')) 'profile must retain the explicit parity override choice'
+Assert-Contract ($migrationProfileFixture.Contains('questionnaire_version: 2.3')) 'profile fixture must use questionnaire version 2.3'
 Assert-Contract ($migrationProfileFixture.Contains('assessment_environment: non_production')) 'profile fixture must identify a sanitized non-production assessment'
 Assert-Contract ($network.Contains('target_listener_endpoint: target-scan.example.internal')) 'network evidence must identify the listener endpoint'
 Assert-Contract (-not $network.Contains('target-ssh.example.internal')) 'network evidence must not claim an SSH-node listener test'
@@ -143,8 +148,11 @@ Assert-Contract ($targetSkill.Contains('FROM dba_registry_sqlpatch')) 'target va
 Assert-Contract ($targetSkill.Contains('$ORACLE_HOME/OPatch/opatch lspatches')) 'target validation must own the target OPatch fallback'
 Assert-Contract ($targetSkill.Contains('Derive `migration.target.patch_parity_verified`')) 'target validation must derive patch parity from evidence'
 Assert-Contract ([regex]::IsMatch($targetSkill, 'A newer target RU\s+alone is not proof')) 'target validation must not equate a newer RU with parity'
+Assert-Contract ($targetSkill.Contains('return `needs-review`')) 'a parity override must preserve needs-review target status'
+Assert-Contract ($targetSkill.Contains('eval artifact generation only')) 'a parity override must be limited to eval artifact generation'
 Assert-Contract ($targetMetadata.Contains('- source_db_patch_level')) 'target validation must consume source patch level data'
 Assert-Contract ($targetMetadata.Contains('- target_db_patch_level')) 'target validation must consume target patch level data'
+Assert-Contract ($targetMetadata.Contains('- target_patch_parity_override')) 'target validation must consume the explicit override choice'
 Assert-Contract (-not $targetMetadata.Contains('- target_patch_parity_verified')) 'target validation must not consume a customer parity assertion'
 Assert-Contract (-not $agent.Contains('FROM dba_registry_sqlpatch')) 'the coordinator must not embed patch-discovery SQL'
 Assert-Contract (-not $agent.Contains('$ORACLE_HOME/OPatch/opatch lspatches')) 'the coordinator must not embed OPatch commands'
@@ -157,8 +165,16 @@ Assert-Contract ($agent.Contains('../../Artifacts/Phase10/migration-profile.yaml
 Assert-Contract ($agent.Contains('../../Artifacts/Phase10/test-answers.yaml')) 'the optional Phase 10 prefill must be read from Artifacts/Phase10'
 Assert-Contract ($agent.Contains('Do not write Phase 10 outputs directly under')) 'the agent must prohibit unscoped Phase 10 outputs'
 Assert-Contract ($phase10Rules.Contains('under `Artifacts/Phase10/`')) 'Phase 10 maintenance rules must require the dedicated artifact directory'
-Assert-Contract ($profileTemplate.Contains('questionnaire_version: 2.2')) 'profile template must use questionnaire version 2.2'
+Assert-Contract ($phase10Rules.Contains('Private IP addresses are permitted only as normalized questionnaire values')) 'Phase 10 rules must allow private IPs only as local operational questionnaire values'
+Assert-Contract ($phase10Rules.Contains('Redact private IPs from sanitized evidence')) 'Phase 10 rules must redact private IPs from evidence and reports'
+Assert-Contract ($agent.Contains('Private IP addresses supplied for `source_ssh_node`')) 'the agent must allow private IP endpoint values in local operational artifacts'
+Assert-Contract ($readinessSkill.Contains('private IPs')) 'readiness reporting must continue to redact private IPs'
+Assert-Contract ($profileTemplate.Contains('questionnaire_version: 2.3')) 'profile template must use questionnaire version 2.3'
 Assert-Contract ($profileTemplate.Contains('assessment_environment:')) 'profile template must include assessment environment metadata'
+Assert-Contract ($profileTemplate.Contains('patch_parity_override: false')) 'profile template must default the parity override to false'
+Assert-Contract ($agent.Contains('target.patch_parity_override') -and $agent.Contains('explicitly')) 'the coordinator must require an explicit parity override'
+Assert-Contract ($agent.Contains('unresolved warning')) 'the coordinator must preserve an override warning'
+Assert-Contract ($readinessSkill.Contains('explicit target patch-parity override')) 'readiness reporting must disclose the parity override warning'
 Assert-Contract ($agent.Contains('representative non-production environment')) 'the coordinator must recommend non-production first'
 Assert-Contract ($agent.Contains('warn') -and [regex]::IsMatch($agent, 'allow the\s+assessment to continue')) 'production assessment must warn without being blocked'
 Assert-Contract ($agent.Contains('Do not generate or present ZDM execution commands without the `-eval` flag')) 'the coordinator must forbid non-eval ZDM execution commands'

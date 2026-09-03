@@ -9,7 +9,10 @@ description: "Generate an Oracle ZDM response file from a validated migration pr
 
 1. Confirm all required validations passed and the selected route is explicitly
 	`enabled` in `../../config/migration-patterns.yaml` for the installed ZDM release.
-	Return `fail` for an unmatched or disabled route. Never use the nearest route.
+	Return `fail` for an unmatched or disabled route. Never use the nearest route. The
+	only allowed validation exception is unverified target patch parity when
+	`migration.target.patch_parity_override` is explicitly `true`; preserve that result
+	as a warning and never describe target validation or parity as passed.
 2. Select only the template named by that enabled route and verify its provenance
 	record. A missing, empty, or comment-only template is a failure.
 3. For `vmdb-to-odaa-physical-offline-zdm26.1`, require these normalized

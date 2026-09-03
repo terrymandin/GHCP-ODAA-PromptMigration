@@ -87,6 +87,12 @@ questionnaire values and sanitized, allowlisted evidence; never write raw comman
 output or secrets. Record the questionnaire version and update date under
 `migration.metadata`.
 
+Private IP addresses supplied for `source_ssh_node`, `source_listener_endpoint`,
+`target_ssh_node`, or `target_listener_endpoint` are permitted normalized questionnaire
+values. Store them only in local, git-ignored Phase 10 operational artifacts that require
+connectivity values. Never copy private IPs into sanitized evidence, readiness reports,
+examples, tests, or committed files.
+
 ## Test prefill answers
 
 Read `../../Artifacts/Phase10/test-answers.yaml` before asking the first question. Use it only
@@ -162,8 +168,13 @@ version-specific command must include an alternative or state the supported vers
 	validation ran based on an eval result.
 - Do not generate or present ZDM execution commands without the `-eval` flag.
 - Do not generate a response file until all required questionnaire values are present.
-- Do not generate when `source.sys_auth_verified` or
-	`target.patch_parity_verified` is not `true` with observed evidence.
+- Do not generate when `source.sys_auth_verified` is not `true` with observed
+	evidence.
+- For target patch parity, generate only when `target.patch_parity_verified` is
+	`true` with observed evidence or `target.patch_parity_override` is explicitly
+	`true`. Never infer the override, set it from a validation result, or treat it as
+	proof of patch parity. An override permits eval artifact generation only and must
+	remain an unresolved warning in validation and readiness results.
 - Set `migration.target.patch_parity_verified` only from a passing `validate-target`
 	result based on observed, sanitized source and target patch evidence.
 - For `migration.transfer.nfs.validated`, never ask the customer for a yes/no assertion.
@@ -174,3 +185,6 @@ version-specific command must include an alternative or state the supported vers
 	listener or SCAN address for an SSH execution node.
 - Never persist a TDE password. `-tdekeystorepasswd` is a bare flag that causes ZDM to
 	prompt locally during customer execution.
+- Private IP addresses are sensitive operational values. Keep them confined to local,
+	git-ignored Phase 10 operational artifacts and redact them from evidence, reports,
+	examples, tests, and commits.

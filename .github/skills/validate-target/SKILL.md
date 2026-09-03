@@ -17,17 +17,24 @@ description: "Validate Oracle ZDM target database prerequisites, including Oracl
    RU/RUR evidence and verify ZDM-compatible Oracle-home patch parity. A newer target RU
    alone is not proof: source one-offs or overlay fixes may still be absent from the
    target.
-4. Derive `migration.target.patch_parity_verified`; never accept an unsupported yes/no
-   questionnaire answer. Accept only a sanitized comparison result containing the
+4. Derive `migration.target.patch_parity_verified`; never accept an override or
+   unsupported yes/no questionnaire answer as verification. Accept verification only
+   from a sanitized comparison result containing the
    source and target RU/RUR patch IDs plus `PATCH_PARITY_PASS`, or
    `PATCH_PARITY_FAIL` plus source-only patch identifiers approved for disclosure.
-5. Never persist raw SQL or OPatch output, hostnames, Oracle-home paths, or the complete
+5. Read `migration.target.patch_parity_override` only as an explicit customer choice.
+   When it is `true` and parity is not verified, retain `patch_parity_verified: false`,
+   return `needs-review`, and emit a non-blocking warning that the override permits ZDM
+   eval artifact generation only. It does not make target validation pass and does not
+   establish migration, cutover, or production readiness.
+6. Never persist raw SQL or OPatch output, hostnames, Oracle-home paths, or the complete
    ZDM patch discrepancy. Persist only normalized source and target RU/RUR descriptions
-   and patch IDs, the sanitized comparison result, and the derived Boolean.
-6. Return `needs-review` when target evidence or parity assessment is missing, `fail`
+   and patch IDs, the sanitized comparison result, the derived Boolean, and the explicit
+   override Boolean.
+7. Return `needs-review` when target evidence or parity assessment is missing, `fail`
    when source-required fixes are missing, and `pass` only after observed parity
    approval. A successful ZDM eval remains the final compatibility gate.
-7. On failure, direct the customer to the supported Oracle Database@Azure patching
+8. On failure, direct the customer to the supported Oracle Database@Azure patching
    process or Oracle Support. Do not advise blindly applying a ZDM-generated list and
    do not add `-ignore` or other bypass flags.
 
@@ -67,6 +74,7 @@ Return `target_validation` with:
 
 - `status`: `pass`, `fail`, or `needs-review`;
 - `evidence`: normalized source and target RU/RUR descriptions and patch IDs, target
-   version, sanitized patch-parity result, and derived parity Boolean only;
+   version, sanitized patch-parity result, derived parity Boolean, and explicit
+   override Boolean only;
 - `findings`: missing or unverified target prerequisites;
 - `remediation`: customer-owned supported patching or support action.

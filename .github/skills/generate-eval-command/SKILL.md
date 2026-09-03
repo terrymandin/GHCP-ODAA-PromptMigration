@@ -7,8 +7,11 @@ description: "Generate a customer-run Oracle ZDM zdmcli migrate database -eval c
 
 ## Procedure
 
-1. Require successful validation and a generated response file.
-   Reject unmatched or disabled routes before command generation.
+1. Require successful validation and a generated response file. The only allowed
+   validation exception is unverified target patch parity when
+   `migration.target.patch_parity_override` is explicitly `true`; preserve that result
+   as a warning and never describe target validation or parity as passed. Reject
+   unmatched or disabled routes before command generation.
 2. Read command inputs only from the canonical migration profile. For a
    single-instance source without Grid Infrastructure, use `-sourcesid`; do not
    substitute the database unique name.

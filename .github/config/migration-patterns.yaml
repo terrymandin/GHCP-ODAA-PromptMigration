@@ -44,6 +44,7 @@ patterns:
       - migration.target.oracle_home
       - migration.target.patch_level
       - migration.target.patch_parity_verified
+      - migration.target.patch_parity_override
       - migration.target.database_unique_name
       - migration.target.data_dg
       - migration.target.redo_dg

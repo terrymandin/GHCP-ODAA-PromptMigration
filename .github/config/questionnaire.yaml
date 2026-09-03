@@ -1,4 +1,4 @@
-version: 2.2
+version: 2.3
 
 profile_mapping:
   assessment_environment: migration.metadata.assessment_environment
@@ -36,6 +36,7 @@ profile_mapping:
   target_sudo_path: migration.target.sudo_path
   target_oracle_home: migration.target.oracle_home
   target_db_patch_level: migration.target.patch_level
+  target_patch_parity_override: migration.target.patch_parity_override
   zdm_release: migration.zdm.release
   zdm_response_file: migration.zdm.response_file
   prompt_for_tde_keystore_password: migration.security.prompt_for_tde_keystore_password
@@ -300,6 +301,12 @@ questions:
   - id: target_db_patch_level
     prompt: Oracle target database patch level (RU/RUR)
     type: text
+    required_when:
+      pattern: vmdb-to-odaa-physical-offline-zdm26.1
+
+  - id: target_patch_parity_override
+    prompt: Proceed to ZDM eval artifact generation without verified target patch parity
+    type: boolean
     required_when:
       pattern: vmdb-to-odaa-physical-offline-zdm26.1
 
